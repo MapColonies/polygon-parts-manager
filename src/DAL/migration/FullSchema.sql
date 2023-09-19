@@ -1,5 +1,3 @@
-CREATE EXTENSION IF NOT EXISTS "postgis";
-
 -- Table: PolygonParts.parts
 
 -- DROP TABLE IF EXISTS "PolygonParts".parts;
@@ -24,6 +22,8 @@ CREATE TABLE IF NOT EXISTS "PolygonParts".parts
     classification numeric NOT NULL,
     description text COLLATE pg_catalog."default",
     geom geometry(Polygon,4326) NOT NULL,
+    "imageName" text COLLATE pg_catalog."default",
+    "productType" text COLLATE pg_catalog."default" NOT NULL DEFAULT 'orthophotoBest'::text,
     CONSTRAINT generate_polygon_parts_pkey PRIMARY KEY ("internalId")
 )
 
@@ -63,7 +63,6 @@ CREATE INDEX IF NOT EXISTS max_resolution_degree_idx
     ON "PolygonParts".parts USING btree
     ("maxResolutionDegree" ASC NULLS LAST)
     TABLESPACE pg_default;
-	
 -- Index: min_resolution_degree_idx
 
 -- DROP INDEX IF EXISTS "PolygonParts".min_resolution_degree_idx;
@@ -72,7 +71,6 @@ CREATE INDEX IF NOT EXISTS min_resolution_degree_idx
     ON "PolygonParts".parts USING btree
     ("minResolutionDegree" ASC NULLS LAST)
     TABLESPACE pg_default;
-	
 -- Index: record_id_idx
 
 -- DROP INDEX IF EXISTS "PolygonParts".record_id_idx;

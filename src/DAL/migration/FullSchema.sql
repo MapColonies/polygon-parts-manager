@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS "PolygonParts".parts
     description text COLLATE pg_catalog."default",
     geom geometry(Polygon,4326) NOT NULL,
     "imageName" text COLLATE pg_catalog."default",
-    "productType" text COLLATE pg_catalog."default" NOT NULL DEFAULT 'orthophotoBest'::text,
+    "productType" text COLLATE pg_catalog."default" NOT NULL,
     CONSTRAINT generate_polygon_parts_pkey PRIMARY KEY ("internalId")
 )
 

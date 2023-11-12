@@ -6,10 +6,9 @@ DECLARE
     is_valid boolean;
     reason text;
 BEGIN
-    -- Use ST_IsValidDetail to check validity and get details
+    -- check validity of the input polygon geometry
     is_valid_result := ST_IsValidDetail(r.geom);
 
-    -- Deconstruct the result into separate variables
     is_valid := is_valid_result.valid;
     reason := is_valid_result.reason;
 
@@ -17,22 +16,33 @@ BEGIN
         RAISE EXCEPTION 'Invalid geometry: %', reason;
     END IF;
 
+    -- check that input polygon extent is within the bbox of the srs (EPSG:4326)
     is_valid := ST_Extent(r.geom)@Box2D(ST_GeomFromText('LINESTRING(-180 -90, 180 90)'));
 
     IF NOT is_valid THEN
         RAISE EXCEPTION 'Invalid geometry extent: %', ST_Extent(r.geom);
     END IF;
 
-    CREATE TEMPORARY TABLE IF NOT EXISTS selected_parts ON COMMIT DROP AS(
+    -- create (if not exists) a temp table to hold results instersection result for the current input
+    CREATE TEMPORARY TABLE IF NOT EXISTS selected_parts ON COMMIT DROP AS (
         SELECT ST_IsEmpty(geom_intersections) is_empty_geom, ST_NumGeometries(geom_intersections) > 1 is_multi, *
         FROM (
             SELECT "internalId", ST_Difference(geom, r.geom) geom_intersections
             FROM "PolygonParts".parts 
             WHERE ST_Intersects(geom, r.geom)
         ) q
-    );
+    ) WITH NO DATA;
 
-    -- insert multi polygons, as polygons generated, by the intersection with input polygon
+    -- insert intersecting polygon parts into a temp table
+    INSERT INTO selected_parts
+	SELECT ST_IsEmpty(geom_intersections) is_empty_geom, ST_NumGeometries(geom_intersections) > 1 is_multi, *
+    FROM (
+        SELECT "internalId", ST_Difference(geom, r.geom) geom_intersections
+        FROM "PolygonParts".parts 
+        WHERE ST_Intersects(geom, r.geom)
+    ) q;
+
+    -- insert multi polygons that are the result of intersection with the input polygon
     INSERT INTO "PolygonParts".parts(geom, "recordId", "productId", "productName", "productVersion", "sourceDateStart", "sourceDateEnd", "minResolutionDeg", "maxResolutionDeg", "minResolutionMeter", "maxResolutionMeter", "minHorizontalAccuracyCE90", "maxHorizontalAccuracyCE90", sensors, region, classification, description, "imageName", "productType", "srsName")
     SELECT "parts_geom" geom, "recordId", "productId", "productName", "productVersion", "sourceDateStart", "sourceDateEnd", "minResolutionDeg", "maxResolutionDeg", "minResolutionMeter", "maxResolutionMeter", "minHorizontalAccuracyCE90", "maxHorizontalAccuracyCE90", sensors, region, classification, description, "imageName", "productType", "srsName"
     FROM (SELECT (ST_Dump(geom_intersections)).geom parts_geom, p.*
@@ -40,17 +50,23 @@ BEGIN
         JOIN "PolygonParts".parts p
         ON selected_parts."internalId" = p."internalId" AND selected_parts.is_multi IS true) q;
 
+    -- update geometries of polygon parts intersecting with input polygon
     UPDATE "PolygonParts".parts
     SET geom = selected_parts.geom_intersections
     FROM selected_parts
     WHERE parts."internalId" = selected_parts."internalId" AND selected_parts.is_empty_geom IS false AND selected_parts.is_multi IS false;
     
+    -- delete completely covered polygon parts by the input polygon
     DELETE FROM "PolygonParts".parts
     WHERE (parts."internalId", true) IN (SELECT "internalId", is_empty_geom FROM selected_parts) OR
     (parts."internalId", true) IN (SELECT "internalId", is_multi FROM selected_parts);
     
+    -- insert the imput record
     INSERT INTO "PolygonParts".parts("recordId", "productId", "productName", "productVersion", "sourceDateStart", "sourceDateEnd", "minResolutionDeg", "maxResolutionDeg", "minResolutionMeter", "maxResolutionMeter", "minHorizontalAccuracyCE90", "maxHorizontalAccuracyCE90", sensors, region, classification, description, geom, "imageName", "productType", "srsName")
     VALUES(r.*);
+
+    -- clear the temp table
+    TRUNCATE selected_parts;
     
     COMMIT;
 END;

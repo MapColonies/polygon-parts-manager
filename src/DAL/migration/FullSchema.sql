@@ -97,3 +97,4 @@ CREATE INDEX IF NOT EXISTS source_date_start_idx
     ON "PolygonParts".parts USING btree
     ("sourceDateStart" ASC NULLS LAST)
     TABLESPACE pg_default;
+    

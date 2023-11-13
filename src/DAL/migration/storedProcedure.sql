@@ -23,15 +23,10 @@ BEGIN
         RAISE EXCEPTION 'Invalid geometry extent: %', ST_Extent(r.geom);
     END IF;
 
-    -- create (if not exists) a temp table to hold results instersection result for the current input
-    CREATE TEMPORARY TABLE IF NOT EXISTS selected_parts ON COMMIT DROP AS (
-        SELECT ST_IsEmpty(geom_intersections) is_empty_geom, ST_NumGeometries(geom_intersections) > 1 is_multi, *
-        FROM (
-            SELECT "internalId", ST_Difference(geom, r.geom) geom_intersections
-            FROM "PolygonParts".parts 
-            WHERE ST_Intersects(geom, r.geom)
-        ) q
-    ) WITH NO DATA;
+    -- create (if not exists) a temp table structure to hold results instersection result for the current input
+    CREATE TEMPORARY TABLE IF NOT EXISTS selected_parts (
+        is_empty_geom boolean NOT NULL,is_multi boolean NOT NULL, "internalId" integer NOT NULL, geom_intersections geometry(Polygon,4326) NOT NULL
+    ) ON COMMIT DROP;
 
     -- insert intersecting polygon parts into a temp table
     INSERT INTO selected_parts

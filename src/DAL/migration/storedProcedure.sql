@@ -25,7 +25,7 @@ BEGIN
 
     -- create (if not exists) a temp table structure to hold instersection results for the current input
     CREATE TEMPORARY TABLE IF NOT EXISTS selected_parts (
-        is_empty_geom boolean NOT NULL, is_multi boolean NOT NULL, "internalId" integer NOT NULL, geom_intersections geometry(Polygon, 4326) NOT NULL
+        is_empty_geom boolean NOT NULL, is_multi boolean NOT NULL, "internalId" integer NOT NULL, geom_intersections geometry(MultiPolygon, 4326) NOT NULL
     ) ON COMMIT DROP;
 
     -- insert intersecting polygon parts into a temp table

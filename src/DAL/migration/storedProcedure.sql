@@ -68,8 +68,6 @@ BEGIN
 
     -- clear the temp table
     TRUNCATE selected_parts;
-    
-    COMMIT;
 END;
 $$;
 

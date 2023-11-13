@@ -1,2 +1,2 @@
-SELECT "internalId", "description", st_asgeojson(geom,9,1)::json as geojson, st_asgeojson(geom,9,1)::json->'bbox' as bBoX
+SELECT "internalId", "description", ST_AsGeoJSON(geom, 9, 1)::json as geojson, ST_AsGeoJSON(geom, 9, 1)::json->'bbox' as bBox
 	FROM "PolygonParts".parts;

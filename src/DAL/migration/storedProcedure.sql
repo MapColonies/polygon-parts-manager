@@ -23,7 +23,7 @@ BEGIN
         RAISE EXCEPTION 'Invalid geometry extent: %', ST_Extent(r.geom);
     END IF;
 
-    -- create (if not exists) a temp table structure to hold results instersection result for the current input
+    -- create (if not exists) a temp table structure to hold instersection results for the current input
     CREATE TEMPORARY TABLE IF NOT EXISTS selected_parts (
         is_empty_geom boolean NOT NULL,is_multi boolean NOT NULL, "internalId" integer NOT NULL, geom_intersections geometry(Polygon,4326) NOT NULL
     ) ON COMMIT DROP;

@@ -34,6 +34,7 @@ BEGIN
         FROM (
             SELECT "internalId", ST_Difference(geom, r.geom) inner_geom_intersections
             FROM "PolygonParts".parts
+            WHERE "recordId" = r."recordId"
         ) q
     )
     INSERT INTO selected_parts
@@ -64,11 +65,11 @@ BEGIN
     SET geom = selected_parts.geom_intersections
     FROM selected_parts
     WHERE parts."internalId" = selected_parts."internalId" AND selected_parts.is_empty_geom IS false AND selected_parts.is_multi IS false;
-    
+
     -- delete completely covered polygon parts by the input polygon and multi polygon parts that were separated to it's composing parts.
     DELETE FROM "PolygonParts".parts
-    WHERE (parts."internalId", true) IN (SELECT "internalId", is_empty_geom FROM selected_parts) OR
-    (parts."internalId", true) IN (SELECT DISTINCT "internalId", is_multi FROM selected_parts);
+    WHERE ("internalId", true) IN (SELECT "internalId", is_empty_geom FROM selected_parts) OR
+    ("internalId", true) IN (SELECT DISTINCT "internalId", is_multi FROM selected_parts);
     
     -- insert the input record
     INSERT INTO "PolygonParts".parts("recordId", "productId", "productName", "productVersion", "sourceDateStart", "sourceDateEnd", "minResolutionDeg", "maxResolutionDeg", "minResolutionMeter", "maxResolutionMeter", "minHorizontalAccuracyCE90", "maxHorizontalAccuracyCE90", sensors, region, classification, description, geom, "imageName", "productType", "srsName")

@@ -1,14 +1,13 @@
 -- Table: PolygonParts.parts
 
 -- DROP TABLE IF EXISTS "PolygonParts".parts;
--- TODO: change owner
 
 CREATE TABLE IF NOT EXISTS "PolygonParts".parts
 (
     "internalId" integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
     "recordId" uuid NOT NULL,
-    "productId" text COLLATE pg_catalog."default" NOT NULL,
-    "productName" text COLLATE pg_catalog."default" NOT NULL,
+    "productId" text COLLATE pg_catalog."default",
+    "productName" text COLLATE pg_catalog."default",
     "productVersion" text COLLATE pg_catalog."default",
     "ingestionDate" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "sourceDateStart" timestamp with time zone NOT NULL,
@@ -16,13 +15,12 @@ CREATE TABLE IF NOT EXISTS "PolygonParts".parts
     "minResolutionDeg" numeric NOT NULL,
     "maxResolutionDeg" numeric NOT NULL,
     "minResolutionMeter" numeric NOT NULL,
-    
     "maxResolutionMeter" numeric NOT NULL,
     "minHorizontalAccuracyCE90" real,
     "maxHorizontalAccuracyCE90" real,
-    sensors text COLLATE pg_catalog."default" NOT NULL DEFAULT 'unknown'::text,
+    sensors text COLLATE pg_catalog."default",
     region text COLLATE pg_catalog."default",
-    classification "PolygonParts".classification NOT NULL,
+    classification "PolygonParts".classification,
     description text COLLATE pg_catalog."default",
     geom geometry(Polygon,4326) NOT NULL,
     "imageName" text COLLATE pg_catalog."default",

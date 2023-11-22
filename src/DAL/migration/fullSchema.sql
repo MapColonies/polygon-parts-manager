@@ -1,6 +1,7 @@
 -- Table: PolygonParts.parts
 
 -- DROP TABLE IF EXISTS "PolygonParts".parts;
+-- TODO: change owner
 
 CREATE TABLE IF NOT EXISTS "PolygonParts".parts
 (
@@ -15,6 +16,7 @@ CREATE TABLE IF NOT EXISTS "PolygonParts".parts
     "minResolutionDeg" numeric NOT NULL,
     "maxResolutionDeg" numeric NOT NULL,
     "minResolutionMeter" numeric NOT NULL,
+    
     "maxResolutionMeter" numeric NOT NULL,
     "minHorizontalAccuracyCE90" real,
     "maxHorizontalAccuracyCE90" real,

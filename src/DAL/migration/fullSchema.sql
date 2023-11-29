@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS "PolygonParts".parts
     "imageName" text COLLATE pg_catalog."default",
     "productType" "PolygonParts".product_type NOT NULL DEFAULT 'Orthophoto'::"PolygonParts".product_type,
     "srsName" text COLLATE pg_catalog."default" NOT NULL DEFAULT 'GCS_WGS_1984'::text,
-    CONSTRAINT generate_polygon_parts_pkey PRIMARY KEY ("internalId")
+    CONSTRAINT parts_pkey PRIMARY KEY ("internalId")
 )
 
 TABLESPACE pg_default;

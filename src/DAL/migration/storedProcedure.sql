@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE insert_polygon_part(r "PolygonParts".insert_polygon_part_record)
+CREATE OR REPLACE PROCEDURE "PolygonParts".insert_polygon_part(r "PolygonParts".insert_polygon_part_record)
 LANGUAGE plpgsql
 AS $$
 DECLARE
@@ -22,61 +22,10 @@ BEGIN
     IF NOT is_valid THEN
         RAISE EXCEPTION 'Invalid geometry extent: %', ST_Extent(r.geom);
     END IF;
-
-    -- create (if not exists) a temp table structure to hold results of instersection with current input
-    CREATE TEMPORARY TABLE IF NOT EXISTS selected_parts (
-        "internalId" integer NOT NULL, is_empty_geom boolean NOT NULL, is_multi boolean NOT NULL, geom_intersections geometry(Polygon, 4326) NOT NULL
-    ) ON COMMIT DROP;
-
-    -- insert intersecting polygon parts into a temp table
-    WITH intersections AS (
-        SELECT "internalId", ST_IsEmpty(inner_geom_intersections) is_empty_geom, ST_NumGeometries(inner_geom_intersections) > 1 is_multi, inner_geom_intersections
-        FROM (
-            SELECT "internalId", ST_Difference(geom, r.geom) inner_geom_intersections
-            FROM "PolygonParts".parts
-            WHERE "recordId" = r."recordId"
-        ) q
-    )
-    INSERT INTO selected_parts
-    SELECT intersections."internalId", is_empty_geom, is_multi,
-    CASE 
-        WHEN is_multi is true THEN multipart_geom_intersections
-        WHEN is_multi is false THEN inner_geom_intersections
-    END geom_intersections
-    FROM intersections
-    LEFT JOIN (
-        SELECT "internalId", (st_dump(inner_geom_intersections)).geom AS multipart_geom_intersections
-        FROM intersections
-    ) q
-    ON intersections."internalId" = q."internalId";
-
-    -- insert multi polygons that are the result of intersection with the input polygon
-    INSERT INTO "PolygonParts".parts(geom, "recordId", "productId", "productName", "productVersion", "sourceDateStart", "sourceDateEnd", "minResolutionDeg", "maxResolutionDeg", "minResolutionMeter", "maxResolutionMeter", "minHorizontalAccuracyCE90", "maxHorizontalAccuracyCE90", sensors, region, classification, description, "imageName", "productType", "srsName")
-    SELECT "geom_intersections" geom, "recordId", "productId", "productName", "productVersion", "sourceDateStart", "sourceDateEnd", "minResolutionDeg", "maxResolutionDeg", "minResolutionMeter", "maxResolutionMeter", "minHorizontalAccuracyCE90", "maxHorizontalAccuracyCE90", sensors, region, classification, description, "imageName", "productType", "srsName"
-    FROM (
-        SELECT geom_intersections, p.*
-        FROM selected_parts
-        JOIN "PolygonParts".parts p
-        ON selected_parts."internalId" = p."internalId" AND selected_parts.is_multi IS true
-    ) q;
-
-    -- update geometries of polygon parts intersecting with input polygon
-    UPDATE "PolygonParts".parts
-    SET geom = selected_parts.geom_intersections
-    FROM selected_parts
-    WHERE parts."internalId" = selected_parts."internalId" AND selected_parts.is_empty_geom IS false AND selected_parts.is_multi IS false;
-
-    -- delete completely covered polygon parts by the input polygon and multi polygon parts that were separated to it's composing parts.
-    DELETE FROM "PolygonParts".parts
-    WHERE ("internalId", true) IN (SELECT "internalId", is_empty_geom FROM selected_parts) OR
-    ("internalId", true) IN (SELECT DISTINCT "internalId", is_multi FROM selected_parts);
     
     -- insert the input record
     INSERT INTO "PolygonParts".parts("recordId", "productId", "productName", "productVersion", "sourceDateStart", "sourceDateEnd", "minResolutionDeg", "maxResolutionDeg", "minResolutionMeter", "maxResolutionMeter", "minHorizontalAccuracyCE90", "maxHorizontalAccuracyCE90", sensors, region, classification, description, geom, "imageName", "productType", "srsName")
     VALUES(r.*);
-
-    -- clear the temp table
-    TRUNCATE selected_parts;
 END;
 $$;
 

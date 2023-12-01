@@ -33,67 +33,67 @@ TABLESPACE pg_default;
 
 ALTER TABLE IF EXISTS "PolygonParts".parts
     OWNER to postgres;
--- Index: geom_idx
+-- Index: parts_geom_idx
 
--- DROP INDEX IF EXISTS "PolygonParts".geom_idx;
+-- DROP INDEX IF EXISTS "PolygonParts".parts_geom_idx;
 
-CREATE INDEX IF NOT EXISTS geom_idx
+CREATE INDEX IF NOT EXISTS parts_geom_idx
     ON "PolygonParts".parts USING gist
     (geom)
     TABLESPACE pg_default;
--- Index: ingestion_date_idx
+-- Index: parts_ingestion_date_idx
 
--- DROP INDEX IF EXISTS "PolygonParts".ingestion_date_idx;
+-- DROP INDEX IF EXISTS "PolygonParts".parts_ingestion_date_idx;
 
-CREATE INDEX IF NOT EXISTS ingestion_date_idx
+CREATE INDEX IF NOT EXISTS parts_ingestion_date_idx
     ON "PolygonParts".parts USING btree
     ("ingestionDate" ASC NULLS LAST)
     TABLESPACE pg_default;
--- Index: internal_id_idx
+-- Index: parts_internal_id_idx
 
--- DROP INDEX IF EXISTS "PolygonParts".internal_id_idx;
+-- DROP INDEX IF EXISTS "PolygonParts".parts_internal_id_idx;
 
-CREATE INDEX IF NOT EXISTS internal_id_idx
+CREATE INDEX IF NOT EXISTS parts_internal_id_idx
     ON "PolygonParts".parts USING btree
     ("internalId" ASC NULLS LAST)
     TABLESPACE pg_default;
--- Index: max_resolution_degree_idx
+-- Index: parts_max_resolution_degree_idx
 
--- DROP INDEX IF EXISTS "PolygonParts".max_resolution_degree_idx;
+-- DROP INDEX IF EXISTS "PolygonParts".parts_max_resolution_degree_idx;
 
-CREATE INDEX IF NOT EXISTS max_resolution_degree_idx
+CREATE INDEX IF NOT EXISTS parts_max_resolution_degree_idx
     ON "PolygonParts".parts USING btree
     ("maxResolutionDeg" ASC NULLS LAST)
     TABLESPACE pg_default;
--- Index: min_resolution_degree_idx
+-- Index: parts_min_resolution_degree_idx
 
--- DROP INDEX IF EXISTS "PolygonParts".min_resolution_degree_idx;
+-- DROP INDEX IF EXISTS "PolygonParts".parts_min_resolution_degree_idx;
 
-CREATE INDEX IF NOT EXISTS min_resolution_degree_idx
+CREATE INDEX IF NOT EXISTS parts_min_resolution_degree_idx
     ON "PolygonParts".parts USING btree
     ("minResolutionDeg" ASC NULLS LAST)
     TABLESPACE pg_default;
--- Index: record_id_idx
+-- Index: parts_record_id_idx
 
--- DROP INDEX IF EXISTS "PolygonParts".record_id_idx;
+-- DROP INDEX IF EXISTS "PolygonParts".parts_record_id_idx;
 
-CREATE INDEX IF NOT EXISTS record_id_idx
+CREATE INDEX IF NOT EXISTS parts_record_id_idx
     ON "PolygonParts".parts USING hash
     ("recordId")
     TABLESPACE pg_default;
--- Index: source_date_end_idx
+-- Index: parts_source_date_end_idx
 
--- DROP INDEX IF EXISTS "PolygonParts".source_date_end_idx;
+-- DROP INDEX IF EXISTS "PolygonParts".parts_source_date_end_idx;
 
-CREATE INDEX IF NOT EXISTS source_date_end_idx
+CREATE INDEX IF NOT EXISTS parts_source_date_end_idx
     ON "PolygonParts".parts USING btree
     ("sourceDateEnd" ASC NULLS LAST)
     TABLESPACE pg_default;
--- Index: source_date_start_idx
+-- Index: parts_source_date_start_idx
 
--- DROP INDEX IF EXISTS "PolygonParts".source_date_start_idx;
+-- DROP INDEX IF EXISTS "PolygonParts".parts_source_date_start_idx;
 
-CREATE INDEX IF NOT EXISTS source_date_start_idx
+CREATE INDEX IF NOT EXISTS parts_source_date_start_idx
     ON "PolygonParts".parts USING btree
     ("sourceDateStart" ASC NULLS LAST)
     TABLESPACE pg_default;

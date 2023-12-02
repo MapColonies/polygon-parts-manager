@@ -30,13 +30,17 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS "PolygonParts".polygon_parts TABLESPACE p
    FROM (
          SELECT (
                st_dump(
-                  "PolygonParts".mc_merge_polygons(inner_parts.geom)
+                  "PolygonParts".mc_merge_polygons(
+                     inner_parts.geom
+                     ORDER BY inner_parts."internalId"
+                  )
                )
             ).geom AS geom,
             inner_parts."recordId"
          FROM (
                SELECT parts_1.geom,
-                  parts_1."recordId"
+                  parts_1."recordId",
+                  parts_1."internalId"
                FROM "PolygonParts".parts parts_1
             ) inner_parts
          GROUP BY inner_parts."recordId"
@@ -69,7 +73,6 @@ SELECT row_number() OVER () AS id,
    joined_parts."srsName"
 FROM joined_parts
 WHERE joined_parts.row_num = 1 WITH DATA;
-
 ALTER TABLE IF EXISTS "PolygonParts".polygon_parts OWNER TO postgres;
 CREATE INDEX polygon_parts_geom_idx ON "PolygonParts".polygon_parts USING gist (geom) TABLESPACE pg_default;
 CREATE UNIQUE INDEX polygon_parts_id_idx ON "PolygonParts".polygon_parts USING btree (id) TABLESPACE pg_default;

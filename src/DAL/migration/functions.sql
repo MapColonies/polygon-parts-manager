@@ -15,11 +15,19 @@ BEGIN
         RETURN geom;
     ELSE
 		RETURN st_collect(st_collect(res), geom) FROM (
-			SELECT ST_Difference(geom_dump, geom) as res
+			SELECT geom_dump as res
 			FROM (
 				SELECT (st_dump(state)).geom AS geom_dump
 			) exploded_parts
-		) exploded_parts_without_current;
+			WHERE NOT st_intersects(geom_dump, geom)
+			UNION ALL
+			SELECT st_difference(geom_dump, geom) as res
+			FROM (
+				SELECT (st_dump(state)).geom AS geom_dump
+			) exploded_parts
+			WHERE st_intersects(geom_dump, geom)
+		) exploded_parts_without_current
+        WHERE NOT st_isempty(res);
     END IF;
 END;
 $BODY$;

@@ -5,7 +5,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS "PolygonParts".polygon_parts TABLESPACE p
          PARTITION BY polygon_parts.geom
          ORDER BY parts."internalId" DESC
       ) AS row_num,
-      polygon_parts.geom,
+      st_transform(polygon_parts.geom, 4326) geom,
       parts."internalId",
       parts."recordId",
       parts."productId",
@@ -38,14 +38,14 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS "PolygonParts".polygon_parts TABLESPACE p
             ).geom AS geom,
             inner_parts."recordId"
          FROM (
-               SELECT parts_1.geom,
+               SELECT st_transform(parts_1.geom, 3395) geom,
                   parts_1."recordId",
                   parts_1."internalId"
                FROM "PolygonParts".parts parts_1
             ) inner_parts
          GROUP BY inner_parts."recordId"
       ) polygon_parts
-      LEFT JOIN "PolygonParts".parts parts ON st_coveredby(polygon_parts.geom, parts.geom)
+      LEFT JOIN "PolygonParts".parts parts ON st_coveredby(polygon_parts.geom, st_transform(parts.geom, 3395))
       AND polygon_parts."recordId" = parts."recordId"
 )
 SELECT row_number() OVER () AS id,

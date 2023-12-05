@@ -45,7 +45,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS "PolygonParts".polygon_parts TABLESPACE p
             ) inner_parts
          GROUP BY inner_parts."recordId"
       ) polygon_parts
-      JOIN "PolygonParts".parts parts ON st_coveredby(polygon_parts.geom, parts.geom)
+      LEFT JOIN "PolygonParts".parts parts ON st_coveredby(polygon_parts.geom, parts.geom)
       AND polygon_parts."recordId" = parts."recordId"
 )
 SELECT row_number() OVER () AS id,

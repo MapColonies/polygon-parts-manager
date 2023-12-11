@@ -20,6 +20,20 @@ ALTER TYPE "PolygonParts".product_type
     OWNER TO postgres;
 
 
+-- Type: mc_merge_tuple
+
+-- DROP TYPE IF EXISTS "PolygonParts".mc_merge_tuple;
+
+CREATE TYPE "PolygonParts".mc_merge_tuple AS
+(
+	geom geometry,
+	ids integer[]
+);
+
+ALTER TYPE "PolygonParts".mc_merge_tuple
+    OWNER TO postgres;
+
+
 -- Type: insert_polygon_part_record
 
 -- DROP TYPE IF EXISTS "PolygonParts".insert_polygon_part_record;

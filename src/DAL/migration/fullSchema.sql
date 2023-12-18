@@ -159,7 +159,6 @@ CREATE INDEX IF NOT EXISTS polygon_parts_ingestion_date_idx
 CREATE INDEX IF NOT EXISTS polygon_parts_internal_id_idx
     ON "PolygonParts".polygon_parts USING btree
     ("internalId" ASC NULLS LAST)
-    WITH (deduplicate_items=True)
     TABLESPACE pg_default;
 -- Index: polygon_parts_max_resolution_degree_idx
 

@@ -9,11 +9,11 @@ CREATE TABLE IF NOT EXISTS "PolygonParts".parts
     "productId" text COLLATE pg_catalog."default",
     "productName" text COLLATE pg_catalog."default",
     "productVersion" text COLLATE pg_catalog."default",
-    "ingestionDate" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "sourceDateStart" timestamp with time zone NOT NULL,
-    "sourceDateEnd" timestamp with time zone NOT NULL,
-    "minResolutionDeg" numeric NOT NULL,
-    "maxResolutionDeg" numeric NOT NULL,
+    "ingestionDateUTC" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "sourceDateStartUTC" timestamp with time zone NOT NULL,
+    "sourceDateEndUTC" timestamp with time zone NOT NULL,
+    "minResolutionDegree" numeric NOT NULL,
+    "maxResolutionDegree" numeric NOT NULL,
     "minResolutionMeter" numeric NOT NULL,
     "maxResolutionMeter" numeric NOT NULL,
     "minHorizontalAccuracyCE90" real,
@@ -48,7 +48,7 @@ CREATE INDEX IF NOT EXISTS parts_geom_idx
 
 CREATE INDEX IF NOT EXISTS parts_ingestion_date_idx
     ON "PolygonParts".parts USING btree
-    ("ingestionDate" ASC NULLS LAST)
+    ("ingestionDateUTC" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: parts_max_resolution_degree_idx
 
@@ -56,7 +56,7 @@ CREATE INDEX IF NOT EXISTS parts_ingestion_date_idx
 
 CREATE INDEX IF NOT EXISTS parts_max_resolution_degree_idx
     ON "PolygonParts".parts USING btree
-    ("maxResolutionDeg" ASC NULLS LAST)
+    ("maxResolutionDegree" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: parts_min_resolution_degree_idx
 
@@ -64,7 +64,7 @@ CREATE INDEX IF NOT EXISTS parts_max_resolution_degree_idx
 
 CREATE INDEX IF NOT EXISTS parts_min_resolution_degree_idx
     ON "PolygonParts".parts USING btree
-    ("minResolutionDeg" ASC NULLS LAST)
+    ("minResolutionDegree" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: parts_part_id_idx
 
@@ -88,7 +88,7 @@ CREATE INDEX IF NOT EXISTS parts_record_id_idx
 
 CREATE INDEX IF NOT EXISTS parts_source_date_end_idx
     ON "PolygonParts".parts USING btree
-    ("sourceDateEnd" ASC NULLS LAST)
+    ("sourceDateEndUTC" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: parts_source_date_start_idx
 
@@ -96,7 +96,7 @@ CREATE INDEX IF NOT EXISTS parts_source_date_end_idx
 
 CREATE INDEX IF NOT EXISTS parts_source_date_start_idx
     ON "PolygonParts".parts USING btree
-    ("sourceDateStart" ASC NULLS LAST)
+    ("sourceDateStartUTC" ASC NULLS LAST)
     TABLESPACE pg_default;
 
 
@@ -112,11 +112,11 @@ CREATE TABLE IF NOT EXISTS "PolygonParts".polygon_parts
     "productId" text COLLATE pg_catalog."default",
     "productName" text COLLATE pg_catalog."default",
     "productVersion" text COLLATE pg_catalog."default",
-    "ingestionDate" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "sourceDateStart" timestamp with time zone NOT NULL,
-    "sourceDateEnd" timestamp with time zone NOT NULL,
-    "minResolutionDeg" numeric NOT NULL,
-    "maxResolutionDeg" numeric NOT NULL,
+    "ingestionDateUTC" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "sourceDateStartUTC" timestamp with time zone NOT NULL,
+    "sourceDateEndUTC" timestamp with time zone NOT NULL,
+    "minResolutionDegree" numeric NOT NULL,
+    "maxResolutionDegree" numeric NOT NULL,
     "minResolutionMeter" numeric NOT NULL,
     "maxResolutionMeter" numeric NOT NULL,
     "minHorizontalAccuracyCE90" real,
@@ -150,7 +150,7 @@ CREATE INDEX IF NOT EXISTS polygon_parts_geom_idx
 
 CREATE INDEX IF NOT EXISTS polygon_parts_ingestion_date_idx
     ON "PolygonParts".polygon_parts USING btree
-    ("ingestionDate" ASC NULLS LAST)
+    ("ingestionDateUTC" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: polygon_parts_internal_id_idx
 
@@ -166,7 +166,7 @@ CREATE INDEX IF NOT EXISTS polygon_parts_internal_id_idx
 
 CREATE INDEX IF NOT EXISTS polygon_parts_max_resolution_degree_idx
     ON "PolygonParts".polygon_parts USING btree
-    ("maxResolutionDeg" ASC NULLS LAST)
+    ("maxResolutionDegree" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: polygon_parts_min_resolution_degree_idx
 
@@ -174,7 +174,7 @@ CREATE INDEX IF NOT EXISTS polygon_parts_max_resolution_degree_idx
 
 CREATE INDEX IF NOT EXISTS polygon_parts_min_resolution_degree_idx
     ON "PolygonParts".polygon_parts USING btree
-    ("minResolutionDeg" ASC NULLS LAST)
+    ("minResolutionDegree" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: polygon_parts_part_id_idx
 
@@ -198,7 +198,7 @@ CREATE INDEX IF NOT EXISTS polygon_parts_record_id_idx
 
 CREATE INDEX IF NOT EXISTS polygon_parts_source_date_end_idx
     ON "PolygonParts".polygon_parts USING btree
-    ("sourceDateEnd" ASC NULLS LAST)
+    ("sourceDateEndUTC" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: polygon_parts_source_date_start_idx
 
@@ -206,5 +206,5 @@ CREATE INDEX IF NOT EXISTS polygon_parts_source_date_end_idx
 
 CREATE INDEX IF NOT EXISTS polygon_parts_source_date_start_idx
     ON "PolygonParts".polygon_parts USING btree
-    ("sourceDateStart" ASC NULLS LAST)
+    ("sourceDateStartUTC" ASC NULLS LAST)
     TABLESPACE pg_default;

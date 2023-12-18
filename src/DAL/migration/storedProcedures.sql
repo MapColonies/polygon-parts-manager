@@ -24,7 +24,7 @@ BEGIN
     END IF;
     
     -- insert the input record
-    INSERT INTO "PolygonParts".parts("recordId", "productId", "productName", "productVersion", "sourceDateStart", "sourceDateEnd", "minResolutionDeg", "maxResolutionDeg", "minResolutionMeter", "maxResolutionMeter", "minHorizontalAccuracyCE90", "maxHorizontalAccuracyCE90", sensors, region, classification, description, geom, "imageName", "productType", "srsName")
+    INSERT INTO "PolygonParts".parts("recordId", "productId", "productName", "productVersion", "sourceDateStartUTC", "sourceDateEndUTC", "minResolutionDegree", "maxResolutionDegree", "minResolutionMeter", "maxResolutionMeter", "minHorizontalAccuracyCE90", "maxHorizontalAccuracyCE90", sensors, region, classification, description, geom, "imageName", "productType", "srsName")
     VALUES(r.*);
 END;
 $$;
@@ -76,18 +76,18 @@ BEGIN
 		from tbl
 		where not st_isempty(diff)
 	)
-	insert into "PolygonParts".polygon_parts as pp ("partId", "recordId", "productId", "productName", "productVersion", "ingestionDate", "sourceDateStart", "sourceDateEnd", "minResolutionDeg", "maxResolutionDeg", "minResolutionMeter", "maxResolutionMeter", "minHorizontalAccuracyCE90", "maxHorizontalAccuracyCE90", sensors, region, classification, description, geom, "imageName", "productType", "srsName")
+	insert into "PolygonParts".polygon_parts as pp ("partId", "recordId", "productId", "productName", "productVersion", "ingestionDateUTC", "sourceDateStartUTC", "sourceDateEndUTC", "minResolutionDegree", "maxResolutionDegree", "minResolutionMeter", "maxResolutionMeter", "minHorizontalAccuracyCE90", "maxHorizontalAccuracyCE90", sensors, region, classification, description, geom, "imageName", "productType", "srsName")
 	select 
 		"partId",
 		"recordId",
 		"productId",
 		"productName",
 		"productVersion",
-		"ingestionDate",
-		"sourceDateStart",
-		"sourceDateEnd",
-		"minResolutionDeg",
-		"maxResolutionDeg",
+		"ingestionDateUTC",
+		"sourceDateStartUTC",
+		"sourceDateEndUTC",
+		"minResolutionDegree",
+		"maxResolutionDegree",
 		"minResolutionMeter",
 		"maxResolutionMeter",
 		"minHorizontalAccuracyCE90",
@@ -101,12 +101,12 @@ BEGIN
 		"productType",
 		"srsName"
 	from (
-		select "partId", "recordId", "productId", "productName", "productVersion", "ingestionDate", "sourceDateStart", "sourceDateEnd", "minResolutionDeg", "maxResolutionDeg", "minResolutionMeter", "maxResolutionMeter", "minHorizontalAccuracyCE90", "maxHorizontalAccuracyCE90", sensors, region, classification, description, diff, "imageName", "productType", "srsName"
+		select "partId", "recordId", "productId", "productName", "productVersion", "ingestionDateUTC", "sourceDateStartUTC", "sourceDateEndUTC", "minResolutionDegree", "maxResolutionDegree", "minResolutionMeter", "maxResolutionMeter", "minHorizontalAccuracyCE90", "maxHorizontalAccuracyCE90", sensors, region, classification, description, diff, "imageName", "productType", "srsName"
 		from inserts
 		left join "PolygonParts".parts
 		using ("partId")
 		union all
-		select "partId", "recordId", "productId", "productName", "productVersion", "ingestionDate", "sourceDateStart", "sourceDateEnd", "minResolutionDeg", "maxResolutionDeg", "minResolutionMeter", "maxResolutionMeter", "minHorizontalAccuracyCE90", "maxHorizontalAccuracyCE90", sensors, region, classification, description, geom as diff, "imageName", "productType", "srsName"
+		select "partId", "recordId", "productId", "productName", "productVersion", "ingestionDateUTC", "sourceDateStartUTC", "sourceDateEndUTC", "minResolutionDegree", "maxResolutionDegree", "minResolutionMeter", "maxResolutionMeter", "minHorizontalAccuracyCE90", "maxHorizontalAccuracyCE90", sensors, region, classification, description, geom as diff, "imageName", "productType", "srsName"
 		from unprocessed
 		where "partId" not in (select "partId" from tbl)
 	) inserting_parts;

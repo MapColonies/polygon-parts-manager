@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE "PolygonParts".insert_part(r "PolygonParts".insert_part_record)
+CREATE OR REPLACE PROCEDURE "polygon_parts".insert_part(r "polygon_parts".insert_part_record)
 LANGUAGE plpgsql
 AS $$
 DECLARE
@@ -24,19 +24,19 @@ BEGIN
     END IF;
     
     -- insert the input record
-    INSERT INTO "PolygonParts".parts("recordId", "id", "name", "updatedInVersion", "imagingTimeBeginUTC", "imagingTimeEndUTC", "resolutionDegree", "resolutionMeter", "sourceResolutionMeter", "horizontalAccuracyCE90", sensors, countries, cities, description, "geometry")
+    INSERT INTO "polygon_parts".parts("recordId", "id", "name", "updatedInVersion", "imagingTimeBeginUTC", "imagingTimeEndUTC", "resolutionDegree", "resolutionMeter", "sourceResolutionMeter", "horizontalAccuracyCE90", sensors, countries, cities, description, "geometry")
     VALUES(r.*);
 END;
 $$;
 
--- Usage example: CALL "PolygonParts".insert_part(('795813b2-5c1d-466e-8f19-11c30d395fcd', '123', 'name', '5', '2022-08-22 02:08:10', '2022-08-22 02:08:10', '2022-08-22 02:08:10', 0.0001, 0.3, 0.3, 2.5, 'sensors', NULL, cities, 'description', 'SRID=4326;POLYGON((-20 51,10 51,10 56,-20 56,-20 51))')::"PolygonParts".insert_part_record);
+-- Usage example: CALL "polygon_parts".insert_part(('795813b2-5c1d-466e-8f19-11c30d395fcd', '123', 'name', '5', '2022-08-22 02:08:10', '2022-08-22 02:08:10', 0.0001, 0.3, 0.3, 2.5, 'sensors', NULL, cities, 'description', 'SRID=4326;POLYGON((-20 51,10 51,10 56,-20 56,-20 51))')::"polygon_parts".insert_part_record);
 
 
--- PROCEDURE: PolygonParts.update_polygon_parts()
+-- PROCEDURE: polygon_parts.update_polygon_parts()
 
--- DROP PROCEDURE IF EXISTS "PolygonParts".update_polygon_parts();
+-- DROP PROCEDURE IF EXISTS "polygon_parts".update_polygon_parts();
 
-CREATE OR REPLACE PROCEDURE "PolygonParts".update_polygon_parts(
+CREATE OR REPLACE PROCEDURE "polygon_parts".update_polygon_parts(
 	)
 LANGUAGE 'plpgsql'
 AS $BODY$
@@ -44,7 +44,7 @@ BEGIN
 	drop table if exists tbl;
 	create temp table if not exists tbl on commit delete rows as
 	with unprocessed as (
-		select "partId", "recordId", "geometry" from "PolygonParts".parts where not "isProcessedPart" order by "partId"
+		select "partId", "recordId", "geometry" from "polygon_parts".parts where not "isProcessedPart" order by "partId"
 	)
 	select 
 		t1."internalId",
@@ -52,7 +52,7 @@ BEGIN
 		st_difference(t1."geometry", st_union(t2."geometry")) diff
 	from (
 		select pp."internalId", pp."partId", pp."recordId", pp."geometry"
-		from "PolygonParts".polygon_parts pp
+		from "polygon_parts".polygon_parts pp
 		join unprocessed
 		on st_intersects(pp."geometry", unprocessed."geometry") and pp."recordId" = unprocessed."recordId"
 		union all
@@ -63,12 +63,12 @@ BEGIN
 	on st_intersects(t1."geometry", t2."geometry") and t1."partId" < t2."partId" and t1."recordId" = t2."recordId"
 	group by t1."internalId", t1."partId", t1."recordId", t1."geometry";
 
-	delete from "PolygonParts".polygon_parts as pp
+	delete from "polygon_parts".polygon_parts as pp
 	using tbl
 	where pp."internalId" = tbl."internalId";
 
 	with unprocessed as (
-		select * from "PolygonParts".parts where not "isProcessedPart" order by "partId"
+		select * from "polygon_parts".parts where not "isProcessedPart" order by "partId"
 	), inserts as (
 		select 
 			"partId",
@@ -76,7 +76,7 @@ BEGIN
 		from tbl
 		where not st_isempty(diff)
 	)
-	insert into "PolygonParts".polygon_parts as pp ("partId", "recordId", "id", "name", "updatedInVersion", "ingestionDateUTC", "imagingTimeBeginUTC", "imagingTimeEndUTC", "resolutionDegree", "resolutionMeter", "sourceResolutionMeter", "horizontalAccuracyCE90", sensors, countries, cities, description, "geometry")
+	insert into "polygon_parts".polygon_parts as pp ("partId", "recordId", "id", "name", "updatedInVersion", "ingestionDateUTC", "imagingTimeBeginUTC", "imagingTimeEndUTC", "resolutionDegree", "resolutionMeter", "sourceResolutionMeter", "horizontalAccuracyCE90", sensors, countries, cities, description, "geometry")
 	select 
 		"partId",
 		"recordId",
@@ -98,7 +98,7 @@ BEGIN
 	from (
 		select "partId", "recordId", "id", "name", "updatedInVersion", "ingestionDateUTC", "imagingTimeBeginUTC", "imagingTimeEndUTC", "resolutionDegree", "resolutionMeter", "sourceResolutionMeter", "horizontalAccuracyCE90", sensors, countries, cities, description, diff
 		from inserts
-		left join "PolygonParts".parts
+		left join "polygon_parts".parts
 		using ("partId")
 		union all
 		select "partId", "recordId", "id", "name", "updatedInVersion", "ingestionDateUTC", "imagingTimeBeginUTC", "imagingTimeEndUTC", "resolutionDegree", "resolutionMeter", "sourceResolutionMeter", "horizontalAccuracyCE90", sensors, countries, cities, description, "geometry" as diff
@@ -106,11 +106,11 @@ BEGIN
 		where "partId" not in (select "partId" from tbl)
 	) inserting_parts;
 
-	update "PolygonParts".parts
+	update "polygon_parts".parts
 	set "isProcessedPart" = true
 	where "isProcessedPart" = false;
 END;
 $BODY$;
-ALTER PROCEDURE "PolygonParts".update_polygon_parts()
+ALTER PROCEDURE "polygon_parts".update_polygon_parts()
     OWNER TO postgres;
 

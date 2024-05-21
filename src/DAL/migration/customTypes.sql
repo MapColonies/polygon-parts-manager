@@ -1,6 +1,6 @@
--- DROP TYPE IF EXISTS "PolygonParts".insert_part_record;
+-- DROP TYPE IF EXISTS "polygon_parts".insert_part_record;
 
-CREATE TYPE "PolygonParts".insert_part_record AS
+CREATE TYPE "polygon_parts".insert_part_record AS
 (
 	"recordId" uuid,
 	"id" text,
@@ -19,5 +19,5 @@ CREATE TYPE "PolygonParts".insert_part_record AS
 	"geometry" geometry(Polygon,4326)
 );
 
-ALTER TYPE "PolygonParts".insert_part_record
+ALTER TYPE "polygon_parts".insert_part_record
     OWNER TO postgres;

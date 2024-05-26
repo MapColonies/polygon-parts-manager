@@ -24,7 +24,7 @@ BEGIN
     END IF;
     
     -- insert the input record
-    INSERT INTO "polygon_parts".parts("recordId", "id", "name", "updatedInVersion", "imagingTimeBeginUTC", "imagingTimeEndUTC", "resolutionDegree", "resolutionMeter", "sourceResolutionMeter", "horizontalAccuracyCE90", sensors, countries, cities, description, "geometry")
+    INSERT INTO "polygon_parts".parts("record_id", "id", "name", "updated_in_version", "imaging_time_begin_UTC", "imaging_time_end_UTC", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry")
     VALUES(r.*);
 END;
 $$;
@@ -44,71 +44,71 @@ BEGIN
 	drop table if exists tbl;
 	create temp table if not exists tbl on commit delete rows as
 	with unprocessed as (
-		select "partId", "recordId", "geometry" from "polygon_parts".parts where not "isProcessedPart" order by "partId"
+		select "part_id", "record_id", "geometry" from "polygon_parts".parts where not "is_processed_part" order by "part_id"
 	)
 	select 
-		t1."internalId",
-		t1."partId",
+		t1."internal_id",
+		t1."part_id",
 		st_difference(t1."geometry", st_union(t2."geometry")) diff
 	from (
-		select pp."internalId", pp."partId", pp."recordId", pp."geometry"
+		select pp."internal_id", pp."part_id", pp."record_id", pp."geometry"
 		from "polygon_parts".polygon_parts pp
 		join unprocessed
-		on st_intersects(pp."geometry", unprocessed."geometry") and pp."recordId" = unprocessed."recordId"
+		on st_intersects(pp."geometry", unprocessed."geometry") and pp."record_id" = unprocessed."record_id"
 		union all
-		select NULL, "partId", "recordId", "geometry"
+		select NULL, "part_id", "record_id", "geometry"
 		from unprocessed
 	) t1
 	inner join unprocessed t2
-	on st_intersects(t1."geometry", t2."geometry") and t1."partId" < t2."partId" and t1."recordId" = t2."recordId"
-	group by t1."internalId", t1."partId", t1."recordId", t1."geometry";
+	on st_intersects(t1."geometry", t2."geometry") and t1."part_id" < t2."part_id" and t1."record_id" = t2."record_id"
+	group by t1."internal_id", t1."part_id", t1."record_id", t1."geometry";
 
 	delete from "polygon_parts".polygon_parts as pp
 	using tbl
-	where pp."internalId" = tbl."internalId";
+	where pp."internal_id" = tbl."internal_id";
 
 	with unprocessed as (
-		select * from "polygon_parts".parts where not "isProcessedPart" order by "partId"
+		select * from "polygon_parts".parts where not "is_processed_part" order by "part_id"
 	), inserts as (
 		select 
-			"partId",
+			"part_id",
 			diff
 		from tbl
 		where not st_isempty(diff)
 	)
-	insert into "polygon_parts".polygon_parts as pp ("partId", "recordId", "id", "name", "updatedInVersion", "ingestionDateUTC", "imagingTimeBeginUTC", "imagingTimeEndUTC", "resolutionDegree", "resolutionMeter", "sourceResolutionMeter", "horizontalAccuracyCE90", sensors, countries, cities, description, "geometry")
+	insert into "polygon_parts".polygon_parts as pp ("part_id", "record_id", "id", "name", "updated_in_version", "ingestion_date_UTC", "imaging_time_begin_UTC", "imaging_time_end_UTC", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry")
 	select 
-		"partId",
-		"recordId",
+		"part_id",
+		"record_id",
 		"id",
 		"name",
-		"updatedInVersion",
-		"ingestionDateUTC",
-		"imagingTimeBeginUTC",
-		"imagingTimeEndUTC",
-		"resolutionDegree",
-		"resolutionMeter",
-		"sourceResolutionMeter",
-		"horizontalAccuracyCE90",
+		"updated_in_version",
+		"ingestion_date_UTC",
+		"imaging_time_begin_UTC",
+		"imaging_time_end_UTC",
+		"resolution_degree",
+		"resolution_meter",
+		"source_resolution_meter",
+		"horizontal_accuracy_ce_90",
 		sensors,
 		countries,
 		cities,
 		description,
 		(st_dump(diff)).geom as "geometry"
 	from (
-		select "partId", "recordId", "id", "name", "updatedInVersion", "ingestionDateUTC", "imagingTimeBeginUTC", "imagingTimeEndUTC", "resolutionDegree", "resolutionMeter", "sourceResolutionMeter", "horizontalAccuracyCE90", sensors, countries, cities, description, diff
+		select "part_id", "record_id", "id", "name", "updated_in_version", "ingestion_date_UTC", "imaging_time_begin_UTC", "imaging_time_end_UTC", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, diff
 		from inserts
 		left join "polygon_parts".parts
-		using ("partId")
+		using ("part_id")
 		union all
-		select "partId", "recordId", "id", "name", "updatedInVersion", "ingestionDateUTC", "imagingTimeBeginUTC", "imagingTimeEndUTC", "resolutionDegree", "resolutionMeter", "sourceResolutionMeter", "horizontalAccuracyCE90", sensors, countries, cities, description, "geometry" as diff
+		select "part_id", "record_id", "id", "name", "updated_in_version", "ingestion_date_UTC", "imaging_time_begin_UTC", "imaging_time_end_UTC", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry" as diff
 		from unprocessed
-		where "partId" not in (select "partId" from tbl)
+		where "part_id" not in (select "part_id" from tbl)
 	) inserting_parts;
 
 	update "polygon_parts".parts
-	set "isProcessedPart" = true
-	where "isProcessedPart" = false;
+	set "is_processed_part" = true
+	where "is_processed_part" = false;
 END;
 $BODY$;
 ALTER PROCEDURE "polygon_parts".update_polygon_parts()

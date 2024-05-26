@@ -4,25 +4,25 @@
 
 CREATE TABLE IF NOT EXISTS "polygon_parts".parts
 (
-    "partId" integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
-    "recordId" uuid NOT NULL,
+    "part_id" integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    "record_id" uuid NOT NULL,
     "id" text COLLATE pg_catalog."default",
     "name" text COLLATE pg_catalog."default",
-    "updatedInVersion" text COLLATE pg_catalog."default",
-    "ingestionDateUTC" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "imagingTimeBeginUTC" timestamp with time zone NOT NULL,
-    "imagingTimeEndUTC" timestamp with time zone NOT NULL,
-    "resolutionDegree" numeric NOT NULL,
-    "resolutionMeter" numeric NOT NULL,
-    "sourceResolutionMeter" numeric NOT NULL,
-    "horizontalAccuracyCE90" real,
+    "updated_in_version" text COLLATE pg_catalog."default",
+    "ingestion_date_UTC" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "imaging_time_begin_UTC" timestamp with time zone NOT NULL,
+    "imaging_time_end_UTC" timestamp with time zone NOT NULL,
+    "resolution_degree" numeric NOT NULL,
+    "resolution_meter" numeric NOT NULL,
+    "source_resolution_meter" numeric NOT NULL,
+    "horizontal_accuracy_ce_90" real,
     sensors text COLLATE pg_catalog."default",
     countries text COLLATE pg_catalog."default",
     cities text COLLATE pg_catalog."default",
     description text COLLATE pg_catalog."default",
     "geometry" geometry(Polygon,4326) NOT NULL,
-    "isProcessedPart" boolean NOT NULL DEFAULT false,
-    CONSTRAINT parts_pkey PRIMARY KEY ("partId")
+    "is_processed_part" boolean NOT NULL DEFAULT false,
+    CONSTRAINT parts_pkey PRIMARY KEY ("part_id")
 )
 
 TABLESPACE pg_default;
@@ -43,7 +43,7 @@ CREATE INDEX IF NOT EXISTS parts_geometry_idx
 
 CREATE INDEX IF NOT EXISTS parts_ingestion_date_idx
     ON "polygon_parts".parts USING btree
-    ("ingestionDateUTC" ASC NULLS LAST)
+    ("ingestion_date_UTC" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: parts_resolution_degree_idx
 
@@ -51,7 +51,7 @@ CREATE INDEX IF NOT EXISTS parts_ingestion_date_idx
 
 CREATE INDEX IF NOT EXISTS parts_resolution_degree_idx
     ON "polygon_parts".parts USING btree
-    ("resolutionDegree" ASC NULLS LAST)
+    ("resolution_degree" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: parts_resolution_meter_idx
 
@@ -59,7 +59,7 @@ CREATE INDEX IF NOT EXISTS parts_resolution_degree_idx
 
 CREATE INDEX IF NOT EXISTS parts_resolution_meter_idx
     ON "polygon_parts".parts USING btree
-    ("resolutionMeter" ASC NULLS LAST)
+    ("resolution_meter" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: parts_part_id_idx
 
@@ -67,7 +67,7 @@ CREATE INDEX IF NOT EXISTS parts_resolution_meter_idx
 
 CREATE INDEX IF NOT EXISTS parts_part_id_idx
     ON "polygon_parts".parts USING btree
-    ("partId" ASC NULLS LAST)
+    ("part_id" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: parts_record_id_idx
 
@@ -75,7 +75,7 @@ CREATE INDEX IF NOT EXISTS parts_part_id_idx
 
 CREATE INDEX IF NOT EXISTS parts_record_id_idx
     ON "polygon_parts".parts USING hash
-    ("recordId")
+    ("record_id")
     TABLESPACE pg_default;
 -- Index: parts_imaging_time_end_idx
 
@@ -83,7 +83,7 @@ CREATE INDEX IF NOT EXISTS parts_record_id_idx
 
 CREATE INDEX IF NOT EXISTS parts_imaging_time_end_idx
     ON "polygon_parts".parts USING btree
-    ("imagingTimeEndUTC" ASC NULLS LAST)
+    ("imaging_time_end_UTC" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: parts_imaging_time_start_idx
 
@@ -91,7 +91,7 @@ CREATE INDEX IF NOT EXISTS parts_imaging_time_end_idx
 
 CREATE INDEX IF NOT EXISTS parts_imaging_time_start_idx
     ON "polygon_parts".parts USING btree
-    ("imagingTimeBeginUTC" ASC NULLS LAST)
+    ("imaging_time_begin_UTC" ASC NULLS LAST)
     TABLESPACE pg_default;
 
 
@@ -101,25 +101,25 @@ CREATE INDEX IF NOT EXISTS parts_imaging_time_start_idx
 
 CREATE TABLE IF NOT EXISTS "polygon_parts".polygon_parts
 (
-    "internalId" integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
-    "partId" integer NOT NULL,
-    "recordId" uuid NOT NULL,
+    "internal_id" integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    "part_id" integer NOT NULL,
+    "record_id" uuid NOT NULL,
     "id" text COLLATE pg_catalog."default",
     "name" text COLLATE pg_catalog."default",
-    "updatedInVersion" text COLLATE pg_catalog."default",
-    "ingestionDateUTC" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "imagingTimeBeginUTC" timestamp with time zone NOT NULL,
-    "imagingTimeEndUTC" timestamp with time zone NOT NULL,
-    "resolutionDegree" numeric NOT NULL,
-    "resolutionMeter" numeric NOT NULL,
-    "sourceResolutionMeter" numeric NOT NULL,
-    "horizontalAccuracyCE90" real,
+    "updated_in_version" text COLLATE pg_catalog."default",
+    "ingestion_date_UTC" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "imaging_time_begin_UTC" timestamp with time zone NOT NULL,
+    "imaging_time_end_UTC" timestamp with time zone NOT NULL,
+    "resolution_degree" numeric NOT NULL,
+    "resolution_meter" numeric NOT NULL,
+    "source_resolution_meter" numeric NOT NULL,
+    "horizontal_accuracy_ce_90" real,
     sensors text COLLATE pg_catalog."default",
     countries text COLLATE pg_catalog."default",
     cities text COLLATE pg_catalog."default",
     description text COLLATE pg_catalog."default",
     "geometry" geometry(Polygon,4326) NOT NULL,
-    CONSTRAINT polygon_parts_pkey PRIMARY KEY ("internalId")
+    CONSTRAINT polygon_parts_pkey PRIMARY KEY ("internal_id")
 )
 
 TABLESPACE pg_default;
@@ -140,7 +140,7 @@ CREATE INDEX IF NOT EXISTS polygon_parts_geometry_idx
 
 CREATE INDEX IF NOT EXISTS polygon_parts_ingestion_date_idx
     ON "polygon_parts".polygon_parts USING btree
-    ("ingestionDateUTC" ASC NULLS LAST)
+    ("ingestion_date_UTC" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: polygon_parts_internal_id_idx
 
@@ -148,7 +148,7 @@ CREATE INDEX IF NOT EXISTS polygon_parts_ingestion_date_idx
 
 CREATE INDEX IF NOT EXISTS polygon_parts_internal_id_idx
     ON "polygon_parts".polygon_parts USING btree
-    ("internalId" ASC NULLS LAST)
+    ("internal_id" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: polygon_parts_resolution_degree_idx
 
@@ -156,7 +156,7 @@ CREATE INDEX IF NOT EXISTS polygon_parts_internal_id_idx
 
 CREATE INDEX IF NOT EXISTS polygon_parts_resolution_degree_idx
     ON "polygon_parts".polygon_parts USING btree
-    ("resolutionDegree" ASC NULLS LAST)
+    ("resolution_degree" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: polygon_parts_resolution_meter_idx
 
@@ -164,7 +164,7 @@ CREATE INDEX IF NOT EXISTS polygon_parts_resolution_degree_idx
 
 CREATE INDEX IF NOT EXISTS polygon_parts_resolution_meter_idx
     ON "polygon_parts".polygon_parts USING btree
-    ("resolutionMeter" ASC NULLS LAST)
+    ("resolution_meter" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: polygon_parts_part_id_idx
 
@@ -172,7 +172,7 @@ CREATE INDEX IF NOT EXISTS polygon_parts_resolution_meter_idx
 
 CREATE INDEX IF NOT EXISTS polygon_parts_part_id_idx
     ON "polygon_parts".polygon_parts USING btree
-    ("partId" ASC NULLS LAST)
+    ("part_id" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: polygon_parts_record_id_idx
 
@@ -180,7 +180,7 @@ CREATE INDEX IF NOT EXISTS polygon_parts_part_id_idx
 
 CREATE INDEX IF NOT EXISTS polygon_parts_record_id_idx
     ON "polygon_parts".polygon_parts USING hash
-    ("recordId")
+    ("record_id")
     TABLESPACE pg_default;
 -- Index: polygon_parts_imaging_time_end_idx
 
@@ -188,7 +188,7 @@ CREATE INDEX IF NOT EXISTS polygon_parts_record_id_idx
 
 CREATE INDEX IF NOT EXISTS polygon_parts_imaging_time_end_idx
     ON "polygon_parts".polygon_parts USING btree
-    ("imagingTimeEndUTC" ASC NULLS LAST)
+    ("imaging_time_end_UTC" ASC NULLS LAST)
     TABLESPACE pg_default;
 -- Index: polygon_parts_imaging_time_start_idx
 
@@ -196,5 +196,5 @@ CREATE INDEX IF NOT EXISTS polygon_parts_imaging_time_end_idx
 
 CREATE INDEX IF NOT EXISTS polygon_parts_imaging_time_start_idx
     ON "polygon_parts".polygon_parts USING btree
-    ("imagingTimeBeginUTC" ASC NULLS LAST)
+    ("imaging_time_begin_UTC" ASC NULLS LAST)
     TABLESPACE pg_default;

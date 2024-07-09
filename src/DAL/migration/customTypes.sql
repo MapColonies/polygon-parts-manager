@@ -3,6 +3,8 @@
 CREATE TYPE "polygon_parts".insert_part_record AS
 (
 	"record_id" uuid,
+	"product_id" text,
+	"product_type" text,
 	"id" text,
 	"name" text,
 	"updated_in_version" text,

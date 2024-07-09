@@ -24,12 +24,12 @@ BEGIN
     END IF;
     
     -- insert the input record
-    INSERT INTO "polygon_parts".parts("record_id", "id", "name", "updated_in_version", "imaging_time_begin_UTC", "imaging_time_end_UTC", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry")
+    INSERT INTO "polygon_parts".parts("record_id", "product_id", "product_type", "id", "name", "updated_in_version", "imaging_time_begin_UTC", "imaging_time_end_UTC", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry")
     VALUES(r.*);
 END;
 $$;
 
--- Usage example: CALL "polygon_parts".insert_part(('795813b2-5c1d-466e-8f19-11c30d395fcd', '123', 'name', '5', '2022-08-22 02:08:10', '2022-08-22 02:08:10', 0.0001, 0.3, 0.3, 2.5, 'sensors', NULL, cities, 'description', 'SRID=4326;POLYGON((-20 51,10 51,10 56,-20 56,-20 51))')::"polygon_parts".insert_part_record);
+-- Usage example: CALL "polygon_parts".insert_part(('795813b2-5c1d-466e-8f19-11c30d395fcd','WORLD_BASE', 'OrthophotoBest', '123', 'name', '5', '2022-08-22 02:08:10', '2022-08-22 02:08:10', 0.0001, 0.3, 0.3, 2.5, 'sensors', NULL, cities, 'description', 'SRID=4326;POLYGON((-20 51,10 51,10 56,-20 56,-20 51))')::"polygon_parts".insert_part_record);
 
 
 -- PROCEDURE: polygon_parts.update_polygon_parts()
@@ -76,10 +76,12 @@ BEGIN
 		from tbl
 		where not st_isempty(diff)
 	)
-	insert into "polygon_parts".polygon_parts as pp ("part_id", "record_id", "id", "name", "updated_in_version", "ingestion_date_UTC", "imaging_time_begin_UTC", "imaging_time_end_UTC", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry")
+	insert into "polygon_parts".polygon_parts as pp ("part_id", "record_id", "product_id", "product_type", "id", "name", "updated_in_version", "ingestion_date_UTC", "imaging_time_begin_UTC", "imaging_time_end_UTC", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry")
 	select 
 		"part_id",
 		"record_id",
+		"product_id",
+		"product_type",
 		"id",
 		"name",
 		"updated_in_version",
@@ -96,7 +98,7 @@ BEGIN
 		description,
 		(st_dump(diff)).geom as "geometry"
 	from (
-		select "part_id", "record_id", "id", "name", "updated_in_version", "ingestion_date_UTC", "imaging_time_begin_UTC", "imaging_time_end_UTC", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, diff
+		select "part_id", "record_id", "product_id", "product_type", "id", "name", "updated_in_version", "ingestion_date_UTC", "imaging_time_begin_UTC", "imaging_time_end_UTC", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, diff
 		from inserts
 		left join "polygon_parts".parts
 		using ("part_id")

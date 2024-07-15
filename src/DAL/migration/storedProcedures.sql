@@ -24,7 +24,7 @@ BEGIN
     END IF;
     
     -- insert the input record
-    INSERT INTO "polygon_parts".parts("record_id", "product_id", "product_type", "id", "name", "updated_in_version", "imaging_time_begin_UTC", "imaging_time_end_UTC", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry")
+    INSERT INTO "polygon_parts".parts("record_id", "product_id", "product_type", "id", "name", "updated_in_version", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry")
     VALUES(r.*);
 END;
 $$;
@@ -76,7 +76,7 @@ BEGIN
 		from tbl
 		where not st_isempty(diff)
 	)
-	insert into "polygon_parts".polygon_parts as pp ("part_id", "record_id", "product_id", "product_type", "id", "name", "updated_in_version", "ingestion_date_UTC", "imaging_time_begin_UTC", "imaging_time_end_UTC", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry")
+	insert into "polygon_parts".polygon_parts as pp ("part_id", "record_id", "product_id", "product_type", "id", "name", "updated_in_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry")
 	select 
 		"part_id",
 		"record_id",
@@ -85,9 +85,9 @@ BEGIN
 		"id",
 		"name",
 		"updated_in_version",
-		"ingestion_date_UTC",
-		"imaging_time_begin_UTC",
-		"imaging_time_end_UTC",
+		"ingestion_date_utc",
+		"imaging_time_begin_utc",
+		"imaging_time_end_utc",
 		"resolution_degree",
 		"resolution_meter",
 		"source_resolution_meter",
@@ -98,12 +98,12 @@ BEGIN
 		description,
 		(st_dump(diff)).geom as "geometry"
 	from (
-		select "part_id", "record_id", "product_id", "product_type", "id", "name", "updated_in_version", "ingestion_date_UTC", "imaging_time_begin_UTC", "imaging_time_end_UTC", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, diff
+		select "part_id", "record_id", "product_id", "product_type", "id", "name", "updated_in_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, diff
 		from inserts
 		left join "polygon_parts".parts
 		using ("part_id")
 		union all
-		select "part_id", "record_id", "id", "name", "updated_in_version", "ingestion_date_UTC", "imaging_time_begin_UTC", "imaging_time_end_UTC", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry" as diff
+		select "part_id", "record_id", "id", "name", "updated_in_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry" as diff
 		from unprocessed
 		where "part_id" not in (select "part_id" from tbl)
 	) inserting_parts;

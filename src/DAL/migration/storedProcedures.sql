@@ -103,7 +103,7 @@ BEGIN
 		left join "polygon_parts".parts
 		using ("part_id")
 		union all
-		select "part_id", "record_id", "id", "name", "updated_in_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry" as diff
+		select "part_id", "record_id", "product_id", "product_type", "id", "name", "updated_in_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry" as diff
 		from unprocessed
 		where "part_id" not in (select "part_id" from tbl)
 	) inserting_parts;

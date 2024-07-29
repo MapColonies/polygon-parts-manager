@@ -1,6 +1,12 @@
-CREATE OR REPLACE PROCEDURE "polygon_parts".insert_part(r "polygon_parts".insert_part_record)
-LANGUAGE plpgsql
-AS $$
+-- PROCEDURE: polygon_parts.insert_part(regclass, polygon_parts.insert_part_record)
+
+-- DROP PROCEDURE IF EXISTS "polygon_parts".insert_part(regclass, polygon_parts.insert_part_record);
+
+CREATE OR REPLACE PROCEDURE "polygon_parts".insert_part(
+	IN parts regclass,
+	IN r polygon_parts.insert_part_record)
+LANGUAGE 'plpgsql'
+AS $BODY$
 DECLARE
     is_valid_result RECORD;
     is_valid boolean;
@@ -22,29 +28,31 @@ BEGIN
     IF NOT is_valid THEN
         RAISE EXCEPTION 'Invalid geometry extent: %', ST_Extent(r."geometry");
     END IF;
-    
+
     -- insert the input record
-    INSERT INTO "polygon_parts".parts("record_id", "product_id", "product_type", "id", "name", "updated_in_version", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry")
-    VALUES(r.*);
+	EXECUTE 'INSERT INTO ' || parts || '("record_id", "product_id", "product_type", "id", "name", "updated_in_version", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry") VALUES($1.*);' USING r;
 END;
-$$;
+$BODY$;
+ALTER PROCEDURE "polygon_parts".insert_part(regclass, "polygon_parts".insert_part_record)
+    OWNER TO postgres;
 
--- Usage example: CALL "polygon_parts".insert_part(('795813b2-5c1d-466e-8f19-11c30d395fcd','WORLD_BASE', 'OrthophotoBest', '123', 'name', '5', '2022-08-22 02:08:10', '2022-08-22 02:08:10', 0.0001, 0.3, 0.3, 2.5, 'sensors', NULL, cities, 'description', 'SRID=4326;POLYGON((-20 51,10 51,10 56,-20 56,-20 51))')::"polygon_parts".insert_part_record);
+-- Usage example: CALL "polygon_parts".insert_part('polygon_parts.parts_layer1'::regclass, ('795813b2-5c1d-466e-8f19-11c30d395fcd','WORLD_BASE', 'OrthophotoBest', '123', 'name', '5', '2022-08-22 02:08:10', '2022-08-22 02:08:10', 0.0001, 0.3, 0.3, 2.5, 'sensors', NULL, cities, 'description', 'SRID=4326;POLYGON((-20 51,10 51,10 56,-20 56,-20 51))')::"polygon_parts".insert_part_record);
 
 
--- PROCEDURE: polygon_parts.update_polygon_parts()
+-- PROCEDURE: polygon_parts.update_polygon_parts(regclass, regclass)
 
--- DROP PROCEDURE IF EXISTS "polygon_parts".update_polygon_parts();
+-- DROP PROCEDURE IF EXISTS "polygon_parts".update_polygon_parts(regclass, regclass);
 
 CREATE OR REPLACE PROCEDURE "polygon_parts".update_polygon_parts(
-	)
+	IN parts regclass,
+	IN polygon_parts regclass)
 LANGUAGE 'plpgsql'
 AS $BODY$
 BEGIN
 	drop table if exists tbl;
-	create temp table if not exists tbl on commit delete rows as
+	execute 'create temp table if not exists tbl on commit delete rows as
 	with unprocessed as (
-		select "part_id", "record_id", "geometry" from "polygon_parts".parts where not "is_processed_part" order by "part_id"
+		select "part_id", "record_id", "geometry" from ' || parts || ' where not "is_processed_part" order by "part_id"
 	)
 	select 
 		t1."internal_id",
@@ -52,7 +60,7 @@ BEGIN
 		st_difference(t1."geometry", st_union(t2."geometry")) diff
 	from (
 		select pp."internal_id", pp."part_id", pp."record_id", pp."geometry"
-		from "polygon_parts".polygon_parts pp
+		from ' || polygon_parts || ' pp
 		join unprocessed
 		on st_intersects(pp."geometry", unprocessed."geometry") and pp."record_id" = unprocessed."record_id"
 		union all
@@ -61,14 +69,14 @@ BEGIN
 	) t1
 	inner join unprocessed t2
 	on st_intersects(t1."geometry", t2."geometry") and t1."part_id" < t2."part_id" and t1."record_id" = t2."record_id"
-	group by t1."internal_id", t1."part_id", t1."record_id", t1."geometry";
+	group by t1."internal_id", t1."part_id", t1."record_id", t1."geometry";';
 
-	delete from "polygon_parts".polygon_parts as pp
+	execute 'delete from ' || polygon_parts || ' as pp
 	using tbl
-	where pp."internal_id" = tbl."internal_id";
+	where pp."internal_id" = tbl."internal_id"';
 
-	with unprocessed as (
-		select * from "polygon_parts".parts where not "is_processed_part" order by "part_id"
+	execute 'with unprocessed as (
+		select * from ' || parts || ' where not "is_processed_part" order by "part_id"
 	), inserts as (
 		select 
 			"part_id",
@@ -76,7 +84,7 @@ BEGIN
 		from tbl
 		where not st_isempty(diff)
 	)
-	insert into "polygon_parts".polygon_parts as pp ("part_id", "record_id", "product_id", "product_type", "id", "name", "updated_in_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry")
+	insert into ' || polygon_parts || ' as pp ("part_id", "record_id", "product_id", "product_type", "id", "name", "updated_in_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry")
 	select 
 		"part_id",
 		"record_id",
@@ -100,19 +108,20 @@ BEGIN
 	from (
 		select "part_id", "record_id", "product_id", "product_type", "id", "name", "updated_in_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, diff
 		from inserts
-		left join "polygon_parts".parts
+		left join ' || parts || '
 		using ("part_id")
 		union all
-		select "part_id", "record_id", "id", "name", "updated_in_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry" as diff
+		select "part_id", "record_id", "product_id", "product_type", "id", "name", "updated_in_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry" as diff
 		from unprocessed
 		where "part_id" not in (select "part_id" from tbl)
-	) inserting_parts;
+	) inserting_parts';
 
-	update "polygon_parts".parts
+	execute 'update ' || parts || '
 	set "is_processed_part" = true
-	where "is_processed_part" = false;
+	where "is_processed_part" = false';
 END;
 $BODY$;
-ALTER PROCEDURE "polygon_parts".update_polygon_parts()
+ALTER PROCEDURE "polygon_parts".update_polygon_parts(regclass, regclass)
     OWNER TO postgres;
 
+-- Usage example: CALL "polygon_parts".update_polygon_parts('polygon_parts.parts_layer1'::regclass, 'polygon_parts.polygon_parts_layer1'::regclass);

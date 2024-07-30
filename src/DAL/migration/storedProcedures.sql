@@ -1,3 +1,197 @@
+
+-- PROCEDURE: polygon_parts.create_polygon_parts_schema(text)
+
+-- DROP PROCEDURE IF EXISTS polygon_parts.create_polygon_parts_schema(text);
+
+CREATE OR REPLACE PROCEDURE polygon_parts.create_polygon_parts_schema(
+	IN qualified_identifier text)
+LANGUAGE 'plpgsql'
+AS $BODY$
+DECLARE
+    parsed_identifier name[] := parse_ident(qualified_identifier)::name[];
+    schema_name text := parsed_identifier[1];
+    table_name text := parsed_identifier[2];
+	tbl_name text := quote_ident(table_name);
+	schm_tbl_name text := quote_ident(schema_name) || '.' || quote_ident(table_name);
+	tbl_name_parts text := quote_ident(table_name || '_parts');
+	schm_tbl_name_parts text := quote_ident(schema_name) || '.' || quote_ident(table_name || '_parts');
+BEGIN
+    IF table_name IS NULL THEN
+        RAISE EXCEPTION 'Input "%" must be a schema-qualified identifier for the created tables template name', schema_name;
+    END IF;
+	
+    EXECUTE 'CREATE TABLE IF NOT EXISTS ' || schm_tbl_name_parts || '
+    (
+        "part_id" integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+        "record_id" uuid NOT NULL,
+        "product_id" text COLLATE pg_catalog."default",
+        "product_type" text COLLATE pg_catalog."default",
+        "id" text COLLATE pg_catalog."default",
+        "name" text COLLATE pg_catalog."default",
+        "updated_in_version" text COLLATE pg_catalog."default",
+        "ingestion_date_utc" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "imaging_time_begin_utc" timestamp with time zone NOT NULL,
+        "imaging_time_end_utc" timestamp with time zone NOT NULL,
+        "resolution_degree" numeric NOT NULL,
+        "resolution_meter" numeric NOT NULL,
+        "source_resolution_meter" numeric NOT NULL,
+        "horizontal_accuracy_ce_90" real,
+        sensors text COLLATE pg_catalog."default",
+        countries text COLLATE pg_catalog."default",
+        cities text COLLATE pg_catalog."default",
+        description text COLLATE pg_catalog."default",
+        "geometry" geometry(Polygon,4326) NOT NULL,
+        "is_processed_part" boolean NOT NULL DEFAULT false,
+        CONSTRAINT ' || tbl_name_parts || '_pkey PRIMARY KEY ("part_id")
+    )
+
+    TABLESPACE pg_default;';
+
+    EXECUTE 'ALTER TABLE IF EXISTS ' || schm_tbl_name_parts || '
+        OWNER to postgres;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_geometry_idx
+        ON ' || schm_tbl_name_parts || ' USING gist
+        ("geometry")
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_ingestion_date_idx
+        ON ' || schm_tbl_name_parts || ' USING btree
+        ("ingestion_date_utc" ASC NULLS LAST)
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_resolution_degree_idx
+        ON ' || schm_tbl_name_parts || ' USING btree
+        ("resolution_degree" ASC NULLS LAST)
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_resolution_meter_idx
+        ON ' || schm_tbl_name_parts || ' USING btree
+        ("resolution_meter" ASC NULLS LAST)
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_part_id_idx
+        ON ' || schm_tbl_name_parts || ' USING btree
+        ("part_id" ASC NULLS LAST)
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_record_id_idx
+        ON ' || schm_tbl_name_parts || ' USING hash
+        ("record_id")
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_product_id_idx
+        ON ' || schm_tbl_name_parts || ' USING btree
+        ("product_id")
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_product_type_idx
+        ON ' || schm_tbl_name_parts || ' USING btree
+        ("product_type")
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_imaging_time_end_idx
+        ON ' || schm_tbl_name_parts || ' USING btree
+        ("imaging_time_end_utc" ASC NULLS LAST)
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_imaging_time_start_idx
+        ON ' || schm_tbl_name_parts || ' USING btree
+        ("imaging_time_begin_utc" ASC NULLS LAST)
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE TABLE IF NOT EXISTS ' || schm_tbl_name || '
+    (
+        "internal_id" integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+        "part_id" integer NOT NULL,
+        "record_id" uuid NOT NULL,
+        "product_id" text COLLATE pg_catalog."default" NOT NULL,
+        "product_type" text COLLATE pg_catalog."default" NOT NULL,
+        "id" text COLLATE pg_catalog."default",
+        "name" text COLLATE pg_catalog."default",
+        "updated_in_version" text COLLATE pg_catalog."default",
+        "ingestion_date_utc" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "imaging_time_begin_utc" timestamp with time zone NOT NULL,
+        "imaging_time_end_utc" timestamp with time zone NOT NULL,
+        "resolution_degree" numeric NOT NULL,
+        "resolution_meter" numeric NOT NULL,
+        "source_resolution_meter" numeric NOT NULL,
+        "horizontal_accuracy_ce_90" real,
+        sensors text COLLATE pg_catalog."default",
+        countries text COLLATE pg_catalog."default",
+        cities text COLLATE pg_catalog."default",
+        description text COLLATE pg_catalog."default",
+        "geometry" geometry(Polygon,4326) NOT NULL,
+        CONSTRAINT ' || tbl_name || '_pkey PRIMARY KEY ("internal_id")
+    )
+
+    TABLESPACE pg_default;';
+
+    EXECUTE 'ALTER TABLE IF EXISTS ' || schm_tbl_name || '
+        OWNER to postgres;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_geometry_idx
+        ON ' || schm_tbl_name || ' USING gist
+        ("geometry")
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_ingestion_date_idx
+        ON ' || schm_tbl_name || ' USING btree
+        ("ingestion_date_utc" ASC NULLS LAST)
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_internal_id_idx
+        ON ' || schm_tbl_name || ' USING btree
+        ("internal_id" ASC NULLS LAST)
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_resolution_degree_idx
+        ON ' || schm_tbl_name || ' USING btree
+        ("resolution_degree" ASC NULLS LAST)
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_resolution_meter_idx
+        ON ' || schm_tbl_name || ' USING btree
+        ("resolution_meter" ASC NULLS LAST)
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_part_id_idx
+        ON ' || schm_tbl_name || ' USING btree
+        ("part_id" ASC NULLS LAST)
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_record_id_idx
+        ON ' || schm_tbl_name || ' USING hash
+        ("record_id")
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_imaging_time_end_idx
+        ON ' || schm_tbl_name || ' USING btree
+        ("imaging_time_end_utc" ASC NULLS LAST)
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_product_id_idx
+        ON ' || schm_tbl_name || ' USING btree
+        ("product_id")
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_product_type_idx
+        ON ' || schm_tbl_name || ' USING btree
+        ("product_type")
+        TABLESPACE pg_default;';
+
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_imaging_time_start_idx
+        ON ' || schm_tbl_name || ' USING btree
+        ("imaging_time_begin_utc" ASC NULLS LAST)
+        TABLESPACE pg_default;';
+END;
+$BODY$;
+ALTER PROCEDURE polygon_parts.create_polygon_parts_schema(text)
+    OWNER TO postgres;
+
+-- Usage example: CALL "polygon_parts".create_polygon_parts_schema('polygon_parts.layer1');
+
+
 -- PROCEDURE: polygon_parts.insert_part(regclass, polygon_parts.insert_part_record)
 
 -- DROP PROCEDURE IF EXISTS "polygon_parts".insert_part(regclass, polygon_parts.insert_part_record);

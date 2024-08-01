@@ -40,7 +40,9 @@ BEGIN
         countries text COLLATE pg_catalog."default",
         cities text COLLATE pg_catalog."default",
         description text COLLATE pg_catalog."default",
-        "geometry" geometry(Polygon,4326) NOT NULL,
+        "geometry" geometry(Polygon, 4326) NOT NULL CONSTRAINT "valid geometry" CHECK(ST_IsValid("geometry")) CONSTRAINT "geometry extent" CHECK(
+            Box2D("geometry") @Box2D(ST_GeomFromText(''LINESTRING(-180 -90, 180 90)''))
+        ),
         "is_processed_part" boolean NOT NULL DEFAULT false,
         CONSTRAINT ' || tbl_name_parts || '_pkey PRIMARY KEY ("part_id")
     )
@@ -192,57 +194,19 @@ ALTER PROCEDURE polygon_parts.create_polygon_parts_schema(text)
 -- Usage example: CALL "polygon_parts".create_polygon_parts_schema('polygon_parts.layer1');
 
 
--- PROCEDURE: polygon_parts.insert_part(regclass, polygon_parts.insert_part_record)
+-- PROCEDURE: polygon_parts.ingest_polygon_parts(polygon_parts.insert_part_record, regclass, regclass)
 
--- DROP PROCEDURE IF EXISTS "polygon_parts".insert_part(regclass, polygon_parts.insert_part_record);
+-- DROP PROCEDURE IF EXISTS polygon_parts.ingest_polygon_parts(polygon_parts.insert_part_record, regclass, regclass);
 
-CREATE OR REPLACE PROCEDURE "polygon_parts".insert_part(
-	IN parts regclass,
-	IN r polygon_parts.insert_part_record)
-LANGUAGE 'plpgsql'
-AS $BODY$
-DECLARE
-    is_valid_result RECORD;
-    is_valid boolean;
-    reason text;
-BEGIN
-    -- check validity of the input polygon geometry
-    is_valid_result := ST_IsValidDetail(r."geometry");
-
-    is_valid := is_valid_result.valid;
-    reason := is_valid_result.reason;
-
-    IF NOT is_valid THEN
-        RAISE EXCEPTION 'Invalid geometry: %', reason;
-    END IF;
-
-    -- check that input polygon extent is within the bbox of the srs (EPSG:4326)
-    is_valid := ST_Extent(r."geometry")@Box2D(ST_GeomFromText('LINESTRING(-180 -90, 180 90)'));
-
-    IF NOT is_valid THEN
-        RAISE EXCEPTION 'Invalid geometry extent: %', ST_Extent(r."geometry");
-    END IF;
-
-    -- insert the input record
-	EXECUTE 'INSERT INTO ' || parts || '("record_id", "product_id", "product_type", "id", "name", "updated_in_version", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry") VALUES($1.*);' USING r;
-END;
-$BODY$;
-ALTER PROCEDURE "polygon_parts".insert_part(regclass, "polygon_parts".insert_part_record)
-    OWNER TO postgres;
-
--- Usage example: CALL "polygon_parts".insert_part('polygon_parts.parts_layer1'::regclass, ('795813b2-5c1d-466e-8f19-11c30d395fcd','WORLD_BASE', 'OrthophotoBest', '123', 'name', '5', '2022-08-22 02:08:10', '2022-08-22 02:08:10', 0.0001, 0.3, 0.3, 2.5, 'sensors', NULL, cities, 'description', 'SRID=4326;POLYGON((-20 51,10 51,10 56,-20 56,-20 51))')::"polygon_parts".insert_part_record);
-
-
--- PROCEDURE: polygon_parts.update_polygon_parts(regclass, regclass)
-
--- DROP PROCEDURE IF EXISTS "polygon_parts".update_polygon_parts(regclass, regclass);
-
-CREATE OR REPLACE PROCEDURE "polygon_parts".update_polygon_parts(
+CREATE OR REPLACE PROCEDURE polygon_parts.ingest_polygon_parts(
+	IN r polygon_parts.insert_part_record,
 	IN parts regclass,
 	IN polygon_parts regclass)
 LANGUAGE 'plpgsql'
 AS $BODY$
 BEGIN
+	EXECUTE 'INSERT INTO ' || parts || '("record_id", "product_id", "product_type", "id", "name", "updated_in_version", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry") VALUES($1.*);' USING r;
+
 	drop table if exists tbl;
 	execute 'create temp table if not exists tbl on commit delete rows as
 	with unprocessed as (
@@ -315,7 +279,29 @@ BEGIN
 	where "is_processed_part" = false';
 END;
 $BODY$;
-ALTER PROCEDURE "polygon_parts".update_polygon_parts(regclass, regclass)
+ALTER PROCEDURE polygon_parts.ingest_polygon_parts(polygon_parts.insert_part_record, regclass, regclass)
     OWNER TO postgres;
 
--- Usage example: CALL "polygon_parts".update_polygon_parts('polygon_parts.parts_layer1'::regclass, 'polygon_parts.polygon_parts_layer1'::regclass);
+-- Usage example: CALL "polygon_parts".ingest_polygon_parts(
+--     (
+--         '795813b2-5c1d-466e-8f19-11c30d395fcd',
+--         'WORLD_BASE',
+--         'OrthophotoBest',
+--         '123',
+--         'name',
+--         '5',
+--         '2022-08-22 02:08:10',
+--         '2022-08-22 02:08:10',
+--         0.0001,
+--         0.3,
+--         0.3,
+--         2.5,
+--         'sensors',
+--         NULL,
+--         'cities',
+--         'description',
+--         'SRID=4326;POLYGON((-20 51,10 51,10 56,-20 56,-20 51))'
+--     )::"polygon_parts".insert_part_record,
+--     'polygon_parts.layer1_parts'::regclass,
+--     'polygon_parts.layer1'::regclass
+-- );

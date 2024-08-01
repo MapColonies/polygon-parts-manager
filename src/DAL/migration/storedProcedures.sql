@@ -194,19 +194,56 @@ ALTER PROCEDURE polygon_parts.create_polygon_parts_schema(text)
 -- Usage example: CALL "polygon_parts".create_polygon_parts_schema('polygon_parts.layer1');
 
 
--- PROCEDURE: polygon_parts.ingest_polygon_parts(polygon_parts.insert_part_record, regclass, regclass)
+-- PROCEDURE: polygon_parts.insert_part(regclass, polygon_parts.insert_part_record)
 
--- DROP PROCEDURE IF EXISTS polygon_parts.ingest_polygon_parts(polygon_parts.insert_part_record, regclass, regclass);
+-- DROP PROCEDURE IF EXISTS "polygon_parts".insert_part(regclass, polygon_parts.insert_part_record);
 
-CREATE OR REPLACE PROCEDURE polygon_parts.ingest_polygon_parts(
-	IN r polygon_parts.insert_part_record,
+CREATE OR REPLACE PROCEDURE "polygon_parts".insert_part(
+	IN parts regclass,
+	IN r polygon_parts.insert_part_record)
+LANGUAGE 'plpgsql'
+AS $BODY$
+BEGIN
+	EXECUTE 'INSERT INTO ' || parts || '("record_id", "product_id", "product_type", "id", "name", "updated_in_version", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry") VALUES($1.*);' USING r;
+END;
+$BODY$;
+ALTER PROCEDURE "polygon_parts".insert_part(regclass, "polygon_parts".insert_part_record)
+    OWNER TO postgres;
+
+-- Usage example: CALL "polygon_parts".insert_part(
+--     'polygon_parts.layer1_parts'::regclass,
+--     (
+--         '795813b2-5c1d-466e-8f19-11c30d395fcd',
+--         'WORLD_BASE',
+--         'OrthophotoBest',
+--         '123',
+--         'name',
+--         '5',
+--         '2022-08-22 02:08:10',
+--         '2022-08-22 02:08:10',
+--         0.0001,
+--         0.3,
+--         0.3,
+--         2.5,
+--         'sensors',
+--         NULL,
+--         'cities',
+--         'description',
+--         'SRID=4326;POLYGON((-20 51,10 51,10 56,-20 56,-20 51))'
+--     )::"polygon_parts".insert_part_record
+-- );
+
+
+-- PROCEDURE: polygon_parts.update_polygon_parts(regclass, regclass)
+
+-- DROP PROCEDURE IF EXISTS polygon_parts.update_polygon_parts(regclass, regclass);
+
+CREATE OR REPLACE PROCEDURE polygon_parts.update_polygon_parts(
 	IN parts regclass,
 	IN polygon_parts regclass)
 LANGUAGE 'plpgsql'
 AS $BODY$
 BEGIN
-	EXECUTE 'INSERT INTO ' || parts || '("record_id", "product_id", "product_type", "id", "name", "updated_in_version", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry") VALUES($1.*);' USING r;
-
 	drop table if exists tbl;
 	execute 'create temp table if not exists tbl on commit delete rows as
 	with unprocessed as (
@@ -279,29 +316,10 @@ BEGIN
 	where "is_processed_part" = false';
 END;
 $BODY$;
-ALTER PROCEDURE polygon_parts.ingest_polygon_parts(polygon_parts.insert_part_record, regclass, regclass)
+ALTER PROCEDURE polygon_parts.update_polygon_parts(regclass, regclass)
     OWNER TO postgres;
 
--- Usage example: CALL "polygon_parts".ingest_polygon_parts(
---     (
---         '795813b2-5c1d-466e-8f19-11c30d395fcd',
---         'WORLD_BASE',
---         'OrthophotoBest',
---         '123',
---         'name',
---         '5',
---         '2022-08-22 02:08:10',
---         '2022-08-22 02:08:10',
---         0.0001,
---         0.3,
---         0.3,
---         2.5,
---         'sensors',
---         NULL,
---         'cities',
---         'description',
---         'SRID=4326;POLYGON((-20 51,10 51,10 56,-20 56,-20 51))'
---     )::"polygon_parts".insert_part_record,
+-- Usage example: CALL "polygon_parts".update_polygon_parts(
 --     'polygon_parts.layer1_parts'::regclass,
 --     'polygon_parts.layer1'::regclass
 -- );

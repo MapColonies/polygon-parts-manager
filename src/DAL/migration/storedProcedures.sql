@@ -123,7 +123,9 @@ BEGIN
         countries text COLLATE pg_catalog."default",
         cities text COLLATE pg_catalog."default",
         description text COLLATE pg_catalog."default",
-        "geometry" geometry(Polygon,4326) NOT NULL,
+        "geometry" geometry(Polygon, 4326) NOT NULL CONSTRAINT "valid geometry" CHECK(ST_IsValid("geometry")) CONSTRAINT "geometry extent" CHECK(
+            Box2D("geometry") @Box2D(ST_GeomFromText(''LINESTRING(-180 -90, 180 90)''))
+        ),
         CONSTRAINT ' || tbl_name || '_pkey PRIMARY KEY ("internal_id")
     )
 

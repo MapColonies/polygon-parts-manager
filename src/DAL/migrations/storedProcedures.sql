@@ -22,13 +22,13 @@ BEGIN
 	
     EXECUTE 'CREATE TABLE IF NOT EXISTS ' || schm_tbl_name_parts || '
     (
-        "part_id" integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
-        "record_id" uuid NOT NULL,
-        "product_id" text COLLATE pg_catalog."default",
-        "product_type" text COLLATE pg_catalog."default",
-        "id" text COLLATE pg_catalog."default",
-        "name" text COLLATE pg_catalog."default",
-        "updated_in_version" text COLLATE pg_catalog."default",
+        "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+        "catalog_id" uuid NOT NULL,
+        "product_id" text COLLATE "C.UTF-8",
+        "product_type" text COLLATE "C.UTF-8",
+        "sourceId" text COLLATE "C.UTF-8",
+        "sourceName" text COLLATE "C.UTF-8",
+        "product_version" text COLLATE "C.UTF-8",
         "ingestion_date_utc" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "imaging_time_begin_utc" timestamp with time zone NOT NULL,
         "imaging_time_end_utc" timestamp with time zone NOT NULL,
@@ -36,15 +36,15 @@ BEGIN
         "resolution_meter" numeric NOT NULL,
         "source_resolution_meter" numeric NOT NULL,
         "horizontal_accuracy_ce_90" real,
-        sensors text COLLATE pg_catalog."default",
-        countries text COLLATE pg_catalog."default",
-        cities text COLLATE pg_catalog."default",
-        description text COLLATE pg_catalog."default",
+        sensors text COLLATE "C.UTF-8",
+        countries text COLLATE "C.UTF-8",
+        cities text COLLATE "C.UTF-8",
+        description text COLLATE "C.UTF-8",
         "geometry" geometry(Polygon, 4326) NOT NULL CONSTRAINT "valid geometry" CHECK(ST_IsValid("geometry")) CONSTRAINT "geometry extent" CHECK(
             Box2D("geometry") @Box2D(ST_GeomFromText(''LINESTRING(-180 -90, 180 90)''))
         ),
         "is_processed_part" boolean NOT NULL DEFAULT false,
-        CONSTRAINT ' || tbl_name_parts || '_pkey PRIMARY KEY ("part_id")
+        CONSTRAINT ' || tbl_name_parts || '_pkey PRIMARY KEY ("id")
     )
 
     TABLESPACE pg_default;';
@@ -72,14 +72,9 @@ BEGIN
         ("resolution_meter" ASC NULLS LAST)
         TABLESPACE pg_default;';
 
-    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_part_id_idx
-        ON ' || schm_tbl_name_parts || ' USING btree
-        ("part_id" ASC NULLS LAST)
-        TABLESPACE pg_default;';
-
-    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_record_id_idx
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_catalog_id_idx
         ON ' || schm_tbl_name_parts || ' USING hash
-        ("record_id")
+        ("catalog_id")
         TABLESPACE pg_default;';
 
     EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_product_id_idx
@@ -104,14 +99,14 @@ BEGIN
 
     EXECUTE 'CREATE TABLE IF NOT EXISTS ' || schm_tbl_name || '
     (
-        "internal_id" integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
-        "part_id" integer NOT NULL,
-        "record_id" uuid NOT NULL,
-        "product_id" text COLLATE pg_catalog."default" NOT NULL,
-        "product_type" text COLLATE pg_catalog."default" NOT NULL,
-        "id" text COLLATE pg_catalog."default",
-        "name" text COLLATE pg_catalog."default",
-        "updated_in_version" text COLLATE pg_catalog."default",
+        "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+        "part_id" uuid NOT NULL,
+        "catalog_id" uuid NOT NULL,
+        "product_id" text COLLATE "C.UTF-8" NOT NULL,
+        "product_type" text COLLATE "C.UTF-8" NOT NULL,
+        "sourceId" text COLLATE "C.UTF-8",
+        "sourceName" text COLLATE "C.UTF-8",
+        "product_version" text COLLATE "C.UTF-8",
         "ingestion_date_utc" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "imaging_time_begin_utc" timestamp with time zone NOT NULL,
         "imaging_time_end_utc" timestamp with time zone NOT NULL,
@@ -119,14 +114,14 @@ BEGIN
         "resolution_meter" numeric NOT NULL,
         "source_resolution_meter" numeric NOT NULL,
         "horizontal_accuracy_ce_90" real,
-        sensors text COLLATE pg_catalog."default",
-        countries text COLLATE pg_catalog."default",
-        cities text COLLATE pg_catalog."default",
-        description text COLLATE pg_catalog."default",
+        sensors text COLLATE "C.UTF-8",
+        countries text COLLATE "C.UTF-8",
+        cities text COLLATE "C.UTF-8",
+        description text COLLATE "C.UTF-8",
         "geometry" geometry(Polygon, 4326) NOT NULL CONSTRAINT "valid geometry" CHECK(ST_IsValid("geometry")) CONSTRAINT "geometry extent" CHECK(
             Box2D("geometry") @Box2D(ST_GeomFromText(''LINESTRING(-180 -90, 180 90)''))
         ),
-        CONSTRAINT ' || tbl_name || '_pkey PRIMARY KEY ("internal_id")
+        CONSTRAINT ' || tbl_name || '_pkey PRIMARY KEY ("id")
     )
 
     TABLESPACE pg_default;';
@@ -144,11 +139,6 @@ BEGIN
         ("ingestion_date_utc" ASC NULLS LAST)
         TABLESPACE pg_default;';
 
-    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_internal_id_idx
-        ON ' || schm_tbl_name || ' USING btree
-        ("internal_id" ASC NULLS LAST)
-        TABLESPACE pg_default;';
-
     EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_resolution_degree_idx
         ON ' || schm_tbl_name || ' USING btree
         ("resolution_degree" ASC NULLS LAST)
@@ -164,9 +154,9 @@ BEGIN
         ("part_id" ASC NULLS LAST)
         TABLESPACE pg_default;';
 
-    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_record_id_idx
+    EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_catalog_id_idx
         ON ' || schm_tbl_name || ' USING hash
-        ("record_id")
+        ("catalog_id")
         TABLESPACE pg_default;';
 
     EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_imaging_time_end_idx
@@ -206,7 +196,7 @@ CREATE OR REPLACE PROCEDURE "polygon_parts".insert_part(
 LANGUAGE 'plpgsql'
 AS $BODY$
 BEGIN
-	EXECUTE 'INSERT INTO ' || parts || '("record_id", "product_id", "product_type", "id", "name", "updated_in_version", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry") VALUES($1.*);' USING r;
+	EXECUTE 'INSERT INTO ' || parts || '("catalog_id", "product_id", "product_type", "sourceId", "sourceName", "product_version", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry") VALUES($1.*);' USING r;
 END;
 $BODY$;
 ALTER PROCEDURE "polygon_parts".insert_part(regclass, "polygon_parts".insert_part_record)
@@ -249,28 +239,28 @@ BEGIN
 	drop table if exists tbl;
 	execute 'create temp table if not exists tbl on commit delete rows as
 	with unprocessed as (
-		select "part_id", "record_id", "geometry" from ' || parts || ' where not "is_processed_part" order by "part_id"
+		select "part_id", "catalog_id", "geometry" from ' || parts || ' where not "is_processed_part" order by "part_id"
 	)
 	select 
-		t1."internal_id",
+		t1."id",
 		t1."part_id",
 		st_difference(t1."geometry", st_union(t2."geometry")) diff
 	from (
-		select pp."internal_id", pp."part_id", pp."record_id", pp."geometry"
+		select pp."id", pp."part_id", pp."catalog_id", pp."geometry"
 		from ' || polygon_parts || ' pp
 		join unprocessed
-		on st_intersects(pp."geometry", unprocessed."geometry") and pp."record_id" = unprocessed."record_id"
+		on st_intersects(pp."geometry", unprocessed."geometry") and pp."catalog_id" = unprocessed."catalog_id"
 		union all
-		select NULL, "part_id", "record_id", "geometry"
+		select NULL, "part_id", "catalog_id", "geometry"
 		from unprocessed
 	) t1
 	inner join unprocessed t2
-	on st_intersects(t1."geometry", t2."geometry") and t1."part_id" < t2."part_id" and t1."record_id" = t2."record_id"
-	group by t1."internal_id", t1."part_id", t1."record_id", t1."geometry";';
+	on st_intersects(t1."geometry", t2."geometry") and t1."part_id" < t2."part_id" and t1."catalog_id" = t2."catalog_id"
+	group by t1."id", t1."part_id", t1."catalog_id", t1."geometry";';
 
 	execute 'delete from ' || polygon_parts || ' as pp
 	using tbl
-	where pp."internal_id" = tbl."internal_id"';
+	where pp."id" = tbl."id"';
 
 	execute 'with unprocessed as (
 		select * from ' || parts || ' where not "is_processed_part" order by "part_id"
@@ -281,15 +271,15 @@ BEGIN
 		from tbl
 		where not st_isempty(diff)
 	)
-	insert into ' || polygon_parts || ' as pp ("part_id", "record_id", "product_id", "product_type", "id", "name", "updated_in_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry")
+	insert into ' || polygon_parts || ' as pp ("part_id", "catalog_id", "product_id", "product_type", "sourceId", "sourceName", "product_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry")
 	select 
 		"part_id",
-		"record_id",
+		"catalog_id",
 		"product_id",
 		"product_type",
-		"id",
-		"name",
-		"updated_in_version",
+		"sourceId",
+		"sourceName",
+		"product_version",
 		"ingestion_date_utc",
 		"imaging_time_begin_utc",
 		"imaging_time_end_utc",
@@ -303,12 +293,12 @@ BEGIN
 		description,
 		(st_dump(diff)).geom as "geometry"
 	from (
-		select "part_id", "record_id", "product_id", "product_type", "id", "name", "updated_in_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, diff
+		select "part_id", "catalog_id", "product_id", "product_type", "sourceId", "sourceName", "product_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, diff
 		from inserts
 		left join ' || parts || '
 		using ("part_id")
 		union all
-		select "part_id", "record_id", "product_id", "product_type", "id", "name", "updated_in_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry" as diff
+		select "part_id", "catalog_id", "product_id", "product_type", "sourceId", "sourceName", "product_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "geometry" as diff
 		from unprocessed
 		where "part_id" not in (select "part_id" from tbl)
 	) inserting_parts';

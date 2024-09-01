@@ -1,1 +1,10 @@
-{}
+{
+  "db": {
+    "host": "postgres",
+    "schema": "polygon_parts",
+    "username": "postgres",
+    "password": "1234",
+    "database": "postgres",
+    "enableSslAuth": false
+  }
+}

@@ -10,7 +10,7 @@ export const appDataSource = new DataSource({
   entities: ['src/DAL/entity/*.ts'],
   logging: true,
   synchronize: false,
-  migrations: ['src/DAL/migrations/*.ts'],
+  migrations: ['db/migrations/*.ts'],
   migrationsRun: false,
   migrationsTableName: 'polygon_parts_migrations',
 });

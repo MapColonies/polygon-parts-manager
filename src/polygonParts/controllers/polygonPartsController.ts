@@ -4,10 +4,10 @@ import { RequestHandler } from 'express';
 import httpStatus from 'http-status-codes';
 import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '../../common/constants';
-import { PolygonPartsMetadata } from '../models/interfaces';
+import { PolygonPartsPayload } from '../models/interfaces';
 import { PolygonPartsManager } from '../models/polygonPartsManager';
 
-type CreatePolygonPartsHandler = RequestHandler<undefined, string, PolygonPartsMetadata>;
+type CreatePolygonPartsHandler = RequestHandler<undefined, string, PolygonPartsPayload>;
 
 const HTTP_STATUS_CREATED_TEXT = httpStatus.getStatusText(httpStatus.CREATED);
 

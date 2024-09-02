@@ -1,36 +1,36 @@
 import { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '../../common/constants';
-import { PolygonPartsMetadata } from './interfaces';
+import { PolygonPartsPayload } from './interfaces';
 
 @injectable()
 export class PolygonPartsManager {
   public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger) {}
 
-  public createPolygonParts(polygonPartsMetadata: PolygonPartsMetadata): void {
-    const { catalogId } = polygonPartsMetadata;
+  public createPolygonParts(polygonPartsPayload: PolygonPartsPayload): void {
+    const { catalogId } = polygonPartsPayload;
 
     this.logger.info({ msg: `creating polygon parts for catalog record: ${catalogId}` });
 
     this.createSchema(catalogId);
-    this.insertData(polygonPartsMetadata);
+    this.insertData(polygonPartsPayload);
     this.calculatePolygonParts(catalogId);
     this.updateSummary(catalogId);
   }
 
-  private createSchema(catalogId: PolygonPartsMetadata['catalogId']): void {
+  private createSchema(catalogId: PolygonPartsPayload['catalogId']): void {
     // TODO
   }
 
-  private insertData(polygonPartsMetadata: PolygonPartsMetadata): void {
+  private insertData(polygonPartsPayload: PolygonPartsPayload): void {
     // TODO
   }
 
-  private calculatePolygonParts(catalogId: PolygonPartsMetadata['catalogId']): void {
+  private calculatePolygonParts(catalogId: PolygonPartsPayload['catalogId']): void {
     // TODO
   }
 
-  private updateSummary(catalogId: PolygonPartsMetadata['catalogId']): void {
+  private updateSummary(catalogId: PolygonPartsPayload['catalogId']): void {
     // TODO
   }
 }

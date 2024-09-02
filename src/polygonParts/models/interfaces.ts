@@ -16,10 +16,10 @@ interface PolygonPartMetadata {
   sourceName?: string;
 }
 
-export interface PolygonPartsMetadata {
+export interface PolygonPartsPayload {
   catalogId: string;
   ingestionDateUtc: Date;
-  polygonPartMetadata: PolygonPartMetadata[];
+  polygonPartsMetadata: PolygonPartMetadata[];
   productId: string;
   productType: string;
   productVersion?: string;
@@ -35,4 +35,4 @@ export interface PartRecord extends PolygonPart {
   isProcessedPart: boolean;
 }
 
-export interface PolygonPart extends Omit<PolygonPartsMetadata, 'polygonPartMetadata'>, PolygonPartMetadata {}
+export interface PolygonPart extends Omit<PolygonPartsPayload, 'polygonPartsMetadata'>, PolygonPartMetadata {}

@@ -7,7 +7,7 @@ const connectionOptions = config.get<DbConfig>('db');
 
 export const appDataSource = new DataSource({
   ...ConnectionManager.createConnectionOptions(connectionOptions),
-  entities: ['src/DAL/entity/*.ts'],
+  entities: ['src/**/DAL/*.ts'],
   logging: true,
   synchronize: false,
   migrations: ['db/migrations/*.ts'],

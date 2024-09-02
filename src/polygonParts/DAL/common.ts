@@ -1,5 +1,5 @@
 import { Check, Column, CreateDateColumn, Index, type Polygon } from 'typeorm';
-import type { Part } from '../models/polygonParts';
+import type { Part } from '../models/interfaces';
 
 export class Common implements Part {
   @Column({ name: 'product_id', type: 'text', collation: 'C.UTF-8' })

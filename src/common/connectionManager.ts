@@ -5,7 +5,7 @@ import { Logger } from '@map-colonies/js-logger';
 import { SERVICES } from '../common/constants';
 import { IConfig, DbConfig } from '../common/interfaces';
 import { DBConnectionError } from '../common/errors';
-import { Part } from '../DAL/entity/part';
+import { Part } from '../polygonParts/DAL/part';
 
 @singleton()
 export class ConnectionManager {

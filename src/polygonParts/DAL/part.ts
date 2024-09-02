@@ -1,5 +1,5 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
-import { PartRecord } from '../models/polygonParts';
+import { PartRecord } from '../models/interfaces';
 import { Common } from './common';
 
 @Entity({ name: 'parts', schema: 'polygon_parts', database: 'postgres' })

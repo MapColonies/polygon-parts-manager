@@ -1,87 +1,334 @@
-openapi: 3.0.1
+openapi: 3.0.3
 info:
-  title: service-name
-  description: basic template for map colonies service
+  title: Polygon-Parts Manager
+  description: CRUD operations to manage polygon-parts
   version: 1.0.0
-  license:
-    name: MIT
-    url: https://opensource.org/licenses/MIT
+tags:
+  - name: polygon-parts
+    description: CRUD operations to manage polygon-parts
+  - name: summary
+    description: Summary of polygon-parts data
 
 paths:
-  /anotherResource:
+  /summary/{catalogId}:
     get:
-      operationId: getAnotherResource
       tags:
-        - anotherResource
-      summary: gets the resource
+        - summary
+      summary: Get summarized polygon-parts data by catalog id
+      description: Get summarized polygon-parts data by catalog id
+      operationId: getSummary
+      parameters:
+        - in: path
+          name: catalogId
+          description: catalog identifier of a raster layer
+          schema:
+            type: string
+            format: uuid
+          required: true
       responses:
-        200:
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/anotherResource'
-  /resourceName:
-    get:
-      operationId: getResourceName
-      tags:
-        - resourceName
-      summary: gets the resource
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/resource'
-    post:
-      operationId: createResource
-      tags:
-        - resourceName
-      summary: creates a new record of type resource
-      responses:
-        201:
-          description: created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/resource'
-        400:
+                $ref: '#/components/schemas/Summarized'
+        '400':
           description: Bad Request
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/error'
+                $ref: '#/components/schemas/ErrorMessage'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+  /polygonParts:
+    post:
+      tags:
+        - polygon-parts
+      summary: Create a new polygon-parts
+      description: Create a new polygon-parts
+      operationId: createPolygonParts
+      requestBody:
+        description: polygon-parts metadata payload
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolygonPart'
+        required: true
+      responses:
+        '201':
+          description: Created
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Created
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+    put:
+      tags:
+        - polygon-parts
+      parameters:
+        - in: query
+          name: isSwap
+          schema:
+            type: boolean
+            default: false
+          description: defines if operation is a swap update
+      summary: Update an existing polygon-parts
+      description: Update an existing polygon-parts
+      operationId: updatePolygonParts
+      requestBody:
+        description: polygon-parts metadata payload
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolygonPart'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+
 components:
   schemas:
-    error:
+    PolygonPart:
       type: object
+      properties:
+        catalogId:
+          type: string
+          format: uuid
+          example: c52d8189-7e07-456a-8c6b-53859523c3e9
+        productId:
+          type: string
+          nullable: true
+          example: Bluemarble
+        productType:
+          type: string
+          nullable: true
+          example: OrtophotoBest
+        productVersion:
+          type: string
+          nullable: true
+          example: 1.0
+          # regex validation for fixed format?
+        polygonPartsMetadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolygonPartMetadata'
       required:
-        - message
+        - catalogId
+        - productId
+        - productType
+        - productVersion
+        - polygonPartsMetadata
+    PolygonPartMetadata:
+      type: object
+      description: Layer polygon part data definitions
+      properties:
+        sourceId:
+          type: string
+          description: Layer's external identifier
+        sourceName:
+          type: string
+          description: Layer's external name
+        imagingTimeBeginUTC:
+          type: string
+          description: Oldest imaging date (UTC)
+          format: date-time
+        imagingTimeEndUTC:
+          type: string
+          description: Latest imaging date (UTC)
+          format: date-time
+        resolutionDegree:
+          type: number
+          minimum: 1.67638e-7
+          maximum: 0.703125
+          format: double
+          description: min resolution of layer in degrees/pixel
+        resolutionMeter:
+          type: number
+          minimum: 0.0185
+          maximum: 78271.52
+          format: double
+          description: min resolution of layer in meters
+        sourceResolutionMeter:
+          type: number
+          minimum: 0.0185
+          maximum: 78271.52
+          format: double
+          description: min resolution of layer in meters
+        horizontalAccuracyCE90:
+          type: number
+          minimum: 0.01
+          maximum: 4000
+          format: double
+          description: minimum Horizontal Accuracy
+        sensors:
+          type: array
+          items:
+            type: string
+          description: Layer sensors list
+        countries:
+          type: array
+          items:
+            type: string
+          description: countries included in the layer
+        cities:
+          type: array
+          items:
+            type: string
+          description: cities included in the layer
+        description:
+          type: string
+        geometry:
+          $ref: '#/components/schemas/Polygon'
+      required:
+        - sourceName
+        - imagingTimeBeginUTC
+        - imagingTimeEndUTC
+        - geometry
+        - resolutionDegree
+        - resolutionMeter
+        - sourceResolutionMeter
+        - horizontalAccuracyCE90
+        - sensors
+    Polygon:
+      type: object
+      description: GeoJSon geometry
+      externalDocs:
+        url: http://geojson.org/geojson-spec.html#id4
+      oneOf:
+        - $ref: '#/components/schemas/GeometryBase'
+        - properties:
+            coordinates:
+              type: array
+              items:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Point2D'
+    MultiPolygon:
+      type: object
+      description: GeoJSon geometry
+      externalDocs:
+        url: http://geojson.org/geojson-spec.html#id6
+      allOf:
+        - $ref: '#/components/schemas/GeometryBase'
+        - properties:
+            coordinates:
+              type: array
+              items:
+                type: array
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Point2D'
+    GeometryBase:
+      type: object
+      description: GeoJSon geometry
+      required:
+        - type
+      externalDocs:
+        url: http://geojson.org/geojson-spec.html#geometry-objects
+      properties:
+        type:
+          type: string
+          enum:
+            - Polygon
+            - MultiPolygon
+    Point2D:
+      type: array
+      maxItems: 2
+      minItems: 2
+      items:
+        type: number
+    Summarized:
+      type: object
+      properties:
+        imagingTimeBeginUTC:
+          type: string
+          description: Oldest imaging date (UTC)
+          format: date-time
+        imagingTimeEndUTC:
+          type: string
+          description: Latest imaging date (UTC)
+          format: date-time
+        maxResolutionDeg:
+          type: number
+          format: double
+        minResolutionDeg:
+          type: number
+          format: double
+        maxResolutionMeter:
+          type: number
+          format: double
+        minResolutionMeter:
+          type: number
+          format: double
+        maxHorizontalAccuracyCE90:
+          type: number
+          format: double
+        minHorizontalAccuracyCE90:
+          type: number
+          format: double
+        sensors:
+          type: string
+        footprint:
+          anyOf:
+            - $ref: '#/components/schemas/Polygon'
+            - $ref: '#/components/schemas/MultiPolygon'
+      required: 
+        - imagingTimeBeginUTC
+        - imagingTimeEndUTC
+        - maxResolutionDeg
+        - minResolutionDeg
+        - maxResolutionMeter
+        - minResolutionMeter
+        - maxHorizontalAccuracyCE90
+        - minHorizontalAccuracyCE90
+        - sensors
+        - footprint
+    ErrorMessage:
+      type: object
       properties:
         message:
           type: string
-    resource:
-      type: object
+        stacktrace:
+          type: string
       required:
-        - id
-        - name
-        - description
-      properties:
-        id:
-          type: number
-          format: int64
-        name:
-          type: string
-        description:
-          type: string
-    anotherResource:
-      type: object
-      required:
-        - kind
-        - isAlive
-      properties:
-        kind:
-          type: string
-        isAlive:
-          type: boolean
+        - message

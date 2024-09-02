@@ -1,23 +1,9 @@
 import type { Polygon } from 'typeorm';
 
-export interface PolygonPartRecord extends Part {
-  id: string;
-  partId: string;
-}
-
-export interface PartRecord extends Part {
-  id: string;
-  isProcessedPart: boolean;
-}
-
-export interface Part {
-  catalogId: string;
+interface PolygonPartMetadata {
   geometry: Polygon;
   imagingTimeBeginUtc: Date;
   imagingTimeEndUtc: Date;
-  ingestionDateUtc: Date;
-  productId: string;
-  productType: string;
   resolutionDegree: number;
   resolutionMeter: number;
   sourceResolutionMeter: number;
@@ -25,8 +11,28 @@ export interface Part {
   countries?: string;
   description?: string;
   horizontalAccuracyCe90?: number;
-  productVersion?: string;
   sensors?: string;
   sourceId?: string;
   sourceName?: string;
 }
+
+export interface PolygonPartsMetadata {
+  catalogId: string;
+  ingestionDateUtc: Date;
+  polygonPartMetadata: PolygonPartMetadata[];
+  productId: string;
+  productType: string;
+  productVersion?: string;
+}
+
+export interface PolygonPartRecord extends PolygonPart {
+  id: string;
+  partId: string;
+}
+
+export interface PartRecord extends PolygonPart {
+  id: string;
+  isProcessedPart: boolean;
+}
+
+export interface PolygonPart extends Omit<PolygonPartsMetadata, 'polygonPartMetadata'>, PolygonPartMetadata {}

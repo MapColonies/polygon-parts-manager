@@ -1,7 +1,7 @@
 import { Check, Column, CreateDateColumn, Index, type Polygon } from 'typeorm';
-import type { Part } from '../models/interfaces';
+import type { PolygonPart } from '../models/interfaces';
 
-export class Common implements Part {
+export class Common implements PolygonPart {
   @Column({ name: 'product_id', type: 'text', collation: 'C.UTF-8' })
   @Index('polygon_parts_product_id_idx')
   public productId!: string;

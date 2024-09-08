@@ -1,6 +1,6 @@
-import type { DataSourceOptions } from 'typeorm';
+import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
-export type DbConfig = DataSourceOptions & {
+export type DbConfig = PostgresConnectionOptions & {
   enableSslAuth: boolean;
   sslPaths: { ca: string; cert: string; key: string };
 };

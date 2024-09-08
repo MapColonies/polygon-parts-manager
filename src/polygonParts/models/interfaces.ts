@@ -2,15 +2,15 @@ import type { Polygon } from 'typeorm';
 
 interface PolygonPartMetadata {
   geometry: Polygon;
-  imagingTimeBeginUtc: Date;
-  imagingTimeEndUtc: Date;
+  imagingTimeBeginUTC: Date;
+  imagingTimeEndUTC: Date;
   resolutionDegree: number;
   resolutionMeter: number;
   sourceResolutionMeter: number;
   cities?: string;
   countries?: string;
   description?: string;
-  horizontalAccuracyCe90?: number;
+  horizontalAccuracyCE90?: number;
   sensors?: string;
   sourceId?: string;
   sourceName?: string;
@@ -18,21 +18,26 @@ interface PolygonPartMetadata {
 
 export interface PolygonPartsPayload {
   catalogId: string;
-  ingestionDateUtc: Date;
   polygonPartsMetadata: PolygonPartMetadata[];
   productId: string;
   productType: string;
   productVersion?: string;
 }
 
-export interface PolygonPartRecord extends PolygonPart {
-  id: string;
-  partId: string;
+export interface PolygonPartRecord extends CommonRecord {
+  readonly id: string;
+  readonly insertionOrder: number;
+  readonly partId: string;
 }
 
-export interface PartRecord extends PolygonPart {
-  id: string;
-  isProcessedPart: boolean;
+export interface PartRecord extends CommonRecord {
+  readonly id: string;
+  readonly insertionOrder: number;
+  readonly isProcessedPart: boolean;
 }
 
-export interface PolygonPart extends Omit<PolygonPartsPayload, 'polygonPartsMetadata'>, PolygonPartMetadata {}
+export interface PolygonPartsIngestionPayload extends Readonly<Omit<PolygonPartsPayload, 'polygonPartsMetadata'>>, Readonly<PolygonPartMetadata> {}
+
+export interface CommonRecord extends PolygonPartsIngestionPayload {
+  ingestionDateUTC: Date;
+}

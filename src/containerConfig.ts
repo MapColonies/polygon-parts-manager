@@ -1,13 +1,12 @@
-import config from 'config';
-import { getOtelMixin } from '@map-colonies/telemetry';
-import { trace, metrics as OtelMetrics } from '@opentelemetry/api';
-import { DependencyContainer } from 'tsyringe/dist/typings/types';
 import jsLogger, { LoggerOptions } from '@map-colonies/js-logger';
-import { Metrics } from '@map-colonies/telemetry';
+import { Metrics, getOtelMixin } from '@map-colonies/telemetry';
+import { metrics as OtelMetrics, trace } from '@opentelemetry/api';
+import config from 'config';
+import { DependencyContainer } from 'tsyringe/dist/typings/types';
 import { SERVICES, SERVICE_NAME } from './common/constants';
-import { tracing } from './common/tracing';
-import { polygonPartsRouterFactory, POLYGON_PARTS_ROUTER_SYMBOL } from './polygonParts/routes/polygonPartsRouter';
 import { InjectionObject, registerDependencies } from './common/dependencyRegistration';
+import { tracing } from './common/tracing';
+import { POLYGON_PARTS_ROUTER_SYMBOL, polygonPartsRouterFactory } from './polygonParts/routes/polygonPartsRouter';
 
 export interface RegisterOptions {
   override?: InjectionObject<unknown>[];

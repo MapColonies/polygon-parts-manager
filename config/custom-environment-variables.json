@@ -57,6 +57,8 @@
       "key": "DB_KEY_PATH",
       "cert": "DB_CERT_PATH"
     },
-    "database": "DB_NAME"
+    "database": "DB_NAME",
+    "schema": "DB_SCHEMA",
+    "logging": "DB_LOGGING"
   }
 }

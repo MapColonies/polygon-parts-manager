@@ -38,6 +38,10 @@
       "cert": ""
     },
     "database": "postgres",
-    "schema": "polygon_parts"
+    "schema": "polygon_parts",
+    "synchronize": false,
+    "logging": false,
+    "entities": ["**/DAL/*.js"],
+    "migrations": ["db/migrations/*.js", "db/migrations/*.ts"]
   }
 }

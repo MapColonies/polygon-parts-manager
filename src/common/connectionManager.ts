@@ -1,11 +1,12 @@
 import { readFileSync } from 'fs';
-import { DataSourceOptions, DataSource, EntityTarget, Repository, ObjectLiteral } from 'typeorm';
-import { inject, singleton } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
+import { inject, singleton } from 'tsyringe';
+import { DataSource, DataSourceOptions } from 'typeorm';
 import { SERVICES } from '../common/constants';
-import { IConfig, DbConfig } from '../common/interfaces';
 import { DBConnectionError } from '../common/errors';
-import { Part } from '../polygonParts/DAL/part';
+import { DbConfig, IConfig } from '../common/interfaces';
+
+export const CONNECTION_MANAGER_SYMBOL = Symbol('connectionManager');
 
 @singleton()
 export class ConnectionManager {
@@ -24,14 +25,17 @@ export class ConnectionManager {
 
   public async init(): Promise<void> {
     const connectionConfig = this.config.get<DbConfig>('db');
-    this.logger.info(`connecting to database ${connectionConfig.database as string}${'host' in connectionConfig ? `on ${connectionConfig.host}` : ''}`);
+    this.logger.info(
+      `connecting to database ${connectionConfig.database as string} ${connectionConfig.host !== undefined ? `on ${connectionConfig.host}` : ''}`
+    );
     try {
       if (this.appDataSource === undefined) {
         const connectionOptions = ConnectionManager.createConnectionOptions(connectionConfig);
-        this.appDataSource = await new DataSource(connectionOptions).initialize();
+        this.appDataSource = new DataSource(connectionOptions);
+        await this.appDataSource.initialize();
       }
-    } catch (err) {
-      const errString = JSON.stringify(err, Object.getOwnPropertyNames(err));
+    } catch (error) {
+      const errString = JSON.stringify(error, Object.getOwnPropertyNames(error));
       this.logger.error(`failed to connect to database: ${errString}`);
       throw new DBConnectionError();
     }
@@ -40,17 +44,13 @@ export class ConnectionManager {
   public isConnected(): boolean {
     return this.appDataSource?.isInitialized ?? false;
   }
-
-  public getPartRepository(): Repository<Part> {
-    return this.getRepository(Part);
-  }
-
-  private getRepository<T extends ObjectLiteral>(repository: EntityTarget<T>): Repository<T> {
+  
+  public getDataSource(): DataSource {
     if (!this.appDataSource || !this.isConnected()) {
       const msg = 'failed to send request to database: no open connection';
       this.logger.error(msg);
       throw new DBConnectionError();
     }
-    return this.appDataSource.getRepository(repository);
+    return this.appDataSource;
   }
 }

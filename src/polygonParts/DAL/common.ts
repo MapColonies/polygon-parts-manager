@@ -23,7 +23,7 @@ export class Common implements CommonRecord {
   @Column({ name: 'product_version', type: 'text', collation: 'C.UTF-8', nullable: true })
   public productVersion?: string;
 
-  @CreateDateColumn({ name: 'ingestion_date_utc', type: 'timestamp with time zone' })
+  @CreateDateColumn({ name: 'ingestion_date_utc', type: 'timestamp with time zone', insert: false })
   @Index()
   public readonly ingestionDateUTC!: Date;
 
@@ -49,14 +49,14 @@ export class Common implements CommonRecord {
   @Column({ name: 'horizontal_accuracy_ce_90', type: 'real', nullable: true })
   public horizontalAccuracyCE90?: number;
 
-  @Column({ name: 'sensors', type: 'text', collation: 'C.UTF-8', nullable: true })
-  public sensors?: string;
+  @Column({ name: 'sensors', type: 'text', array: true, collation: 'C.UTF-8', nullable: true })
+  public sensors?: string[];
 
-  @Column({ name: 'countries', type: 'text', collation: 'C.UTF-8', nullable: true })
-  public countries?: string;
+  @Column({ name: 'countries', type: 'text', array: true, collation: 'C.UTF-8', nullable: true })
+  public countries?: string[];
 
-  @Column({ name: 'cities', type: 'text', collation: 'C.UTF-8', nullable: true })
-  public cities?: string;
+  @Column({ name: 'cities', type: 'text', array: true, collation: 'C.UTF-8', nullable: true })
+  public cities?: string[];
 
   @Column({ name: 'description', type: 'text', collation: 'C.UTF-8', nullable: true })
   public description?: string;

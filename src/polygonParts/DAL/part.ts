@@ -11,7 +11,7 @@ export class Part extends Common implements PartRecord {
   })
   public readonly id!: string;
 
-  @Column({ name: 'insertion_order', type: 'bigint', insert: false, generated: 'increment' })
+  @Column({ name: 'insertion_order', type: 'bigint', insert: false, generated: 'identity', generatedIdentity: 'ALWAYS' })
   public readonly insertionOrder!: number;
 
   @Column({ name: 'is_processed_part', type: 'boolean', default: false, insert: false })

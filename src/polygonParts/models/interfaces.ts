@@ -1,33 +1,31 @@
 import type { Polygon } from 'typeorm';
 
-interface PolygonPartMetadata {
+type PolygonPartMetadata = Readonly<{
   geometry: Polygon;
   imagingTimeBeginUTC: Date;
   imagingTimeEndUTC: Date;
   resolutionDegree: number;
   resolutionMeter: number;
   sourceResolutionMeter: number;
-  cities?: string;
-  countries?: string;
+  cities?: string[];
+  countries?: string[];
   description?: string;
   horizontalAccuracyCE90?: number;
-  sensors?: string;
+  sensors?: string[];
   sourceId?: string;
   sourceName?: string;
-}
+}>;
 
-export interface PolygonPartsPayload {
+export type PolygonPartsPayload = Readonly<{
   catalogId: string;
   polygonPartsMetadata: PolygonPartMetadata[];
   productId: string;
   productType: string;
   productVersion?: string;
-}
+}>;
 
-export interface PolygonPartRecord extends CommonRecord {
-  readonly id: string;
-  readonly insertionOrder: number;
-  readonly partId: string;
+export interface CommonRecord extends Omit<PolygonPartsPayload, 'polygonPartsMetadata'>, PolygonPartMetadata {
+  readonly ingestionDateUTC: Date;
 }
 
 export interface PartRecord extends CommonRecord {
@@ -36,8 +34,12 @@ export interface PartRecord extends CommonRecord {
   readonly isProcessedPart: boolean;
 }
 
-export interface PolygonPartsIngestionPayload extends Readonly<Omit<PolygonPartsPayload, 'polygonPartsMetadata'>>, Readonly<PolygonPartMetadata> {}
+export interface PolygonPartRecord extends CommonRecord {
+  readonly id: string;
+  readonly insertionOrder: number;
+  readonly partId: string;
+}
 
-export interface CommonRecord extends PolygonPartsIngestionPayload {
-  ingestionDateUTC: Date;
+export interface PolygonPartsIngestionPayload extends Omit<CommonRecord, 'ingestionDateUTC'> {
+  readonly ingestionDateUTC: undefined;
 }

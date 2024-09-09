@@ -15,6 +15,6 @@ export class PolygonPart extends Common implements PolygonPartRecord {
   @Index()
   public readonly partId!: string;
 
-  @Column({ name: 'insertion_order', type: 'bigint', insert: false, generated: 'increment' })
+  @Column({ name: 'insertion_order', type: 'bigint' })
   public readonly insertionOrder!: number;
 }

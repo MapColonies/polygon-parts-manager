@@ -25,7 +25,7 @@ export class PolygonPartsController {
 
   public createPolygonParts: CreatePolygonPartsHandler = async (req, res, next) => {
     try {
-      this.polygonPartsManager.createPolygonParts(req.body);
+      await this.polygonPartsManager.createPolygonParts(req.body);
       this.createdPolygonPartsCounter.add(1);
       return res.status(httpStatus.CREATED).send(HTTP_STATUS_CREATED_TEXT);
     } catch (error) {

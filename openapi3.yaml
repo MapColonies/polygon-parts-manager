@@ -230,10 +230,10 @@ components:
         - sensors
     Polygon:
       type: object
-      description: GeoJSon geometry
+      description: GeoJSON geometry
       externalDocs:
         url: http://geojson.org/geojson-spec.html#id4
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/GeometryBase'
         - properties:
             coordinates:
@@ -244,9 +244,9 @@ components:
                   $ref: '#/components/schemas/Point2D'
     MultiPolygon:
       type: object
-      description: GeoJSon geometry
+      description: GeoJSON geometry
       externalDocs:
-        url: http://geojson.org/geojson-spec.html#id6
+        url: http://geojson.org/geojson-spec.html#id7
       allOf:
         - $ref: '#/components/schemas/GeometryBase'
         - properties:
@@ -260,7 +260,7 @@ components:
                     $ref: '#/components/schemas/Point2D'
     GeometryBase:
       type: object
-      description: GeoJSon geometry
+      description: GeoJSON geometry
       required:
         - type
       externalDocs:

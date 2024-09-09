@@ -23,9 +23,13 @@ export class PolygonPartsController {
     this.createdPolygonPartsCounter = meter.createCounter('created_resource');
   }
 
-  public createPolygonParts: CreatePolygonPartsHandler = (req, res) => {
-    this.polygonPartsManager.createPolygonParts(req.body);
-    this.createdPolygonPartsCounter.add(1);
-    return res.status(httpStatus.CREATED).send(HTTP_STATUS_CREATED_TEXT);
+  public createPolygonParts: CreatePolygonPartsHandler = async (req, res, next) => {
+    try {
+      this.polygonPartsManager.createPolygonParts(req.body);
+      this.createdPolygonPartsCounter.add(1);
+      return res.status(httpStatus.CREATED).send(HTTP_STATUS_CREATED_TEXT);
+    } catch (error) {
+      next(error)
+    }
   };
 }

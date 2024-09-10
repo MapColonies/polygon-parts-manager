@@ -43,3 +43,14 @@ export interface PolygonPartRecord extends CommonRecord {
 export interface PolygonPartsIngestionPayload extends Omit<CommonRecord, 'ingestionDateUTC'> {
   readonly ingestionDateUTC: undefined;
 }
+
+export type ProductType =
+  | 'Orthophoto'
+  | 'OrthophotoHistory'
+  | 'OrthophotoBest'
+  | 'RasterMap'
+  | 'RasterMapBest'
+  | 'RasterAid'
+  | 'RasterAidBest'
+  | 'RasterVector'
+  | 'RasterVectorBest';

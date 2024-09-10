@@ -19,7 +19,7 @@ export class ServerBuilder {
   public constructor(
     @inject(SERVICES.CONFIG) private readonly config: IConfig,
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
-    @inject(POLYGON_PARTS_ROUTER_SYMBOL) private readonly polygonPartsRouter: Router,
+    @inject(POLYGON_PARTS_ROUTER_SYMBOL) private readonly polygonPartsRouter: Router
   ) {
     this.serverInstance = express();
   }

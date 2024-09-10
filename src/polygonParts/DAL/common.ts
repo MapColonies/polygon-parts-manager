@@ -22,7 +22,6 @@ export class Common implements CommonRecord {
       'RasterVector',
       'RasterVectorBest',
     ],
-    collation: 'C.UTF-8',
   })
   @Index()
   public productType!: ProductType;

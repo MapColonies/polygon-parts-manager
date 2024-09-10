@@ -20,7 +20,7 @@ export class Initial1725288965719 implements MigrationInterface {
         await queryRunner.query(`
             CREATE TABLE "polygon_parts"."parts" (
                 "product_id" text COLLATE "C.UTF-8" NOT NULL,
-                "product_type" "polygon_parts"."product_type_enum" COLLATE "C.UTF-8" NOT NULL,
+                "product_type" "polygon_parts"."product_type_enum" NOT NULL,
                 "catalog_id" uuid NOT NULL,
                 "source_id" text COLLATE "C.UTF-8",
                 "source_name" text COLLATE "C.UTF-8" NOT NULL,
@@ -100,7 +100,7 @@ export class Initial1725288965719 implements MigrationInterface {
         await queryRunner.query(`
             CREATE TABLE "polygon_parts"."polygon_parts" (
                 "product_id" text COLLATE "C.UTF-8" NOT NULL,
-                "product_type" "polygon_parts"."product_type_enum" COLLATE "C.UTF-8" NOT NULL,
+                "product_type" "polygon_parts"."product_type_enum" NOT NULL,
                 "catalog_id" uuid NOT NULL,
                 "source_id" text COLLATE "C.UTF-8",
                 "source_name" text COLLATE "C.UTF-8" NOT NULL,

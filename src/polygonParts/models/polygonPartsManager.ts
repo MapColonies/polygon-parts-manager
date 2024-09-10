@@ -19,10 +19,17 @@ export class PolygonPartsManager {
     this.logger.info(`creating polygon parts for catalog record: ${catalogId}`);
 
     await this.connectionManager.getDataSource().transaction(async (entityManager) => {
-      await this.createSchema(entityManager, resourceId);
-      await this.insert(entityManager, resourceId, polygonPartsPayload);
-      await this.updatePolygonParts(entityManager, resourceId);
-      await this.updateSummary(entityManager, resourceId);
+      try {
+        await this.createSchema(entityManager, resourceId);
+        await this.insert(entityManager, resourceId, polygonPartsPayload);
+        await this.updatePolygonParts(entityManager, resourceId);
+        await this.updateSummary(entityManager, resourceId);
+      } catch (error) {
+        if (error instanceof Error) {
+          error.message = this.enchanceErrorProcessDetails(error.message, catalogId);
+        }
+        throw error;
+      }
     });
   }
 
@@ -30,8 +37,8 @@ export class PolygonPartsManager {
     try {
       await entityManager.query(`CALL "polygon_parts".create_polygon_parts_schema('polygon_parts.${resourceId}');`);
     } catch (error) {
-      this.errorMessageHandler(`Could not create polygon parts schema`, error);
-      throw new InternalServerError(`Could not create polygon parts schema`);
+      const errorMessage = 'Could not create polygon parts schema';
+      throw new InternalServerError(this.enchanceErrorDetails(errorMessage, error));
     }
   }
 
@@ -64,8 +71,8 @@ export class PolygonPartsManager {
     try {
       await entityManager.insert<PolygonPartsIngestionPayload>(`polygon_parts.${resourceId}_parts`, insertEntities);
     } catch (error) {
-      this.errorMessageHandler(`Could not insert polygon parts data`, error);
-      throw new InternalServerError(`Could not insert polygon parts data`);
+      const errorMessage = 'Could not insert polygon parts data';
+      throw new InternalServerError(this.enchanceErrorDetails(errorMessage, error));
     }
   }
 
@@ -75,8 +82,8 @@ export class PolygonPartsManager {
         `CALL "polygon_parts".update_polygon_parts('polygon_parts.${resourceId}_parts'::regclass, 'polygon_parts.${resourceId}'::regclass);`
       );
     } catch (error) {
-      this.errorMessageHandler(`Could not update polygon parts data`, error);
-      throw new InternalServerError(`Could not update polygon parts data`);
+      const errorMessage = 'Could not update polygon parts data';
+      throw new InternalServerError(this.enchanceErrorDetails(errorMessage, error));
     }
   }
 
@@ -84,7 +91,11 @@ export class PolygonPartsManager {
     // TODO
   }
 
-  private errorMessageHandler(message: string, error: unknown): void {
-    this.logger.error(`${message} for catalog record: ${error instanceof Error ? `, reason: ${error.message}` : ''}`);
+  private enchanceErrorProcessDetails(message: string, id: string): string {
+    return `${message}, for catalog record ${id}`;
+  }
+
+  private enchanceErrorDetails(message: string, error: unknown): string {
+    return `${message}${error instanceof Error ? `, details: ${error.message}` : ''}`;
   }
 }

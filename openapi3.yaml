@@ -136,15 +136,12 @@ components:
           example: c52d8189-7e07-456a-8c6b-53859523c3e9
         productId:
           type: string
-          nullable: true
           example: Bluemarble
         productType:
           type: string
-          nullable: true
           example: OrtophotoBest
         productVersion:
           type: string
-          nullable: true
           example: 1.0
           # regex validation for fixed format?
         polygonPartsMetadata:

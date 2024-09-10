@@ -44,7 +44,7 @@ export class ConnectionManager {
   public isConnected(): boolean {
     return this.appDataSource?.isInitialized ?? false;
   }
-  
+
   public getDataSource(): DataSource {
     if (!this.appDataSource || !this.isConnected()) {
       const msg = 'failed to send request to database: no open connection';

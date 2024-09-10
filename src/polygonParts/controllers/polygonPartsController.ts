@@ -29,7 +29,7 @@ export class PolygonPartsController {
       this.createdPolygonPartsCounter.add(1);
       return res.status(httpStatus.CREATED).send(HTTP_STATUS_CREATED_TEXT);
     } catch (error) {
-      next(error)
+      next(error);
     }
   };
 }

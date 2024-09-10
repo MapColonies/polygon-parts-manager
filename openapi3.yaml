@@ -304,7 +304,9 @@ components:
           type: number
           format: double
         sensors:
-          type: string
+          type: array
+          items:
+            type: string
         footprint:
           anyOf:
             - $ref: '#/components/schemas/Polygon'

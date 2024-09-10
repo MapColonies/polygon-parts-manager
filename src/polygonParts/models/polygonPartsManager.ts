@@ -6,7 +6,17 @@ import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import type { PolygonPartsIngestionPayload, PolygonPartsPayload } from './interfaces';
 
-type ResourceId = PolygonPartsPayload['catalogId'];
+interface Context {
+  catalogId: PolygonPartsPayload['catalogId'];
+  entityManager: EntityManager;
+  resourceId: PolygonPartsPayload['catalogId'];
+}
+
+interface ErrorContext {
+  error: unknown;
+  errorMessage: string;
+  id: string;
+}
 
 @injectable()
 export class PolygonPartsManager {
@@ -19,30 +29,31 @@ export class PolygonPartsManager {
     this.logger.info(`creating polygon parts for catalog record: ${catalogId}`);
 
     await this.connectionManager.getDataSource().transaction(async (entityManager) => {
-      try {
-        await this.createSchema(entityManager, resourceId);
-        await this.insert(entityManager, resourceId, polygonPartsPayload);
-        await this.updatePolygonParts(entityManager, resourceId);
-        await this.updateSummary(entityManager, resourceId);
-      } catch (error) {
-        if (error instanceof Error) {
-          error.message = this.enchanceErrorProcessDetails(error.message, catalogId);
-        }
-        throw error;
-      }
+      const context: Context = {
+        catalogId,
+        entityManager,
+        resourceId,
+      };
+
+      await this.createSchema(context);
+      await this.insert(context, polygonPartsPayload);
+      await this.updatePolygonParts(context);
+      await this.updateSummary(context);
     });
   }
 
-  private async createSchema(entityManager: EntityManager, resourceId: ResourceId): Promise<void> {
+  private async createSchema({ catalogId, entityManager, resourceId }: Context): Promise<void> {
+    this.logger.debug(`creating polygon parts schema for catalog record: ${catalogId}`);
     try {
       await entityManager.query(`CALL "polygon_parts".create_polygon_parts_schema('polygon_parts.${resourceId}');`);
     } catch (error) {
       const errorMessage = 'Could not create polygon parts schema';
-      throw new InternalServerError(this.enchanceErrorDetails(errorMessage, error));
+      throw new InternalServerError(this.enchanceErrorDetails({ error, errorMessage, id: catalogId }));
     }
   }
 
-  private async insert(entityManager: EntityManager, resourceId: ResourceId, polygonPartsPayload: PolygonPartsPayload): Promise<void> {
+  private async insert({ catalogId, entityManager, resourceId }: Context, polygonPartsPayload: PolygonPartsPayload): Promise<void> {
+    this.logger.debug(`inserting polygon parts data for catalog record: ${catalogId}`);
     const { polygonPartsMetadata, ...props } = polygonPartsPayload;
     // inserted props are ordered in the order of the columns of the entity, since the entity is not modeled directly by typeorm
     const insertEntities: PolygonPartsIngestionPayload[] = polygonPartsMetadata.map((polygonPartMetadata) => {
@@ -72,30 +83,31 @@ export class PolygonPartsManager {
       await entityManager.insert<PolygonPartsIngestionPayload>(`polygon_parts.${resourceId}_parts`, insertEntities);
     } catch (error) {
       const errorMessage = 'Could not insert polygon parts data';
-      throw new InternalServerError(this.enchanceErrorDetails(errorMessage, error));
+      throw new InternalServerError(this.enchanceErrorDetails({ error, errorMessage, id: catalogId }));
     }
   }
 
-  private async updatePolygonParts(entityManager: EntityManager, resourceId: ResourceId): Promise<void> {
+  private async updatePolygonParts({ catalogId, entityManager, resourceId }: Context): Promise<void> {
+    this.logger.debug(`updating polygon parts data for catalog record: ${catalogId}`);
     try {
       await entityManager.query(
         `CALL "polygon_parts".update_polygon_parts('polygon_parts.${resourceId}_parts'::regclass, 'polygon_parts.${resourceId}'::regclass);`
       );
     } catch (error) {
       const errorMessage = 'Could not update polygon parts data';
-      throw new InternalServerError(this.enchanceErrorDetails(errorMessage, error));
+      throw new InternalServerError(this.enchanceErrorDetails({ error, errorMessage, id: catalogId }));
     }
   }
 
-  private async updateSummary(entityManager: EntityManager, resourceId: ResourceId): Promise<void> {
+  private async updateSummary({ catalogId, entityManager, resourceId }: Context): Promise<void> {
     // TODO
   }
 
-  private enchanceErrorProcessDetails(message: string, id: string): string {
-    return `${message}, for catalog record ${id}`;
-  }
+  // private enchanceErrorProcessDetails(message: string, id: string): string {
+  //   return `${message}, for catalog record ${id}`;
+  // }
 
-  private enchanceErrorDetails(message: string, error: unknown): string {
-    return `${message}${error instanceof Error ? `, details: ${error.message}` : ''}`;
+  private enchanceErrorDetails({ error, errorMessage, id }: ErrorContext): string {
+    return `${errorMessage}, for catalog record ${id}${error instanceof Error ? `, details: ${error.message}` : ''}`;
   }
 }

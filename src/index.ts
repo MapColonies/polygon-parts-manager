@@ -15,7 +15,7 @@ const port: number = config.get<number>('server.port') || DEFAULT_SERVER_PORT;
 const stubHealthcheck = async (): Promise<void> => Promise.resolve();
 
 getApp()
-.then((app) => {
+  .then((app) => {
     const logger = container.resolve<Logger>(SERVICES.LOGGER);
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const server = createTerminus(createServer(app), { healthChecks: { '/liveness': stubHealthcheck, onSignal: container.resolve('onSignal') } });

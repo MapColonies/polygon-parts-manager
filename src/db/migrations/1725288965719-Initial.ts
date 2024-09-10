@@ -42,7 +42,7 @@ export class Initial1725288965719 implements MigrationInterface {
                 "is_processed_part" boolean NOT NULL DEFAULT false,
                 CONSTRAINT "parts_insertion_order_uq" UNIQUE ("insertion_order"),
                 CONSTRAINT "product id" CHECK (product_id ~* '^[a-zA-Z0-9_-]+$'),
-                CONSTRAINT "product version" CHECK ("product_version" ~* '^\d+\.\d{1,2}$'),
+                CONSTRAINT "product version" CHECK ("product_version" ~* '^\\d+\\.\\d{1,2}$'),
                 CONSTRAINT "imaging time begin utc" CHECK ("imaging_time_begin_utc" < now()),
                 CONSTRAINT "imaging time end utc" CHECK ("imaging_time_end_utc" < now()),
                 CONSTRAINT "resolution degree" CHECK (
@@ -122,7 +122,7 @@ export class Initial1725288965719 implements MigrationInterface {
                 "insertion_order" bigint NOT NULL,
                 CONSTRAINT "polygon_parts_insertion_order_uq" UNIQUE ("insertion_order"),
                 CONSTRAINT "product id" CHECK (product_id ~* '^[a-zA-Z0-9_-]+$'),
-                CONSTRAINT "product version" CHECK ("product_version" ~* '^\d+\.\d{1,2}$'),
+                CONSTRAINT "product version" CHECK ("product_version" ~* '^\\d+\\.\\d{1,2}$'),
                 CONSTRAINT "imaging time begin utc" CHECK ("imaging_time_begin_utc" < now()),
                 CONSTRAINT "imaging time end utc" CHECK ("imaging_time_end_utc" < now()),
                 CONSTRAINT "resolution degree" CHECK (

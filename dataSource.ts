@@ -11,7 +11,7 @@ customNamingStrategy.indexName = (tableOrName: Table | string, columnNames: stri
 };
 customNamingStrategy.uniqueConstraintName = (tableOrName: Table | string, columnNames: string[]): string => {
   return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_${columnNames.join('_')}`;
-}
+};
 
 export const appDataSource = new DataSource({
   ...ConnectionManager.createConnectionOptions(connectionOptions),

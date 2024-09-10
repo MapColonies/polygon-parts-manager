@@ -17,10 +17,10 @@ export class Common implements CommonRecord {
   @Column({ name: 'source_id', type: 'text', collation: 'C.UTF-8', nullable: true })
   public sourceId?: string;
 
-  @Column({ name: 'source_name', type: 'text', collation: 'C.UTF-8', nullable: true })
+  @Column({ name: 'source_name', type: 'text', collation: 'C.UTF-8' })
   public sourceName?: string;
 
-  @Column({ name: 'product_version', type: 'text', collation: 'C.UTF-8', nullable: true })
+  @Column({ name: 'product_version', type: 'text', collation: 'C.UTF-8' })
   public productVersion?: string;
 
   @CreateDateColumn({ name: 'ingestion_date_utc', type: 'timestamp with time zone', insert: false })
@@ -46,10 +46,10 @@ export class Common implements CommonRecord {
   @Column({ name: 'source_resolution_meter', type: 'numeric' })
   public sourceResolutionMeter!: number;
 
-  @Column({ name: 'horizontal_accuracy_ce_90', type: 'real', nullable: true })
+  @Column({ name: 'horizontal_accuracy_ce_90', type: 'real' })
   public horizontalAccuracyCE90?: number;
 
-  @Column({ name: 'sensors', type: 'text', array: true, collation: 'C.UTF-8', nullable: true })
+  @Column({ name: 'sensors', type: 'text', array: true, collation: 'C.UTF-8' })
   public sensors?: string[];
 
   @Column({ name: 'countries', type: 'text', array: true, collation: 'C.UTF-8', nullable: true })

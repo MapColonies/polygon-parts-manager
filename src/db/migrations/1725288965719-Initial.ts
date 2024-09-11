@@ -14,7 +14,16 @@ export class Initial1725288965719 implements MigrationInterface {
                 'RasterAid',
                 'RasterAidBest',
                 'RasterVector',
-                'RasterVectorBest'
+                'RasterVectorBest',
+                'VectorBest',
+                'DTM',
+                'DSM',
+                'QuantizedMeshDTM',
+                'QuantizedMeshDSM',
+                'QuantizedMeshDTMBest',
+                'QuantizedMeshDSMBest',
+                '3DPhotoRealistic',
+                'PointCloud'
             )
         `);
         await queryRunner.query(`
@@ -64,7 +73,7 @@ export class Initial1725288965719 implements MigrationInterface {
                 CONSTRAINT "imaging times" CHECK (
                     "imaging_time_begin_utc" <= "imaging_time_end_utc"
                 ),
-                CONSTRAINT "part_pkey" PRIMARY KEY ("id")
+                CONSTRAINT "parts_pkey" PRIMARY KEY ("id")
             )
         `);
         await queryRunner.query(`
@@ -141,7 +150,7 @@ export class Initial1725288965719 implements MigrationInterface {
                     Box2D("geometry") @Box2D(ST_GeomFromText('LINESTRING(-180 -90, 180 90)'))
                 ),
                 CONSTRAINT "valid geometry" CHECK (ST_IsValid("geometry")),
-                CONSTRAINT "polygon_part_pkey" PRIMARY KEY ("id")
+                CONSTRAINT "polygon_parts_pkey" PRIMARY KEY ("id")
             )
         `);
         await queryRunner.query(`

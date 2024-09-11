@@ -1,5 +1,6 @@
+import { ProductType } from '@map-colonies/mc-model-types';
 import { Check, Column, CreateDateColumn, Index, type Polygon } from 'typeorm';
-import type { CommonRecord, ProductType } from '../models/interfaces';
+import type { CommonRecord } from '../models/interfaces';
 
 export class Common implements CommonRecord {
   @Column({ name: 'product_id', type: 'text', collation: 'C.UTF-8' })
@@ -11,17 +12,7 @@ export class Common implements CommonRecord {
     name: 'product_type',
     type: 'enum',
     enumName: 'product_type_enum',
-    enum: [
-      'Orthophoto',
-      'OrthophotoHistory',
-      'OrthophotoBest',
-      'RasterMap',
-      'RasterMapBest',
-      'RasterAid',
-      'RasterAidBest',
-      'RasterVector',
-      'RasterVectorBest',
-    ],
+    enum: ProductType
   })
   @Index()
   public productType!: ProductType;
@@ -34,11 +25,11 @@ export class Common implements CommonRecord {
   public sourceId?: string;
 
   @Column({ name: 'source_name', type: 'text', collation: 'C.UTF-8' })
-  public sourceName?: string;
+  public sourceName!: string;
 
   @Column({ name: 'product_version', type: 'text', collation: 'C.UTF-8' })
   @Check('product version', `"product_version" ~* '^\\\\d+\\\\.\\\\d{1,2}$'`)
-  public productVersion?: string;
+  public productVersion!: string;
 
   @CreateDateColumn({ name: 'ingestion_date_utc', type: 'timestamp with time zone', insert: false })
   @Index()
@@ -70,10 +61,10 @@ export class Common implements CommonRecord {
 
   @Column({ name: 'horizontal_accuracy_ce_90', type: 'real' })
   @Check('horizontal accuracy ce 90', `"horizontal_accuracy_ce_90" BETWEEN 0.01 AND 4000`)
-  public horizontalAccuracyCE90?: number;
+  public horizontalAccuracyCE90!: number;
 
   @Column({ name: 'sensors', type: 'text', array: true, collation: 'C.UTF-8' })
-  public sensors?: string[];
+  public sensors!: string[];
 
   @Column({ name: 'countries', type: 'text', array: true, collation: 'C.UTF-8', nullable: true })
   public countries?: string[];

@@ -1,56 +1,24 @@
-import type { Polygon } from 'typeorm';
+import type { IPolygonPart } from '@map-colonies/mc-model-types';
 
-type PolygonPartMetadata = Readonly<{
-  geometry: Polygon;
-  imagingTimeBeginUTC: Date;
-  imagingTimeEndUTC: Date;
-  resolutionDegree: number;
-  resolutionMeter: number;
-  sourceResolutionMeter: number;
-  cities?: string[];
-  countries?: string[];
-  description?: string;
-  horizontalAccuracyCE90?: number;
-  sensors?: string[];
-  sourceId?: string;
-  sourceName?: string;
-}>;
+type PolygonPartMetadata = Readonly<Omit<IPolygonPart, 'id' | 'partId' | 'catalogId' | 'productId' | 'productType' | 'productVersion'>>;
 
-export type PolygonPartsPayload = Readonly<{
-  catalogId: string;
-  polygonPartsMetadata: PolygonPartMetadata[];
-  productId: string;
-  productType: string;
-  productVersion?: string;
-}>;
+export interface PolygonPartsPayload extends Readonly<Pick<IPolygonPart, 'catalogId' | 'productId' | 'productType' | 'productVersion'>> {
+  readonly polygonPartsMetadata: PolygonPartMetadata[];
+}
 
 export interface CommonRecord extends Omit<PolygonPartsPayload, 'polygonPartsMetadata'>, PolygonPartMetadata {
   readonly ingestionDateUTC: Date;
 }
 
-export interface PartRecord extends CommonRecord {
-  readonly id: string;
+export interface PartRecord extends CommonRecord, Readonly<Pick<IPolygonPart, 'id'>> {
   readonly insertionOrder: number;
   readonly isProcessedPart: boolean;
 }
 
-export interface PolygonPartRecord extends CommonRecord {
-  readonly id: string;
+export interface PolygonPartRecord extends CommonRecord, Readonly<Pick<IPolygonPart, 'id' | 'partId'>> {
   readonly insertionOrder: number;
-  readonly partId: string;
 }
 
 export interface PolygonPartsIngestionPayload extends Omit<CommonRecord, 'ingestionDateUTC'> {
   readonly ingestionDateUTC: undefined;
 }
-
-export type ProductType =
-  | 'Orthophoto'
-  | 'OrthophotoHistory'
-  | 'OrthophotoBest'
-  | 'RasterMap'
-  | 'RasterMapBest'
-  | 'RasterAid'
-  | 'RasterAidBest'
-  | 'RasterVector'
-  | 'RasterVectorBest';

@@ -7,7 +7,7 @@ import { Common } from './common';
 export class PolygonPart extends Common implements PolygonPartRecord {
   @PrimaryGeneratedColumn('uuid', {
     name: 'id',
-    primaryKeyConstraintName: 'polygon_part_pkey',
+    primaryKeyConstraintName: 'polygon_parts_pkey',
   })
   public readonly id!: string;
 

@@ -8,7 +8,7 @@ import { Common } from './common';
 export class Part extends Common implements PartRecord {
   @PrimaryGeneratedColumn('uuid', {
     name: 'id',
-    primaryKeyConstraintName: 'part_pkey',
+    primaryKeyConstraintName: 'parts_pkey',
   })
   public readonly id!: string;
 

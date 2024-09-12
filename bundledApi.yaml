@@ -8,7 +8,6 @@ tags:
     description: CRUD operations to manage polygon-parts
   - name: summary
     description: Summary of polygon-parts data
-
 paths:
   /summary/{catalogId}:
     get:
@@ -124,11 +123,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
-
 components:
   schemas:
     PolygonPartsPayload:
-      $ref: ./Schema/polygonPartsManager/payload.yaml#/components/schemas/PolygonPartsPayload
+      type: object
+      required:
+        - catalogId
+        - productId
+        - productType
+        - productVersion
+        - partsData
+      allOf:
+        - type: object
+          allOf:
+            - $ref: '#/components/schemas/RasterLayerBaseMetadata'
+            - properties:
+                catalogId:
+                  type: string
+                  format: uuid
+                  example: c52d8189-7e07-456a-8c6b-53859523c3e9
+                  description: layer's identifier
+                productVersion:
+                  type: string
+                  pattern: ^[1-9]\d{0,}?(\.(0|[1-9]\d?))?$
+                  description: layer's version
+                partsData:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/polygonPartMetadata'
+                  description: polygon parts data
     Polygon:
       type: object
       description: GeoJSON geometry
@@ -235,3 +258,138 @@ components:
           type: string
       required:
         - message
+    productType:
+      type: string
+      enum:
+        - Orthophoto
+        - OrthophotoHistory
+        - OrthophotoBest
+        - RasterMap
+        - RasterMapBest
+        - RasterAid
+        - RasterAidBest
+        - RasterVector
+        - RasterVectorBest
+      description: layer's type might be derived from the first letter
+    RasterLayerBaseMetadata:
+      required:
+        - productId
+        - productType
+      properties:
+        productId:
+          type: string
+          description: layer's external identifier
+          pattern: ^[a-zA-Z0-9_-]+$
+        productType:
+          $ref: '#/components/schemas/productType'
+    schemas-GeometryBase:
+      type: object
+      description: GeoJSon geometry
+      required:
+        - type
+      externalDocs:
+        url: http://geojson.org/geojson-spec.html#geometry-objects
+      properties:
+        type:
+          type: string
+          enum:
+            - Point
+            - LineString
+            - Polygon
+            - MultiPoint
+            - MultiLineString
+            - MultiPolygon
+          description: the geometry type
+    schemas-Point2D:
+      type: array
+      maxItems: 2
+      minItems: 2
+      items:
+        type: number
+        minimum: -180
+        maximum: 180
+    schemas-Polygon:
+      type: object
+      description: GeoJSon geometry
+      externalDocs:
+        url: http://geojson.org/geojson-spec.html#id4
+      allOf:
+        - $ref: '#/components/schemas/schemas-GeometryBase'
+        - properties:
+            coordinates:
+              type: array
+              items:
+                type: array
+                items:
+                  $ref: '#/components/schemas/schemas-Point2D'
+    polygonPartMetadata:
+      type: object
+      description: Layer polygon part data definitions
+      required:
+        - sourceName
+        - imagingTimeBeginUTC
+        - imagingTimeEndUTC
+        - geometry
+        - resolutionDegree
+        - resolutionMeter
+        - sourceResolutionMeter
+        - horizontalAccuracyCE90
+        - sensors
+      properties:
+        sourceId:
+          type: string
+          description: Layer's external identifier
+        sourceName:
+          type: string
+          description: Layer's external name
+        imagingTimeBeginUTC:
+          type: string
+          description: Oldest imaging date (UTC)
+          format: date-time
+        imagingTimeEndUTC:
+          type: string
+          description: Latest imaging date (UTC)
+          format: date-time
+        resolutionDegree:
+          type: number
+          minimum: 1.67638e-7
+          maximum: 0.703125
+          format: double
+          description: min resolution of layer in degrees/pixel
+        resolutionMeter:
+          type: number
+          minimum: 0.0185
+          maximum: 78271.52
+          format: double
+          description: min resolution of layer in meters
+        sourceResolutionMeter:
+          type: number
+          minimum: 0.0185
+          maximum: 78271.52
+          format: double
+          description: min resolution of layer in meters
+        horizontalAccuracyCE90:
+          type: number
+          minimum: 0.01
+          maximum: 4000
+          format: double
+          description: minimum Horizontal Accuracy
+        sensors:
+          type: array
+          items:
+            type: string
+          description: Layer sensors list
+        countries:
+          type: array
+          items:
+            type: string
+          description: countries included in the layer
+        cities:
+          type: array
+          items:
+            type: string
+          description: cities included in the layer
+        description:
+          type: string
+        geometry:
+          $ref: '#/components/schemas/schemas-Polygon'

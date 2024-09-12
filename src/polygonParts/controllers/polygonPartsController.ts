@@ -1,10 +1,10 @@
 import { Logger } from '@map-colonies/js-logger';
+import type { PolygonPartsPayload } from '@map-colonies/mc-model-types';
 import { BoundCounter, Meter } from '@opentelemetry/api-metrics';
 import { RequestHandler } from 'express';
 import httpStatus from 'http-status-codes';
 import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '../../common/constants';
-import { PolygonPartsPayload } from '../models/interfaces';
 import { PolygonPartsManager } from '../models/polygonPartsManager';
 
 type CreatePolygonPartsHandler = RequestHandler<undefined, string, PolygonPartsPayload>;

@@ -1,12 +1,8 @@
-import type { IPolygonPart } from '@map-colonies/mc-model-types';
+import type { IPolygonPart, PolygonPartsPayload } from '@map-colonies/mc-model-types';
 
-type PolygonPartMetadata = Readonly<Omit<IPolygonPart, 'id' | 'partId' | 'catalogId' | 'productId' | 'productType' | 'productVersion'>>;
+type PartData = Readonly<Pick<PolygonPartsPayload, 'partsData'>['partsData'][number]>;
 
-export interface PolygonPartsPayload extends Readonly<Pick<IPolygonPart, 'catalogId' | 'productId' | 'productType' | 'productVersion'>> {
-  readonly polygonPartsMetadata: PolygonPartMetadata[];
-}
-
-export interface CommonRecord extends Omit<PolygonPartsPayload, 'polygonPartsMetadata'>, PolygonPartMetadata {
+export interface CommonRecord extends Omit<PolygonPartsPayload, 'partsData'>, PartData {
   readonly ingestionDateUTC: Date;
 }
 

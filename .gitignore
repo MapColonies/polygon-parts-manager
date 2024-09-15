@@ -1,3 +1,13 @@
+#local configs
+config/*local*.json
+helm/certs
+helm/local
+helm/local.yaml
+local
+#generated files
+bundledApi.yaml
+Schema
+
 # Logs
 logs
 *.log

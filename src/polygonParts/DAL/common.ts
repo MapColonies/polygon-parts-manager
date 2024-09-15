@@ -28,7 +28,7 @@ export class Common implements CommonRecord {
   public sourceName!: string;
 
   @Column({ name: 'product_version', type: 'text', collation: 'C.UTF-8' })
-  @Check('product version', `"product_version" ~* '^\\\\d+\\\\.\\\\d{1,2}$'`)
+  @Check('product version', `"product_version" ~* '^[1-9]\\\\d*(\\\\.(0|[1-9]\\\\d?))?$'`)
   public productVersion!: string;
 
   @CreateDateColumn({ name: 'ingestion_date_utc', type: 'timestamp with time zone', insert: false })

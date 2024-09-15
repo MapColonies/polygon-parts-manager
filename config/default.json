@@ -1,6 +1,6 @@
 {
   "openapiConfig": {
-    "filePath": "./openapi3.yaml",
+    "filePath": "./bundledApi.yaml",
     "basePath": "/docs",
     "rawPath": "/api",
     "uiPath": "/api"

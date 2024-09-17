@@ -39,6 +39,9 @@
       }
     }
   },
+  "application": {
+    "arraySeparator": "ARRAY_SEPARATOR"
+  },
   "db": {
     "type": "DB_TYPE",
     "host": "DB_HOST",

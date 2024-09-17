@@ -1,5 +1,9 @@
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
+export interface ApplicationConfig {
+  arraySeparator: string;
+}
+
 export type DbConfig = PostgresConnectionOptions & {
   enableSslAuth: boolean;
   sslPaths: { ca: string; cert: string; key: string };

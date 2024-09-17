@@ -25,6 +25,9 @@
       }
     }
   },
+  "application": {
+    "arraySeparator": ","
+  },
   "db": {
     "type": "postgres",
     "host": "localhost",

@@ -63,14 +63,14 @@ export class Common implements CommonRecord {
   @Check('horizontal accuracy ce 90', `"horizontal_accuracy_ce_90" BETWEEN 0.01 AND 4000`)
   public horizontalAccuracyCE90!: number;
 
-  @Column({ name: 'sensors', type: 'text', array: true, collation: 'C.UTF-8' })
-  public sensors!: string[];
+  @Column({ name: 'sensors', type: 'text', collation: 'C.UTF-8' })
+  public sensors!: string;
 
-  @Column({ name: 'countries', type: 'text', array: true, collation: 'C.UTF-8', nullable: true })
-  public countries?: string[];
+  @Column({ name: 'countries', type: 'text', collation: 'C.UTF-8', nullable: true })
+  public countries?: string;
 
-  @Column({ name: 'cities', type: 'text', array: true, collation: 'C.UTF-8', nullable: true })
-  public cities?: string[];
+  @Column({ name: 'cities', type: 'text', collation: 'C.UTF-8', nullable: true })
+  public cities?: string;
 
   @Column({ name: 'description', type: 'text', collation: 'C.UTF-8', nullable: true })
   public description?: string;

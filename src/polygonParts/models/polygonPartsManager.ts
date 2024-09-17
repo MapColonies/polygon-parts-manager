@@ -5,6 +5,7 @@ import { inject, injectable } from 'tsyringe';
 import type { EntityManager } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
+import { ApplicationConfig, IConfig } from '../../common/interfaces';
 import type { PolygonPartsIngestionPayload } from './interfaces';
 
 interface Context {
@@ -21,7 +22,14 @@ interface ErrorContext {
 
 @injectable()
 export class PolygonPartsManager {
-  public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, private readonly connectionManager: ConnectionManager) {}
+  private readonly applicationConfig: ApplicationConfig;
+  public constructor(
+    @inject(SERVICES.LOGGER) private readonly logger: Logger,
+    @inject(SERVICES.CONFIG) private readonly config: IConfig,
+    private readonly connectionManager: ConnectionManager
+  ) {
+    this.applicationConfig = config.get<ApplicationConfig>('application');
+  }
 
   public async createPolygonParts(polygonPartsPayload: PolygonPartsPayload): Promise<void> {
     const { catalogId } = polygonPartsPayload;
@@ -72,9 +80,9 @@ export class PolygonPartsManager {
         resolutionMeter: partData.resolutionMeter,
         sourceResolutionMeter: partData.sourceResolutionMeter,
         horizontalAccuracyCE90: partData.horizontalAccuracyCE90,
-        sensors: partData.sensors,
-        countries: partData.countries,
-        cities: partData.cities,
+        sensors: partData.sensors.join(this.applicationConfig.arraySeparator),
+        countries: partData.countries?.join(this.applicationConfig.arraySeparator),
+        cities: partData.cities?.join(this.applicationConfig.arraySeparator),
         description: partData.description,
         geometry: partData.geometry,
       };

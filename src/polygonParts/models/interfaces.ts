@@ -1,6 +1,11 @@
 import type { IPolygonPart, PolygonPartsPayload } from '@map-colonies/mc-model-types';
 
-type PartData = Readonly<Pick<PolygonPartsPayload, 'partsData'>['partsData'][number]>;
+type PartData = Readonly<Omit<Pick<PolygonPartsPayload, 'partsData'>['partsData'][number], 'countries' | 'cities' | 'sensors'>> &
+  Readonly<{
+    countries?: string;
+    cities?: string;
+    sensors: string;
+  }>;
 
 export interface CommonRecord extends Readonly<Omit<PolygonPartsPayload, 'partsData'>>, PartData {
   readonly ingestionDateUTC: Date;

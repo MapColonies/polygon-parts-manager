@@ -104,10 +104,6 @@ export class PolygonPartsManager {
     // TODO
   }
 
-  // private enchanceErrorProcessDetails(message: string, id: string): string {
-  //   return `${message}, for catalog record ${id}`;
-  // }
-
   private enchanceErrorDetails({ error, errorMessage, id }: ErrorContext): string {
     return `${errorMessage}, for catalog record ${id}${error instanceof Error ? `, details: ${error.message}` : ''}`;
   }

@@ -12,7 +12,7 @@ export class Common implements CommonRecord {
     name: 'product_type',
     type: 'enum',
     enumName: 'product_type_enum',
-    enum: ProductType
+    enum: ProductType,
   })
   @Index()
   public productType!: ProductType;

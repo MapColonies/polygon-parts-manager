@@ -64,6 +64,7 @@ export class PolygonPartsManager {
   private async insert({ catalogId, entityManager, resourceId }: Context, polygonPartsPayload: PolygonPartsPayload): Promise<void> {
     this.logger.debug(`inserting polygon parts data for catalog record: ${catalogId}`);
     const { partsData, ...props } = polygonPartsPayload;
+
     // inserted props are ordered in the order of the columns of the entity, since the entity is not modeled directly by typeorm
     const insertEntities: PolygonPartsIngestionPayload[] = partsData.map((partData) => {
       return {
@@ -89,7 +90,37 @@ export class PolygonPartsManager {
     });
 
     try {
-      await entityManager.insert<PolygonPartsIngestionPayload>(`polygon_parts.${resourceId}_parts`, insertEntities);
+      if (insertEntities.length === 1) {
+        // QueryBuilder API is used since insert() of a single record uses the object keys as fields
+        // which is unsuitable since the keys have a mapping to column names
+        await entityManager
+          .createQueryBuilder()
+          .insert()
+          .into<PolygonPartsIngestionPayload>(`polygon_parts.${resourceId}_parts`, [
+            'product_id',
+            'product_type',
+            'catalog_id',
+            'source_id',
+            'source_name',
+            'product_version',
+            'ingestion_date_utc',
+            'imaging_time_begin_utc',
+            'imaging_time_end_utc',
+            'resolution_degree',
+            'resolution_meter',
+            'source_resolution_meter',
+            'horizontal_accuracy_ce_90',
+            'sensors',
+            'countries',
+            'cities',
+            'description',
+            'geometry',
+          ])
+          .values(insertEntities[0])
+          .execute();
+      } else {
+        await entityManager.insert<PolygonPartsIngestionPayload[]>(`polygon_parts.${resourceId}_parts`, insertEntities);
+      }
     } catch (error) {
       const errorMessage = 'Could not insert polygon parts data';
       throw new InternalServerError(this.enchanceErrorDetails({ error, errorMessage, id: catalogId }));

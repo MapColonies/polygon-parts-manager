@@ -6,7 +6,7 @@ import type { EntityManager } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import { ApplicationConfig, IConfig } from '../../common/interfaces';
-import type { PolygonPartsIngestionPayload } from './interfaces';
+import type { IngestionProperties } from './interfaces';
 
 interface Context {
   catalogId: PolygonPartsPayload['catalogId'];
@@ -66,7 +66,7 @@ export class PolygonPartsManager {
     const { partsData, ...props } = polygonPartsPayload;
 
     // inserted props are ordered in the order of the columns of the entity, since the entity is not modeled directly by typeorm
-    const insertEntities: PolygonPartsIngestionPayload[] = partsData.map((partData) => {
+    const insertEntities: IngestionProperties[] = partsData.map((partData) => {
       return {
         productId: props.productId,
         productType: props.productType,
@@ -96,7 +96,7 @@ export class PolygonPartsManager {
         await entityManager
           .createQueryBuilder()
           .insert()
-          .into<PolygonPartsIngestionPayload>(`polygon_parts.${resourceId}_parts`, [
+          .into<IngestionProperties>(`polygon_parts.${resourceId}_parts`, [
             'product_id',
             'product_type',
             'catalog_id',
@@ -119,7 +119,7 @@ export class PolygonPartsManager {
           .values(insertEntities[0])
           .execute();
       } else {
-        await entityManager.insert<PolygonPartsIngestionPayload[]>(`polygon_parts.${resourceId}_parts`, insertEntities);
+        await entityManager.insert<IngestionProperties[]>(`polygon_parts.${resourceId}_parts`, insertEntities);
       }
     } catch (error) {
       const errorMessage = 'Could not insert polygon parts data';

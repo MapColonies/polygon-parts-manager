@@ -1,25 +1,39 @@
-import type { IPolygonPart, PolygonPartsPayload } from '@map-colonies/mc-model-types';
+import type { IPolygonPart, PolygonPart, PolygonPartsPayload } from '@map-colonies/mc-model-types';
 
-type PartData = Readonly<Omit<Pick<PolygonPartsPayload, 'partsData'>['partsData'][number], 'countries' | 'cities' | 'sensors'>> &
-  Readonly<{
-    countries?: string;
-    cities?: string;
-    sensors: string;
-  }>;
+interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
+interface CommonPreoperties extends Readonly<Omit<CommonPayload, 'countries' | 'cities' | 'sensors'>> {
+  readonly countries?: string;
+  readonly cities?: string;
+  readonly sensors: string;
+}
+interface PartProperties extends Readonly<Pick<IPolygonPart, 'id'>> {}
+interface PolygonPartProperties extends Readonly<Pick<IPolygonPart, 'id' | 'partId'>> {}
 
-export interface CommonRecord extends Readonly<Omit<PolygonPartsPayload, 'partsData'>>, PartData {
+/**
+ * Common record properties of part and polygon part
+ */
+export interface CommonRecord extends Readonly<Omit<PolygonPartsPayload, 'partsData'>>, CommonPreoperties {
   readonly ingestionDateUTC: Date;
 }
 
-export interface PartRecord extends CommonRecord, Readonly<Pick<IPolygonPart, 'id'>> {
+/**
+ * Part record properties of the raw ingested part
+ */
+export interface PartRecord extends CommonPreoperties, PartProperties {
   readonly insertionOrder: number;
   readonly isProcessedPart: boolean;
 }
 
-export interface PolygonPartRecord extends CommonRecord, Readonly<Pick<IPolygonPart, 'id' | 'partId'>> {
+/**
+ * Polygon part record properties of the processed parts
+ */
+export interface PolygonPartRecord extends CommonPreoperties, PolygonPartProperties {
   readonly insertionOrder: number;
 }
 
-export interface PolygonPartsIngestionPayload extends Omit<CommonRecord, 'ingestionDateUTC'> {
+/**
+ * Ingestion properties of polygon parts for create and update operations on DB
+ */
+export interface IngestionProperties extends Omit<CommonPreoperties, 'ingestionDateUTC'> {
   readonly ingestionDateUTC: undefined;
 }

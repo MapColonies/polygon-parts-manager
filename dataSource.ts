@@ -14,12 +14,14 @@ customNamingStrategy.uniqueConstraintName = (tableOrName: Table | string, column
 };
 
 export const appDataSource = new DataSource({
+  ...{
+    entities: ['src/**/DAL/*.ts'],
+    logging: true,
+    synchronize: false,
+    migrations: ['src/db/migrations/*.ts'],
+    migrationsRun: false,
+    migrationsTableName: 'polygon_parts_migrations',
+    namingStrategy: customNamingStrategy,
+  },
   ...ConnectionManager.createConnectionOptions(connectionOptions),
-  entities: ['src/**/DAL/*.ts'],
-  logging: true,
-  synchronize: false,
-  migrations: ['src/db/migrations/*.ts'],
-  migrationsRun: false,
-  migrationsTableName: 'polygon_parts_migrations',
-  namingStrategy: customNamingStrategy,
 });

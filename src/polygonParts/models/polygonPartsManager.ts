@@ -28,7 +28,7 @@ export class PolygonPartsManager {
     @inject(SERVICES.CONFIG) private readonly config: IConfig,
     private readonly connectionManager: ConnectionManager
   ) {
-    this.applicationConfig = config.get<ApplicationConfig>('application');
+    this.applicationConfig = this.config.get<ApplicationConfig>('application');
   }
 
   public async createPolygonParts(polygonPartsPayload: PolygonPartsPayload): Promise<void> {

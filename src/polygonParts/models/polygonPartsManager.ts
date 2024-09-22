@@ -8,10 +8,9 @@ import { SERVICES } from '../../common/constants';
 import { ApplicationConfig, IConfig } from '../../common/interfaces';
 import type { IngestionProperties } from './interfaces';
 
-interface Context {
-  catalogId: PolygonPartsPayload['catalogId'];
+interface IngestionContext {
   entityManager: EntityManager;
-  entityName: PolygonPartsPayload['catalogId'];
+  polygonPartsPayload: PolygonPartsPayload;
 }
 
 interface ErrorContext {
@@ -33,25 +32,29 @@ export class PolygonPartsManager {
 
   public async createPolygonParts(polygonPartsPayload: PolygonPartsPayload): Promise<void> {
     const { catalogId } = polygonPartsPayload;
-    const entityName = this.getEntityName(polygonPartsPayload);
 
     this.logger.info(`creating polygon parts for catalog record: ${catalogId}`);
 
     await this.connectionManager.getDataSource().transaction(async (entityManager) => {
-      const context: Context = {
-        catalogId,
+      const ingestionContext: IngestionContext = {
+        polygonPartsPayload,
         entityManager,
-        entityName,
       };
 
-      await this.createTables(context);
-      await this.insert(context, polygonPartsPayload);
-      await this.updatePolygonParts(context);
+      await this.createTables(ingestionContext);
+      await this.insert(ingestionContext);
+      await this.updatePolygonParts(ingestionContext);
     });
   }
 
-  private async createTables({ catalogId, entityManager, entityName }: Context): Promise<void> {
+  private async createTables(ingestionContext: IngestionContext): Promise<void> {
+    const { entityManager, polygonPartsPayload } = ingestionContext;
+    const { catalogId } = polygonPartsPayload;
+
     this.logger.debug(`creating polygon parts schema for catalog record: ${catalogId}`);
+
+    const entityName = this.getEntityName(polygonPartsPayload);
+
     try {
       await entityManager.query(`CALL "polygon_parts".create_polygon_parts_tables('polygon_parts.${entityName}');`);
     } catch (error) {
@@ -60,16 +63,18 @@ export class PolygonPartsManager {
     }
   }
 
-  private async insert({ catalogId, entityManager, entityName }: Context, polygonPartsPayload: PolygonPartsPayload): Promise<void> {
+  private async insert(ingestionContext: IngestionContext): Promise<void> {
+    const { entityManager, polygonPartsPayload } = ingestionContext;
+    const { catalogId, partsData, ...props } = polygonPartsPayload;
+
     this.logger.debug(`inserting polygon parts data for catalog record: ${catalogId}`);
-    const { partsData, ...props } = polygonPartsPayload;
 
     // inserted props are ordered in the order of the columns of the entity, since the entity is not modeled directly by typeorm
     const insertEntities: IngestionProperties[] = partsData.map((partData) => {
       return {
         productId: props.productId,
         productType: props.productType,
-        catalogId: props.catalogId,
+        catalogId: catalogId,
         sourceId: partData.sourceId,
         sourceName: partData.sourceName,
         productVersion: props.productVersion,
@@ -87,6 +92,7 @@ export class PolygonPartsManager {
         geometry: partData.geometry,
       };
     });
+    const entityName = this.getEntityName(polygonPartsPayload);
 
     try {
       if (insertEntities.length === 1) {
@@ -126,13 +132,14 @@ export class PolygonPartsManager {
     }
   }
 
-  private getEntityName(polygonPartsPayload: PolygonPartsPayload): string {
-    const { productId, productType } = polygonPartsPayload;
-    return [productId, productType].join('_');
-  }
+  private async updatePolygonParts(ingestionContext: IngestionContext): Promise<void> {
+    const { entityManager, polygonPartsPayload } = ingestionContext;
+    const { catalogId } = polygonPartsPayload;
 
-  private async updatePolygonParts({ catalogId, entityManager, entityName }: Context): Promise<void> {
     this.logger.debug(`updating polygon parts data for catalog record: ${catalogId}`);
+
+    const entityName = this.getEntityName(polygonPartsPayload);
+
     try {
       await entityManager.query(
         `CALL "polygon_parts".update_polygon_parts('polygon_parts.${entityName}_parts'::regclass, 'polygon_parts.${entityName}'::regclass);`
@@ -141,6 +148,11 @@ export class PolygonPartsManager {
       const errorMessage = 'Could not update polygon parts data';
       throw new InternalServerError(this.enchanceErrorDetails({ error, errorMessage, id: catalogId }));
     }
+  }
+
+  private getEntityName(polygonPartsPayload: PolygonPartsPayload): string {
+    const { productId, productType } = polygonPartsPayload;
+    return [productId, productType].join('_');
   }
 
   private enchanceErrorDetails({ error, errorMessage, id }: ErrorContext): string {

@@ -6,44 +6,8 @@ info:
 tags:
   - name: polygon-parts
     description: CRUD operations to manage polygon-parts
-  - name: summary
-    description: Summary of polygon-parts data
 
 paths:
-  /summary/{catalogId}:
-    get:
-      tags:
-        - summary
-      summary: Get summarized polygon-parts data by catalog id
-      description: Get summarized polygon-parts data by catalog id
-      operationId: getSummary
-      parameters:
-        - in: path
-          name: catalogId
-          description: catalog identifier of a raster layer
-          schema:
-            type: string
-            format: uuid
-          required: true
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Summarized'
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorMessage'
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorMessage'
   /polygonParts:
     post:
       tags:
@@ -178,54 +142,6 @@ components:
       minItems: 2
       items:
         type: number
-    Summarized:
-      type: object
-      properties:
-        imagingTimeBeginUTC:
-          type: string
-          description: Oldest imaging date (UTC)
-          format: date-time
-        imagingTimeEndUTC:
-          type: string
-          description: Latest imaging date (UTC)
-          format: date-time
-        maxResolutionDeg:
-          type: number
-          format: double
-        minResolutionDeg:
-          type: number
-          format: double
-        maxResolutionMeter:
-          type: number
-          format: double
-        minResolutionMeter:
-          type: number
-          format: double
-        maxHorizontalAccuracyCE90:
-          type: number
-          format: double
-        minHorizontalAccuracyCE90:
-          type: number
-          format: double
-        sensors:
-          type: array
-          items:
-            type: string
-        footprint:
-          anyOf:
-            - $ref: '#/components/schemas/Polygon'
-            - $ref: '#/components/schemas/MultiPolygon'
-      required:
-        - imagingTimeBeginUTC
-        - imagingTimeEndUTC
-        - maxResolutionDeg
-        - minResolutionDeg
-        - maxResolutionMeter
-        - minResolutionMeter
-        - maxHorizontalAccuracyCE90
-        - minHorizontalAccuracyCE90
-        - sensors
-        - footprint
     ErrorMessage:
       type: object
       properties:

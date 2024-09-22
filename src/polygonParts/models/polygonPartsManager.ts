@@ -47,7 +47,6 @@ export class PolygonPartsManager {
       await this.createSchema(context);
       await this.insert(context, polygonPartsPayload);
       await this.updatePolygonParts(context);
-      await this.updateSummary(context);
     });
   }
 
@@ -137,10 +136,6 @@ export class PolygonPartsManager {
       const errorMessage = 'Could not update polygon parts data';
       throw new InternalServerError(this.enchanceErrorDetails({ error, errorMessage, id: catalogId }));
     }
-  }
-
-  private async updateSummary({ catalogId, entityManager, resourceId }: Context): Promise<void> {
-    // TODO
   }
 
   private enchanceErrorDetails({ error, errorMessage, id }: ErrorContext): string {

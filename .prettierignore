@@ -1,4 +1,3 @@
-coverage
 src/db/migrations
 dist
 .github

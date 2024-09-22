@@ -4,7 +4,7 @@ export class AddInheritedTablesStoredProcedure1725291342564 implements Migration
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`
-            CREATE OR REPLACE PROCEDURE polygon_parts.create_polygon_parts_schema(
+            CREATE OR REPLACE PROCEDURE polygon_parts.create_polygon_parts_tables(
                 IN qualified_identifier text)
             LANGUAGE 'plpgsql'
             AS $BODY$
@@ -20,7 +20,7 @@ export class AddInheritedTablesStoredProcedure1725291342564 implements Migration
                 IF table_name IS NULL THEN
                     RAISE EXCEPTION 'Input "%" must be a schema-qualified identifier for the created tables template name', schema_name;
                 END IF;
-                
+
                 EXECUTE 'CREATE TABLE ' || schm_tbl_name_parts || '
                 (LIKE "polygon_parts"."parts" INCLUDING ALL)
 
@@ -133,12 +133,12 @@ export class AddInheritedTablesStoredProcedure1725291342564 implements Migration
                     TABLESPACE pg_default;';
             END;
             $BODY$;
-            ALTER PROCEDURE polygon_parts.create_polygon_parts_schema(text)
+            ALTER PROCEDURE polygon_parts.create_polygon_parts_tables(text)
                 OWNER TO postgres;
         `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP PROCEDURE IF EXISTS polygon_parts.create_polygon_parts_schema(text);`);
+        await queryRunner.query(`DROP PROCEDURE IF EXISTS polygon_parts.create_polygon_parts_tables(text);`);
     }
 }

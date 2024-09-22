@@ -44,16 +44,16 @@ export class PolygonPartsManager {
         resourceId,
       };
 
-      await this.createSchema(context);
+      await this.createTables(context);
       await this.insert(context, polygonPartsPayload);
       await this.updatePolygonParts(context);
     });
   }
 
-  private async createSchema({ catalogId, entityManager, resourceId }: Context): Promise<void> {
+  private async createTables({ catalogId, entityManager, resourceId }: Context): Promise<void> {
     this.logger.debug(`creating polygon parts schema for catalog record: ${catalogId}`);
     try {
-      await entityManager.query(`CALL "polygon_parts".create_polygon_parts_schema('polygon_parts.${resourceId}');`);
+      await entityManager.query(`CALL "polygon_parts".create_polygon_parts_tables('polygon_parts.${resourceId}');`);
     } catch (error) {
       const errorMessage = 'Could not create polygon parts schema';
       throw new InternalServerError(this.enchanceErrorDetails({ error, errorMessage, id: catalogId }));

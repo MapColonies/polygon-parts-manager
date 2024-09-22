@@ -21,13 +21,13 @@ interface ErrorContext {
 
 @injectable()
 export class PolygonPartsManager {
-  private readonly applicationConfig: ApplicationConfig;
+  private readonly arraySeparator: ApplicationConfig['arraySeparator'];
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(SERVICES.CONFIG) private readonly config: IConfig,
     private readonly connectionManager: ConnectionManager
   ) {
-    this.applicationConfig = this.config.get<ApplicationConfig>('application');
+    this.arraySeparator = this.config.get<ApplicationConfig['arraySeparator']>('application.arraySeparator');
   }
 
   public async createPolygonParts(polygonPartsPayload: PolygonPartsPayload): Promise<void> {
@@ -85,9 +85,9 @@ export class PolygonPartsManager {
         resolutionMeter: partData.resolutionMeter,
         sourceResolutionMeter: partData.sourceResolutionMeter,
         horizontalAccuracyCE90: partData.horizontalAccuracyCE90,
-        sensors: partData.sensors.join(this.applicationConfig.arraySeparator),
-        countries: partData.countries?.join(this.applicationConfig.arraySeparator),
-        cities: partData.cities?.join(this.applicationConfig.arraySeparator),
+        sensors: partData.sensors.join(this.arraySeparator),
+        countries: partData.countries?.join(this.arraySeparator),
+        cities: partData.cities?.join(this.arraySeparator),
         description: partData.description,
         geometry: partData.geometry,
       };

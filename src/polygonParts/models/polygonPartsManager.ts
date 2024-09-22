@@ -11,7 +11,7 @@ import type { IngestionProperties } from './interfaces';
 interface Context {
   catalogId: PolygonPartsPayload['catalogId'];
   entityManager: EntityManager;
-  resourceId: PolygonPartsPayload['catalogId'];
+  entityName: PolygonPartsPayload['catalogId'];
 }
 
 interface ErrorContext {
@@ -33,7 +33,7 @@ export class PolygonPartsManager {
 
   public async createPolygonParts(polygonPartsPayload: PolygonPartsPayload): Promise<void> {
     const { catalogId } = polygonPartsPayload;
-    const resourceId = catalogId.replaceAll('-', '_');
+    const entityName = this.getEntityName(polygonPartsPayload);
 
     this.logger.info(`creating polygon parts for catalog record: ${catalogId}`);
 
@@ -41,7 +41,7 @@ export class PolygonPartsManager {
       const context: Context = {
         catalogId,
         entityManager,
-        resourceId,
+        entityName,
       };
 
       await this.createTables(context);
@@ -50,17 +50,17 @@ export class PolygonPartsManager {
     });
   }
 
-  private async createTables({ catalogId, entityManager, resourceId }: Context): Promise<void> {
+  private async createTables({ catalogId, entityManager, entityName }: Context): Promise<void> {
     this.logger.debug(`creating polygon parts schema for catalog record: ${catalogId}`);
     try {
-      await entityManager.query(`CALL "polygon_parts".create_polygon_parts_tables('polygon_parts.${resourceId}');`);
+      await entityManager.query(`CALL "polygon_parts".create_polygon_parts_tables('polygon_parts.${entityName}');`);
     } catch (error) {
       const errorMessage = 'Could not create polygon parts schema';
       throw new InternalServerError(this.enchanceErrorDetails({ error, errorMessage, id: catalogId }));
     }
   }
 
-  private async insert({ catalogId, entityManager, resourceId }: Context, polygonPartsPayload: PolygonPartsPayload): Promise<void> {
+  private async insert({ catalogId, entityManager, entityName }: Context, polygonPartsPayload: PolygonPartsPayload): Promise<void> {
     this.logger.debug(`inserting polygon parts data for catalog record: ${catalogId}`);
     const { partsData, ...props } = polygonPartsPayload;
 
@@ -95,7 +95,7 @@ export class PolygonPartsManager {
         await entityManager
           .createQueryBuilder()
           .insert()
-          .into<IngestionProperties>(`polygon_parts.${resourceId}_parts`, [
+          .into<IngestionProperties>(`polygon_parts.${entityName}_parts`, [
             'product_id',
             'product_type',
             'catalog_id',
@@ -118,7 +118,7 @@ export class PolygonPartsManager {
           .values(insertEntities[0])
           .execute();
       } else {
-        await entityManager.insert<IngestionProperties[]>(`polygon_parts.${resourceId}_parts`, insertEntities);
+        await entityManager.insert<IngestionProperties[]>(`polygon_parts.${entityName}_parts`, insertEntities);
       }
     } catch (error) {
       const errorMessage = 'Could not insert polygon parts data';
@@ -126,11 +126,16 @@ export class PolygonPartsManager {
     }
   }
 
-  private async updatePolygonParts({ catalogId, entityManager, resourceId }: Context): Promise<void> {
+  private getEntityName(polygonPartsPayload: PolygonPartsPayload): string {
+    const { productId, productType } = polygonPartsPayload;
+    return [productId, productType].join('_');
+  }
+
+  private async updatePolygonParts({ catalogId, entityManager, entityName }: Context): Promise<void> {
     this.logger.debug(`updating polygon parts data for catalog record: ${catalogId}`);
     try {
       await entityManager.query(
-        `CALL "polygon_parts".update_polygon_parts('polygon_parts.${resourceId}_parts'::regclass, 'polygon_parts.${resourceId}'::regclass);`
+        `CALL "polygon_parts".update_polygon_parts('polygon_parts.${entityName}_parts'::regclass, 'polygon_parts.${entityName}'::regclass);`
       );
     } catch (error) {
       const errorMessage = 'Could not update polygon parts data';

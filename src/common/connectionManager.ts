@@ -16,7 +16,7 @@ export class ConnectionManager {
 
   public static createConnectionOptions(dbConfig: DbConfig): DataSourceOptions {
     const { enableSslAuth, sslPaths, ...connectionOptions } = dbConfig;
-    if (enableSslAuth && 'password' in connectionOptions && 'ssl' in connectionOptions) {
+    if (enableSslAuth) {
       connectionOptions.password = undefined;
       connectionOptions.ssl = { key: readFileSync(sslPaths.key), cert: readFileSync(sslPaths.cert), ca: readFileSync(sslPaths.ca) };
     }

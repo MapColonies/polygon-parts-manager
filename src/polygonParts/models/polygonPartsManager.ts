@@ -14,12 +14,6 @@ interface IngestionContext {
   polygonPartsPayload: PolygonPartsPayload;
 }
 
-interface ErrorContext {
-  error: unknown;
-  errorMessage: string;
-  id: string;
-}
-
 @injectable()
 export class PolygonPartsManager {
   private readonly arraySeparator: ApplicationConfig['arraySeparator'];
@@ -52,7 +46,6 @@ export class PolygonPartsManager {
 
   private async createTables(ingestionContext: IngestionContext): Promise<void> {
     const { entityManager, logger, polygonPartsPayload } = ingestionContext;
-    const { catalogId } = polygonPartsPayload;
 
     logger.debug(`creating polygon parts schema`);
 
@@ -62,13 +55,14 @@ export class PolygonPartsManager {
       await entityManager.query(`CALL "polygon_parts".create_polygon_parts_tables('polygon_parts.${entityName}');`);
     } catch (error) {
       const errorMessage = 'Could not create polygon parts schema';
-      throw new InternalServerError(this.enchanceErrorDetails({ error, errorMessage, id: catalogId }));
+      logger.error({ msg: errorMessage, error });
+      throw new InternalServerError(errorMessage);
     }
   }
 
   private async insert(ingestionContext: IngestionContext): Promise<void> {
     const { entityManager, logger, polygonPartsPayload } = ingestionContext;
-    const { catalogId, partsData, ...props } = polygonPartsPayload;
+    const { partsData, ...props } = polygonPartsPayload;
 
     logger.debug(`inserting polygon parts data`);
 
@@ -77,7 +71,7 @@ export class PolygonPartsManager {
       return {
         productId: props.productId,
         productType: props.productType,
-        catalogId: catalogId,
+        catalogId: props.catalogId,
         sourceId: partData.sourceId,
         sourceName: partData.sourceName,
         productVersion: props.productVersion,
@@ -131,13 +125,13 @@ export class PolygonPartsManager {
       }
     } catch (error) {
       const errorMessage = 'Could not insert polygon parts data';
-      throw new InternalServerError(this.enchanceErrorDetails({ error, errorMessage, id: catalogId }));
+      logger.error({ msg: errorMessage, error });
+      throw new InternalServerError(errorMessage);
     }
   }
 
   private async updatePolygonParts(ingestionContext: IngestionContext): Promise<void> {
     const { entityManager, logger, polygonPartsPayload } = ingestionContext;
-    const { catalogId } = polygonPartsPayload;
 
     logger.debug(`updating polygon parts data`);
 
@@ -149,16 +143,13 @@ export class PolygonPartsManager {
       );
     } catch (error) {
       const errorMessage = 'Could not update polygon parts data';
-      throw new InternalServerError(this.enchanceErrorDetails({ error, errorMessage, id: catalogId }));
+      logger.error({ msg: errorMessage, error });
+      throw new InternalServerError(errorMessage);
     }
   }
 
   private getEntityName(polygonPartsPayload: PolygonPartsPayload): string {
     const { productId, productType } = polygonPartsPayload;
     return [productId, productType].join('_');
-  }
-
-  private enchanceErrorDetails({ error, errorMessage, id }: ErrorContext): string {
-    return `${errorMessage}, for catalog record ${id}${error instanceof Error ? `, details: ${error.message}` : ''}`;
   }
 }

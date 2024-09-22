@@ -29,7 +29,7 @@ export class ConnectionManager {
       `connecting to database ${connectionConfig.database as string} ${connectionConfig.host !== undefined ? `on ${connectionConfig.host}` : ''}`
     );
     try {
-      if (this.appDataSource === undefined) {
+      if (!this.appDataSource) {
         const connectionOptions = ConnectionManager.createConnectionOptions(connectionConfig);
         this.appDataSource = new DataSource(connectionOptions);
         await this.appDataSource.initialize();

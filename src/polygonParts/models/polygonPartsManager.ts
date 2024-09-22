@@ -10,6 +10,7 @@ import type { IngestionProperties } from './interfaces';
 
 interface IngestionContext {
   entityManager: EntityManager;
+  logger: Logger;
   polygonPartsPayload: PolygonPartsPayload;
 }
 
@@ -33,12 +34,14 @@ export class PolygonPartsManager {
   public async createPolygonParts(polygonPartsPayload: PolygonPartsPayload): Promise<void> {
     const { catalogId } = polygonPartsPayload;
 
-    this.logger.info(`creating polygon parts for catalog record: ${catalogId}`);
+    const logger = this.logger.child({ catalogId });
+    logger.info(`creating polygon parts`);
 
     await this.connectionManager.getDataSource().transaction(async (entityManager) => {
       const ingestionContext: IngestionContext = {
-        polygonPartsPayload,
         entityManager,
+        logger,
+        polygonPartsPayload,
       };
 
       await this.createTables(ingestionContext);
@@ -48,10 +51,10 @@ export class PolygonPartsManager {
   }
 
   private async createTables(ingestionContext: IngestionContext): Promise<void> {
-    const { entityManager, polygonPartsPayload } = ingestionContext;
+    const { entityManager, logger, polygonPartsPayload } = ingestionContext;
     const { catalogId } = polygonPartsPayload;
 
-    this.logger.debug(`creating polygon parts schema for catalog record: ${catalogId}`);
+    logger.debug(`creating polygon parts schema`);
 
     const entityName = this.getEntityName(polygonPartsPayload);
 
@@ -64,10 +67,10 @@ export class PolygonPartsManager {
   }
 
   private async insert(ingestionContext: IngestionContext): Promise<void> {
-    const { entityManager, polygonPartsPayload } = ingestionContext;
+    const { entityManager, logger, polygonPartsPayload } = ingestionContext;
     const { catalogId, partsData, ...props } = polygonPartsPayload;
 
-    this.logger.debug(`inserting polygon parts data for catalog record: ${catalogId}`);
+    logger.debug(`inserting polygon parts data`);
 
     // inserted props are ordered in the order of the columns of the entity, since the entity is not modeled directly by typeorm
     const insertEntities: IngestionProperties[] = partsData.map((partData) => {
@@ -133,10 +136,10 @@ export class PolygonPartsManager {
   }
 
   private async updatePolygonParts(ingestionContext: IngestionContext): Promise<void> {
-    const { entityManager, polygonPartsPayload } = ingestionContext;
+    const { entityManager, logger, polygonPartsPayload } = ingestionContext;
     const { catalogId } = polygonPartsPayload;
 
-    this.logger.debug(`updating polygon parts data for catalog record: ${catalogId}`);
+    logger.debug(`updating polygon parts data`);
 
     const entityName = this.getEntityName(polygonPartsPayload);
 

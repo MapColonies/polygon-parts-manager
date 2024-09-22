@@ -1,11 +1,4 @@
-import { NotFoundError, InternalServerError } from '@map-colonies/error-types';
-
-export class EntityNotFound extends NotFoundError {
-  public constructor(message: string) {
-    super(message);
-    Object.setPrototypeOf(this, EntityNotFound.prototype);
-  }
-}
+import { InternalServerError } from '@map-colonies/error-types';
 
 export class DBConnectionError extends InternalServerError {
   public constructor() {

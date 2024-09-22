@@ -107,22 +107,6 @@ components:
                 type: array
                 items:
                   $ref: '#/components/schemas/Point2D'
-    MultiPolygon:
-      type: object
-      description: GeoJSON geometry
-      externalDocs:
-        url: http://geojson.org/geojson-spec.html#id7
-      allOf:
-        - $ref: '#/components/schemas/GeometryBase'
-        - properties:
-            coordinates:
-              type: array
-              items:
-                type: array
-                items:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/Point2D'
     GeometryBase:
       type: object
       description: GeoJSON geometry
@@ -135,7 +119,6 @@ components:
           type: string
           enum:
             - Polygon
-            - MultiPolygon
     Point2D:
       type: array
       maxItems: 2

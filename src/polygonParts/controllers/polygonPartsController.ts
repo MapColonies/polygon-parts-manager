@@ -1,4 +1,3 @@
-import { Logger } from '@map-colonies/js-logger';
 import type { PolygonPartsPayload } from '@map-colonies/mc-model-types';
 import { BoundCounter, Meter } from '@opentelemetry/api-metrics';
 import { RequestHandler } from 'express';
@@ -16,7 +15,6 @@ export class PolygonPartsController {
   private readonly createdPolygonPartsCounter: BoundCounter;
 
   public constructor(
-    @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(SERVICES.METER) private readonly meter: Meter,
     @inject(PolygonPartsManager) private readonly polygonPartsManager: PolygonPartsManager
   ) {

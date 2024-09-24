@@ -1,7 +1,9 @@
+import jsLogger, { type LoggerOptions } from '@map-colonies/js-logger';
+import { getOtelMixin } from '@map-colonies/telemetry';
 import config from 'config';
 import { DataSource, DefaultNamingStrategy, Table } from 'typeorm';
 import { ConnectionManager } from './src/common/connectionManager';
-import { DbConfig } from './src/common/interfaces';
+import { type DbConfig } from './src/common/interfaces';
 
 const connectionOptions = config.get<DbConfig>('db');
 
@@ -13,7 +15,7 @@ customNamingStrategy.uniqueConstraintName = (tableOrName: Table | string, column
   return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_${columnNames.join('_')}`;
 };
 
-export const appDataSource = new DataSource({
+const dataSourceOptions = {
   ...{
     entities: ['src/**/DAL/*.ts'],
     logging: true,
@@ -24,4 +26,10 @@ export const appDataSource = new DataSource({
     namingStrategy: customNamingStrategy,
   },
   ...ConnectionManager.createConnectionOptions(connectionOptions),
-});
+};
+
+const loggerConfig = config.get<LoggerOptions>('telemetry.logger');
+const logger = jsLogger({ ...loggerConfig, prettyPrint: loggerConfig.prettyPrint, mixin: getOtelMixin() });
+
+logger.debug({ dataSourceOptions, msg: 'data source options' });
+export const appDataSource = new DataSource(dataSourceOptions);

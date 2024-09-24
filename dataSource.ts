@@ -1,7 +1,7 @@
 import jsLogger, { type LoggerOptions } from '@map-colonies/js-logger';
 import { getOtelMixin } from '@map-colonies/telemetry';
 import config from 'config';
-import { DataSource, DefaultNamingStrategy, Table } from 'typeorm';
+import { DataSource, DefaultNamingStrategy, type DataSourceOptions, type Table } from 'typeorm';
 import { ConnectionManager } from './src/common/connectionManager';
 import { type DbConfig } from './src/common/interfaces';
 
@@ -15,16 +15,18 @@ customNamingStrategy.uniqueConstraintName = (tableOrName: Table | string, column
   return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_${columnNames.join('_')}`;
 };
 
-const dataSourceOptions = {
-  ...{
-    entities: ['src/**/DAL/*.ts'],
-    logging: true,
-    synchronize: false,
-    migrations: ['src/db/migrations/*.ts'],
-    migrationsRun: false,
-    migrationsTableName: 'polygon_parts_migrations',
-    namingStrategy: customNamingStrategy,
-  },
+const defaultDataSourceOptions = {
+  entities: ['src/**/DAL/*.ts'],
+  logging: true,
+  synchronize: false,
+  migrations: ['src/db/migrations/*.ts'],
+  migrationsRun: false,
+  migrationsTableName: 'polygon_parts_migrations',
+  namingStrategy: customNamingStrategy,
+} satisfies Partial<DataSourceOptions>;
+
+const dataSourceOptions: DataSourceOptions = {
+  ...defaultDataSourceOptions,
   ...ConnectionManager.createConnectionOptions(connectionOptions),
 };
 

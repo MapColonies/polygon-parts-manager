@@ -47,14 +47,14 @@ export class PolygonPartsManager {
   private async createTables(ingestionContext: IngestionContext): Promise<void> {
     const { entityManager, logger, polygonPartsPayload } = ingestionContext;
 
-    logger.debug(`creating polygon parts schema`);
+    logger.debug(`creating polygon parts tables`);
 
     const entityName = this.getEntityName(polygonPartsPayload);
 
     try {
       await entityManager.query(`CALL "polygon_parts".create_polygon_parts_tables('polygon_parts.${entityName}');`);
     } catch (error) {
-      const errorMessage = 'Could not create polygon parts schema';
+      const errorMessage = 'Could not create polygon parts tables';
       logger.error({ msg: errorMessage, error });
       throw new InternalServerError(errorMessage);
     }

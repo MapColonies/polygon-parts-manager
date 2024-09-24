@@ -1,8 +1,8 @@
-import jsLogger, { LoggerOptions } from '@map-colonies/js-logger';
+import jsLogger, { type LoggerOptions } from '@map-colonies/js-logger';
 import { Metrics, getOtelMixin } from '@map-colonies/telemetry';
 import { metrics as OtelMetrics, trace } from '@opentelemetry/api';
 import config from 'config';
-import { DependencyContainer } from 'tsyringe/dist/typings/types';
+import { type DependencyContainer } from 'tsyringe/dist/typings/types';
 import { SERVICES, SERVICE_NAME } from './common/constants';
 import { InjectionObject, registerDependencies } from './common/dependencyRegistration';
 import { tracing } from './common/tracing';

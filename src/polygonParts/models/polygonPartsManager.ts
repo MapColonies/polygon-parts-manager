@@ -42,6 +42,7 @@ export class PolygonPartsManager {
         polygonPartsPayload,
       };
 
+      await entityManager.query(`SET search_path TO ${this.schema},public`);
       await this.createTables(ingestionContext);
       await this.insert(ingestionContext);
       await this.updatePolygonParts(ingestionContext);
@@ -54,10 +55,10 @@ export class PolygonPartsManager {
     logger.debug(`creating polygon parts tables`);
 
     try {
-      const createPolygonPartsProcedure = this.getDatabaseObjectQualifiedName(this.applicationConfig.createTablesStoredProcedure);
+      const createPolygonPartsProcedure = this.applicationConfig.createTablesStoredProcedure;
       const entityName = this.getEntityName(polygonPartsPayload);
       const entityQualifiedName = this.getDatabaseObjectQualifiedName(entityName);
-      await entityManager.query(`CALL ${createPolygonPartsProcedure}(${entityQualifiedName});`);
+      await entityManager.query(`CALL ${createPolygonPartsProcedure}('${entityQualifiedName}');`);
     } catch (error) {
       const errorMessage = 'Could not create polygon parts tables';
       logger.error({ msg: errorMessage, error });
@@ -141,11 +142,9 @@ export class PolygonPartsManager {
 
     logger.debug(`updating polygon parts data`);
 
+    const updatePolygonPartsProcedure = this.applicationConfig.updatePolygonPartsTablesStoredProcedure;
     const entityName = this.getEntityName(polygonPartsPayload);
     const entityQualifiedName = this.getDatabaseObjectQualifiedName(entityName);
-    const updatePolygonPartsProcedure = this.getDatabaseObjectQualifiedName(
-      this.applicationConfig.updatePolygonPartsTablesStoredProcedure
-    );
 
     try {
       await entityManager.query(`CALL ${updatePolygonPartsProcedure}('${entityQualifiedName}_parts'::regclass, '${entityQualifiedName}'::regclass);`);

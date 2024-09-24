@@ -21,7 +21,7 @@ const defaultDataSourceOptions = {
   synchronize: false,
   migrations: ['src/db/migrations/*.ts'],
   migrationsRun: false,
-  migrationsTableName: 'polygon_parts_migrations',
+  migrationsTableName: 'migrations',
   namingStrategy: customNamingStrategy,
 } satisfies Partial<DataSourceOptions>;
 

@@ -2,6 +2,8 @@ import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConne
 
 export interface ApplicationConfig {
   arraySeparator: string;
+  createTablesStoredProcedure: string;
+  updatePolygonPartsTablesStoredProcedure: string;
 }
 
 export type DbConfig = PostgresConnectionOptions & {

@@ -4,8 +4,8 @@ import type { PolygonPartsPayload } from '@map-colonies/mc-model-types';
 import { inject, injectable } from 'tsyringe';
 import type { EntityManager } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
-import { SERVICES } from '../../common/constants';
-import { ApplicationConfig, IConfig } from '../../common/interfaces';
+import { DEFAULT_SCHEMA, SERVICES } from '../../common/constants';
+import { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
 import type { IngestionProperties } from './interfaces';
 
 interface IngestionContext {
@@ -13,16 +13,20 @@ interface IngestionContext {
   logger: Logger;
   polygonPartsPayload: PolygonPartsPayload;
 }
+type DBSchema = NonNullable<DbConfig['schema']>;
 
 @injectable()
 export class PolygonPartsManager {
-  private readonly arraySeparator: ApplicationConfig['arraySeparator'];
+  private readonly applicationConfig: ApplicationConfig;
+  private readonly schema: DBSchema;
+
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(SERVICES.CONFIG) private readonly config: IConfig,
     private readonly connectionManager: ConnectionManager
   ) {
-    this.arraySeparator = this.config.get<ApplicationConfig['arraySeparator']>('application.arraySeparator');
+    this.applicationConfig = this.config.get<ApplicationConfig>('application');
+    this.schema = config.get<DbConfig['schema']>('db.schema') ?? DEFAULT_SCHEMA;
   }
 
   public async createPolygonParts(polygonPartsPayload: PolygonPartsPayload): Promise<void> {
@@ -49,10 +53,11 @@ export class PolygonPartsManager {
 
     logger.debug(`creating polygon parts tables`);
 
-    const entityName = this.getEntityName(polygonPartsPayload);
-
     try {
-      await entityManager.query(`CALL "polygon_parts".create_polygon_parts_tables('polygon_parts.${entityName}');`);
+      const createPolygonPartsProcedure = this.getDatabaseObjectQualifiedName(this.applicationConfig.createTablesStoredProcedure);
+      const entityName = this.getEntityName(polygonPartsPayload);
+      const entityQualifiedName = this.getDatabaseObjectQualifiedName(entityName);
+      await entityManager.query(`CALL ${createPolygonPartsProcedure}(${entityQualifiedName});`);
     } catch (error) {
       const errorMessage = 'Could not create polygon parts tables';
       logger.error({ msg: errorMessage, error });
@@ -82,14 +87,15 @@ export class PolygonPartsManager {
         resolutionMeter: partData.resolutionMeter,
         sourceResolutionMeter: partData.sourceResolutionMeter,
         horizontalAccuracyCE90: partData.horizontalAccuracyCE90,
-        sensors: partData.sensors.join(this.arraySeparator),
-        countries: partData.countries?.join(this.arraySeparator),
-        cities: partData.cities?.join(this.arraySeparator),
+        sensors: partData.sensors.join(this.applicationConfig.arraySeparator),
+        countries: partData.countries?.join(this.applicationConfig.arraySeparator),
+        cities: partData.cities?.join(this.applicationConfig.arraySeparator),
         description: partData.description,
         geometry: partData.geometry,
       };
     });
     const entityName = this.getEntityName(polygonPartsPayload);
+    const entityQualifiedName = this.getDatabaseObjectQualifiedName(entityName);
 
     try {
       if (insertEntities.length === 1) {
@@ -98,7 +104,7 @@ export class PolygonPartsManager {
         await entityManager
           .createQueryBuilder()
           .insert()
-          .into<IngestionProperties>(`polygon_parts.${entityName}_parts`, [
+          .into<IngestionProperties>(`${entityQualifiedName}_parts`, [
             'product_id',
             'product_type',
             'catalog_id',
@@ -121,7 +127,7 @@ export class PolygonPartsManager {
           .values(insertEntities[0])
           .execute();
       } else {
-        await entityManager.insert<IngestionProperties[]>(`polygon_parts.${entityName}_parts`, insertEntities);
+        await entityManager.insert<IngestionProperties[]>(`${entityQualifiedName}_parts`, insertEntities);
       }
     } catch (error) {
       const errorMessage = 'Could not insert polygon parts data';
@@ -136,16 +142,22 @@ export class PolygonPartsManager {
     logger.debug(`updating polygon parts data`);
 
     const entityName = this.getEntityName(polygonPartsPayload);
+    const entityQualifiedName = this.getDatabaseObjectQualifiedName(entityName);
+    const updatePolygonPartsProcedure = this.getDatabaseObjectQualifiedName(
+      this.applicationConfig.updatePolygonPartsTablesStoredProcedure
+    );
 
     try {
-      await entityManager.query(
-        `CALL "polygon_parts".update_polygon_parts('polygon_parts.${entityName}_parts'::regclass, 'polygon_parts.${entityName}'::regclass);`
-      );
+      await entityManager.query(`CALL ${updatePolygonPartsProcedure}('${entityQualifiedName}_parts'::regclass, '${entityQualifiedName}'::regclass);`);
     } catch (error) {
       const errorMessage = 'Could not update polygon parts data';
       logger.error({ msg: errorMessage, error });
       throw new InternalServerError(errorMessage);
     }
+  }
+
+  private getDatabaseObjectQualifiedName(value: string): string {
+    return `${this.schema}.${value}`;
   }
 
   private getEntityName(polygonPartsPayload: PolygonPartsPayload): string {

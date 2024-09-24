@@ -64,6 +64,7 @@
     },
     "database": "DB_NAME",
     "schema": "DB_SCHEMA",
-    "logging": "DB_LOGGING"
+    "logging": "DB_LOGGING",
+    "applicationName": "DB_APPNAME"
   }
 }

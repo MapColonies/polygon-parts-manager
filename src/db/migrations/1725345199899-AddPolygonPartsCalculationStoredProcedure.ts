@@ -83,8 +83,6 @@ export class AddPolygonPartsCalculationStoredProcedure1725345199899 implements M
                 where "is_processed_part" = false';
             END;
             $BODY$;
-            ALTER PROCEDURE polygon_parts.update_polygon_parts(regclass, regclass)
-                OWNER TO postgres;
         `);
     }
 

@@ -26,9 +26,6 @@ export class AddInheritedTablesStoredProcedure1725291342564 implements Migration
 
                 TABLESPACE pg_default;';
 
-                EXECUTE 'ALTER TABLE IF EXISTS ' || schm_tbl_name_parts || '
-                    OWNER to postgres;';
-
                 EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_geometry_idx
                     ON ' || schm_tbl_name_parts || ' USING gist
                     ("geometry")
@@ -78,9 +75,6 @@ export class AddInheritedTablesStoredProcedure1725291342564 implements Migration
                 (LIKE "polygon_parts"."polygon_parts" INCLUDING ALL)
 
                 TABLESPACE pg_default;';
-
-                EXECUTE 'ALTER TABLE IF EXISTS ' || schm_tbl_name || '
-                    OWNER to postgres;';
 
                 EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_geometry_idx
                     ON ' || schm_tbl_name || ' USING gist
@@ -133,8 +127,6 @@ export class AddInheritedTablesStoredProcedure1725291342564 implements Migration
                     TABLESPACE pg_default;';
             END;
             $BODY$;
-            ALTER PROCEDURE polygon_parts.create_polygon_parts_tables(text)
-                OWNER TO postgres;
         `);
     }
 

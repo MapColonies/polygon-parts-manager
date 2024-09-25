@@ -1,4 +1,4 @@
-FROM node:20 as build
+FROM node:20 AS build
 
 
 WORKDIR /tmp/buildApp
@@ -9,7 +9,7 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-FROM node:20.3.1-alpine3.17 as production
+FROM node:20.3.1-alpine3.17 AS production
 
 RUN apk add dumb-init
 
@@ -25,7 +25,6 @@ RUN npm ci --only=production
 
 COPY --chown=node:node --from=build /tmp/buildApp/dist .
 COPY --chown=node:node ./config ./config
-
 
 USER node
 EXPOSE 8080

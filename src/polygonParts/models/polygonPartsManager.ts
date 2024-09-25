@@ -92,7 +92,7 @@ export class PolygonPartsManager {
         countries: partData.countries?.join(this.applicationConfig.arraySeparator),
         cities: partData.cities?.join(this.applicationConfig.arraySeparator),
         description: partData.description,
-        geometry: partData.geometry,
+        footprint: partData.footprint,
       };
     });
     const entityName = this.getEntityName(polygonPartsPayload);
@@ -123,7 +123,7 @@ export class PolygonPartsManager {
             'countries',
             'cities',
             'description',
-            'geometry',
+            'footprint',
           ])
           .values(insertEntities[0])
           .execute();

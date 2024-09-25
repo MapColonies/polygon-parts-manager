@@ -75,9 +75,9 @@ export class Common implements CommonRecord {
   @Column({ name: 'description', type: 'text', collation: 'C.UTF-8', nullable: true })
   public description?: string;
 
-  @Column({ name: 'geometry', type: 'geometry', spatialFeatureType: 'Polygon', srid: 4326 })
+  @Column({ name: 'footprint', type: 'geometry', spatialFeatureType: 'Polygon', srid: 4326 })
   @Index({ spatial: true })
-  @Check('valid geometry', `ST_IsValid("geometry")`)
-  @Check('geometry extent', `Box2D("geometry") @Box2D(ST_GeomFromText('LINESTRING(-180 -90, 180 90)'))`)
-  public geometry!: Polygon;
+  @Check('valid geometry', `ST_IsValid("footprint")`)
+  @Check('geometry extent', `Box2D("footprint") @Box2D(ST_GeomFromText('LINESTRING(-180 -90, 180 90)'))`)
+  public footprint!: Polygon;
 }

@@ -26,9 +26,9 @@ export class AddInheritedTablesStoredProcedure1725291342564 implements Migration
 
                 TABLESPACE pg_default;';
 
-                EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_geometry_idx
+                EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_footprint_idx
                     ON ' || schm_tbl_name_parts || ' USING gist
-                    ("geometry")
+                    ("footprint")
                     TABLESPACE pg_default;';
 
                 EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_ingestion_date_idx
@@ -76,9 +76,9 @@ export class AddInheritedTablesStoredProcedure1725291342564 implements Migration
 
                 TABLESPACE pg_default;';
 
-                EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_geometry_idx
+                EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_footprint_idx
                     ON ' || schm_tbl_name || ' USING gist
-                    ("geometry")
+                    ("footprint")
                     TABLESPACE pg_default;';
 
                 EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name || '_ingestion_date_idx

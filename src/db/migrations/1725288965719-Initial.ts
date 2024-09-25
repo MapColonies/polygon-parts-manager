@@ -45,7 +45,7 @@ export class Initial1725288965719 implements MigrationInterface {
                 "countries" text COLLATE "C.UTF-8",
                 "cities" text COLLATE "C.UTF-8",
                 "description" text COLLATE "C.UTF-8",
-                "geometry" geometry(Polygon, 4326) NOT NULL,
+                "footprint" geometry(Polygon, 4326) NOT NULL,
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "insertion_order" bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
                 "is_processed_part" boolean NOT NULL DEFAULT false,
@@ -69,9 +69,9 @@ export class Initial1725288965719 implements MigrationInterface {
                     "horizontal_accuracy_ce_90" BETWEEN 0.01 AND 4000
                 ),
                 CONSTRAINT "geometry extent" CHECK (
-                    Box2D("geometry") @Box2D(ST_GeomFromText('LINESTRING(-180 -90, 180 90)'))
+                    Box2D("footprint") @Box2D(ST_GeomFromText('LINESTRING(-180 -90, 180 90)'))
                 ),
-                CONSTRAINT "valid geometry" CHECK (ST_IsValid("geometry")),
+                CONSTRAINT "valid geometry" CHECK (ST_IsValid("footprint")),
                 CONSTRAINT "imaging times" CHECK (
                     "imaging_time_begin_utc" <= "imaging_time_end_utc"
                 ),
@@ -103,7 +103,7 @@ export class Initial1725288965719 implements MigrationInterface {
             CREATE INDEX "parts_resolution_meter_idx" ON "polygon_parts"."parts" ("resolution_meter")
         `);
         await queryRunner.query(`
-            CREATE INDEX "parts_geometry_idx" ON "polygon_parts"."parts" USING GiST ("geometry")
+            CREATE INDEX "parts_footprint_idx" ON "polygon_parts"."parts" USING GiST ("footprint")
         `);
         await queryRunner.query(`
             CREATE INDEX "parts_is_processed_part_idx" ON "polygon_parts"."parts" ("is_processed_part")
@@ -127,7 +127,7 @@ export class Initial1725288965719 implements MigrationInterface {
                 "countries" text COLLATE "C.UTF-8",
                 "cities" text COLLATE "C.UTF-8",
                 "description" text COLLATE "C.UTF-8",
-                "geometry" geometry(Polygon, 4326) NOT NULL,
+                "footprint" geometry(Polygon, 4326) NOT NULL,
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "part_id" uuid NOT NULL,
                 "insertion_order" bigint NOT NULL,
@@ -151,9 +151,9 @@ export class Initial1725288965719 implements MigrationInterface {
                     "horizontal_accuracy_ce_90" BETWEEN 0.01 AND 4000
                 ),
                 CONSTRAINT "geometry extent" CHECK (
-                    Box2D("geometry") @Box2D(ST_GeomFromText('LINESTRING(-180 -90, 180 90)'))
+                    Box2D("footprint") @Box2D(ST_GeomFromText('LINESTRING(-180 -90, 180 90)'))
                 ),
-                CONSTRAINT "valid geometry" CHECK (ST_IsValid("geometry")),
+                CONSTRAINT "valid geometry" CHECK (ST_IsValid("footprint")),
                 CONSTRAINT "polygon_parts_pkey" PRIMARY KEY ("id")
             )
         `);
@@ -182,7 +182,7 @@ export class Initial1725288965719 implements MigrationInterface {
             CREATE INDEX "polygon_parts_resolution_meter_idx" ON "polygon_parts"."polygon_parts" ("resolution_meter")
         `);
         await queryRunner.query(`
-            CREATE INDEX "polygon_parts_geometry_idx" ON "polygon_parts"."polygon_parts" USING GiST ("geometry")
+            CREATE INDEX "polygon_parts_footprint_idx" ON "polygon_parts"."polygon_parts" USING GiST ("footprint")
         `);
         await queryRunner.query(`
             CREATE INDEX "polygon_parts_part_id_idx" ON "polygon_parts"."polygon_parts" ("part_id")
@@ -194,7 +194,7 @@ export class Initial1725288965719 implements MigrationInterface {
             DROP INDEX "polygon_parts"."polygon_parts_part_id_idx"
         `);
         await queryRunner.query(`
-            DROP INDEX "polygon_parts"."polygon_parts_geometry_idx"
+            DROP INDEX "polygon_parts"."polygon_parts_footprint_idx"
         `);
         await queryRunner.query(`
             DROP INDEX "polygon_parts"."polygon_parts_resolution_meter_idx"
@@ -227,7 +227,7 @@ export class Initial1725288965719 implements MigrationInterface {
             DROP INDEX "polygon_parts"."parts_is_processed_part_idx"
         `);
         await queryRunner.query(`
-            DROP INDEX "polygon_parts"."parts_geometry_idx"
+            DROP INDEX "polygon_parts"."parts_footprint_idx"
         `);
         await queryRunner.query(`
             DROP INDEX "polygon_parts"."parts_resolution_meter_idx"

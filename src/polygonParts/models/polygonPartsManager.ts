@@ -161,6 +161,6 @@ export class PolygonPartsManager {
 
   private getEntityName(polygonPartsPayload: PolygonPartsPayload): string {
     const { productId, productType } = polygonPartsPayload;
-    return [productId, productType].join('_');
+    return [productId, productType].join('_').toLowerCase();
   }
 }

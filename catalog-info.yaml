@@ -1,17 +1,16 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: ts-server-boilerplate
-  description: A boilerplate github repo for a REST API service in NodeJS for MapColonies
+  name: polygon-parts-manager
+  description: service responsible for polygon parts managment
   annotations:
-    github.com/project-slug: MapColonies/ts-server-boilerplate
+    github.com/project-slug: MapColonies/polygon-parts-manager
   tags:
     - nodejs
     - typescript
     - expressjs
-    - boilerplate
 spec:
   type: service
   lifecycle: production
-  owner: DevInfra
-  system: boilerplate
+  owner: Raster
+  system: Ingestion

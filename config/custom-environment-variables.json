@@ -42,7 +42,7 @@
   "application": {
     "arraySeparator": "ARRAY_SEPARATOR",
     "createTablesStoredProcedure": "CREATE_TABLES_STORED_PROCEDURE",
-    "updatePolygonPartsTablesStoredProcedure": "CALCULATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE"
+    "updatePolygonPartsTablesStoredProcedure": "UPDATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE"
   },
   "db": {
     "type": "DB_TYPE",

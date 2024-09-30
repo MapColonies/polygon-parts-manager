@@ -14,6 +14,6 @@ type AppendSeperator<S extends string, PrevCapital extends boolean = false, Sepa
 export type CamelToSnakeCase<S extends string> = Lowercase<AppendSeperator<S>>;
 
 // Helper type to transform object keys from camel to snake case
-export type CamelToSnake<T extends Record<string, any>> = {
+export type CamelToSnake<T extends Record<string, unknown>> = {
   [K in keyof T as CamelToSnakeCase<Extract<K, string>>]: T[K];
 };

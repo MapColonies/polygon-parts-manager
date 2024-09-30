@@ -1,4 +1,4 @@
-import { ConflictError, InternalServerError } from '@map-colonies/error-types';
+import { ConflictError } from '@map-colonies/error-types';
 import { Logger } from '@map-colonies/js-logger';
 import type { PolygonPartsPayload } from '@map-colonies/mc-model-types';
 import { inject, injectable } from 'tsyringe';
@@ -67,7 +67,7 @@ export class PolygonPartsManager {
     } catch (error) {
       const errorMessage = 'Could not create polygon parts tables';
       logger.error({ msg: errorMessage, error });
-      throw new InternalServerError(errorMessage);
+      throw error;
     }
   }
 
@@ -138,7 +138,7 @@ export class PolygonPartsManager {
     } catch (error) {
       const errorMessage = 'Could not insert polygon parts data';
       logger.error({ msg: errorMessage, error });
-      throw new InternalServerError(errorMessage);
+      throw error;
     }
   }
 
@@ -156,7 +156,7 @@ export class PolygonPartsManager {
     } catch (error) {
       const errorMessage = 'Could not update polygon parts data';
       logger.error({ msg: errorMessage, error });
-      throw new InternalServerError(errorMessage);
+      throw error;
     }
   }
 

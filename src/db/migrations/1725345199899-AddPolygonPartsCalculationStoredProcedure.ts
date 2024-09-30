@@ -45,7 +45,7 @@ export class AddPolygonPartsCalculationStoredProcedure1725345199899 implements M
                     from tbl
                     where not st_isempty(diff)
                 )
-                insert into ' || polygon_parts || ' as pp ("part_id", "catalog_id", "product_id", "product_type", "source_id", "source_name", "product_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "footprint", "insertion_order")
+                insert into ' || polygon_parts || ' as pp ("part_id", "catalog_id", "product_id", "product_type", "source_id", "source_name", "product_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce90", sensors, countries, cities, description, "footprint", "insertion_order")
                 select 
                     "part_id",
                     "catalog_id",
@@ -60,7 +60,7 @@ export class AddPolygonPartsCalculationStoredProcedure1725345199899 implements M
                     "resolution_degree",
                     "resolution_meter",
                     "source_resolution_meter",
-                    "horizontal_accuracy_ce_90",
+                    "horizontal_accuracy_ce90",
                     sensors,
                     countries,
                     cities,
@@ -68,12 +68,12 @@ export class AddPolygonPartsCalculationStoredProcedure1725345199899 implements M
                     (st_dump(diff)).geom as "footprint",
                     "insertion_order"
                 from (
-                    select "part_id", "catalog_id", "product_id", "product_type", "source_id", "source_name", "product_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, diff, "insertion_order"
+                    select "part_id", "catalog_id", "product_id", "product_type", "source_id", "source_name", "product_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce90", sensors, countries, cities, description, diff, "insertion_order"
                     from inserts
                     left join ' || parts || '
                     on inserts."part_id" = ' || parts || '."id"
                     union all
-                    select "id", "catalog_id", "product_id", "product_type", "source_id", "source_name", "product_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce_90", sensors, countries, cities, description, "footprint" as diff, "insertion_order"
+                    select "id", "catalog_id", "product_id", "product_type", "source_id", "source_name", "product_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce90", sensors, countries, cities, description, "footprint" as diff, "insertion_order"
                     from unprocessed
                     where "id" not in (select "part_id" from tbl)
                 ) inserting_parts';

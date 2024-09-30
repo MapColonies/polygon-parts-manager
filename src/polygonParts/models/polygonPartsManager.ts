@@ -6,6 +6,7 @@ import type { EntityManager } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
 import { DEFAULT_SCHEMA, SERVICES } from '../../common/constants';
 import { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
+import { CamelToSnakeCase } from '../../common/types';
 import type { IngestionProperties } from './interfaces';
 
 interface IngestionContext {
@@ -103,6 +104,27 @@ export class PolygonPartsManager {
     const entityName = this.getEntityName(polygonPartsPayload);
     const entityQualifiedName = this.getDatabaseObjectQualifiedName(entityName);
 
+    const columns: CamelToSnakeCase<keyof IngestionProperties>[] = [
+      'product_id',
+      'product_type',
+      'catalog_id',
+      'source_id',
+      'source_name',
+      'product_version',
+      'ingestion_date_utc',
+      'imaging_time_begin_utc',
+      'imaging_time_end_utc',
+      'resolution_degree',
+      'resolution_meter',
+      'source_resolution_meter',
+      'horizontal_accuracy_ce90',
+      'sensors',
+      'countries',
+      'cities',
+      'description',
+      'footprint',
+    ];
+
     try {
       if (insertEntities.length === 1) {
         // QueryBuilder API is used since insert() of a single record uses the object keys as fields
@@ -110,26 +132,7 @@ export class PolygonPartsManager {
         await entityManager
           .createQueryBuilder()
           .insert()
-          .into<IngestionProperties>(`${entityQualifiedName}_parts`, [
-            'product_id',
-            'product_type',
-            'catalog_id',
-            'source_id',
-            'source_name',
-            'product_version',
-            'ingestion_date_utc',
-            'imaging_time_begin_utc',
-            'imaging_time_end_utc',
-            'resolution_degree',
-            'resolution_meter',
-            'source_resolution_meter',
-            'horizontal_accuracy_ce_90',
-            'sensors',
-            'countries',
-            'cities',
-            'description',
-            'footprint',
-          ])
+          .into<IngestionProperties>(`${entityQualifiedName}_parts`, columns)
           .values(insertEntities[0])
           .execute();
       } else {

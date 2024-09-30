@@ -59,8 +59,8 @@ export class Common implements CommonRecord {
   @Check('source resolution meter', `"source_resolution_meter" BETWEEN 0.0185 AND 78271.52`)
   public sourceResolutionMeter!: number;
 
-  @Column({ name: 'horizontal_accuracy_ce_90', type: 'real' })
-  @Check('horizontal accuracy ce 90', `"horizontal_accuracy_ce_90" BETWEEN 0.01 AND 4000`)
+  @Column({ name: 'horizontal_accuracy_ce90', type: 'real' })
+  @Check('horizontal accuracy ce90', `"horizontal_accuracy_ce90" BETWEEN 0.01 AND 4000`)
   public horizontalAccuracyCE90!: number;
 
   @Column({ name: 'sensors', type: 'text', collation: 'C.UTF-8' })

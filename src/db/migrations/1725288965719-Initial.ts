@@ -40,7 +40,7 @@ export class Initial1725288965719 implements MigrationInterface {
                 "resolution_degree" numeric NOT NULL,
                 "resolution_meter" numeric NOT NULL,
                 "source_resolution_meter" numeric NOT NULL,
-                "horizontal_accuracy_ce_90" real NOT NULL,
+                "horizontal_accuracy_ce90" real NOT NULL,
                 "sensors" text COLLATE "C.UTF-8" NOT NULL,
                 "countries" text COLLATE "C.UTF-8",
                 "cities" text COLLATE "C.UTF-8",
@@ -65,8 +65,8 @@ export class Initial1725288965719 implements MigrationInterface {
                 CONSTRAINT "source resolution meter" CHECK (
                     "source_resolution_meter" BETWEEN 0.0185 AND 78271.52
                 ),
-                CONSTRAINT "horizontal accuracy ce 90" CHECK (
-                    "horizontal_accuracy_ce_90" BETWEEN 0.01 AND 4000
+                CONSTRAINT "horizontal accuracy ce90" CHECK (
+                    "horizontal_accuracy_ce90" BETWEEN 0.01 AND 4000
                 ),
                 CONSTRAINT "geometry extent" CHECK (
                     Box2D("footprint") @Box2D(ST_GeomFromText('LINESTRING(-180 -90, 180 90)'))
@@ -122,7 +122,7 @@ export class Initial1725288965719 implements MigrationInterface {
                 "resolution_degree" numeric NOT NULL,
                 "resolution_meter" numeric NOT NULL,
                 "source_resolution_meter" numeric NOT NULL,
-                "horizontal_accuracy_ce_90" real NOT NULL,
+                "horizontal_accuracy_ce90" real NOT NULL,
                 "sensors" text COLLATE "C.UTF-8" NOT NULL,
                 "countries" text COLLATE "C.UTF-8",
                 "cities" text COLLATE "C.UTF-8",
@@ -147,8 +147,8 @@ export class Initial1725288965719 implements MigrationInterface {
                 CONSTRAINT "source resolution meter" CHECK (
                     "source_resolution_meter" BETWEEN 0.0185 AND 78271.52
                 ),
-                CONSTRAINT "horizontal accuracy ce 90" CHECK (
-                    "horizontal_accuracy_ce_90" BETWEEN 0.01 AND 4000
+                CONSTRAINT "horizontal accuracy ce90" CHECK (
+                    "horizontal_accuracy_ce90" BETWEEN 0.01 AND 4000
                 ),
                 CONSTRAINT "geometry extent" CHECK (
                     Box2D("footprint") @Box2D(ST_GeomFromText('LINESTRING(-180 -90, 180 90)'))

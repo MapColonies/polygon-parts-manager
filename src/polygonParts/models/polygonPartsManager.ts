@@ -13,12 +13,13 @@ interface IngestionContext {
   logger: Logger;
   polygonPartsPayload: PolygonPartsPayload;
 }
-type DBSchema = NonNullable<DbConfig['schema']>;
+
+type DBSchema = DbConfig['schema'];
 
 @injectable()
 export class PolygonPartsManager {
   private readonly applicationConfig: ApplicationConfig;
-  private readonly schema: DBSchema;
+  private readonly schema: NonNullable<DBSchema>;
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
@@ -26,7 +27,7 @@ export class PolygonPartsManager {
     private readonly connectionManager: ConnectionManager
   ) {
     this.applicationConfig = this.config.get<ApplicationConfig>('application');
-    this.schema = config.get<DbConfig['schema']>('db.schema') ?? DEFAULT_SCHEMA;
+    this.schema = config.get<DBSchema>('db.schema') ?? DEFAULT_SCHEMA;
   }
 
   public async createPolygonParts(polygonPartsPayload: PolygonPartsPayload): Promise<void> {

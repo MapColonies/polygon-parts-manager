@@ -1,4 +1,4 @@
-import { InternalServerError } from '@map-colonies/error-types';
+import { ConflictError, InternalServerError } from '@map-colonies/error-types';
 import { Logger } from '@map-colonies/js-logger';
 import type { PolygonPartsPayload } from '@map-colonies/mc-model-types';
 import { inject, injectable } from 'tsyringe';
@@ -59,6 +59,10 @@ export class PolygonPartsManager {
       const createPolygonPartsProcedure = this.applicationConfig.createPolygonPartsTablesStoredProcedure;
       const entityName = this.getEntityName(polygonPartsPayload);
       const entityQualifiedName = this.getDatabaseObjectQualifiedName(entityName);
+      const exists = await entityManager.exists(entityQualifiedName);
+      if (exists) {
+        throw new ConflictError(`table with the name '${entityQualifiedName}' already exists`);
+      }
       await entityManager.query(`CALL ${createPolygonPartsProcedure}('${entityQualifiedName}');`);
     } catch (error) {
       const errorMessage = 'Could not create polygon parts tables';

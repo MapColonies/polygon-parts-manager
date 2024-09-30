@@ -55,7 +55,7 @@ export class PolygonPartsManager {
     logger.debug(`creating polygon parts tables`);
 
     try {
-      const createPolygonPartsProcedure = this.applicationConfig.createTablesStoredProcedure;
+      const createPolygonPartsProcedure = this.applicationConfig.createPolygonPartsTablesStoredProcedure;
       const entityName = this.getEntityName(polygonPartsPayload);
       const entityQualifiedName = this.getDatabaseObjectQualifiedName(entityName);
       await entityManager.query(`CALL ${createPolygonPartsProcedure}('${entityQualifiedName}');`);

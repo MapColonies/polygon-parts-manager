@@ -27,7 +27,7 @@
   },
   "application": {
     "arraySeparator": ",",
-    "createTablesStoredProcedure": "create_polygon_parts_tables",
+    "createPolygonPartsTablesStoredProcedure": "create_polygon_parts_tables",
     "updatePolygonPartsTablesStoredProcedure": "update_polygon_parts"
   },
   "db": {

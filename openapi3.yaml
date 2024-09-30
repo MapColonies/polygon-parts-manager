@@ -93,38 +93,6 @@ components:
   schemas:
     PolygonPartsPayload:
       $ref: ./Schema/polygonPartsManager/payload.yaml#/components/schemas/PolygonPartsPayload
-    Polygon:
-      type: object
-      description: GeoJSON geometry
-      externalDocs:
-        url: http://geojson.org/geojson-spec.html#id4
-      allOf:
-        - $ref: '#/components/schemas/GeometryBase'
-        - properties:
-            coordinates:
-              type: array
-              items:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Point2D'
-    GeometryBase:
-      type: object
-      description: GeoJSON geometry
-      required:
-        - type
-      externalDocs:
-        url: http://geojson.org/geojson-spec.html#geometry-objects
-      properties:
-        type:
-          type: string
-          enum:
-            - Polygon
-    Point2D:
-      type: array
-      maxItems: 2
-      minItems: 2
-      items:
-        type: number
     ErrorMessage:
       type: object
       properties:

@@ -87,7 +87,7 @@ export class PolygonPartsManager {
             throw new ConflictError(`table with the name '${databaseObjectQualifiedName}' already exists`);
           }
         } catch (error) {
-          const errorMessage = 'Could not verify polygon parts table name is available';
+          const errorMessage = `Could not verify polygon parts table name '${databaseObjectQualifiedName}' is available`;
           logger.error({ msg: errorMessage, error });
           throw error;
         }

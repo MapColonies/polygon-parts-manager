@@ -6,13 +6,27 @@ import type { EntityManager } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
 import { DEFAULT_SCHEMA, SERVICES } from '../../common/constants';
 import { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
-import { CamelToSnakeCase } from '../../common/types';
+import { camelCaseToSnakeCase } from '../../common/utils';
 import type { IngestionProperties } from './interfaces';
 
-interface IngestionContext {
+interface BaseIngestionContext {
   entityManager: EntityManager;
   logger: Logger;
   polygonPartsPayload: PolygonPartsPayload;
+}
+
+interface IngestionContext extends BaseIngestionContext {
+  entityNames: EntityNames;
+}
+
+interface EntityName {
+  entityName: string;
+  databaseObjectQualifiedName: string;
+}
+
+interface EntityNames {
+  parts: EntityName;
+  polygonParts: EntityName;
 }
 
 type DBSchema = DbConfig['schema'];
@@ -38,33 +52,66 @@ export class PolygonPartsManager {
     logger.info(`creating polygon parts`);
 
     await this.connectionManager.getDataSource().transaction(async (entityManager) => {
-      const ingestionContext: IngestionContext = {
+      const baseIngestionContext: BaseIngestionContext = {
         entityManager,
         logger,
         polygonPartsPayload,
       };
 
       await entityManager.query(`SET search_path TO ${this.schema},public`);
+      const entityNames = await this.verifyAvailableTableNames(baseIngestionContext);
+      const ingestionContext = { ...baseIngestionContext, entityNames };
       await this.createTables(ingestionContext);
       await this.insert(ingestionContext);
       await this.updatePolygonParts(ingestionContext);
     });
   }
 
-  private async createTables(ingestionContext: IngestionContext): Promise<void> {
+  private async verifyAvailableTableNames(ingestionContext: BaseIngestionContext): Promise<EntityNames> {
     const { entityManager, logger, polygonPartsPayload } = ingestionContext;
+    const entityNames = this.getEntitiesNames(polygonPartsPayload);
+
+    logger.debug(`verifying polygon parts table names are available`);
+
+    await Promise.all(
+      Object.values<EntityName>({ ...entityNames }).map(async ({ databaseObjectQualifiedName, entityName }) => {
+        try {
+          const exists = await entityManager
+            .createQueryBuilder()
+            .select()
+            .from('information_schema.tables', 'information_schema.tables')
+            .where(`table_schema = '${this.schema}'`)
+            .andWhere(`table_name = '${entityName}'`)
+            .getExists();
+          if (exists) {
+            throw new ConflictError(`table with the name '${databaseObjectQualifiedName}' already exists`);
+          }
+        } catch (error) {
+          const errorMessage = 'Could not verify polygon parts table name is available';
+          logger.error({ msg: errorMessage, error });
+          throw error;
+        }
+      })
+    );
+
+    return entityNames;
+  }
+
+  private async createTables(ingestionContext: IngestionContext): Promise<void> {
+    const {
+      entityManager,
+      logger,
+      entityNames: {
+        parts: { databaseObjectQualifiedName: partsEntityQualifiedName },
+        polygonParts: { databaseObjectQualifiedName: polygonPartsEntityQualifiedName },
+      },
+    } = ingestionContext;
 
     logger.debug(`creating polygon parts tables`);
 
     try {
       const createPolygonPartsProcedure = this.applicationConfig.createPolygonPartsTablesStoredProcedure;
-      const entityName = this.getEntityName(polygonPartsPayload);
-      const entityQualifiedName = this.getDatabaseObjectQualifiedName(entityName);
-      const exists = await entityManager.exists(entityQualifiedName);
-      if (exists) {
-        throw new ConflictError(`table with the name '${entityQualifiedName}' already exists`);
-      }
-      await entityManager.query(`CALL ${createPolygonPartsProcedure}('${entityQualifiedName}');`);
+      await entityManager.query(`CALL ${createPolygonPartsProcedure}('${partsEntityQualifiedName}', '${polygonPartsEntityQualifiedName}');`);
     } catch (error) {
       const errorMessage = 'Could not create polygon parts tables';
       logger.error({ msg: errorMessage, error });
@@ -73,7 +120,14 @@ export class PolygonPartsManager {
   }
 
   private async insert(ingestionContext: IngestionContext): Promise<void> {
-    const { entityManager, logger, polygonPartsPayload } = ingestionContext;
+    const {
+      entityManager,
+      entityNames: {
+        parts: { databaseObjectQualifiedName: partsEntityQualifiedName },
+      },
+      logger,
+      polygonPartsPayload,
+    } = ingestionContext;
     const { partsData, ...props } = polygonPartsPayload;
 
     logger.debug(`inserting polygon parts data`);
@@ -101,42 +155,20 @@ export class PolygonPartsManager {
         footprint: partData.footprint,
       };
     });
-    const entityName = this.getEntityName(polygonPartsPayload);
-    const entityQualifiedName = this.getDatabaseObjectQualifiedName(entityName);
-
-    const columns: CamelToSnakeCase<keyof IngestionProperties>[] = [
-      'product_id',
-      'product_type',
-      'catalog_id',
-      'source_id',
-      'source_name',
-      'product_version',
-      'ingestion_date_utc',
-      'imaging_time_begin_utc',
-      'imaging_time_end_utc',
-      'resolution_degree',
-      'resolution_meter',
-      'source_resolution_meter',
-      'horizontal_accuracy_ce90',
-      'sensors',
-      'countries',
-      'cities',
-      'description',
-      'footprint',
-    ];
 
     try {
       if (insertEntities.length === 1) {
         // QueryBuilder API is used since insert() of a single record uses the object keys as fields
         // which is unsuitable since the keys have a mapping to column names
+        const columns = Object.keys(insertEntities[0]).map((key) => camelCaseToSnakeCase(key));
         await entityManager
           .createQueryBuilder()
           .insert()
-          .into<IngestionProperties>(`${entityQualifiedName}_parts`, columns)
+          .into<IngestionProperties>(`${partsEntityQualifiedName}`, columns)
           .values(insertEntities[0])
           .execute();
       } else {
-        await entityManager.insert<IngestionProperties[]>(`${entityQualifiedName}_parts`, insertEntities);
+        await entityManager.insert<IngestionProperties[]>(`${partsEntityQualifiedName}`, insertEntities);
       }
     } catch (error) {
       const errorMessage = 'Could not insert polygon parts data';
@@ -146,16 +178,23 @@ export class PolygonPartsManager {
   }
 
   private async updatePolygonParts(ingestionContext: IngestionContext): Promise<void> {
-    const { entityManager, logger, polygonPartsPayload } = ingestionContext;
+    const {
+      entityManager,
+      logger,
+      entityNames: {
+        parts: { databaseObjectQualifiedName: partsEntityQualifiedName },
+        polygonParts: { databaseObjectQualifiedName: polygonPartsEntityQualifiedName },
+      },
+    } = ingestionContext;
 
     logger.debug(`updating polygon parts data`);
 
     const updatePolygonPartsProcedure = this.applicationConfig.updatePolygonPartsTablesStoredProcedure;
-    const entityName = this.getEntityName(polygonPartsPayload);
-    const entityQualifiedName = this.getDatabaseObjectQualifiedName(entityName);
 
     try {
-      await entityManager.query(`CALL ${updatePolygonPartsProcedure}('${entityQualifiedName}_parts'::regclass, '${entityQualifiedName}'::regclass);`);
+      await entityManager.query(
+        `CALL ${updatePolygonPartsProcedure}('${partsEntityQualifiedName}'::regclass, '${polygonPartsEntityQualifiedName}'::regclass);`
+      );
     } catch (error) {
       const errorMessage = 'Could not update polygon parts data';
       logger.error({ msg: errorMessage, error });
@@ -167,8 +206,15 @@ export class PolygonPartsManager {
     return `${this.schema}.${value}`;
   }
 
-  private getEntityName(polygonPartsPayload: PolygonPartsPayload): string {
+  private getEntitiesNames(polygonPartsPayload: PolygonPartsPayload): EntityNames {
     const { productId, productType } = polygonPartsPayload;
-    return [productId, productType].join('_').toLowerCase();
+    const baseName = [productId, productType].join('_').toLowerCase();
+    const partsEntityName = `${this.applicationConfig.entities.parts.namePrefix}${baseName}${this.applicationConfig.entities.parts.nameSuffix}`;
+    const polygonPartsEntityName = `${this.applicationConfig.entities.polygonParts.namePrefix}${baseName}${this.applicationConfig.entities.polygonParts.nameSuffix}`;
+
+    return {
+      parts: { entityName: partsEntityName, databaseObjectQualifiedName: this.getDatabaseObjectQualifiedName(partsEntityName) },
+      polygonParts: { entityName: polygonPartsEntityName, databaseObjectQualifiedName: this.getDatabaseObjectQualifiedName(polygonPartsEntityName) },
+    };
   }
 }

@@ -6,15 +6,14 @@ import { Common } from './common';
 @Unique('polygon_parts_insertion_order_uq', ['insertionOrder'])
 export class PolygonPart extends Common implements PolygonPartRecord {
   @PrimaryGeneratedColumn('uuid', {
-    name: 'id',
     primaryKeyConstraintName: 'polygon_parts_pkey',
   })
   public readonly id!: string;
 
-  @Column({ name: 'part_id', type: 'uuid' })
+  @Column({ type: 'uuid' })
   @Index()
   public readonly partId!: string;
 
-  @Column({ name: 'insertion_order', type: 'bigint' })
+  @Column({ type: 'bigint' })
   public readonly insertionOrder!: number;
 }

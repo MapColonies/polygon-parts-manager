@@ -42,7 +42,17 @@
   "application": {
     "arraySeparator": "ARRAY_SEPARATOR",
     "createPolygonPartsTablesStoredProcedure": "CREATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE",
-    "updatePolygonPartsTablesStoredProcedure": "UPDATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE"
+    "updatePolygonPartsTablesStoredProcedure": "UPDATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE",
+    "entities": {
+      "parts": {
+        "namePrefix": "ENTITY_PARTS_NAME_PREFIX",
+        "nameSuffix": "ENTITY_PARTS_NAME_SUFFIX"
+      },
+      "polygonParts": {
+        "namePrefix": "ENTITY_POLYGON_PARTS_NAME_PREFIX",
+        "nameSuffix": "ENTITY_POLYGON_PARTS_NAME_SUFFIX"
+      }
+    }
   },
   "db": {
     "type": "DB_TYPE",

@@ -4,6 +4,16 @@ export interface ApplicationConfig {
   arraySeparator: string;
   createPolygonPartsTablesStoredProcedure: string;
   updatePolygonPartsTablesStoredProcedure: string;
+  entities: {
+    parts: {
+      namePrefix: string;
+      nameSuffix: string;
+    };
+    polygonParts: {
+      namePrefix: string;
+      nameSuffix: string;
+    };
+  };
 }
 
 export type DbConfig = PostgresConnectionOptions & {

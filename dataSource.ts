@@ -4,6 +4,7 @@ import config from 'config';
 import { DataSource, DefaultNamingStrategy, type DataSourceOptions, type Table } from 'typeorm';
 import { ConnectionManager } from './src/common/connectionManager';
 import { type DbConfig } from './src/common/interfaces';
+import { camelCaseToSnakeCase } from './src/common/utils';
 
 const connectionOptions = config.get<DbConfig>('db');
 
@@ -13,6 +14,9 @@ customNamingStrategy.indexName = (tableOrName: Table | string, columnNames: stri
 };
 customNamingStrategy.uniqueConstraintName = (tableOrName: Table | string, columnNames: string[]): string => {
   return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_${columnNames.join('_')}`;
+};
+customNamingStrategy.columnName = (propertyName: string): string => {
+  return camelCaseToSnakeCase(propertyName);
 };
 
 const defaultDataSourceOptions = {

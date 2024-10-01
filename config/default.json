@@ -28,7 +28,17 @@
   "application": {
     "arraySeparator": ",",
     "createPolygonPartsTablesStoredProcedure": "create_polygon_parts_tables",
-    "updatePolygonPartsTablesStoredProcedure": "update_polygon_parts"
+    "updatePolygonPartsTablesStoredProcedure": "update_polygon_parts",
+    "entities": {
+      "parts": {
+        "namePrefix": "",
+        "nameSuffix": "_parts"
+      },
+      "polygonParts": {
+        "namePrefix": "",
+        "nameSuffix": ""
+      }
+    }
   },
   "db": {
     "type": "postgres",

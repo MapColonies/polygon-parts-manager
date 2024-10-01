@@ -113,7 +113,7 @@ export class PolygonPartsManager {
       const createPolygonPartsProcedure = this.applicationConfig.createPolygonPartsTablesStoredProcedure;
       await entityManager.query(`CALL ${createPolygonPartsProcedure}('${partsEntityQualifiedName}', '${polygonPartsEntityQualifiedName}');`);
     } catch (error) {
-      const errorMessage = 'Could not create polygon parts tables';
+      const errorMessage = `Could not create polygon parts tables: '${partsEntityQualifiedName}', '${polygonPartsEntityQualifiedName}'`;
       logger.error({ msg: errorMessage, error });
       throw error;
     }
@@ -171,7 +171,7 @@ export class PolygonPartsManager {
         await entityManager.insert<IngestionProperties[]>(`${partsEntityQualifiedName}`, insertEntities);
       }
     } catch (error) {
-      const errorMessage = 'Could not insert polygon parts data';
+      const errorMessage = `Could not insert polygon parts data to table '${partsEntityQualifiedName}'`;
       logger.error({ msg: errorMessage, error });
       throw error;
     }
@@ -196,7 +196,7 @@ export class PolygonPartsManager {
         `CALL ${updatePolygonPartsProcedure}('${partsEntityQualifiedName}'::regclass, '${polygonPartsEntityQualifiedName}'::regclass);`
       );
     } catch (error) {
-      const errorMessage = 'Could not update polygon parts data';
+      const errorMessage = `Could not update polygon parts data in tables: '${partsEntityQualifiedName}', '${polygonPartsEntityQualifiedName}'`;
       logger.error({ msg: errorMessage, error });
       throw error;
     }

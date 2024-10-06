@@ -1,4 +1,7 @@
+import type { Logger } from '@map-colonies/js-logger';
 import type { IPolygonPart, PolygonPart, PolygonPartsPayload } from '@map-colonies/mc-model-types';
+import type { EntityManager } from 'typeorm';
+import type { DbConfig } from '../../common/interfaces';
 
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
 interface CommonProperties extends Readonly<Omit<CommonPayload, 'countries' | 'cities' | 'sensors'>> {
@@ -37,3 +40,40 @@ export interface PolygonPartRecord extends CommonProperties, PolygonPartProperti
 export interface IngestionProperties extends Omit<CommonProperties, 'ingestionDateUTC'> {
   readonly ingestionDateUTC: undefined;
 }
+
+/**
+ * Base ingestion context used for interaction with the data source
+ */
+export interface BaseIngestionContext {
+  entityManager: EntityManager;
+  logger: Logger;
+  polygonPartsPayload: PolygonPartsPayload;
+}
+
+/**
+ * Ingestion context used for interaction with the data source
+ */
+export interface IngestionContext extends BaseIngestionContext {
+  entityNames: EntityNames;
+}
+
+/**
+ * Properties describing a name of an entity
+ */
+export interface EntityName {
+  entityName: string;
+  databaseObjectQualifiedName: string;
+}
+
+/**
+ * Properties describing parts & polygon parts entities names
+ */
+export interface EntityNames {
+  parts: EntityName;
+  polygonParts: EntityName;
+}
+
+/**
+ * DB schema type
+ */
+export type DBSchema = DbConfig['schema'];

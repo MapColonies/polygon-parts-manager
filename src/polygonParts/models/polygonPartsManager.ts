@@ -1,35 +1,12 @@
 import { ConflictError } from '@map-colonies/error-types';
-import { Logger } from '@map-colonies/js-logger';
+import type { Logger } from '@map-colonies/js-logger';
 import type { PolygonPartsPayload } from '@map-colonies/mc-model-types';
 import { inject, injectable } from 'tsyringe';
-import type { EntityManager } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
 import { DEFAULT_SCHEMA, SERVICES } from '../../common/constants';
-import { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
+import type { ApplicationConfig, IConfig } from '../../common/interfaces';
 import { camelCaseToSnakeCase } from '../../common/utils';
-import type { IngestionProperties } from './interfaces';
-
-interface BaseIngestionContext {
-  entityManager: EntityManager;
-  logger: Logger;
-  polygonPartsPayload: PolygonPartsPayload;
-}
-
-interface IngestionContext extends BaseIngestionContext {
-  entityNames: EntityNames;
-}
-
-interface EntityName {
-  entityName: string;
-  databaseObjectQualifiedName: string;
-}
-
-interface EntityNames {
-  parts: EntityName;
-  polygonParts: EntityName;
-}
-
-type DBSchema = DbConfig['schema'];
+import type { BaseIngestionContext, DBSchema, EntityName, EntityNames, IngestionContext, IngestionProperties } from './interfaces';
 
 @injectable()
 export class PolygonPartsManager {

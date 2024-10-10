@@ -1,0 +1,23 @@
+{{- $db := (include "common.db.merged" .) | fromYaml }}
+{{- if not $db.secrets.useExternal -}}
+{{ $caPath := $db.sslAuth.caFileName }}
+{{ $keyPath := $db.sslAuth.keyFileName }}
+{{ $certPath := $db.sslAuth.certFileName }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Release.Name }}-postgres-secret
+type: Opaque
+data:
+  username: {{ $db.username | b64enc }}
+  password: {{ $db.password | default "" | b64enc | quote }}
+  {{- if $db.sslEnabled }}
+  caFile: {{ .Files.Get $caPath | b64enc }}
+  keyFile: {{ .Files.Get $keyPath | b64enc }}
+  certFile: {{ .Files.Get $certPath | b64enc }}
+  {{- else }}
+  caFile: ""
+  keyFile: ""
+  certFile: ""
+  {{- end }}
+{{- end }}

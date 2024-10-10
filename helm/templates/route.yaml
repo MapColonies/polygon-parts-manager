@@ -1,6 +1,6 @@
 {{- $releaseName := .Release.Name -}}
-{{- $chartName := include "ts-server-boilerplate.name" . -}}
-{{- $cloudProviderFlavor := include "ts-server-boilerplate.cloudProviderFlavor" . -}}
+{{- $chartName := include "polygon-parts-manager.name" . -}}
+{{- $cloudProviderFlavor := include "polygon-parts-manager.cloudProviderFlavor" . -}}
 {{- if and (and (.Values.enabled) (eq $cloudProviderFlavor "openshift")) (.Values.route.enabled) -}}
 apiVersion: route.openshift.io/v1
 kind: Route
@@ -12,10 +12,11 @@ metadata:
     haproxy.router.openshift.io/timeout: {{ .Values.route.timeout.duration }}
     {{- end }}
 spec:
-  path:  {{ .Values.route.path | default "/" }}
+  path: {{ .Values.route.path | default "/" }}
   to:
     kind: Service
     name: {{ $releaseName }}-{{ $chartName }}
   tls:
     termination: edge
+    insecureEdgeTerminationPolicy: Redirect
 {{- end -}}

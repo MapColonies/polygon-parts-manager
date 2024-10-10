@@ -10,6 +10,9 @@ replicaCount: 1
 initialDelaySeconds: 60
 nodePort: 30030 #for minikube deployment only
 resetOnConfigChange: true
+imagePullPolicy: Always
+
+podAnnotations: {}
 
 cloudProvider:
   dockerRegistryUrl: my-registry-url.io
@@ -20,8 +23,19 @@ caSecretName: ''
 caPath: '/usr/local/share/ca-certificates'
 caKey: 'ca.crt'
 
+tracing:
+  enabled: false
+  url: ''
+
+metrics:
+  enabled: false
+  url: ''
+  prometheus:
+    scrape: false
+    port: 8080
+
 image:
-  repository: ts-server-boilerplate
+  repository: polygon-parts-manager
   tag: 'latest'
 
 env:
@@ -32,12 +46,37 @@ env:
   logPrettyPrintEnabled: false
   responseCompressionEnabled: true
   requestPayloadLimit: 1mb
-  tracing:
-    enabled: false
-    url: http://localhost:55681/v1/trace
-  metrics:
-    enabled: false
-    url: http://localhost:55681/v1/metrics
+  application:
+    arraySeparator: ','
+    createPolygonPartsTablesStoredProcedure: 'create_polygon_parts_tables'
+    updatePolygonPartsTablesStoredProcedure: 'update_polygon_parts'
+    entities:
+      parts:
+        namePrefix: ''
+        nameSuffix: '_parts'
+      polygonParts:
+        namePrefix: ''
+        nameSuffix: ''
+
+# external
+db:
+  host: localhost
+  port: 5432
+  username: postgres
+  password: postgres
+  name: postgres
+  schema: polygon_parts
+  logging: false
+  applicationName: polygon_parts
+  sslEnabled: false
+  sslAuth:
+    sslMountPath: /mnt/db/secrets
+    certFileName: postgresql.crt
+    keyFileName: postgresql.key
+    caFileName: root.crt
+  secrets:
+    useExternal: false
+    externalSecretName: ''
 
 resources:
   enabled: true
@@ -50,7 +89,7 @@ resources:
       memory: 128Mi
 
 route:
-  enabled: true
+  enabled: false
   path: /
   timeout:
     enabled: false # defaults to 30s by openshift
@@ -58,6 +97,7 @@ route:
 
 ingress:
   enabled: false
+  type: 'nginx-org' # supported values: 'nginx-org' | 'nginx-kubernetes'
   path: /
   host: 'localhost'
   cors:

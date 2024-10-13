@@ -4,6 +4,10 @@ global:
   metrics: {}
   environment: {}
   db: {}
+  ca:
+    secretName: ''
+    path: '/usr/local/share/ca-certificates'
+    key: 'ca.crt'
 
 enabled: true
 environment: development
@@ -19,10 +23,6 @@ cloudProvider:
   dockerRegistryUrl: my-registry-url.io
   imagePullSecretName: 'my-registry-secret'
   flavor: openshift
-
-caSecretName: 'ca-sercret-name'
-caPath: '/usr/local/share/ca-certificates'
-caKey: 'ca.crt'
 
 tracing:
   enabled: false

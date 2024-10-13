@@ -3,7 +3,7 @@ import { Check, Column, CreateDateColumn, Index, type Polygon } from 'typeorm';
 import type { CommonRecord } from '../models/interfaces';
 
 export class Common implements CommonRecord {
-  @Column({ name: 'product_id', type: 'text', collation: 'C.UTF-8' })
+  @Column({ type: 'text', collation: 'C.UTF-8' })
   @Index()
   @Check('product id', `product_id ~* '^[A-Za-z]{1}[A-Za-z0-9_]{0,62}$'`)
   public productId!: string;

@@ -3,6 +3,7 @@ global:
   tracing: {}
   metrics: {}
   environment: {}
+  db: {}
 
 enabled: true
 environment: development
@@ -19,7 +20,7 @@ cloudProvider:
   imagePullSecretName: 'my-registry-secret'
   flavor: openshift
 
-caSecretName: ''
+caSecretName: 'ca-sercret-name'
 caPath: '/usr/local/share/ca-certificates'
 caKey: 'ca.crt'
 
@@ -30,6 +31,7 @@ tracing:
 metrics:
   enabled: false
   url: ''
+  interval: 15000 # default interval value of telemetry package
   prometheus:
     scrape: false
     port: 8080
@@ -60,11 +62,11 @@ env:
 
 # external
 db:
-  host: localhost
+  host: ''
   port: 5432
-  username: postgres
-  password: postgres
-  name: postgres
+  username: ''
+  password: ''
+  name: ''
   schema: polygon_parts
   logging: false
   applicationName: polygon_parts
@@ -94,6 +96,11 @@ route:
   timeout:
     enabled: false # defaults to 30s by openshift
     duration: 60s # supported units (us, ms, s, m, h, d)
+  tls:
+    useCerts: false
+    certificate: ''
+    key: ''
+    caCertificate: ''
 
 ingress:
   enabled: false

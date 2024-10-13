@@ -15,12 +15,10 @@ data:
   ENTITY_PARTS_NAME_SUFFIX: {{ .Values.env.application.entities.parts.nameSuffix | quote }}
   ENTITY_POLYGON_PARTS_NAME_PREFIX: {{ .Values.env.application.entities.polygonParts.namePrefix | quote }}
   ENTITY_POLYGON_PARTS_NAME_SUFFIX: {{ .Values.env.application.entities.polygonParts.nameSuffix | quote }}
-  LOG_LEVEL: {{ .Values.env.logLevel | quote }}
-  LOG_PRETTY_PRINT_ENABLED: {{ .Values.env.logPrettyPrintEnabled | quote }}
-  DB_HOST: {{ $db.host }}
+  DB_HOST: {{ $db.host | quote }}
   DB_PORT: {{ $db.port | quote }}
-  DB_NAME: {{ $db.name }}
-  DB_SCHEMA: {{ $db.schema }}
+  DB_NAME: {{ $db.name | quote }}
+  DB_SCHEMA: {{ $db.schema | quote }}
   DB_LOGGING: {{ $db.logging | quote }}
   DB_APPNAME: {{ $db.applicationName | quote }}
   DB_ENABLE_SSL_AUTH: {{ $db.sslEnabled | quote }}
@@ -35,11 +33,12 @@ data:
   LOG_PRETTY_PRINT_ENABLED: {{ .Values.env.logPrettyPrintEnabled | quote }}
   TELEMETRY_TRACING_ENABLED: {{ $tracing.enabled | quote }}
   {{- if $tracing.enabled }}
-  TELEMETRY_TRACING_URL: {{ $tracing.url }}
+  TELEMETRY_TRACING_URL: {{ $tracing.url | quote }}
   {{- end }}
   TELEMETRY_METRICS_ENABLED: {{ $metrics.enabled | quote }}
+  TELEMETRY_METRICS_INTERVAL: {{ $metrics.interval | quote }}
   {{- if $metrics.enabled }}
-  TELEMETRY_METRICS_URL: {{ $metrics.url }}
+  TELEMETRY_METRICS_URL: {{ $metrics.url | quote }}
   {{- end }}
   npm_config_cache: /tmp/
 {{- end }}

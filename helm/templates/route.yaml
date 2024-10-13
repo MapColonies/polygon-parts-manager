@@ -19,4 +19,9 @@ spec:
   tls:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect
+    {{- if .Values.route.tls.useCerts }}
+    certificate: {{ .Values.route.tls.certificate | quote }}
+    key: {{ .Values.route.tls.key | quote }}
+    caCertificate: {{ .Values.route.tls.caCertificate | quote }}
+    {{- end }}
 {{- end -}}

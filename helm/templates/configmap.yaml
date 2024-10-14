@@ -7,7 +7,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-{{ $chartName }}-configmap
+  name: {{ $configmapName }}
 data:
   ARRAY_SEPARATOR: {{ .Values.env.application.arraySeparator | quote }}
   CREATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE: {{ .Values.env.application.createPolygonPartsTablesStoredProcedure | quote }}

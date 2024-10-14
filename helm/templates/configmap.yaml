@@ -37,8 +37,8 @@ data:
   TELEMETRY_TRACING_URL: {{ $tracing.url | quote }}
   {{- end }}
   TELEMETRY_METRICS_ENABLED: {{ $metrics.enabled | quote }}
-  TELEMETRY_METRICS_INTERVAL: {{ $metrics.interval | quote }}
   {{- if $metrics.enabled }}
+  TELEMETRY_METRICS_INTERVAL: {{ $metrics.interval | quote }}
   TELEMETRY_METRICS_URL: {{ $metrics.url | quote }}
   {{- end }}
   npm_config_cache: /tmp/

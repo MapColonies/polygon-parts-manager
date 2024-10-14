@@ -1,11 +1,13 @@
 {{- $releaseName := .Release.Name -}}
 {{- $chartName := include "polygon-parts-manager.name" . -}}
+{{- $routeName := include "route.fullname" . }}
+{{- $serviceName := include "service.fullname" . -}}
 {{- $cloudProviderFlavor := include "polygon-parts-manager.cloudProviderFlavor" . -}}
 {{- if and (and (.Values.enabled) (eq $cloudProviderFlavor "openshift")) (.Values.route.enabled) -}}
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: {{ $releaseName }}-{{ $chartName }}-route
+  name: {{ $routeName }}
   annotations:
     haproxy.router.openshift.io/rewrite-target: /
     {{- if .Values.route.timeout.enabled }}
@@ -15,7 +17,7 @@ spec:
   path: {{ .Values.route.path | default "/" }}
   to:
     kind: Service
-    name: {{ $releaseName }}-{{ $chartName }}
+    name: {{ $serviceName }}
   tls:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect

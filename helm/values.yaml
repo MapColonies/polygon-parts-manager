@@ -84,11 +84,11 @@ resources:
   enabled: true
   value:
     limits:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 0.5
+      memory: 0.5Gi
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 0.25
+      memory: 0.25Gi
 
 route:
   enabled: false

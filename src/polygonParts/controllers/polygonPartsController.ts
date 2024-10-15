@@ -1,7 +1,7 @@
-import type { PolygonPartsPayload } from '@map-colonies/mc-model-types';
 import { RequestHandler } from 'express';
 import httpStatus from 'http-status-codes';
 import { inject, injectable } from 'tsyringe';
+import type { PolygonPartsPayload } from '../models/interfaces';
 import { PolygonPartsManager } from '../models/polygonPartsManager';
 
 type CreatePolygonPartsHandler = RequestHandler<undefined, string, PolygonPartsPayload>;

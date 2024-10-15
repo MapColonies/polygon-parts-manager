@@ -14,16 +14,7 @@ export class Initial1725288965719 implements MigrationInterface {
                 'RasterAid',
                 'RasterAidBest',
                 'RasterVector',
-                'RasterVectorBest',
-                'VectorBest',
-                'DTM',
-                'DSM',
-                'QuantizedMeshDTM',
-                'QuantizedMeshDSM',
-                'QuantizedMeshDTMBest',
-                'QuantizedMeshDSMBest',
-                '3DPhotoRealistic',
-                'PointCloud'
+                'RasterVectorBest'
             )
         `);
         await queryRunner.query(`

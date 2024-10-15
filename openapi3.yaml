@@ -2,11 +2,10 @@ openapi: 3.0.3
 info:
   title: Polygon-Parts Manager
   description: CRUD operations to manage polygon-parts
-  version: 1.0.0
+  version: 1.1.0
 tags:
   - name: polygon-parts
     description: CRUD operations to manage polygon-parts
-
 paths:
   /polygonParts:
     post:
@@ -88,11 +87,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
-
 components:
   schemas:
     PolygonPartsPayload:
-      $ref: ./Schema/polygonPartsManager/payload.yaml#/components/schemas/PolygonPartsPayload
+      $ref: >-
+        ./Schema/polygonPartsManager/payload.yaml#/components/schemas/PolygonPartsPayload
     ErrorMessage:
       type: object
       properties:

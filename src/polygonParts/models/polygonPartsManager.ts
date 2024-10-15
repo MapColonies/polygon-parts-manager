@@ -5,7 +5,15 @@ import { ConnectionManager } from '../../common/connectionManager';
 import { DEFAULT_SCHEMA, SERVICES } from '../../common/constants';
 import type { ApplicationConfig, IConfig } from '../../common/interfaces';
 import { camelCaseToSnakeCase } from '../../common/utils';
-import type { BaseIngestionContext, DBSchema, EntityName, EntityNames, IngestionContext, IngestionProperties, PolygonPartsPayload } from './interfaces';
+import type {
+  BaseIngestionContext,
+  DBSchema,
+  EntityName,
+  EntityNames,
+  IngestionContext,
+  IngestionProperties,
+  PolygonPartsPayload,
+} from './interfaces';
 
 @injectable()
 export class PolygonPartsManager {

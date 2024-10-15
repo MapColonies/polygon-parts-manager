@@ -1,12 +1,11 @@
 import { ConflictError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
-import type { PolygonPartsPayload } from '@map-colonies/mc-model-types';
 import { inject, injectable } from 'tsyringe';
 import { ConnectionManager } from '../../common/connectionManager';
 import { DEFAULT_SCHEMA, SERVICES } from '../../common/constants';
 import type { ApplicationConfig, IConfig } from '../../common/interfaces';
 import { camelCaseToSnakeCase } from '../../common/utils';
-import type { BaseIngestionContext, DBSchema, EntityName, EntityNames, IngestionContext, IngestionProperties } from './interfaces';
+import type { BaseIngestionContext, DBSchema, EntityName, EntityNames, IngestionContext, IngestionProperties, PolygonPartsPayload } from './interfaces';
 
 @injectable()
 export class PolygonPartsManager {

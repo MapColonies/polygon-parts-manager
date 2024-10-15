@@ -1,6 +1,6 @@
-import { ProductType } from '@map-colonies/mc-model-types';
 import { Check, Column, CreateDateColumn, Index, type Polygon } from 'typeorm';
-import type { CommonRecord } from '../models/interfaces';
+import type { CommonRecord, ProductType } from '../models/interfaces';
+import { PRODUCT_TYPES } from '../models/constants';
 
 export class Common implements CommonRecord {
   @Column({ type: 'text', collation: 'C.UTF-8' })
@@ -11,7 +11,7 @@ export class Common implements CommonRecord {
   @Column({
     type: 'enum',
     enumName: 'product_type_enum',
-    enum: ProductType,
+    enum: PRODUCT_TYPES,
   })
   @Index()
   public productType!: ProductType;

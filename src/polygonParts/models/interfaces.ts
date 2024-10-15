@@ -7,6 +7,7 @@ import type {
 } from '@map-colonies/mc-model-types';
 import type { EntityManager } from 'typeorm';
 import type { DbConfig } from '../../common/interfaces';
+import type { EnsureType } from '../../common/types';
 import { PRODUCT_TYPES } from './constants';
 
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
@@ -94,4 +95,4 @@ export type DBSchema = DbConfig['schema'];
 /**
  * Product type values acceptable for polygon parts
  */
-export type ProductType = Extract<`${ProductTypeEnum}`, (typeof PRODUCT_TYPES)[number]>;
+export type ProductType = Extract<`${ProductTypeEnum}`, EnsureType<(typeof PRODUCT_TYPES)[number], `${ProductTypeEnum}`>>;

@@ -23,7 +23,7 @@ export class PolygonPartsManager {
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(SERVICES.CONFIG) private readonly config: IConfig,
-    private readonly connectionManager: ConnectionManager
+    @inject(SERVICES.CONNECTION_MANAGER) private readonly connectionManager: ConnectionManager
   ) {
     this.applicationConfig = this.config.get<ApplicationConfig>('application');
     this.schema = config.get<DBSchema>('db.schema') ?? DEFAULT_SCHEMA;

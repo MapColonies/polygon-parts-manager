@@ -10,9 +10,14 @@ export const CONNECTION_MANAGER_SYMBOL = Symbol('connectionManager');
 
 @singleton()
 export class ConnectionManager {
-  private appDataSource?: DataSource;
+  private readonly dataSource: DataSource;
+  private readonly dataSourceOptions: DataSourceOptions;
 
-  public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, @inject(SERVICES.CONFIG) private readonly config: IConfig) {}
+  public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, @inject(SERVICES.CONFIG) private readonly config: IConfig) {
+    const connectionConfig = this.config.get<DbConfig>('db');
+    this.dataSourceOptions = ConnectionManager.createConnectionOptions(connectionConfig);
+    this.dataSource = new DataSource(this.dataSourceOptions);
+  }
 
   public static createConnectionOptions(dbConfig: DbConfig): DataSourceOptions {
     const { enableSslAuth, sslPaths, ...connectionOptions } = dbConfig;
@@ -24,15 +29,14 @@ export class ConnectionManager {
   }
 
   public async init(): Promise<void> {
-    const connectionConfig = this.config.get<DbConfig>('db');
-    this.logger.info(
-      `connecting to database ${connectionConfig.database as string} ${connectionConfig.host !== undefined ? `on ${connectionConfig.host}` : ''}`
-    );
     try {
-      if (!this.appDataSource) {
-        const connectionOptions = ConnectionManager.createConnectionOptions(connectionConfig);
-        this.appDataSource = new DataSource(connectionOptions);
-        await this.appDataSource.initialize();
+      if (!this.isConnected()) {
+        this.logger.info(
+          `connecting to database ${this.dataSourceOptions.database as string} ${
+            'host' in this.dataSourceOptions && this.dataSourceOptions.host !== undefined ? `on ${this.dataSourceOptions.host}` : ''
+          }`
+        );
+        await this.dataSource.initialize();
       }
     } catch (error) {
       const errString = JSON.stringify(error, Object.getOwnPropertyNames(error));
@@ -42,15 +46,23 @@ export class ConnectionManager {
   }
 
   public isConnected(): boolean {
-    return this.appDataSource?.isInitialized ?? false;
+    if (!this.dataSource.isInitialized) {
+      this.logger.error('no open connection to database');
+    }
+    return this.dataSource.isInitialized;
   }
 
   public getDataSource(): DataSource {
-    if (!this.appDataSource || !this.isConnected()) {
-      const msg = 'failed to send request to database: no open connection';
-      this.logger.error(msg);
+    if (!this.isConnected()) {
       throw new DBConnectionError();
     }
-    return this.appDataSource;
+    return this.dataSource;
+  }
+
+  public async destroy(): Promise<void> {
+    if (!this.isConnected()) {
+      throw new DBConnectionError();
+    }
+    await this.dataSource.destroy();
   }
 }

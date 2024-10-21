@@ -29,7 +29,7 @@ export interface PolygonPartsPayload extends Omit<PolygonPartsPayloadType, 'prod
 /**
  * Common record properties of part and polygon part
  */
-export interface CommonRecord extends Readonly<Omit<PolygonPartsPayload, 'partsData'>>, CommonProperties {
+export interface CommonRecord extends CommonProperties {
   readonly ingestionDateUTC: Date;
 }
 

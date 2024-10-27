@@ -2,11 +2,10 @@ import jsLogger, { type LoggerOptions } from '@map-colonies/js-logger';
 import { Metrics, getOtelMixin } from '@map-colonies/telemetry';
 import { metrics as OtelMetrics, trace } from '@opentelemetry/api';
 import config from 'config';
-import { container, instanceCachingFactory } from 'tsyringe';
-import { type DependencyContainer } from 'tsyringe/dist/typings/types';
+import type { DependencyContainer } from 'tsyringe/dist/typings/types';
 import { ConnectionManager } from './common/connectionManager';
 import { SERVICES, SERVICE_NAME } from './common/constants';
-import { InjectionObject, registerDependencies } from './common/dependencyRegistration';
+import { registerDependencies, type InjectionObject, type Providers } from './common/dependencyRegistration';
 import { tracing } from './common/tracing';
 import { POLYGON_PARTS_ROUTER_SYMBOL, polygonPartsRouterFactory } from './polygonParts/routes/polygonPartsRouter';
 
@@ -33,15 +32,11 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
     {
       token: SERVICES.CONNECTION_MANAGER,
       provider: {
-        useFactory: instanceCachingFactory((dependencyContainer) => {
+        useAsync: async (dependencyContainer: DependencyContainer): Promise<Providers<ConnectionManager>> => {
           const connectionManager = dependencyContainer.resolve(ConnectionManager);
-          return connectionManager;
-        }),
-      },
-      dependencyRegistration: async (): Promise<void> => {
-        const connectionManager = container.resolve(ConnectionManager);
-        await connectionManager.init();
-        container.register(SERVICES.CONNECTION_MANAGER, { useValue: connectionManager });
+          await connectionManager.init();
+          return { useValue: connectionManager };
+        },
       },
     },
     {
@@ -51,8 +46,8 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
     {
       token: 'onSignal',
       provider: {
-        useFactory: (): (() => Promise<unknown>) => {
-          const connectionManager = container.resolve<ConnectionManager>(ConnectionManager);
+        useFactory: (dependencyContainer: DependencyContainer): (() => Promise<unknown>) => {
+          const connectionManager = dependencyContainer.resolve<ConnectionManager>(SERVICES.CONNECTION_MANAGER);
           return async () => {
             return Promise.all([tracing.stop(), metrics.stop(), connectionManager.destroy()]);
           };

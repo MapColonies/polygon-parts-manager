@@ -47,7 +47,7 @@ export class ConnectionManager {
 
   public isConnected(): boolean {
     if (!this.dataSource.isInitialized) {
-      this.logger.error('no open connection to database');
+      this.logger.warn('no open connection to database');
     }
     return this.dataSource.isInitialized;
   }

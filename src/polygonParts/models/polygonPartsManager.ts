@@ -1,4 +1,4 @@
-import { ConflictError } from '@map-colonies/error-types';
+import { ConflictError, HttpError, InternalServerError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { ConnectionManager } from '../../common/connectionManager';
@@ -35,20 +35,29 @@ export class PolygonPartsManager {
     const logger = this.logger.child({ catalogId });
     logger.info({ msg: `creating polygon parts` });
 
-    await this.connectionManager.getDataSource().transaction(async (entityManager) => {
-      const baseIngestionContext: BaseIngestionContext = {
-        entityManager,
-        logger,
-        polygonPartsPayload,
-      };
+    try {
+      await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        const baseIngestionContext: BaseIngestionContext = {
+          entityManager,
+          logger,
+          polygonPartsPayload,
+        };
 
-      await entityManager.query(`SET search_path TO ${this.schema},public`);
-      const entityNames = await this.verifyAvailableTableNames(baseIngestionContext);
-      const ingestionContext = { ...baseIngestionContext, entityNames };
-      await this.createTables(ingestionContext);
-      await this.insert(ingestionContext);
-      await this.updatePolygonParts(ingestionContext);
-    });
+        await entityManager.query(`SET search_path TO ${this.schema},public`);
+        const entityNames = await this.verifyAvailableTableNames(baseIngestionContext);
+        const ingestionContext = { ...baseIngestionContext, entityNames };
+        await this.createTables(ingestionContext);
+        await this.insert(ingestionContext);
+        await this.updatePolygonParts(ingestionContext);
+      });
+    } catch (error) {
+      const errorMessage = 'Transaction failed';
+      logger.error({ msg: errorMessage, error });
+      if (error instanceof HttpError) {
+        throw error
+      }
+      throw new InternalServerError('Unknown Error');
+    }
   }
 
   private async verifyAvailableTableNames(ingestionContext: BaseIngestionContext): Promise<EntityNames> {

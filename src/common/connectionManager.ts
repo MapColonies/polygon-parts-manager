@@ -31,23 +31,23 @@ export class ConnectionManager {
   public async init(): Promise<void> {
     try {
       if (!this.isConnected()) {
-        this.logger.info(
-          `connecting to database ${this.dataSourceOptions.database as string} ${
+        this.logger.info({
+          msg: `connecting to database ${this.dataSourceOptions.database as string} ${
             'host' in this.dataSourceOptions && this.dataSourceOptions.host !== undefined ? `on ${this.dataSourceOptions.host}` : ''
-          }`
-        );
+          }`,
+        });
         await this.dataSource.initialize();
       }
     } catch (error) {
       const errString = JSON.stringify(error, Object.getOwnPropertyNames(error));
-      this.logger.error(`failed to connect to database: ${errString}`);
+      this.logger.error({ msg: `failed to connect to database: ${errString}` });
       throw new DBConnectionError();
     }
   }
 
   public isConnected(): boolean {
     if (!this.dataSource.isInitialized) {
-      this.logger.warn('no open connection to database');
+      this.logger.warn({ msg: 'no open connection to database' });
     }
     return this.dataSource.isInitialized;
   }

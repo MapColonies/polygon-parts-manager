@@ -33,7 +33,7 @@ export class PolygonPartsManager {
     const { catalogId } = polygonPartsPayload;
 
     const logger = this.logger.child({ catalogId });
-    logger.info(`creating polygon parts`);
+    logger.info({ msg: `creating polygon parts` });
 
     await this.connectionManager.getDataSource().transaction(async (entityManager) => {
       const baseIngestionContext: BaseIngestionContext = {
@@ -55,7 +55,7 @@ export class PolygonPartsManager {
     const { entityManager, logger, polygonPartsPayload } = ingestionContext;
     const entityNames = this.getEntitiesNames(polygonPartsPayload);
 
-    logger.debug(`verifying polygon parts table names are available`);
+    logger.debug({ msg: `verifying polygon parts table names are available` });
 
     await Promise.all(
       Object.values<EntityName>({ ...entityNames }).map(async ({ databaseObjectQualifiedName, entityName }) => {
@@ -91,7 +91,7 @@ export class PolygonPartsManager {
       },
     } = ingestionContext;
 
-    logger.debug(`creating polygon parts tables`);
+    logger.debug({ msg: `creating polygon parts tables` });
 
     try {
       const createPolygonPartsProcedure = this.applicationConfig.createPolygonPartsTablesStoredProcedure;
@@ -114,7 +114,7 @@ export class PolygonPartsManager {
     } = ingestionContext;
     const { partsData, ...props } = polygonPartsPayload;
 
-    logger.debug(`inserting polygon parts data`);
+    logger.debug({ msg: `inserting polygon parts data` });
 
     // inserted props are ordered in the order of the columns of the entity, since the entity is not modeled directly by typeorm
     const insertEntities: IngestionProperties[] = partsData.map((partData) => {
@@ -171,7 +171,7 @@ export class PolygonPartsManager {
       },
     } = ingestionContext;
 
-    logger.debug(`updating polygon parts data`);
+    logger.debug({ msg: `updating polygon parts data` });
 
     const updatePolygonPartsProcedure = this.applicationConfig.updatePolygonPartsTablesStoredProcedure;
 

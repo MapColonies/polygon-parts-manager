@@ -1,5 +1,3 @@
-import jsLogger, { type LoggerOptions } from '@map-colonies/js-logger';
-import { getOtelMixin } from '@map-colonies/telemetry';
 import config from 'config';
 import { DataSource, DefaultNamingStrategy, type DataSourceOptions, type Table } from 'typeorm';
 import { ConnectionManager } from './src/common/connectionManager';
@@ -34,8 +32,4 @@ const dataSourceOptions: DataSourceOptions = {
   ...ConnectionManager.createConnectionOptions(connectionOptions),
 };
 
-const loggerConfig = config.get<LoggerOptions>('telemetry.logger');
-const logger = jsLogger({ ...loggerConfig, prettyPrint: loggerConfig.prettyPrint, mixin: getOtelMixin() });
-
-logger.debug({ dataSourceOptions, msg: 'data source options' });
 export const appDataSource = new DataSource(dataSourceOptions);

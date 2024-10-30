@@ -54,7 +54,7 @@ export class PolygonPartsManager {
       const errorMessage = 'Transaction failed';
       logger.error({ msg: errorMessage, error });
       if (error instanceof HttpError) {
-        throw error
+        throw error;
       }
       throw new InternalServerError('Unknown Error');
     }

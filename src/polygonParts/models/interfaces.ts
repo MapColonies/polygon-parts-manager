@@ -54,20 +54,34 @@ export interface PolygonPartRecord extends CommonProperties, PolygonPartProperti
 export interface IngestionProperties extends Omit<CommonProperties, 'ingestionDateUTC'> {
   readonly ingestionDateUTC: undefined;
 }
-
 /**
- * Base ingestion context used for interaction with the data source
+ * Base context used for interaction with the data source
  */
-export interface BaseIngestionContext {
+
+export interface BaseContext {
   entityManager: EntityManager;
   logger: Logger;
   polygonPartsPayload: PolygonPartsPayload;
 }
 
 /**
+ * Base ingestion context used for interaction with the data source
+ */
+export interface BaseIngestionContext extends BaseContext{
+}
+
+/**
+ * Base update context used for interaction with the data source
+ */
+export interface BaseUpdateContext extends BaseContext {}
+
+/**
  * Ingestion context used for interaction with the data source
  */
 export interface IngestionContext extends BaseIngestionContext {
+  entityNames: EntityNames;
+}
+export interface UpdateContext extends BaseUpdateContext {
   entityNames: EntityNames;
 }
 
@@ -96,3 +110,7 @@ export type DBSchema = DbConfig['schema'];
  * Product type values acceptable for polygon parts
  */
 export type ProductType = Extract<`${ProductTypeEnum}`, EnsureType<(typeof PRODUCT_TYPES)[number], `${ProductTypeEnum}`>>;
+
+export interface isSwapQueryParams {
+  isSwap: boolean
+}

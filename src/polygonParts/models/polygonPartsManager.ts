@@ -12,6 +12,7 @@ import type {
   EntityNames,
   IngestionContext,
   IngestionProperties,
+InsertContext,
   PolygonPartsPayload,
 } from './interfaces';
 import { EntityManager } from 'typeorm';
@@ -107,7 +108,7 @@ export class PolygonPartsManager {
     }
   }
 
-  private async insert(ingestionContext: IngestionContext): Promise<void> {
+  private async insert(insertContext: InsertContext): Promise<void> {
     const {
       entityManager,
       entityNames: {
@@ -115,7 +116,7 @@ export class PolygonPartsManager {
       },
       logger,
       polygonPartsPayload,
-    } = ingestionContext;
+    } = insertContext;
     const { partsData, ...props } = polygonPartsPayload;
 
     logger.debug({ msg: `inserting polygon parts data` });
@@ -165,7 +166,7 @@ export class PolygonPartsManager {
     }
   }
 
-  private async calculatePolygonParts(ingestionContext: IngestionContext): Promise<void> {
+  private async calculatePolygonParts(insertContext: InsertContext): Promise<void> {
     const {
       entityManager,
       logger,
@@ -173,7 +174,7 @@ export class PolygonPartsManager {
         parts: { databaseObjectQualifiedName: partsEntityQualifiedName },
         polygonParts: { databaseObjectQualifiedName: polygonPartsEntityQualifiedName },
       },
-    } = ingestionContext;
+    } = insertContext;
 
     logger.debug({ msg: `updating polygon parts data` });
 

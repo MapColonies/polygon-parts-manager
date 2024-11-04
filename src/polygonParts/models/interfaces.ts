@@ -67,23 +67,21 @@ export interface BaseContext {
 /**
  * Base ingestion context used for interaction with the data source
  */
-export interface BaseIngestionContext extends BaseContext{
-}
+export interface BaseIngestionContext extends BaseContext {}
 
 /**
  * Base update context used for interaction with the data source
  */
 export interface BaseUpdateContext extends BaseContext {}
 
+export interface InsertContext extends BaseContext {
+  entityNames: EntityNames;
+}
 /**
  * Ingestion context used for interaction with the data source
  */
-export interface IngestionContext extends BaseIngestionContext {
-  entityNames: EntityNames;
-}
-export interface UpdateContext extends BaseUpdateContext {
-  entityNames: EntityNames;
-}
+export interface IngestionContext extends InsertContext {}
+export interface UpdateContext extends InsertContext {}
 
 /**
  * Properties describing a name of an entity
@@ -111,6 +109,6 @@ export type DBSchema = DbConfig['schema'];
  */
 export type ProductType = Extract<`${ProductTypeEnum}`, EnsureType<(typeof PRODUCT_TYPES)[number], `${ProductTypeEnum}`>>;
 
-export interface isSwapQueryParams {
-  isSwap: boolean
+export interface IsSwapQueryParams {
+  isSwap: boolean;
 }

@@ -14,6 +14,7 @@ import type {
   IngestionProperties,
   PolygonPartsPayload,
 } from './interfaces';
+import { EntityManager } from 'typeorm';
 
 @injectable()
 export class PolygonPartsManager {
@@ -48,7 +49,7 @@ export class PolygonPartsManager {
         const ingestionContext = { ...baseIngestionContext, entityNames };
         await this.createTables(ingestionContext);
         await this.insert(ingestionContext);
-        await this.updatePolygonParts(ingestionContext);
+        await this.calculatePolygonParts(ingestionContext);
       });
     } catch (error) {
       const errorMessage = 'Transaction failed';
@@ -69,13 +70,7 @@ export class PolygonPartsManager {
     await Promise.all(
       Object.values<EntityName>({ ...entityNames }).map(async ({ databaseObjectQualifiedName, entityName }) => {
         try {
-          const exists = await entityManager
-            .createQueryBuilder()
-            .select()
-            .from('information_schema.tables', 'information_schema.tables')
-            .where(`table_schema = '${this.schema}'`)
-            .andWhere(`table_name = '${entityName}'`)
-            .getExists();
+          const exists = await this.entityExists(entityManager, entityName);
           if (exists) {
             throw new ConflictError(`table with the name '${databaseObjectQualifiedName}' already exists`);
           }
@@ -170,7 +165,7 @@ export class PolygonPartsManager {
     }
   }
 
-  private async updatePolygonParts(ingestionContext: IngestionContext): Promise<void> {
+  private async calculatePolygonParts(ingestionContext: IngestionContext): Promise<void> {
     const {
       entityManager,
       logger,
@@ -209,5 +204,19 @@ export class PolygonPartsManager {
       parts: { entityName: partsEntityName, databaseObjectQualifiedName: this.getDatabaseObjectQualifiedName(partsEntityName) },
       polygonParts: { entityName: polygonPartsEntityName, databaseObjectQualifiedName: this.getDatabaseObjectQualifiedName(polygonPartsEntityName) },
     };
+  }
+
+  private async entityExists(  entityManager: EntityManager , entityName: string ): Promise<boolean>{
+    try {
+      return await entityManager
+        .createQueryBuilder()
+        .select()
+        .from('information_schema.tables', 'information_schema.tables')
+        .where(`table_schema = '${this.schema}'`)
+        .andWhere(`table_name = '${entityName}'`)
+        .getExists();
+    } catch (error) {
+      throw error;
+    }
   }
 }

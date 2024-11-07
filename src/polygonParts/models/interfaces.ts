@@ -1,23 +1,20 @@
 import type { Logger } from '@map-colonies/js-logger';
-import type {
-  IPolygonPart,
-  PolygonPart,
-  PolygonPartsPayload as PolygonPartsPayloadType,
-  ProductType as ProductTypeEnum,
-} from '@map-colonies/mc-model-types';
+import type { PolygonPart, PolygonPartsPayload as PolygonPartsPayloadType, ProductType as ProductTypeEnum } from '@map-colonies/mc-model-types';
 import type { EntityManager } from 'typeorm';
 import type { DbConfig } from '../../common/interfaces';
 import type { EnsureType } from '../../common/types';
 import { PRODUCT_TYPES } from './constants';
 
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
-interface CommonProperties extends Readonly<Omit<CommonPayload, 'countries' | 'cities' | 'sensors'>> {
+
+/**
+ * Common record properties of part and polygon part
+ */
+export interface NonGeneratedCommonRecord extends Readonly<Omit<CommonPayload, 'countries' | 'cities' | 'sensors'>> {
   readonly countries?: string;
   readonly cities?: string;
   readonly sensors: string;
 }
-interface PartProperties extends Readonly<Pick<IPolygonPart, 'id'>> {}
-interface PolygonPartProperties extends Readonly<Pick<IPolygonPart, 'id' | 'partId'>> {}
 
 /**
  * Polygon parts ingestion payload
@@ -29,14 +26,15 @@ export interface PolygonPartsPayload extends Omit<PolygonPartsPayloadType, 'prod
 /**
  * Common record properties of part and polygon part
  */
-export interface CommonRecord extends CommonProperties {
+export interface CommonRecord extends NonGeneratedCommonRecord {
   readonly ingestionDateUTC: Date;
 }
 
 /**
  * Part record properties of the raw ingested part
  */
-export interface PartRecord extends CommonProperties, PartProperties {
+export interface PartRecord extends CommonRecord {
+  readonly id: string;
   readonly insertionOrder: number;
   readonly isProcessedPart: boolean;
 }
@@ -44,14 +42,16 @@ export interface PartRecord extends CommonProperties, PartProperties {
 /**
  * Polygon part record properties of the processed parts
  */
-export interface PolygonPartRecord extends CommonProperties, PolygonPartProperties {
+export interface PolygonPartRecord extends CommonRecord {
+  readonly id: string;
+  readonly partId: string;
   readonly insertionOrder: number;
 }
 
 /**
  * Ingestion properties of polygon parts for create and update operations on DB
  */
-export interface IngestionProperties extends Omit<CommonProperties, 'ingestionDateUTC'> {
+export interface IngestionProperties extends NonGeneratedCommonRecord {
   readonly ingestionDateUTC: undefined;
 }
 /**
@@ -74,9 +74,32 @@ export interface BaseIngestionContext extends BaseContext {}
  */
 export interface BaseUpdateContext extends BaseContext {}
 
+/**
+ * Table names availability verification context
+ */
+export interface VerifyAvailableTableNamesContext extends Pick<BaseContext, 'entityManager' | 'logger' | 'polygonPartsPayload'> {}
+
+/**
+ * Table creation context
+ */
+export interface CreateTablesContext extends Pick<BaseContext, 'entityManager' | 'logger'> {
+  entityNames: EntityNames;
+}
+
+/**
+ * Part insertion context
+ */
 export interface InsertContext extends BaseContext {
   entityNames: EntityNames;
 }
+
+/**
+ * Polygon parts calculation context
+ */
+export interface CalculatePolygonPartsContext extends Pick<BaseContext, 'entityManager' | 'logger'> {
+  entityNames: EntityNames;
+}
+
 /**
  * Ingestion context used for interaction with the data source
  */

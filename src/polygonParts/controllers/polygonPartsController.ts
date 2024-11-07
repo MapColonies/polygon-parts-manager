@@ -1,10 +1,11 @@
 import { RequestHandler } from 'express';
 import httpStatus from 'http-status-codes';
 import { inject, injectable } from 'tsyringe';
-import type { PolygonPartsPayload } from '../models/interfaces';
+import { IsSwapQueryParams, PolygonPartsPayload } from '../models/interfaces';
 import { PolygonPartsManager } from '../models/polygonPartsManager';
 
 type CreatePolygonPartsHandler = RequestHandler<undefined, string, PolygonPartsPayload>;
+type UpdatePolygonPartsHandler = RequestHandler<undefined, undefined, PolygonPartsPayload, IsSwapQueryParams>;
 
 const HTTP_STATUS_CREATED_TEXT = httpStatus.getStatusText(httpStatus.CREATED);
 
@@ -16,6 +17,16 @@ export class PolygonPartsController {
     try {
       await this.polygonPartsManager.createPolygonParts(req.body);
       return res.status(httpStatus.CREATED).send(HTTP_STATUS_CREATED_TEXT);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public updatePolygonParts: UpdatePolygonPartsHandler = async (req, res, next) => {
+    try {
+      const isSwap = req.query.isSwap;
+      await this.polygonPartsManager.updatePolygonParts(isSwap, req.body);
+      return res.status(httpStatus.OK).send();
     } catch (error) {
       next(error);
     }

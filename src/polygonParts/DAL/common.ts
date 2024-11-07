@@ -5,7 +5,7 @@ import { PRODUCT_TYPES } from '../models/constants';
 export class Common implements CommonRecord {
   @Column({ name: 'product_id', type: 'text', collation: 'C.UTF-8' })
   @Index()
-  @Check('product id', `product_id ~* '^[A-Za-z]{1}[A-Za-z0-9_]{0,62}$'`)
+  @Check('product id', `"product_id" ~ '^[A-Za-z]{1}[A-Za-z0-9_]{0,37}$'`)
   public productId!: string;
 
   @Column({
@@ -27,7 +27,7 @@ export class Common implements CommonRecord {
   public sourceName!: string;
 
   @Column({ type: 'text', collation: 'C.UTF-8' })
-  @Check('product version', `"product_version" ~* '^[1-9]\\\\d*(\\\\.(0|[1-9]\\\\d?))?$'`)
+  @Check('product version', `"product_version" ~ '^[1-9]\\\\d*(\\\\.(0|[1-9]\\\\d?))?$'`)
   public productVersion!: string;
 
   @CreateDateColumn({ type: 'timestamp with time zone', insert: false })

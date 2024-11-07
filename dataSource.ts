@@ -1,21 +1,9 @@
 import config from 'config';
-import { DataSource, DefaultNamingStrategy, type DataSourceOptions, type Table } from 'typeorm';
-import { ConnectionManager } from './src/common/connectionManager';
-import { type DbConfig } from './src/common/interfaces';
-import { camelCaseToSnakeCase } from './src/common/utils';
+import { DataSource, type DataSourceOptions } from 'typeorm';
+import { ConnectionManager, namingStrategy } from './src/common/connectionManager';
+import type { DbConfig } from './src/common/interfaces';
 
 const connectionOptions = config.get<DbConfig>('db');
-
-const customNamingStrategy = new DefaultNamingStrategy();
-customNamingStrategy.indexName = (tableOrName: Table | string, columnNames: string[], where?: string): string => {
-  return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_${columnNames.join('_')}${where !== undefined ? '_partial' : ''}_idx`;
-};
-customNamingStrategy.uniqueConstraintName = (tableOrName: Table | string, columnNames: string[]): string => {
-  return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_${columnNames.join('_')}`;
-};
-customNamingStrategy.columnName = (propertyName: string): string => {
-  return camelCaseToSnakeCase(propertyName);
-};
 
 const defaultDataSourceOptions = {
   entities: ['src/**/DAL/*.ts'],
@@ -24,7 +12,7 @@ const defaultDataSourceOptions = {
   migrations: ['src/db/migrations/*.ts'],
   migrationsRun: false,
   migrationsTableName: 'migrations',
-  namingStrategy: customNamingStrategy,
+  namingStrategy,
 } satisfies Partial<DataSourceOptions>;
 
 const dataSourceOptions: DataSourceOptions = {

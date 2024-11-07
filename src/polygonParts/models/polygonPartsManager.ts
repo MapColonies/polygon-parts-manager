@@ -12,7 +12,7 @@ import type {
   EntityNames,
   IngestionContext,
   IngestionProperties,
-InsertContext,
+  InsertContext,
   PolygonPartsPayload,
 } from './interfaces';
 import { EntityManager } from 'typeorm';

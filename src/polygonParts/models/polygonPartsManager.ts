@@ -207,17 +207,14 @@ export class PolygonPartsManager {
     };
   }
 
-  private async entityExists(  entityManager: EntityManager , entityName: string ): Promise<boolean>{
-    try {
-      return await entityManager
-        .createQueryBuilder()
-        .select()
-        .from('information_schema.tables', 'information_schema.tables')
-        .where(`table_schema = '${this.schema}'`)
-        .andWhere(`table_name = '${entityName}'`)
-        .getExists();
-    } catch (error) {
-      throw error;
-    }
+  private async entityExists(entityManager: EntityManager, entityName: string): Promise<boolean> {
+    const exists = await entityManager
+      .createQueryBuilder()
+      .select()
+      .from('information_schema.tables', 'information_schema.tables')
+      .where(`table_schema = '${this.schema}'`)
+      .andWhere(`table_name = '${entityName}'`)
+      .getExists();
+    return exists;
   }
 }

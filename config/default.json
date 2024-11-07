@@ -56,8 +56,8 @@
     "schema": "polygon_parts",
     "synchronize": false,
     "logging": false,
-    "entities": ["src/**/DAL/*.ts"],
-    "migrations": ["src/db/migrations/*.js", "src/db/migrations/*.ts"],
+    "entities": ["**/DAL/*.js"],
+    "migrations": ["../src/db/migrations/*.js"],
     "applicationName": "polygon_parts"
   }
 }

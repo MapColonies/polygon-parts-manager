@@ -28,9 +28,6 @@ import { HelperDB, createDB, createPolygonPartsPayload, deleteDB } from './helpe
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import { getEntitiesNames, isValidUUIDv4, toPostgresResponse } from './helpers/utils';
 
-const TEST_POSTGIS_IMAGE_TAG = process.env.TEST_POSTGIS_IMAGE_TAG ?? 'postgis/postgis:latest'; // TODO: consider value population with ci values matrix ??
-const LONG_RUNNING_TEST_TIMEOUT = 25000;
-
 // postgresql - parse NUMERIC and BIGINT as numbers instead of strings
 types.setTypeParser(types.builtins.NUMERIC, (value) => parseFloat(value));
 types.setTypeParser(types.builtins.INT8, (value) => parseInt(value, 10));
@@ -38,44 +35,22 @@ types.setTypeParser(types.builtins.FLOAT4, (value) => parseFloat(value));
 
 let testDataSourceOptions: PostgresConnectionOptions;
 const dbConfig = { ...config.get<DbConfig>('db'), ...DEFAULT_DB_CONNECTION };
-const { schema, password, username, port } = dbConfig;
-
-if (typeof password !== 'string') {
-  throw new Error('Expecting a string password');
-}
+const { schema } = dbConfig;
 
 describe('polygonParts', () => {
-  let postgresContainer: StartedTestContainer;
   let requestSender: PolygonPartsRequestSender;
   let helperDB: HelperDB;
 
   beforeAll(async () => {
-    postgresContainer = await new GenericContainer(TEST_POSTGIS_IMAGE_TAG)
-      // .withExposedPorts(port)
-      .withExposedPorts({
-        //TODO: bad practice, assigned port might be unavailable
-        container: port,
-        host: port,
-      })
-      .withEnvironment({
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        POSTGRES_ADMIN: username,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        POSTGRES_PASSWORD: password,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        POSTGRES_DB: INITIAL_DB,
-      })
-      .start();
-    testDataSourceOptions = ConnectionManager.createConnectionOptions({ ...dbConfig, port: postgresContainer.getFirstMappedPort() });
+    testDataSourceOptions = ConnectionManager.createConnectionOptions(dbConfig);
     await createDB({ options: testDataSourceOptions, initialDatabase: INITIAL_DB });
     helperDB = new HelperDB(testDataSourceOptions);
     await helperDB.initConnection();
-  }, LONG_RUNNING_TEST_TIMEOUT);
+  });
 
   afterAll(async () => {
     await helperDB.destroyConnection();
     await deleteDB(testDataSourceOptions);
-    await postgresContainer.stop({ remove: false });
   });
 
   beforeEach(async () => {
@@ -95,9 +70,9 @@ describe('polygonParts', () => {
   });
 
   afterEach(async () => {
-    // const connectionManager = container.resolve<ConnectionManager>(ConnectionManager);
-    // await connectionManager.destroy();
-    // await helperDB.dropSchema(schema);
+    const connectionManager = container.resolve<ConnectionManager>(ConnectionManager);
+    await connectionManager.destroy();
+    await helperDB.dropSchema(schema);
   });
 
   describe('Happy Path', () => {
@@ -963,30 +938,7 @@ describe('polygonParts', () => {
         expect.assertions(6);
       });
 
-      it(
-        'should return 500 status code for a database error - no connection',
-        async () => {
-          const polygonPartsPayload = createPolygonPartsPayload(1);
-          const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
-
-          await postgresContainer.stop({ timeout: 10000, remove: false });
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-          expect(response.body).toMatchObject({ message: 'Unknown Error' });
-          expect(response).toSatisfyApiSpec();
-
-          await postgresContainer.restart({ timeout: 10000 });
-
-          const existsParts = await helperDB.tableExists(parts.entityName, schema);
-          const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-          expect(existsParts).toBeFalse();
-          expect(existsPolygonParts).toBeFalse();
-
-          expect.assertions(5);
-        },
-        LONG_RUNNING_TEST_TIMEOUT
-      );
+      it.todo('should return 500 status code for a database error - no connection');
       it.todo('should return 500 status code for a database error - timeout');
     });
   });

@@ -4,6 +4,7 @@ import { DEFAULT_SCHEMA } from '../../../../src/common/constants';
 import { ApplicationConfig } from '../../../../src/common/interfaces';
 import { DBSchema, EntityNames, NonGeneratedCommonRecord, PartRecord, PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type NullableRecordValues<T extends Record<PropertyKey, any>> = {
   [K in keyof T]-?: T[K] extends NonNullable<T[K]> ? T[K] : Exclude<T[K] | null, undefined>;
 };

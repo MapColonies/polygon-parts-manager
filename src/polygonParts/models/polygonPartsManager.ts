@@ -16,7 +16,7 @@ import type {
   EntityNames,
   InsertContext,
   PolygonPartsPayload,
-  VerifyAvailableTableNamesContext
+  VerifyAvailableTableNamesContext,
 } from './interfaces';
 
 @injectable()

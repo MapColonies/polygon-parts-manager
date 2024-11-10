@@ -13,8 +13,8 @@ describe('PolygonPartsManager', () => {
     container.register(SERVICES.LOGGER, { useValue: logger });
     container.register(SERVICES.CONFIG, { useValue: {} });
 
-    connectionManager = container.resolve(ConnectionManager); //new ConnectionManager(logger, config);
-    polygonPartsManager = container.resolve(PolygonPartsManager); //new PolygonPartsManager(logger, connectionManager);
+    connectionManager = container.resolve(ConnectionManager);
+    polygonPartsManager = container.resolve(PolygonPartsManager);
   });
 
   describe('#createPolygonParts', () => {

@@ -1,7 +1,8 @@
 import config from 'config';
 import { DataSource, type DataSourceOptions } from 'typeorm';
-import { ConnectionManager, namingStrategy } from './src/common/connectionManager';
+import { ConnectionManager } from './src/common/connectionManager';
 import type { DbConfig } from './src/common/interfaces';
+import { namingStrategy } from './src/polygonParts/DAL/utils';
 
 const connectionOptions = config.get<DbConfig>('db');
 

@@ -55,6 +55,7 @@
     "database": "postgres",
     "schema": "polygon_parts",
     "synchronize": false,
+    "migrationsRun": false,
     "logging": false,
     "entities": ["**/DAL/*.js"],
     "migrations": ["db/migrations/*.js"],

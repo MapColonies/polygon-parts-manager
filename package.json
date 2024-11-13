@@ -16,7 +16,7 @@
     "format:fix": "prettier --write .",
     "prelint:fix": "npm run format:fix",
     "prelint": "npm run format",
-    "lint:openapi": "openapi lint ./openapi3.yaml",
+    "lint:openapi": "openapi lint ./openapi3.yaml ./bundledApi.yaml",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "release": "standard-version",

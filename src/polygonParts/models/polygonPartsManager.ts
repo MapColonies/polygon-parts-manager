@@ -1,4 +1,4 @@
-import { ConflictError, HttpError, InternalServerError } from '@map-colonies/error-types';
+import { ConflictError, HttpError, InternalServerError, NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { EntityManager } from 'typeorm';
@@ -14,9 +14,13 @@ import type {
   DBSchema,
   EntityName,
   EntityNames,
+  BaseUpdateContext,
+  IngestionContext,
+  IngestionProperties,
   InsertContext,
   PolygonPartsPayload,
   VerifyAvailableTableNamesContext,
+  VerifyTablesExistsContext,
 } from './interfaces';
 
 @injectable()
@@ -64,6 +68,39 @@ export class PolygonPartsManager {
     }
   }
 
+
+  public async updatePolygonParts(isSwap: boolean, polygonPartsPayload: PolygonPartsPayload): Promise<void> {
+    const { catalogId } = polygonPartsPayload;
+    
+    const logger = this.logger.child({ catalogId });
+    logger.info({ msg: `updating polygon parts` });
+
+    try {
+      await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        const baseUpdateContext: BaseUpdateContext = {
+          entityManager,
+          logger,
+          polygonPartsPayload,
+        };
+
+        await entityManager.query(`SET search_path TO ${this.schema},public`);
+        const entityNames = await this.verifyTablesExists(baseUpdateContext);
+        const updateContext = { ...baseUpdateContext, entityNames };
+        if (isSwap) {
+          this.truncateEntities(updateContext);
+        }
+        await this.insertParts(updateContext);
+        await this.calculatePolygonParts(updateContext);
+      });
+    } catch (error) {
+      const errorMessage = 'Transaction failed';
+      logger.error({ msg: errorMessage, error });
+      if (error instanceof HttpError) {
+        throw error;
+      }
+      throw new InternalServerError('Unknown Error');
+    }
+  }
   private async verifyAvailableTableNames(context: VerifyAvailableTableNamesContext): Promise<EntityNames> {
     const { entityManager, logger, polygonPartsPayload } = context;
     const entityNames = this.getEntitiesNames(polygonPartsPayload);
@@ -84,7 +121,6 @@ export class PolygonPartsManager {
         }
       })
     );
-
     return entityNames;
   }
 
@@ -185,5 +221,53 @@ export class PolygonPartsManager {
       .andWhere(`table_name = '${entityName}'`)
       .getExists();
     return exists;
+  }
+
+  private async verifyTablesExists(context: VerifyTablesExistsContext): Promise<EntityNames> {
+    const { entityManager, logger, polygonPartsPayload } = context;
+    const entityNames = this.getEntitiesNames(polygonPartsPayload);
+
+    logger.debug({ msg: `verifying polygon parts table names are not available` });
+
+    await Promise.all(
+      Object.values<EntityName>({ ...entityNames }).map(async ({ databaseObjectQualifiedName, entityName }) => {
+        try {
+          const exists = await this.entityExists(entityManager, entityName);
+          if (!exists) {
+            throw new NotFoundError(`table with the name '${databaseObjectQualifiedName}' doesnt exists`);
+          }
+        } catch (error) {
+          const errorMessage = `Could not verify polygon parts table name '${databaseObjectQualifiedName}' is available`;
+          logger.error({ msg: errorMessage, error });
+          throw error;
+        }
+      })
+    );
+    return entityNames;
+  }
+
+  private async truncateEntities(updateContext: BaseUpdateContext): Promise<EntityNames> {
+    const { entityManager, logger, polygonPartsPayload } = updateContext;
+    const entityNames = this.getEntitiesNames(polygonPartsPayload);
+
+    logger.debug({ msg: `verifying polygon parts table names are not available` });
+
+    await Promise.all(
+      Object.values<EntityName>({ ...entityNames }).map(async ({ databaseObjectQualifiedName, entityName }) => {
+        try {
+         await this.truncateEntity(entityManager, entityName);
+        } catch (error) {
+          const errorMessage = `Could not truncate table '${databaseObjectQualifiedName}' `;
+          logger.error({ msg: errorMessage, error });
+          throw error;
+        }
+      })
+    );
+    return entityNames;
+  }
+
+  private async truncateEntity(entityManager: EntityManager, entityName: string): Promise<void> {
+    entityManager.query(`TRUNCATE ${entityName} RESTART IDENTITY CASCADE;`)
+    
   }
 }

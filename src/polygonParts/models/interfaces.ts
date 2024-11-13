@@ -80,6 +80,11 @@ export interface BaseUpdateContext extends BaseContext {}
 export interface VerifyAvailableTableNamesContext extends Pick<BaseContext, 'entityManager' | 'logger' | 'polygonPartsPayload'> {}
 
 /**
+ * Table names verification context
+ */
+export interface VerifyTablesExistsContext extends Pick<BaseContext, 'entityManager' | 'logger' | 'polygonPartsPayload'> {}
+
+/**
  * Table creation context
  */
 export interface CreateTablesContext extends Pick<BaseContext, 'entityManager' | 'logger'> {

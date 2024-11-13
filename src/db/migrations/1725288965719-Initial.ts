@@ -41,9 +41,9 @@ export class Initial1725288965719 implements MigrationInterface {
                 "insertion_order" bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
                 "is_processed_part" boolean NOT NULL DEFAULT false,
                 CONSTRAINT "parts_insertion_order_uq" UNIQUE ("insertion_order"),
-                CONSTRAINT "product id" CHECK (product_id ~* '^[A-Za-z]{1}[A-Za-z0-9_]{0,62}$'),
+                CONSTRAINT "product id" CHECK ("product_id" ~ '^[A-Za-z]{1}[A-Za-z0-9_]{0,37}$'),
                 CONSTRAINT "product version" CHECK (
-                    "product_version" ~* '^[1-9]\\d*(\\.(0|[1-9]\\d?))?$'
+                    "product_version" ~ '^[1-9]\\d*(\\.(0|[1-9]\\d?))?$'
                 ),
                 CONSTRAINT "imaging time begin utc" CHECK ("imaging_time_begin_utc" < now()),
                 CONSTRAINT "imaging time end utc" CHECK ("imaging_time_end_utc" < now()),
@@ -122,9 +122,9 @@ export class Initial1725288965719 implements MigrationInterface {
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "part_id" uuid NOT NULL,
                 "insertion_order" bigint NOT NULL,
-                CONSTRAINT "product id" CHECK (product_id ~* '^[A-Za-z]{1}[A-Za-z0-9_]{0,62}$'),
+                CONSTRAINT "product id" CHECK ("product_id" ~ '^[A-Za-z]{1}[A-Za-z0-9_]{0,37}$'),
                 CONSTRAINT "product version" CHECK (
-                    "product_version" ~* '^[1-9]\\d*(\\.(0|[1-9]\\d?))?$'
+                    "product_version" ~ '^[1-9]\\d*(\\.(0|[1-9]\\d?))?$'
                 ),
                 CONSTRAINT "imaging time begin utc" CHECK ("imaging_time_begin_utc" < now()),
                 CONSTRAINT "imaging time end utc" CHECK ("imaging_time_end_utc" < now()),

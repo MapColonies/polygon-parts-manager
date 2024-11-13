@@ -1,12 +1,28 @@
 import { readFileSync } from 'fs';
 import { Logger } from '@map-colonies/js-logger';
 import { inject, singleton } from 'tsyringe';
-import { DataSource, DataSourceOptions } from 'typeorm';
+import { DataSource, DefaultNamingStrategy, type DataSourceOptions, type Table } from 'typeorm';
+import type { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { SERVICES } from '../common/constants';
 import { DBConnectionError } from '../common/errors';
-import { DbConfig, IConfig } from '../common/interfaces';
+import type { DbConfig, IConfig } from '../common/interfaces';
+import { camelCaseToSnakeCase } from '../common/utils';
+import { Part } from '../polygonParts/DAL/part';
+import { PolygonPart } from '../polygonParts/DAL/polygonPart';
 
-export const CONNECTION_MANAGER_SYMBOL = Symbol('connectionManager');
+const customNamingStrategy = new DefaultNamingStrategy();
+customNamingStrategy.indexName = (tableOrName: Table | string, columnNames: string[], where?: string): string => {
+  return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_${columnNames.join('_')}${where !== undefined ? '_partial' : ''}_idx`;
+};
+customNamingStrategy.uniqueConstraintName = (tableOrName: Table | string, columnNames: string[]): string => {
+  return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_${columnNames.join('_')}`;
+};
+// TODO: add logic if a column name already defined
+customNamingStrategy.columnName = (propertyName: string): string => {
+  return camelCaseToSnakeCase(propertyName);
+};
+
+export const namingStrategy = customNamingStrategy;
 
 @singleton()
 export class ConnectionManager {
@@ -19,13 +35,13 @@ export class ConnectionManager {
     this.dataSource = new DataSource(this.dataSourceOptions);
   }
 
-  public static createConnectionOptions(dbConfig: DbConfig): DataSourceOptions {
+  public static createConnectionOptions(dbConfig: DbConfig): PostgresConnectionOptions {
     const { enableSslAuth, sslPaths, ...connectionOptions } = dbConfig;
     if (enableSslAuth) {
       connectionOptions.password = undefined;
       connectionOptions.ssl = { key: readFileSync(sslPaths.key), cert: readFileSync(sslPaths.cert), ca: readFileSync(sslPaths.ca) };
     }
-    return connectionOptions;
+    return { entities: [Part, PolygonPart], namingStrategy, ...connectionOptions };
   }
 
   public async init(): Promise<void> {

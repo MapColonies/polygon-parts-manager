@@ -6,7 +6,7 @@ import { ConnectionManager } from '../../common/connectionManager';
 import { DEFAULT_SCHEMA, SERVICES } from '../../common/constants';
 import type { ApplicationConfig, IConfig } from '../../common/interfaces';
 import { Part } from '../DAL/part';
-import { payloadToIngestionValues } from '../DAL/utils';
+import { payloadToRecords } from '../DAL/utils';
 import type {
   BaseIngestionContext,
   CalculatePolygonPartsContext,
@@ -158,7 +158,7 @@ export class PolygonPartsManager {
 
     logger.debug({ msg: 'inserting polygon parts data' });
 
-    const insertValues = payloadToIngestionValues(polygonPartsPayload);
+    const insertValues = payloadToRecords(polygonPartsPayload);
 
     try {
       const part = entityManager.getRepository(Part);
@@ -172,14 +172,9 @@ export class PolygonPartsManager {
   }
 
   private async calculatePolygonParts(context: CalculatePolygonPartsContext): Promise<void> {
-    const {
-      entityManager,
-      logger,
-      entityNames: {
-        parts: { databaseObjectQualifiedName: partsEntityQualifiedName },
-        polygonParts: { databaseObjectQualifiedName: polygonPartsEntityQualifiedName },
-      },
-    } = context;
+    const { entityManager, logger, entityNames } = context;
+    const partsEntityQualifiedName = entityNames.parts.databaseObjectQualifiedName;
+    const polygonPartsEntityQualifiedName = entityNames.polygonParts.databaseObjectQualifiedName;
 
     logger.debug({ msg: 'updating polygon parts data' });
 

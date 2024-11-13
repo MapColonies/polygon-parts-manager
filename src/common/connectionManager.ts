@@ -1,28 +1,14 @@
 import { readFileSync } from 'fs';
 import { Logger } from '@map-colonies/js-logger';
 import { inject, singleton } from 'tsyringe';
-import { DataSource, DefaultNamingStrategy, type DataSourceOptions, type Table } from 'typeorm';
+import { DataSource, type DataSourceOptions } from 'typeorm';
 import type { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { SERVICES } from '../common/constants';
 import { DBConnectionError } from '../common/errors';
 import type { DbConfig, IConfig } from '../common/interfaces';
-import { camelCaseToSnakeCase } from '../common/utils';
 import { Part } from '../polygonParts/DAL/part';
 import { PolygonPart } from '../polygonParts/DAL/polygonPart';
-
-const customNamingStrategy = new DefaultNamingStrategy();
-customNamingStrategy.indexName = (tableOrName: Table | string, columnNames: string[], where?: string): string => {
-  return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_${columnNames.join('_')}${where !== undefined ? '_partial' : ''}_idx`;
-};
-customNamingStrategy.uniqueConstraintName = (tableOrName: Table | string, columnNames: string[]): string => {
-  return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_${columnNames.join('_')}`;
-};
-// TODO: add logic if a column name already defined
-customNamingStrategy.columnName = (propertyName: string): string => {
-  return camelCaseToSnakeCase(propertyName);
-};
-
-export const namingStrategy = customNamingStrategy;
+import { namingStrategy } from '../polygonParts/DAL/utils';
 
 @singleton()
 export class ConnectionManager {
@@ -32,6 +18,7 @@ export class ConnectionManager {
   public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, @inject(SERVICES.CONFIG) private readonly config: IConfig) {
     const connectionConfig = this.config.get<DbConfig>('db');
     this.dataSourceOptions = ConnectionManager.createConnectionOptions(connectionConfig);
+    console.log('this.dataSourceOptions', this.dataSourceOptions);
     this.dataSource = new DataSource(this.dataSourceOptions);
   }
 

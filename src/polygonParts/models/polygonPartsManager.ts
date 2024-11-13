@@ -136,14 +136,9 @@ export class PolygonPartsManager {
   }
 
   private async calculatePolygonParts(context: CalculatePolygonPartsContext): Promise<void> {
-    const {
-      entityManager,
-      logger,
-      entityNames: {
-        parts: { databaseObjectQualifiedName: partsEntityQualifiedName },
-        polygonParts: { databaseObjectQualifiedName: polygonPartsEntityQualifiedName },
-      },
-    } = context;
+    const { entityManager, logger, entityNames } = context;
+    const partsEntityQualifiedName = entityNames.parts.databaseObjectQualifiedName;
+    const polygonPartsEntityQualifiedName = entityNames.polygonParts.databaseObjectQualifiedName;
 
     logger.debug({ msg: 'updating polygon parts data' });
 

@@ -18,7 +18,7 @@ const overridingDataSourceOptions = {
 const dataSourceOptions: DataSourceOptions = {
   ...defaultDataSourceOptions,
   ...ConnectionManager.createConnectionOptions(connectionOptions),
-  ...overridingDataSourceOptions
+  ...overridingDataSourceOptions,
 };
 
 export const appDataSource = new DataSource(dataSourceOptions);

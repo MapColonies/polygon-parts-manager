@@ -3,6 +3,9 @@ info:
   title: Polygon-Parts Manager
   description: CRUD operations to manage polygon-parts
   version: 1.1.0
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
 tags:
   - name: polygon-parts
     description: CRUD operations to manage polygon-parts
@@ -85,7 +88,7 @@ paths:
           description: Not Found
           content:
             application/json:
-              schema:
+              schema:fo object should contain `l
                 $ref: '#/components/schemas/ErrorMessage'
         '500':
           description: Internal Server Error

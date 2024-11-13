@@ -1,9 +1,8 @@
 import config from 'config';
 import { DefaultNamingStrategy, type Table } from 'typeorm';
 import type { ApplicationConfig } from '../../common/interfaces';
-import type { UndefineProperties } from '../../common/types';
 import { camelCaseToSnakeCase } from '../../common/utils';
-import type { CommonRecord, NonGeneratedCommonRecord, PolygonPartsPayload } from '../models/interfaces';
+import type { NonGeneratedCommonRecord, PolygonPartsPayload } from '../models/interfaces';
 
 const customNamingStrategy = new DefaultNamingStrategy();
 customNamingStrategy.indexName = (tableOrName: Table | string, columnNames: string[], where?: string): string => {
@@ -18,12 +17,6 @@ customNamingStrategy.columnName = (propertyName: string): string => {
 };
 
 const arraySeparator = config.get<ApplicationConfig['arraySeparator']>('application.arraySeparator');
-
-export function payloadToIngestionValues(polygonPartsPayload: PolygonPartsPayload): UndefineProperties<CommonRecord, 'ingestionDateUTC'>[] {
-  return payloadToRecords(polygonPartsPayload).map((record) => {
-    return { ...record, ingestionDateUTC: undefined };
-  });
-}
 
 export function payloadToRecords(polygonPartsPayload: PolygonPartsPayload): NonGeneratedCommonRecord[] {
   const { partsData, ...layerMetadata } = polygonPartsPayload;

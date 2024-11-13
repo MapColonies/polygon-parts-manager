@@ -26,8 +26,6 @@ lint:
       prefixes: ['should', 'is', 'has']
     no-unused-components:
       severity: error
-    no-unresolved-refs:
-      severity: off
     no-empty-servers: off
 
   decorators:

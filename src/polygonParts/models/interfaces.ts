@@ -27,6 +27,7 @@ export interface PolygonPartsPayload extends Omit<PolygonPartsPayloadType, 'prod
  * Common record properties of part and polygon part
  */
 export interface CommonRecord extends NonGeneratedCommonRecord {
+  readonly id: string;
   readonly ingestionDateUTC: Date;
 }
 
@@ -34,7 +35,6 @@ export interface CommonRecord extends NonGeneratedCommonRecord {
  * Part record properties of the raw ingested part
  */
 export interface PartRecord extends CommonRecord {
-  readonly id: string;
   readonly insertionOrder: number;
   readonly isProcessedPart: boolean;
 }
@@ -43,7 +43,6 @@ export interface PartRecord extends CommonRecord {
  * Polygon part record properties of the processed parts
  */
 export interface PolygonPartRecord extends CommonRecord {
-  readonly id: string;
   readonly partId: string;
   readonly insertionOrder: number;
 }

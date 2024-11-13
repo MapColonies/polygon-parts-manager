@@ -1,8 +1,11 @@
-import { Check, Column, CreateDateColumn, Index, type Polygon } from 'typeorm';
+import { Check, Column, CreateDateColumn, Index, PrimaryGeneratedColumn, type Polygon } from 'typeorm';
 import type { CommonRecord, ProductType } from '../models/interfaces';
 import { PRODUCT_TYPES } from '../models/constants';
 
 export class Common implements CommonRecord {
+  @PrimaryGeneratedColumn('uuid')
+  public readonly id!: string;
+
   @Column({ name: 'product_id', type: 'text', collation: 'C.UTF-8' })
   @Index()
   @Check('product id', `"product_id" ~ '^[A-Za-z]{1}[A-Za-z0-9_]{0,37}$'`)

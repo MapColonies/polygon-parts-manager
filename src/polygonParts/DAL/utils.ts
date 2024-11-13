@@ -15,6 +15,9 @@ customNamingStrategy.uniqueConstraintName = (tableOrName: Table | string, column
 customNamingStrategy.columnName = (propertyName: string): string => {
   return camelCaseToSnakeCase(propertyName);
 };
+customNamingStrategy.primaryKeyName = (tableOrName: Table | string): string => {
+  return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_pkey`;
+};
 
 const arraySeparator = config.get<ApplicationConfig['arraySeparator']>('application.arraySeparator');
 

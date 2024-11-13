@@ -48,15 +48,8 @@ export interface PolygonPartRecord extends CommonRecord {
 }
 
 /**
- * Ingestion properties of polygon parts for create and update operations on DB
- */
-export interface IngestionProperties extends NonGeneratedCommonRecord {
-  readonly ingestionDateUTC: undefined;
-}
-/**
  * Base context used for interaction with the data source
  */
-
 export interface BaseContext {
   entityManager: EntityManager;
   logger: Logger;

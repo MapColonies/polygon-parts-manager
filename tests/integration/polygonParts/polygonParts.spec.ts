@@ -735,6 +735,20 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
+      it('should return 409 status code if a polygon part resource already exists', async () => {
+        const polygonPartsPayload = createPolygonPartsPayload(1);
+        const { polygonParts } = getEntitiesNames(polygonPartsPayload);
+        await helperDB.createTable(polygonParts.entityName, schema);
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.CONFLICT);
+        expect(response.body).toMatchObject({ message: `table with the name '${polygonParts.databaseObjectQualifiedName}' already exists` });
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
       it('should return 500 status code for a database error - set search_path error', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);

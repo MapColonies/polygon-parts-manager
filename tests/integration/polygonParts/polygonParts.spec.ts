@@ -16,7 +16,7 @@ import { SERVICES } from '../../../src/common/constants';
 import type { DbConfig } from '../../../src/common/interfaces';
 import { Part } from '../../../src/polygonParts/DAL/part';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
-import { payloadToRecords } from '../../../src/polygonParts/DAL/utils';
+import { payloadToInsertPartsData } from '../../../src/polygonParts/DAL/utils';
 import type { PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import polygonEarth from './data/polygonEarth.json';
 import polygonHole from './data/polygonHole.json';
@@ -79,7 +79,7 @@ describe('polygonParts', () => {
       it('should return 200 status code and create the resources for a single part', async () => {
         const polygonPartsPayload = createPolygonPartsPayload();
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
-        const expectedPartRecord = toPostgresResponse(payloadToRecords(polygonPartsPayload)).map((expectedPartRecord) => {
+        const expectedPartRecord = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload)).map((expectedPartRecord) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           return { ...expectedPartRecord, horizontalAccuracyCE90: expect.closeTo(expectedPartRecord.horizontalAccuracyCE90, 2) };
         });
@@ -115,7 +115,7 @@ describe('polygonParts', () => {
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
         const partDataHole = polygonPartsPayload.partsData[0];
         polygonPartsPayload.partsData = [{ ...partDataHole, ...{ footprint: (polygonHole as FeatureCollection).features[0].geometry as Polygon } }];
-        const expectedPartRecord = toPostgresResponse(payloadToRecords(polygonPartsPayload)).map((expectedPartRecord) => {
+        const expectedPartRecord = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload)).map((expectedPartRecord) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           return { ...expectedPartRecord, horizontalAccuracyCE90: expect.closeTo(expectedPartRecord.horizontalAccuracyCE90, 2) };
         });
@@ -148,7 +148,7 @@ describe('polygonParts', () => {
         const partsCount = faker.number.int({ min: 2, max: 10 });
         const polygonPartsPayload = createPolygonPartsPayload(partsCount);
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
-        const expectedPartRecords = toPostgresResponse(payloadToRecords(polygonPartsPayload)).map((expectedPartRecord) => {
+        const expectedPartRecords = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload)).map((expectedPartRecord) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           return { ...expectedPartRecord, horizontalAccuracyCE90: expect.closeTo(expectedPartRecord.horizontalAccuracyCE90, 2) };
         });
@@ -193,7 +193,7 @@ describe('polygonParts', () => {
           { ...partDataHole, ...{ footprint: (polygonHole as FeatureCollection).features[0].geometry as Polygon } },
           { ...partDataSpliting, ...{ footprint: (polygonHoleSplitter as FeatureCollection).features[0].geometry as Polygon } },
         ];
-        const expectedPartRecords = toPostgresResponse(payloadToRecords(polygonPartsPayload));
+        const expectedPartRecords = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload));
         const [expectedPolygonHole, expectedPolygonSplitter] = expectedPartRecords.map((expectedPartRecord) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           return { ...expectedPartRecord, horizontalAccuracyCE90: expect.closeTo(expectedPartRecord.horizontalAccuracyCE90, 2) };
@@ -268,7 +268,7 @@ describe('polygonParts', () => {
           { ...partData, ...{ footprint: (polygonHole as FeatureCollection).features[0].geometry as Polygon } },
           { ...partDataCover, ...{ footprint: (polygonEarth as FeatureCollection).features[0].geometry as Polygon } },
         ];
-        const expectedPartRecords = toPostgresResponse(payloadToRecords(polygonPartsPayload)).map((expectedPartRecord) => {
+        const expectedPartRecords = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload)).map((expectedPartRecord) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           return { ...expectedPartRecord, horizontalAccuracyCE90: expect.closeTo(expectedPartRecord.horizontalAccuracyCE90, 2) };
         });
@@ -314,7 +314,7 @@ describe('polygonParts', () => {
           { ...partData, ...{ footprint: (polygonEarth as FeatureCollection).features[0].geometry as Polygon } },
           { ...partDataHoleCreator, ...{ footprint: (polygonHoleSplitter as FeatureCollection).features[0].geometry as Polygon } },
         ];
-        const expectedPartRecords = toPostgresResponse(payloadToRecords(polygonPartsPayload)).map((expectedPartRecord) => {
+        const expectedPartRecords = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload)).map((expectedPartRecord) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           return { ...expectedPartRecord, horizontalAccuracyCE90: expect.closeTo(expectedPartRecord.horizontalAccuracyCE90, 2) };
         });

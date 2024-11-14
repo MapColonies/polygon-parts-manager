@@ -6,7 +6,7 @@ import { ConnectionManager } from '../../common/connectionManager';
 import { DEFAULT_SCHEMA, SERVICES } from '../../common/constants';
 import type { ApplicationConfig, IConfig } from '../../common/interfaces';
 import { Part } from '../DAL/part';
-import { payloadToRecords } from '../DAL/utils';
+import { payloadToInsertPartsData } from '../DAL/utils';
 import type {
   BaseIngestionContext,
   CalculatePolygonPartsContext,
@@ -122,12 +122,12 @@ export class PolygonPartsManager {
 
     logger.debug({ msg: 'inserting polygon parts data' });
 
-    const insertValues = payloadToRecords(polygonPartsPayload);
+    const insertPartsData = payloadToInsertPartsData(polygonPartsPayload);
 
     try {
       const part = entityManager.getRepository(Part);
       part.metadata.tablePath = partsEntityQualifiedName; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
-      await part.insert(insertValues);
+      await part.insert(insertPartsData);
     } catch (error) {
       const errorMessage = `Could not insert polygon parts data to table '${partsEntityQualifiedName}'`;
       logger.error({ msg: errorMessage, error });

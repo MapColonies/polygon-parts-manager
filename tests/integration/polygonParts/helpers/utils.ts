@@ -2,7 +2,7 @@ import config from 'config';
 import { validate, version } from 'uuid';
 import { DEFAULT_SCHEMA } from '../../../../src/common/constants';
 import { ApplicationConfig } from '../../../../src/common/interfaces';
-import { DBSchema, EntityNames, NonGeneratedCommonRecord, PartRecord, PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
+import { DBSchema, EntityNames, InsertPartData, PartRecord, PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type NullableRecordValues<T extends Record<PropertyKey, any>> = {
@@ -30,7 +30,7 @@ export function getEntitiesNames(polygonPartsPayload: PolygonPartsPayload): Enti
   };
 }
 
-export function toPostgresResponse(records: NonGeneratedCommonRecord[]): NullableRecordValues<NonGeneratedCommonRecord>[] {
+export function toPostgresResponse(records: InsertPartData[]): NullableRecordValues<InsertPartData>[] {
   return records.map((record) => {
     const { cities = null, countries = null, description = null, sourceId = null, ...props } = record;
     return { cities, countries, description, sourceId, ...props };

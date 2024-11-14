@@ -2,7 +2,7 @@ import config from 'config';
 import { DefaultNamingStrategy, type Table } from 'typeorm';
 import type { ApplicationConfig } from '../../common/interfaces';
 import { camelCaseToSnakeCase } from '../../common/utils';
-import type { NonGeneratedCommonRecord, PolygonPartsPayload } from '../models/interfaces';
+import type { InsertPartData, PolygonPartsPayload } from '../models/interfaces';
 
 const customNamingStrategy = new DefaultNamingStrategy();
 customNamingStrategy.indexName = (tableOrName: Table | string, columnNames: string[], where?: string): string => {
@@ -24,7 +24,7 @@ customNamingStrategy.primaryKeyName = (tableOrName: Table | string): string => {
 
 const arraySeparator = config.get<ApplicationConfig['arraySeparator']>('application.arraySeparator');
 
-export function payloadToRecords(polygonPartsPayload: PolygonPartsPayload): NonGeneratedCommonRecord[] {
+export function payloadToInsertPartsData(polygonPartsPayload: PolygonPartsPayload): InsertPartData[] {
   const { partsData, ...layerMetadata } = polygonPartsPayload;
 
   return partsData.map((partData) => {

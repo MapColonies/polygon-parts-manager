@@ -8,9 +8,9 @@ import { PRODUCT_TYPES } from './constants';
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
 
 /**
- * Common record properties of part and polygon part
+ * Properties of part data for insertion
  */
-export interface NonGeneratedCommonRecord extends Readonly<Omit<CommonPayload, 'countries' | 'cities' | 'sensors'>> {
+export interface InsertPartData extends Readonly<Omit<CommonPayload, 'countries' | 'cities' | 'sensors'>> {
   readonly countries?: string;
   readonly cities?: string;
   readonly sensors: string;
@@ -26,7 +26,7 @@ export interface PolygonPartsPayload extends Omit<PolygonPartsPayloadType, 'prod
 /**
  * Common record properties of part and polygon part
  */
-export interface CommonRecord extends NonGeneratedCommonRecord {
+export interface CommonRecord extends InsertPartData {
   readonly id: string;
   readonly ingestionDateUTC: Date;
 }

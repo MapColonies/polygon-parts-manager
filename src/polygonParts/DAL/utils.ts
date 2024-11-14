@@ -9,7 +9,7 @@ customNamingStrategy.indexName = (tableOrName: Table | string, columnNames: stri
   return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_${columnNames.join('_')}${where !== undefined ? '_partial' : ''}_idx`;
 };
 customNamingStrategy.uniqueConstraintName = (tableOrName: Table | string, columnNames: string[]): string => {
-  return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_${columnNames.join('_')}`;
+  return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_${columnNames.join('_')}_uq`;
 };
 // TODO: add logic if a column name already defined
 customNamingStrategy.columnName = (propertyName: string): string => {

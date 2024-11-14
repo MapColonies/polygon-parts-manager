@@ -2,6 +2,9 @@ name: pull_request
 
 on: [pull_request]
 
+env:
+  POSTGRES_PASSWORD: 'postgres'
+
 jobs:
   pull_request:
     uses: MapColonies/shared-workflows/.github/workflows/pull_request.yaml@v2

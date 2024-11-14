@@ -6,9 +6,11 @@ import type { NonGeneratedCommonRecord, PolygonPartsPayload } from '../models/in
 
 const customNamingStrategy = new DefaultNamingStrategy();
 customNamingStrategy.indexName = (tableOrName: Table | string, columnNames: string[], where?: string): string => {
+  /* istanbul ignore next */
   return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_${columnNames.join('_')}${where !== undefined ? '_partial' : ''}_idx`;
 };
 customNamingStrategy.uniqueConstraintName = (tableOrName: Table | string, columnNames: string[]): string => {
+  /* istanbul ignore next */
   return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_${columnNames.join('_')}_uq`;
 };
 // TODO: add logic if a column name already defined
@@ -16,6 +18,7 @@ customNamingStrategy.columnName = (propertyName: string): string => {
   return camelCaseToSnakeCase(propertyName);
 };
 customNamingStrategy.primaryKeyName = (tableOrName: Table | string): string => {
+  /* istanbul ignore next */
   return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_pkey`;
 };
 

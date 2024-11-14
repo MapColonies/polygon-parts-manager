@@ -12,7 +12,7 @@
     "migration:init": "npm run typeorm init",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "jest --config=./tests/configurations/unit/jest.config.js",
-    "test:integration": "jest --config=./tests/configurations/integration/jest.config.js",
+    "test:integration": "jest --config=./tests/configurations/integration/jest.config.js --runInBand",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
     "prelint": "npm run format",

@@ -1,6 +1,4 @@
-import type { Logger } from '@map-colonies/js-logger';
 import type { PolygonPart, PolygonPartsPayload as PolygonPartsPayloadType, ProductType as ProductTypeEnum } from '@map-colonies/mc-model-types';
-import type { EntityManager } from 'typeorm';
 import type { DbConfig } from '../../common/interfaces';
 import type { EnsureType } from '../../common/types';
 import { PRODUCT_TYPES } from './constants';
@@ -46,57 +44,6 @@ export interface PolygonPartRecord extends CommonRecord {
   readonly partId: string;
   readonly insertionOrder: number;
 }
-
-/**
- * Base context used for interaction with the data source
- */
-export interface BaseContext {
-  entityManager: EntityManager;
-  logger: Logger;
-  polygonPartsPayload: PolygonPartsPayload;
-}
-
-/**
- * Base ingestion context used for interaction with the data source
- */
-export interface BaseIngestionContext extends BaseContext {}
-
-/**
- * Base update context used for interaction with the data source
- */
-export interface BaseUpdateContext extends BaseContext {}
-
-/**
- * Table names availability verification context
- */
-export interface VerifyAvailableTableNamesContext extends Pick<BaseContext, 'entityManager' | 'logger' | 'polygonPartsPayload'> {}
-
-/**
- * Table creation context
- */
-export interface CreateTablesContext extends Pick<BaseContext, 'entityManager' | 'logger'> {
-  entityNames: EntityNames;
-}
-
-/**
- * Part insertion context
- */
-export interface InsertContext extends BaseContext {
-  entityNames: EntityNames;
-}
-
-/**
- * Polygon parts calculation context
- */
-export interface CalculatePolygonPartsContext extends Pick<BaseContext, 'entityManager' | 'logger'> {
-  entityNames: EntityNames;
-}
-
-/**
- * Ingestion context used for interaction with the data source
- */
-export interface IngestionContext extends InsertContext {}
-export interface UpdateContext extends InsertContext {}
 
 /**
  * Properties describing a name of an entity

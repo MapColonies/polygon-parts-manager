@@ -3,7 +3,7 @@ name: pull_request
 on: [pull_request]
 
 env:
-  POSTGRES_PASSWORD: 'postgres'
+  PGPASSWORD: 'postgres'
 
 jobs:
   pull_request:

@@ -767,6 +767,8 @@ describe('polygonParts', () => {
         expect(response).toSatisfyApiSpec();
         expect(spyGetExists).toHaveBeenCalledTimes(2);
 
+        spyGetExists.mockRestore();
+
         const existsParts = await helperDB.tableExists(parts.entityName, schema);
         const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
         expect(existsParts).toBeFalse();
@@ -778,19 +780,16 @@ describe('polygonParts', () => {
       it('should return 500 status code for a database error - verify available tables (second table) error', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        const originalGetExists = SelectQueryBuilder.prototype.getExists;
-        const spyGetExists = jest
-          .spyOn(SelectQueryBuilder.prototype, 'getExists')
-          .mockImplementationOnce(originalGetExists)
-          .mockRejectedValueOnce(new Error());
+        const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockResolvedValueOnce(false).mockRejectedValueOnce(new Error());
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
         expect(response.body).toMatchObject({ message: 'Unknown Error' });
         expect(response).toSatisfyApiSpec();
-        expect(spyGetExists).toHaveBeenCalledTimes(3);
+        expect(spyGetExists).toHaveBeenCalledTimes(2);
+
+        spyGetExists.mockRestore();
 
         const existsParts = await helperDB.tableExists(parts.entityName, schema);
         const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);

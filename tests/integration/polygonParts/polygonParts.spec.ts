@@ -9,8 +9,7 @@ import { StatusCodes as httpStatusCodes } from 'http-status-codes';
 import { xor } from 'martinez-polygon-clipping';
 import { types } from 'pg';
 import { container } from 'tsyringe';
-import { EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
-import type { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { type DataSourceOptions, EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
 import { getApp } from '../../../src/app';
 import { ConnectionManager } from '../../../src/common/connectionManager';
 import { SERVICES } from '../../../src/common/constants';
@@ -22,7 +21,7 @@ import type { PolygonPartsPayload } from '../../../src/polygonParts/models/inter
 import polygonEarth from './data/polygonEarth.json';
 import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
-import { DEFAULT_DB_CONNECTION, INITIAL_DB } from './helpers/constants';
+import { INITIAL_DB } from './helpers/constants';
 import { HelperDB, createDB, createPolygonPartsPayload, deleteDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import { getEntitiesNames, isValidUUIDv4, toPostgresResponse } from './helpers/utils';
@@ -32,8 +31,8 @@ types.setTypeParser(types.builtins.NUMERIC, (value) => parseFloat(value));
 types.setTypeParser(types.builtins.INT8, (value) => parseInt(value, 10));
 types.setTypeParser(types.builtins.FLOAT4, (value) => parseFloat(value));
 
-let testDataSourceOptions: PostgresConnectionOptions;
-const dbConfig = { ...config.get<DbConfig>('db'), ...DEFAULT_DB_CONNECTION };
+let testDataSourceOptions: DataSourceOptions;
+const dbConfig = config.get<Required<DbConfig>>('db');
 const { schema } = dbConfig;
 
 describe('polygonParts', () => {
@@ -725,7 +724,7 @@ describe('polygonParts', () => {
       it('should return 409 status code if a part resource already exists', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
         const { parts } = getEntitiesNames(polygonPartsPayload);
-        await helperDB.createTable(parts.entityName);
+        await helperDB.createTable(parts.entityName, schema);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 

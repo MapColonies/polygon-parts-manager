@@ -9,20 +9,19 @@ import { StatusCodes as httpStatusCodes } from 'http-status-codes';
 import { xor } from 'martinez-polygon-clipping';
 import { types } from 'pg';
 import { container } from 'tsyringe';
-import { EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
-import type { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { type DataSourceOptions, EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
 import { getApp } from '../../../src/app';
 import { ConnectionManager } from '../../../src/common/connectionManager';
 import { SERVICES } from '../../../src/common/constants';
 import type { DbConfig } from '../../../src/common/interfaces';
 import { Part } from '../../../src/polygonParts/DAL/part';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
-import { payloadToRecords } from '../../../src/polygonParts/DAL/utils';
+import { payloadToInsertPartsData } from '../../../src/polygonParts/DAL/utils';
 import type { PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import polygonEarth from './data/polygonEarth.json';
 import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
-import { DEFAULT_DB_CONNECTION, INITIAL_DB } from './helpers/constants';
+import { INITIAL_DB } from './helpers/constants';
 import { HelperDB, createDB, createPolygonPartsPayload, deleteDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import { getEntitiesNames, isValidUUIDv4, toPostgresResponse } from './helpers/utils';
@@ -32,8 +31,8 @@ types.setTypeParser(types.builtins.NUMERIC, (value) => parseFloat(value));
 types.setTypeParser(types.builtins.INT8, (value) => parseInt(value, 10));
 types.setTypeParser(types.builtins.FLOAT4, (value) => parseFloat(value));
 
-let testDataSourceOptions: PostgresConnectionOptions;
-const dbConfig = { ...config.get<DbConfig>('db'), ...DEFAULT_DB_CONNECTION };
+let testDataSourceOptions: DataSourceOptions;
+const dbConfig = config.get<Required<DbConfig>>('db');
 const { schema } = dbConfig;
 
 describe('polygonParts', () => {
@@ -80,7 +79,7 @@ describe('polygonParts', () => {
       it('should return 200 status code and create the resources for a single part', async () => {
         const polygonPartsPayload = createPolygonPartsPayload();
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
-        const expectedPartRecord = toPostgresResponse(payloadToRecords(polygonPartsPayload)).map((expectedPartRecord) => {
+        const expectedPartRecord = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload)).map((expectedPartRecord) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           return { ...expectedPartRecord, horizontalAccuracyCE90: expect.closeTo(expectedPartRecord.horizontalAccuracyCE90, 2) };
         });
@@ -116,7 +115,7 @@ describe('polygonParts', () => {
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
         const partDataHole = polygonPartsPayload.partsData[0];
         polygonPartsPayload.partsData = [{ ...partDataHole, ...{ footprint: (polygonHole as FeatureCollection).features[0].geometry as Polygon } }];
-        const expectedPartRecord = toPostgresResponse(payloadToRecords(polygonPartsPayload)).map((expectedPartRecord) => {
+        const expectedPartRecord = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload)).map((expectedPartRecord) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           return { ...expectedPartRecord, horizontalAccuracyCE90: expect.closeTo(expectedPartRecord.horizontalAccuracyCE90, 2) };
         });
@@ -149,7 +148,7 @@ describe('polygonParts', () => {
         const partsCount = faker.number.int({ min: 2, max: 10 });
         const polygonPartsPayload = createPolygonPartsPayload(partsCount);
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
-        const expectedPartRecords = toPostgresResponse(payloadToRecords(polygonPartsPayload)).map((expectedPartRecord) => {
+        const expectedPartRecords = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload)).map((expectedPartRecord) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           return { ...expectedPartRecord, horizontalAccuracyCE90: expect.closeTo(expectedPartRecord.horizontalAccuracyCE90, 2) };
         });
@@ -194,7 +193,7 @@ describe('polygonParts', () => {
           { ...partDataHole, ...{ footprint: (polygonHole as FeatureCollection).features[0].geometry as Polygon } },
           { ...partDataSpliting, ...{ footprint: (polygonHoleSplitter as FeatureCollection).features[0].geometry as Polygon } },
         ];
-        const expectedPartRecords = toPostgresResponse(payloadToRecords(polygonPartsPayload));
+        const expectedPartRecords = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload));
         const [expectedPolygonHole, expectedPolygonSplitter] = expectedPartRecords.map((expectedPartRecord) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           return { ...expectedPartRecord, horizontalAccuracyCE90: expect.closeTo(expectedPartRecord.horizontalAccuracyCE90, 2) };
@@ -269,7 +268,7 @@ describe('polygonParts', () => {
           { ...partData, ...{ footprint: (polygonHole as FeatureCollection).features[0].geometry as Polygon } },
           { ...partDataCover, ...{ footprint: (polygonEarth as FeatureCollection).features[0].geometry as Polygon } },
         ];
-        const expectedPartRecords = toPostgresResponse(payloadToRecords(polygonPartsPayload)).map((expectedPartRecord) => {
+        const expectedPartRecords = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload)).map((expectedPartRecord) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           return { ...expectedPartRecord, horizontalAccuracyCE90: expect.closeTo(expectedPartRecord.horizontalAccuracyCE90, 2) };
         });
@@ -315,7 +314,7 @@ describe('polygonParts', () => {
           { ...partData, ...{ footprint: (polygonEarth as FeatureCollection).features[0].geometry as Polygon } },
           { ...partDataHoleCreator, ...{ footprint: (polygonHoleSplitter as FeatureCollection).features[0].geometry as Polygon } },
         ];
-        const expectedPartRecords = toPostgresResponse(payloadToRecords(polygonPartsPayload)).map((expectedPartRecord) => {
+        const expectedPartRecords = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload)).map((expectedPartRecord) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           return { ...expectedPartRecord, horizontalAccuracyCE90: expect.closeTo(expectedPartRecord.horizontalAccuracyCE90, 2) };
         });
@@ -725,12 +724,26 @@ describe('polygonParts', () => {
       it('should return 409 status code if a part resource already exists', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
         const { parts } = getEntitiesNames(polygonPartsPayload);
-        await helperDB.createTable(parts.entityName);
+        await helperDB.createTable(parts.entityName, schema);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.CONFLICT);
         expect(response.body).toMatchObject({ message: `table with the name '${parts.databaseObjectQualifiedName}' already exists` });
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 409 status code if a polygon part resource already exists', async () => {
+        const polygonPartsPayload = createPolygonPartsPayload(1);
+        const { polygonParts } = getEntitiesNames(polygonPartsPayload);
+        await helperDB.createTable(polygonParts.entityName, schema);
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.CONFLICT);
+        expect(response.body).toMatchObject({ message: `table with the name '${polygonParts.databaseObjectQualifiedName}' already exists` });
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);
@@ -768,6 +781,8 @@ describe('polygonParts', () => {
         expect(response).toSatisfyApiSpec();
         expect(spyGetExists).toHaveBeenCalledTimes(2);
 
+        spyGetExists.mockRestore();
+
         const existsParts = await helperDB.tableExists(parts.entityName, schema);
         const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
         expect(existsParts).toBeFalse();
@@ -779,19 +794,16 @@ describe('polygonParts', () => {
       it('should return 500 status code for a database error - verify available tables (second table) error', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        const originalGetExists = SelectQueryBuilder.prototype.getExists;
-        const spyGetExists = jest
-          .spyOn(SelectQueryBuilder.prototype, 'getExists')
-          .mockImplementationOnce(originalGetExists)
-          .mockRejectedValueOnce(new Error());
+        const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockResolvedValueOnce(false).mockRejectedValueOnce(new Error());
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
         expect(response.body).toMatchObject({ message: 'Unknown Error' });
         expect(response).toSatisfyApiSpec();
-        expect(spyGetExists).toHaveBeenCalledTimes(3);
+        expect(spyGetExists).toHaveBeenCalledTimes(2);
+
+        spyGetExists.mockRestore();
 
         const existsParts = await helperDB.tableExists(parts.entityName, schema);
         const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);

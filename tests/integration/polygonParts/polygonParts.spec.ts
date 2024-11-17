@@ -22,7 +22,7 @@ import polygonEarth from './data/polygonEarth.json';
 import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
 import { INITIAL_DB } from './helpers/constants';
-import { HelperDB, createDB, createPolygonPartsPayload, deleteDB } from './helpers/db';
+import { HelperDB, createDB, createPolygonPartsPayload } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import { getEntitiesNames, isValidUUIDv4, toPostgresResponse } from './helpers/utils';
 
@@ -48,7 +48,6 @@ describe('polygonParts', () => {
 
   afterAll(async () => {
     await helperDB.destroyConnection();
-    await deleteDB(testDataSourceOptions);
   });
 
   beforeEach(async () => {

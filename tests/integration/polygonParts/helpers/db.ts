@@ -7,7 +7,7 @@ import { PRODUCT_TYPES } from '../../../../src/polygonParts/models/constants';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 
 export const createDB = async (options: Partial<DatabaseCreateContext>): Promise<void> => {
-  await createDatabase({ ...options, synchronize: false });
+  await createDatabase({ ...options, synchronize: false, ifNotExist: false });
 };
 
 export const deleteDB = async (options: DataSourceOptions): Promise<void> => {

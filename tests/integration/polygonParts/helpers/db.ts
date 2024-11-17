@@ -1,18 +1,16 @@
 import { faker } from '@faker-js/faker';
 import { PolygonPart, VALIDATIONS } from '@map-colonies/mc-model-types';
 import { randomPolygon } from '@turf/random';
-import { DataSource, DataSourceOptions, EntityTarget, type ObjectLiteral } from 'typeorm';
+import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
 import { DatabaseCreateContext, createDatabase, dropDatabase } from 'typeorm-extension';
-import type { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { PRODUCT_TYPES } from '../../../../src/polygonParts/models/constants';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
-import { DEFAULT_DB_CONNECTION } from './constants';
 
 export const createDB = async (options: Partial<DatabaseCreateContext>): Promise<void> => {
   await createDatabase({ ...options, synchronize: false });
 };
 
-export const deleteDB = async (options: PostgresConnectionOptions): Promise<void> => {
+export const deleteDB = async (options: DataSourceOptions): Promise<void> => {
   await dropDatabase({ options });
 };
 
@@ -100,11 +98,11 @@ export class HelperDB {
     await this.appDataSource.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
   }
 
-  public async createTable(table: string, schema = DEFAULT_DB_CONNECTION.schema): Promise<void> {
+  public async createTable(table: string, schema: string): Promise<void> {
     await this.appDataSource.query(`CREATE TABLE IF NOT EXISTS ${schema}.${table}()`);
   }
 
-  public async tableExists(table: string, schema = DEFAULT_DB_CONNECTION.schema): Promise<boolean> {
+  public async tableExists(table: string, schema: string): Promise<boolean> {
     const exists = await this.appDataSource
       .createQueryBuilder()
       .select()

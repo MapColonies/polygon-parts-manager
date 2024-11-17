@@ -8,4 +8,4 @@ jobs:
     secrets: inherit
     with:
       usePostgres: true
-      openApiFilePath: "./bundledApi.yaml"
+      openApiFilePath: ./bundledApi.yaml

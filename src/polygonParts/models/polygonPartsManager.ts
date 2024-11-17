@@ -6,22 +6,8 @@ import { ConnectionManager } from '../../common/connectionManager';
 import { DEFAULT_SCHEMA, SERVICES } from '../../common/constants';
 import type { ApplicationConfig, IConfig } from '../../common/interfaces';
 import { Part } from '../DAL/part';
-import { payloadToRecords } from '../DAL/utils';
-import type {
-  BaseIngestionContext,
-  CalculatePolygonPartsContext,
-  CreateTablesContext,
-  DBSchema,
-  EntityName,
-  EntityNames,
-  BaseUpdateContext,
-  IngestionContext,
-  IngestionProperties,
-  InsertContext,
-  PolygonPartsPayload,
-  VerifyAvailableTableNamesContext,
-  VerifyTablesExistsContext,
-} from './interfaces';
+import { payloadToInsertPartsData } from '../DAL/utils';
+import type { DBSchema, EntityName, EntityNames, PolygonPartsPayload } from './interfaces';
 
 @injectable()
 export class PolygonPartsManager {
@@ -45,7 +31,7 @@ export class PolygonPartsManager {
 
     try {
       await this.connectionManager.getDataSource().transaction(async (entityManager) => {
-        const baseIngestionContext: BaseIngestionContext = {
+        const baseIngestionContext = {
           entityManager,
           logger,
           polygonPartsPayload,
@@ -101,7 +87,12 @@ export class PolygonPartsManager {
       throw new InternalServerError('Unknown Error');
     }
   }
-  private async verifyAvailableTableNames(context: VerifyAvailableTableNamesContext): Promise<EntityNames> {
+
+  private async verifyAvailableTableNames(context: {
+    entityManager: EntityManager;
+    logger: Logger;
+    polygonPartsPayload: PolygonPartsPayload;
+  }): Promise<EntityNames> {
     const { entityManager, logger, polygonPartsPayload } = context;
     const entityNames = this.getEntitiesNames(polygonPartsPayload);
 
@@ -124,7 +115,7 @@ export class PolygonPartsManager {
     return entityNames;
   }
 
-  private async createTables(context: CreateTablesContext): Promise<void> {
+  private async createTables(context: { entityNames: EntityNames; entityManager: EntityManager; logger: Logger }): Promise<void> {
     const {
       entityManager,
       logger,
@@ -146,7 +137,12 @@ export class PolygonPartsManager {
     }
   }
 
-  private async insertParts(context: InsertContext): Promise<void> {
+  private async insertParts(context: {
+    entityNames: EntityNames;
+    entityManager: EntityManager;
+    logger: Logger;
+    polygonPartsPayload: PolygonPartsPayload;
+  }): Promise<void> {
     const {
       entityManager,
       entityNames: {
@@ -158,12 +154,12 @@ export class PolygonPartsManager {
 
     logger.debug({ msg: 'inserting polygon parts data' });
 
-    const insertValues = payloadToRecords(polygonPartsPayload);
+    const insertPartsData = payloadToInsertPartsData(polygonPartsPayload);
 
     try {
       const part = entityManager.getRepository(Part);
       part.metadata.tablePath = partsEntityQualifiedName; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
-      await part.insert(insertValues);
+      await part.insert(insertPartsData);
     } catch (error) {
       const errorMessage = `Could not insert polygon parts data to table '${partsEntityQualifiedName}'`;
       logger.error({ msg: errorMessage, error });
@@ -171,7 +167,7 @@ export class PolygonPartsManager {
     }
   }
 
-  private async calculatePolygonParts(context: CalculatePolygonPartsContext): Promise<void> {
+  private async calculatePolygonParts(context: { entityNames: EntityNames; entityManager: EntityManager; logger: Logger }): Promise<void> {
     const { entityManager, logger, entityNames } = context;
     const partsEntityQualifiedName = entityNames.parts.databaseObjectQualifiedName;
     const polygonPartsEntityQualifiedName = entityNames.polygonParts.databaseObjectQualifiedName;

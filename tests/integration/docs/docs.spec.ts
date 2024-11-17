@@ -7,9 +7,11 @@ import { DocsRequestSender } from './helpers/docsRequestSender';
 
 describe('docs', function () {
   let requestSender: DocsRequestSender;
-  beforeEach(function () {
-    const app = getApp({
+
+  beforeEach(async () => {
+    const app = await getApp({
       override: [
+        { token: SERVICES.CONNECTION_MANAGER, provider: { useValue: { destroy: () => undefined } } },
         { token: SERVICES.LOGGER, provider: { useValue: jsLogger({ enabled: false }) } },
         { token: SERVICES.TRACER, provider: { useValue: trace.getTracer('testTracer') } },
       ],
@@ -18,15 +20,15 @@ describe('docs', function () {
     requestSender = new DocsRequestSender(app);
   });
 
-  describe('Happy Path', function () {
-    it('should return 200 status code and the resource', async function () {
+  describe('Happy Path', () => {
+    it('should return 200 status code and the resource', async () => {
       const response = await requestSender.getDocs();
 
       expect(response.status).toBe(httpStatusCodes.OK);
       expect(response.type).toBe('text/html');
     });
 
-    it('should return 200 status code and the json spec', async function () {
+    it('should return 200 status code and the json spec', async () => {
       const response = await requestSender.getDocsJson();
 
       expect(response.status).toBe(httpStatusCodes.OK);

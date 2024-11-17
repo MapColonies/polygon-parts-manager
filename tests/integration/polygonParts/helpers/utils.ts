@@ -2,7 +2,7 @@ import config from 'config';
 import { validate, version } from 'uuid';
 import { DEFAULT_SCHEMA } from '../../../../src/common/constants';
 import { ApplicationConfig } from '../../../../src/common/interfaces';
-import { DBSchema, EntityNames, InsertPartData, PartRecord, PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
+import { DBSchema, EntityNames, InsertPartData, PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type NullableRecordValues<T extends Record<PropertyKey, any>> = {
@@ -15,8 +15,6 @@ const schema = config.get<DBSchema>('db.schema') ?? DEFAULT_SCHEMA;
 function getDatabaseObjectQualifiedName(schema: string, value: string): string {
   return `${schema}.${value}`;
 }
-
-export type PostgresPartRecordResponse = NullableRecordValues<Omit<PartRecord, 'id' | 'footprint'> & { footprint: string }>;
 
 export function getEntitiesNames(polygonPartsPayload: PolygonPartsPayload): EntityNames {
   const { productId, productType } = polygonPartsPayload;

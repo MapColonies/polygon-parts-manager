@@ -54,16 +54,15 @@ export class PolygonPartsManager {
     }
   }
 
-
   public async updatePolygonParts(isSwap: boolean, polygonPartsPayload: PolygonPartsPayload): Promise<void> {
     const { catalogId } = polygonPartsPayload;
-    
+
     const logger = this.logger.child({ catalogId });
     logger.info({ msg: `updating polygon parts` });
 
     try {
       await this.connectionManager.getDataSource().transaction(async (entityManager) => {
-        const baseUpdateContext: BaseUpdateContext = {
+        const baseUpdateContext = {
           entityManager,
           logger,
           polygonPartsPayload,
@@ -214,7 +213,11 @@ export class PolygonPartsManager {
     return exists;
   }
 
-  private async verifyTablesExists(context: VerifyTablesExistsContext): Promise<EntityNames> {
+  private async verifyTablesExists(context: {
+    entityManager: EntityManager;
+    logger: Logger;
+    polygonPartsPayload: PolygonPartsPayload;
+  }): Promise<EntityNames> {
     const { entityManager, logger, polygonPartsPayload } = context;
     const entityNames = this.getEntitiesNames(polygonPartsPayload);
 
@@ -237,7 +240,11 @@ export class PolygonPartsManager {
     return entityNames;
   }
 
-  private async truncateEntities(updateContext: BaseUpdateContext): Promise<EntityNames> {
+  private async truncateEntities(updateContext: {
+    entityManager: EntityManager;
+    logger: Logger;
+    polygonPartsPayload: PolygonPartsPayload;
+  }): Promise<EntityNames> {
     const { entityManager, logger, polygonPartsPayload } = updateContext;
     const entityNames = this.getEntitiesNames(polygonPartsPayload);
 
@@ -246,7 +253,7 @@ export class PolygonPartsManager {
     await Promise.all(
       Object.values<EntityName>({ ...entityNames }).map(async ({ databaseObjectQualifiedName, entityName }) => {
         try {
-         await this.truncateEntity(entityManager, entityName);
+          await this.truncateEntity(entityManager, entityName);
         } catch (error) {
           const errorMessage = `Could not truncate table '${databaseObjectQualifiedName}' `;
           logger.error({ msg: errorMessage, error });
@@ -258,7 +265,6 @@ export class PolygonPartsManager {
   }
 
   private async truncateEntity(entityManager: EntityManager, entityName: string): Promise<void> {
-    entityManager.query(`TRUNCATE ${entityName} RESTART IDENTITY CASCADE;`)
-    
+    entityManager.query(`TRUNCATE ${entityName} RESTART IDENTITY CASCADE;`);
   }
 }

@@ -18,7 +18,6 @@ export class ConnectionManager {
   public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, @inject(SERVICES.CONFIG) private readonly config: IConfig) {
     const connectionConfig = this.config.get<DbConfig>('db');
     this.dataSourceOptions = ConnectionManager.createConnectionOptions(connectionConfig);
-    console.log('this.dataSourceOptions', this.dataSourceOptions);
     this.dataSource = new DataSource(this.dataSourceOptions);
   }
 

@@ -15,8 +15,6 @@ import type {
   EntityName,
   EntityNames,
   BaseUpdateContext,
-  IngestionContext,
-  IngestionProperties,
   InsertContext,
   PolygonPartsPayload,
   VerifyAvailableTableNamesContext,
@@ -68,10 +66,9 @@ export class PolygonPartsManager {
     }
   }
 
-
   public async updatePolygonParts(isSwap: boolean, polygonPartsPayload: PolygonPartsPayload): Promise<void> {
     const { catalogId } = polygonPartsPayload;
-    
+
     const logger = this.logger.child({ catalogId });
     logger.info({ msg: `updating polygon parts` });
 
@@ -250,7 +247,7 @@ export class PolygonPartsManager {
     await Promise.all(
       Object.values<EntityName>({ ...entityNames }).map(async ({ databaseObjectQualifiedName, entityName }) => {
         try {
-         await this.truncateEntity(entityManager, entityName);
+          await this.truncateEntity(entityManager, entityName);
         } catch (error) {
           const errorMessage = `Could not truncate table '${databaseObjectQualifiedName}' `;
           logger.error({ msg: errorMessage, error });
@@ -262,7 +259,6 @@ export class PolygonPartsManager {
   }
 
   private async truncateEntity(entityManager: EntityManager, entityName: string): Promise<void> {
-    entityManager.query(`TRUNCATE ${entityName} RESTART IDENTITY CASCADE;`)
-    
+    entityManager.query(`TRUNCATE ${entityName} RESTART IDENTITY CASCADE;`);
   }
 }

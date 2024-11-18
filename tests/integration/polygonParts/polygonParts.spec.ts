@@ -423,6 +423,19 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
+      it('should return 400 status code if a product id has more than 38 characters', async () => {
+        const polygonPartsPayload = { ...createPolygonPartsPayload(1), productId: 'a123456789b123456789c123456789d12345678' };
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: expect.any(String) };
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
       it('should return 400 status code if a product version is invalid value', async () => {
         const polygonPartsPayload = { ...createPolygonPartsPayload(1), productVersion: 'bad value' };
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

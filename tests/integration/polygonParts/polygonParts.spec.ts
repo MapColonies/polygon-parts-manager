@@ -18,6 +18,18 @@ import { Part } from '../../../src/polygonParts/DAL/part';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
 import { payloadToInsertPartsData } from '../../../src/polygonParts/DAL/utils';
 import type { PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
+import {
+  createInitPayloadRequest,
+  franceFootprint,
+  germanyFootprint,
+  intersectionWithItalyFootprint,
+  intersectionWithItalyRequest,
+  italyFootprint,
+  italyWithoutIntersection,
+  separatePolygonsRequest,
+  worldFootprint,
+  worldMinusSeparateCountries,
+} from '../../mocks/requestsMocks';
 import polygonEarth from './data/polygonEarth.json';
 import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
@@ -374,6 +386,84 @@ describe('polygonParts', () => {
       });
 
       it.todo('test connection re-connection');
+    });
+
+    describe('PUT /polygonParts', () => {
+      beforeEach(async () => {
+        const insertPolygonPartsPayload = createInitPayloadRequest;
+        await requestSender.createPolygonParts(insertPolygonPartsPayload);
+      });
+
+      it('should return 200 status code on regular update with 3 non intersecting polygons', async () => {
+        const updatePayload = separatePolygonsRequest;
+        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+
+        const response = await requestSender.updatePolygonParts(updatePayload, false);
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response).toSatisfyApiSpec();
+
+        expect(polygonPartRecords).toHaveLength(4);
+        expect(partRecords).toHaveLength(4);
+        expect(partRecords[0].footprint).toEqual(worldFootprint);
+        expect(partRecords[1].footprint).toEqual(franceFootprint);
+        expect(partRecords[2].footprint).toEqual(germanyFootprint);
+        expect(partRecords[3].footprint).toEqual(italyFootprint);
+        expect(partRecords[1].insertionOrder).toBe(2);
+        expect(partRecords[2].insertionOrder).toBe(3);
+        expect(partRecords[3].insertionOrder).toBe(4);
+        expect(partRecords[1].isProcessedPart).toBe(true);
+        expect(partRecords[2].isProcessedPart).toBe(true);
+        expect(partRecords[3].isProcessedPart).toBe(true);
+
+        expect(polygonPartRecords[0].footprint).toEqual(worldMinusSeparateCountries);
+        expect(polygonPartRecords[0].insertionOrder).toBe(1);
+      });
+
+      it('should return 200 status code on regular update with 2 intersecting polygons', async () => {
+        const updatePayload = intersectionWithItalyRequest;
+        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+
+        const response = await requestSender.updatePolygonParts(updatePayload, false);
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response).toSatisfyApiSpec();
+
+        expect(polygonPartRecords).toHaveLength(3);
+        expect(partRecords).toHaveLength(3);
+        expect(partRecords[0].footprint).toEqual(worldFootprint);
+        expect(partRecords[1].footprint).toEqual(italyFootprint);
+        expect(partRecords[2].footprint).toEqual(intersectionWithItalyFootprint);
+        expect(partRecords[1].insertionOrder).toBe(2);
+        expect(partRecords[2].insertionOrder).toBe(3);
+        expect(partRecords[1].isProcessedPart).toBe(true);
+        expect(partRecords[2].isProcessedPart).toBe(true);
+
+        expect(polygonPartRecords[1].footprint).toEqual(italyWithoutIntersection);
+      });
+
+      it('should return 200 status code on swap update with world polygon', async () => {
+        await requestSender.updatePolygonParts(separatePolygonsRequest, false);
+        const updatePayload = createInitPayloadRequest;
+        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+
+        const response = await requestSender.updatePolygonParts(updatePayload, true);
+
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response).toSatisfyApiSpec();
+
+        expect(polygonPartRecords).toHaveLength(1);
+        expect(partRecords).toHaveLength(1);
+        expect(partRecords[0].footprint).toEqual(worldFootprint);
+        expect(polygonPartRecords[0].footprint).toEqual(worldFootprint);
+      });
     });
   });
 
@@ -883,6 +973,56 @@ describe('polygonParts', () => {
 
       it.todo('should return 500 status code for a database error - no connection');
       it.todo('should return 500 status code for a database error - timeout');
+    });
+
+    describe('PUT /polygonParts', () => {
+      it('should return 404 status code if a part resource doesnt exist', async () => {
+        const updatePayload = separatePolygonsRequest;
+        const { parts } = getEntitiesNames(updatePayload);
+
+        const response = await requestSender.updatePolygonParts(updatePayload, false);
+
+        expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
+        expect(response.body).toMatchObject({ message: `table with the name '${parts.databaseObjectQualifiedName}' doesnt exists` });
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 404 status code if a polygon part resource doesnt exist', async () => {
+        const updatePayload = separatePolygonsRequest;
+        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        await helperDB.createTable(parts.entityName, schema);
+
+        const response = await requestSender.updatePolygonParts(updatePayload, false);
+
+        expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
+        expect(response.body).toMatchObject({ message: `table with the name '${polygonParts.databaseObjectQualifiedName}' doesnt exists` });
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it.only('should return 500 status code for a database error - truncate error', async () => {
+        await requestSender.createPolygonParts(createInitPayloadRequest);
+        const updatePayload = separatePolygonsRequest;
+        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        const spyTruncate = jest.spyOn(Repository.prototype, 'query').mockRejectedValue(new Error());
+
+        const response = await requestSender.updatePolygonParts(updatePayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: 'Unknown Error' });
+        expect(response).toSatisfyApiSpec();
+        expect(spyTruncate).toHaveBeenCalledTimes(1);
+
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeTrue();
+        expect(existsPolygonParts).toBeTrue();
+
+        expect.assertions(6);
+      }, 500000);
     });
   });
 });

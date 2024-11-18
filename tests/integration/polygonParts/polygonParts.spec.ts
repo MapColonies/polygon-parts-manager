@@ -163,7 +163,7 @@ describe('polygonParts', () => {
         expect(response.status).toBe(httpStatusCodes.CREATED);
         expect(response).toSatisfyApiSpec();
 
-        expect(partRecords).toMatchObject(expectedPartRecords);
+        expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
 
         partRecords.forEach((partRecord, index) => {
           expect(partRecord.ingestionDateUTC).toBeBeforeOrEqualTo(new Date());
@@ -284,7 +284,7 @@ describe('polygonParts', () => {
         expect(response.status).toBe(httpStatusCodes.CREATED);
         expect(response).toSatisfyApiSpec();
 
-        expect(partRecords).toMatchObject(expectedPartRecords);
+        expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
         expect(polygonPartRecords).toMatchObject([expectedPolygonCover]);
 
         partRecords.forEach((partRecord, index) => {
@@ -333,7 +333,7 @@ describe('polygonParts', () => {
         expect(response.status).toBe(httpStatusCodes.CREATED);
         expect(response).toSatisfyApiSpec();
 
-        expect(partRecords).toMatchObject(expectedPartRecords);
+        expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
         expect(polygonPartRecords).toMatchObject(expectedPolygonPartRecords);
         expect(
           xor(polygonPartRecords[0].footprint.coordinates, [

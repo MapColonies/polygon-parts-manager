@@ -68,33 +68,25 @@ npx husky install
 Clone the project
 
 ```bash
-
 git clone https://link-to-project
-
 ```
 
 Go to the project directory
 
 ```bash
-
 cd my-project
-
 ```
 
 Install dependencies
 
 ```bash
-
 npm install
-
 ```
 
 Start the server
 
 ```bash
-
 npm run start
-
 ```
 
 ## Running Tests
@@ -102,9 +94,7 @@ npm run start
 To run tests, run the following command
 
 ```bash
-
 npm run test
-
 ```
 
 To only run unit tests:
@@ -116,3 +106,6 @@ To only run integration tests:
 ```bash
 npm run test:integration
 ```
+
+> [!CAUTION]
+> set database connection properties in test.json and local.json for a __non-existing__ database or else you might cause damage to your database when running tests

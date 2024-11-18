@@ -22,7 +22,7 @@ import polygonEarth from './data/polygonEarth.json';
 import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
 import { INITIAL_DB } from './helpers/constants';
-import { HelperDB, createDB, createPolygonPartsPayload, deleteDB } from './helpers/db';
+import { HelperDB, createDB, createPolygonPartsPayload } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import { getEntitiesNames, isValidUUIDv4, toPostgresResponse } from './helpers/utils';
 
@@ -48,7 +48,6 @@ describe('polygonParts', () => {
 
   afterAll(async () => {
     await helperDB.destroyConnection();
-    await deleteDB(testDataSourceOptions);
   });
 
   beforeEach(async () => {
@@ -76,7 +75,7 @@ describe('polygonParts', () => {
   describe('Happy Path', () => {
     describe('POST /polygonParts', () => {
       // TODO: check for tracing is sent side effect
-      it('should return 200 status code and create the resources for a single part', async () => {
+      it('should return 201 status code and create the resources for a single part', async () => {
         const polygonPartsPayload = createPolygonPartsPayload();
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
         const expectedPartRecord = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload)).map((expectedPartRecord) => {
@@ -110,7 +109,7 @@ describe('polygonParts', () => {
         expect.assertions(14);
       });
 
-      it('should return 200 status code and create the resources for a single part with a hole', async () => {
+      it('should return 201 status code and create the resources for a single part with a hole', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
         const partDataHole = polygonPartsPayload.partsData[0];
@@ -144,7 +143,7 @@ describe('polygonParts', () => {
         expect.assertions(14);
       });
 
-      it('should return 200 status code and create the resources for multiple parts', async () => {
+      it('should return 201 status code and create the resources for multiple parts', async () => {
         const partsCount = faker.number.int({ min: 2, max: 10 });
         const polygonPartsPayload = createPolygonPartsPayload(partsCount);
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
@@ -184,7 +183,7 @@ describe('polygonParts', () => {
         });
       });
 
-      it('should return 200 status code and create the resources for multiple parts, where one with hole and a second that splitting it', async () => {
+      it('should return 201 status code and create the resources for multiple parts, where one with hole and a second that splitting it', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(2);
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
         const partDataHole = polygonPartsPayload.partsData[0];
@@ -259,7 +258,7 @@ describe('polygonParts', () => {
         expect.assertions(33);
       });
 
-      it('should return 200 status code and create the resources for multiple parts, where the second covers the first', async () => {
+      it('should return 201 status code and create the resources for multiple parts, where the second covers the first', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(2);
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
         const partData = polygonPartsPayload.partsData[0];
@@ -305,7 +304,7 @@ describe('polygonParts', () => {
         expect.assertions(19);
       });
 
-      it('should return 200 status code and create the resources for multiple parts, where the second is completely within the first (creating a hole)', async () => {
+      it('should return 201 status code and create the resources for multiple parts, where the second is completely within the first (creating a hole)', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(2);
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
         const partData = polygonPartsPayload.partsData[0];

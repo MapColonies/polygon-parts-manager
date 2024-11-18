@@ -1,13 +1,14 @@
 import { faker } from '@faker-js/faker';
 import { PolygonPart, VALIDATIONS } from '@map-colonies/mc-model-types';
 import { randomPolygon } from '@turf/random';
+import { randexp } from 'randexp';
 import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
 import { DatabaseCreateContext, createDatabase, dropDatabase } from 'typeorm-extension';
 import { PRODUCT_TYPES } from '../../../../src/polygonParts/models/constants';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 
 export const createDB = async (options: Partial<DatabaseCreateContext>): Promise<void> => {
-  await createDatabase({ ...options, synchronize: false });
+  await createDatabase({ ...options, synchronize: false, ifNotExist: false });
 };
 
 export const deleteDB = async (options: DataSourceOptions): Promise<void> => {
@@ -63,11 +64,9 @@ export const createPolygonPartsPayload = (partsCount = 1): PolygonPartsPayload =
   return {
     catalogId: faker.string.uuid(),
     partsData: partsData,
-    productId: faker.helpers.fromRegExp('[A-Za-z]{1}[A-Za-z0-9\\_]{0,37}'),
+    productId: randexp(VALIDATIONS.productId.pattern),
     productType: faker.helpers.arrayElement(PRODUCT_TYPES),
-    productVersion:
-      faker.helpers.fromRegExp('[1-9][0-9]*') +
-      (faker.datatype.boolean() ? '.' + (faker.datatype.boolean() ? '0' : faker.helpers.fromRegExp('[1-9][0-9]?')) : ''),
+    productVersion: randexp(VALIDATIONS.productVersion.pattern),
   };
 };
 

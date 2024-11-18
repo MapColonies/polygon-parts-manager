@@ -600,6 +600,9 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
+      it.todo('should return 400 status code if a imaging time begin utc is later than current datetime');
+      it.todo('should return 400 status code if a imaging time end utc is later than current datetime');
+      it.todo('should return 400 status code if a imaging time begin utc is later than imaging time end utc');
       it.todo('should return 400 status code if a footprint is invalid value - first and last vertices are not equal');
 
       it('should return 400 status code if a footprint is invalid value - polygon must have coordinates property', async () => {

@@ -143,8 +143,12 @@ describe('polygonParts', () => {
         expect.assertions(14);
       });
 
-      it('should return 201 status code and create the resources for multiple parts', async () => {
-        const partsCount = faker.number.int({ min: 2, max: 10 });
+      it.each([
+        { min: 2, max: 10 },
+        { min: 11, max: 100 },
+        { min: 101, max: 200 },
+      ])('should return 201 status code and create the resources for multiple parts (between $min - $max parts)', async ({ min, max }) => {
+        const partsCount = faker.number.int({ min, max });
         const polygonPartsPayload = createPolygonPartsPayload(partsCount);
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
         const expectedPartRecords = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload)).map((expectedPartRecord) => {

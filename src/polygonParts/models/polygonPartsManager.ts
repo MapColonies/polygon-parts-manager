@@ -72,7 +72,7 @@ export class PolygonPartsManager {
         const entityNames = await this.verifyTablesExists(baseUpdateContext);
         const updateContext = { ...baseUpdateContext, entityNames };
         if (isSwap) {
-          this.truncateEntities(updateContext);
+          await this.truncateEntities(updateContext);
         }
         await this.insertParts(updateContext);
         await this.calculatePolygonParts(updateContext);
@@ -265,6 +265,6 @@ export class PolygonPartsManager {
   }
 
   private async truncateEntity(entityManager: EntityManager, entityName: string): Promise<void> {
-    entityManager.query(`TRUNCATE ${entityName} RESTART IDENTITY CASCADE;`);
+    await entityManager.query(`TRUNCATE ${entityName} RESTART IDENTITY CASCADE;`);
   }
 }

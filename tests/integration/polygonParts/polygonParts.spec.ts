@@ -9,14 +9,13 @@ import { StatusCodes as httpStatusCodes } from 'http-status-codes';
 import { xor } from 'martinez-polygon-clipping';
 import { types } from 'pg';
 import { container } from 'tsyringe';
-import { type DataSourceOptions, EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
+import { EntityManager, Repository, SelectQueryBuilder, type DataSourceOptions } from 'typeorm';
 import { getApp } from '../../../src/app';
 import { ConnectionManager } from '../../../src/common/connectionManager';
 import { SERVICES } from '../../../src/common/constants';
 import type { DbConfig } from '../../../src/common/interfaces';
 import { Part } from '../../../src/polygonParts/DAL/part';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
-import { payloadToInsertPartsData } from '../../../src/polygonParts/DAL/utils';
 import type { PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import polygonEarth from './data/polygonEarth.json';
 import polygonHole from './data/polygonHole.json';
@@ -24,7 +23,7 @@ import polygonHoleSplitter from './data/polygonHoleSplitter.json';
 import { INITIAL_DB } from './helpers/constants';
 import { HelperDB, createDB, createPolygonPartsPayload } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
-import { getEntitiesNames, isValidUUIDv4, toPostgresResponse } from './helpers/utils';
+import { getEntitiesNames, isValidUUIDv4, toExpectedPostgresResponse } from './helpers/utils';
 
 // postgresql - parse NUMERIC and BIGINT as numbers instead of strings
 types.setTypeParser(types.builtins.NUMERIC, (value) => parseFloat(value));
@@ -78,10 +77,7 @@ describe('polygonParts', () => {
       it('should return 201 status code and create the resources for a single part', async () => {
         const polygonPartsPayload = createPolygonPartsPayload();
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
-        const expectedPartRecord = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload)).map((expectedPartRecord) => {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          return { ...expectedPartRecord, horizontalAccuracyCE90: expect.closeTo(expectedPartRecord.horizontalAccuracyCE90, 2) };
-        });
+        const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
         const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
@@ -114,10 +110,7 @@ describe('polygonParts', () => {
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
         const partDataHole = polygonPartsPayload.partsData[0];
         polygonPartsPayload.partsData = [{ ...partDataHole, ...{ footprint: (polygonHole as FeatureCollection).features[0].geometry as Polygon } }];
-        const expectedPartRecord = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload)).map((expectedPartRecord) => {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          return { ...expectedPartRecord, horizontalAccuracyCE90: expect.closeTo(expectedPartRecord.horizontalAccuracyCE90, 2) };
-        });
+        const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
         const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
@@ -143,14 +136,15 @@ describe('polygonParts', () => {
         expect.assertions(14);
       });
 
-      it('should return 201 status code and create the resources for multiple parts', async () => {
-        const partsCount = faker.number.int({ min: 2, max: 10 });
+      it.each([
+        { min: 2, max: 10 },
+        { min: 11, max: 100 },
+        { min: 101, max: 200 },
+      ])('should return 201 status code and create the resources for multiple parts (between $min - $max parts)', async ({ min, max }) => {
+        const partsCount = faker.number.int({ min, max });
         const polygonPartsPayload = createPolygonPartsPayload(partsCount);
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
-        const expectedPartRecords = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload)).map((expectedPartRecord) => {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          return { ...expectedPartRecord, horizontalAccuracyCE90: expect.closeTo(expectedPartRecord.horizontalAccuracyCE90, 2) };
-        });
+        const expectedPartRecords = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
         const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
@@ -159,7 +153,7 @@ describe('polygonParts', () => {
         expect(response.status).toBe(httpStatusCodes.CREATED);
         expect(response).toSatisfyApiSpec();
 
-        expect(partRecords).toMatchObject(expectedPartRecords);
+        expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
 
         partRecords.forEach((partRecord, index) => {
           expect(partRecord.ingestionDateUTC).toBeBeforeOrEqualTo(new Date());
@@ -192,11 +186,7 @@ describe('polygonParts', () => {
           { ...partDataHole, ...{ footprint: (polygonHole as FeatureCollection).features[0].geometry as Polygon } },
           { ...partDataSpliting, ...{ footprint: (polygonHoleSplitter as FeatureCollection).features[0].geometry as Polygon } },
         ];
-        const expectedPartRecords = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload));
-        const [expectedPolygonHole, expectedPolygonSplitter] = expectedPartRecords.map((expectedPartRecord) => {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          return { ...expectedPartRecord, horizontalAccuracyCE90: expect.closeTo(expectedPartRecord.horizontalAccuracyCE90, 2) };
-        });
+        const [expectedPolygonHole, expectedPolygonSplitter] = toExpectedPostgresResponse(polygonPartsPayload);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedPolygonPartRecords1 = { ...expectedPolygonHole, footprint: expect.anything() };
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -267,10 +257,7 @@ describe('polygonParts', () => {
           { ...partData, ...{ footprint: (polygonHole as FeatureCollection).features[0].geometry as Polygon } },
           { ...partDataCover, ...{ footprint: (polygonEarth as FeatureCollection).features[0].geometry as Polygon } },
         ];
-        const expectedPartRecords = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload)).map((expectedPartRecord) => {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          return { ...expectedPartRecord, horizontalAccuracyCE90: expect.closeTo(expectedPartRecord.horizontalAccuracyCE90, 2) };
-        });
+        const expectedPartRecords = toExpectedPostgresResponse(polygonPartsPayload);
         const expectedPolygonCover = expectedPartRecords[1];
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
@@ -280,7 +267,7 @@ describe('polygonParts', () => {
         expect(response.status).toBe(httpStatusCodes.CREATED);
         expect(response).toSatisfyApiSpec();
 
-        expect(partRecords).toMatchObject(expectedPartRecords);
+        expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
         expect(polygonPartRecords).toMatchObject([expectedPolygonCover]);
 
         partRecords.forEach((partRecord, index) => {
@@ -313,10 +300,7 @@ describe('polygonParts', () => {
           { ...partData, ...{ footprint: (polygonEarth as FeatureCollection).features[0].geometry as Polygon } },
           { ...partDataHoleCreator, ...{ footprint: (polygonHoleSplitter as FeatureCollection).features[0].geometry as Polygon } },
         ];
-        const expectedPartRecords = toPostgresResponse(payloadToInsertPartsData(polygonPartsPayload)).map((expectedPartRecord) => {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          return { ...expectedPartRecord, horizontalAccuracyCE90: expect.closeTo(expectedPartRecord.horizontalAccuracyCE90, 2) };
-        });
+        const expectedPartRecords = toExpectedPostgresResponse(polygonPartsPayload);
         const expectedPolygonPartRecords = expectedPartRecords.map(({ footprint, ...expectedPartRecord }) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           return { footprint: expect.anything(), ...expectedPartRecord };
@@ -329,7 +313,7 @@ describe('polygonParts', () => {
         expect(response.status).toBe(httpStatusCodes.CREATED);
         expect(response).toSatisfyApiSpec();
 
-        expect(partRecords).toMatchObject(expectedPartRecords);
+        expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
         expect(polygonPartRecords).toMatchObject(expectedPolygonPartRecords);
         expect(
           xor(polygonPartRecords[0].footprint.coordinates, [
@@ -408,6 +392,19 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if a product id is invalid value', async () => {
         const polygonPartsPayload = { ...createPolygonPartsPayload(1), productId: 'bad value' };
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: expect.any(String) };
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a product id has more than 38 characters', async () => {
+        const polygonPartsPayload = { ...createPolygonPartsPayload(1), productId: 'a123456789b123456789c123456789d12345678' };
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: expect.any(String) };
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
@@ -583,6 +580,9 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
+      it.todo('should return 400 status code if a imaging time begin utc is later than current datetime');
+      it.todo('should return 400 status code if a imaging time end utc is later than current datetime');
+      it.todo('should return 400 status code if a imaging time begin utc is later than imaging time end utc');
       it.todo('should return 400 status code if a footprint is invalid value - first and last vertices are not equal');
 
       it('should return 400 status code if a footprint is invalid value - polygon must have coordinates property', async () => {

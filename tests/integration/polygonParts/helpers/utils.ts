@@ -2,6 +2,7 @@ import config from 'config';
 import { validate, version } from 'uuid';
 import { DEFAULT_SCHEMA } from '../../../../src/common/constants';
 import { ApplicationConfig } from '../../../../src/common/interfaces';
+import { payloadToInsertPartsData } from '../../../../src/polygonParts/DAL/utils';
 import { DBSchema, EntityNames, InsertPartData, PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,11 +29,17 @@ export function getEntitiesNames(polygonPartsPayload: PolygonPartsPayload): Enti
   };
 }
 
-export function toPostgresResponse(records: InsertPartData[]): NullableRecordValues<InsertPartData>[] {
-  return records.map((record) => {
+export function toExpectedPostgresResponse(
+  polygonPartsPayload: PolygonPartsPayload
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): NullableRecordValues<Omit<InsertPartData, 'horizontalAccuracyCE90'> & { horizontalAccuracyCE90: any }>[] {
+  const expectedPostgresResponse = payloadToInsertPartsData(polygonPartsPayload).map((record) => {
     const { cities = null, countries = null, description = null, sourceId = null, ...props } = record;
-    return { cities, countries, description, sourceId, ...props };
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-magic-numbers
+    return { cities, countries, description, sourceId, ...props, horizontalAccuracyCE90: expect.closeTo(record.horizontalAccuracyCE90, 2) };
   });
+
+  return expectedPostgresResponse;
 }
 
 // TODO: extend jest instead => update matchers in tests

@@ -221,7 +221,7 @@ export class PolygonPartsManager {
     const { entityManager, logger, polygonPartsPayload } = context;
     const entityNames = this.getEntitiesNames(polygonPartsPayload);
 
-    logger.debug({ msg: `verifying polygon parts table names are not available` });
+    logger.debug({ msg: `verifying entities exists` });
 
     await Promise.all(
       Object.values<EntityName>({ ...entityNames }).map(async ({ databaseObjectQualifiedName, entityName }) => {

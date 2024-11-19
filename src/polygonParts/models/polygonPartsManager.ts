@@ -69,7 +69,7 @@ export class PolygonPartsManager {
         };
 
         await entityManager.query(`SET search_path TO ${this.schema},public`);
-        const entityNames = await this.verifyTablesExists(baseUpdateContext);
+        const entityNames = await this.getEntitiesNamesIfExists(baseUpdateContext);
         const updateContext = { ...baseUpdateContext, entityNames };
         if (isSwap) {
           await this.truncateEntities(updateContext);
@@ -83,7 +83,7 @@ export class PolygonPartsManager {
       if (error instanceof HttpError) {
         throw error;
       }
-      throw new InternalServerError('Unknown Error');
+      throw new InternalServerError(`${(error as Error).message}`);
     }
   }
 
@@ -213,7 +213,7 @@ export class PolygonPartsManager {
     return exists;
   }
 
-  private async verifyTablesExists(context: {
+  private async getEntitiesNamesIfExists(context: {
     entityManager: EntityManager;
     logger: Logger;
     polygonPartsPayload: PolygonPartsPayload;
@@ -248,7 +248,7 @@ export class PolygonPartsManager {
     const { entityManager, logger, polygonPartsPayload } = updateContext;
     const entityNames = this.getEntitiesNames(polygonPartsPayload);
 
-    logger.debug({ msg: `verifying polygon parts table names are not available` });
+    logger.debug({ msg: `truncating entities` });
 
     await Promise.all(
       Object.values<EntityName>({ ...entityNames }).map(async ({ databaseObjectQualifiedName, entityName }) => {

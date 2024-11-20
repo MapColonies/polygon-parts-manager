@@ -90,7 +90,7 @@ export class HelperDB {
   }
 
   public async createSchema(schema: string): Promise<void> {
-    await this.appDataSource.query(`CREATE SCHEMA IF NOT EXISTS ${schema}`);
+    await this.appDataSource.query(`CREATE SCHEMA ${schema}`);
   }
 
   public async dropSchema(schema: string): Promise<void> {

@@ -1,19 +1,13 @@
-import { ConflictError, HttpError, InternalServerError } from '@map-colonies/error-types';
+import { ConflictError, HttpError, InternalServerError, NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
+import { EntityManager } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
 import { DEFAULT_SCHEMA, SERVICES } from '../../common/constants';
 import type { ApplicationConfig, IConfig } from '../../common/interfaces';
-import { camelCaseToSnakeCase } from '../../common/utils';
-import type {
-  BaseIngestionContext,
-  DBSchema,
-  EntityName,
-  EntityNames,
-  IngestionContext,
-  IngestionProperties,
-  PolygonPartsPayload,
-} from './interfaces';
+import { Part } from '../DAL/part';
+import { payloadToInsertPartsData } from '../DAL/utils';
+import type { DBSchema, EntityName, EntityNames, PolygonPartsPayload } from './interfaces';
 
 @injectable()
 export class PolygonPartsManager {
@@ -33,11 +27,11 @@ export class PolygonPartsManager {
     const { catalogId } = polygonPartsPayload;
 
     const logger = this.logger.child({ catalogId });
-    logger.info({ msg: `creating polygon parts` });
+    logger.info({ msg: 'creating polygon parts' });
 
     try {
       await this.connectionManager.getDataSource().transaction(async (entityManager) => {
-        const baseIngestionContext: BaseIngestionContext = {
+        const baseIngestionContext = {
           entityManager,
           logger,
           polygonPartsPayload,
@@ -47,8 +41,8 @@ export class PolygonPartsManager {
         const entityNames = await this.verifyAvailableTableNames(baseIngestionContext);
         const ingestionContext = { ...baseIngestionContext, entityNames };
         await this.createTables(ingestionContext);
-        await this.insert(ingestionContext);
-        await this.updatePolygonParts(ingestionContext);
+        await this.insertParts(ingestionContext);
+        await this.calculatePolygonParts(ingestionContext);
       });
     } catch (error) {
       const errorMessage = 'Transaction failed';
@@ -60,22 +54,53 @@ export class PolygonPartsManager {
     }
   }
 
-  private async verifyAvailableTableNames(ingestionContext: BaseIngestionContext): Promise<EntityNames> {
-    const { entityManager, logger, polygonPartsPayload } = ingestionContext;
+  public async updatePolygonParts(isSwap: boolean, polygonPartsPayload: PolygonPartsPayload): Promise<void> {
+    const { catalogId } = polygonPartsPayload;
+
+    const logger = this.logger.child({ catalogId });
+    logger.info({ msg: `updating polygon parts` });
+
+    try {
+      await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        const baseUpdateContext = {
+          entityManager,
+          logger,
+          polygonPartsPayload,
+        };
+
+        await entityManager.query(`SET search_path TO ${this.schema},public`);
+        const entityNames = await this.getEntitiesNamesIfExists(baseUpdateContext);
+        const updateContext = { ...baseUpdateContext, entityNames };
+        if (isSwap) {
+          await this.truncateEntities(updateContext);
+        }
+        await this.insertParts(updateContext);
+        await this.calculatePolygonParts(updateContext);
+      });
+    } catch (error) {
+      const errorMessage = 'Transaction failed';
+      logger.error({ msg: errorMessage, error });
+      if (error instanceof HttpError) {
+        throw error;
+      }
+      throw new InternalServerError(`${(error as Error).message}`);
+    }
+  }
+
+  private async verifyAvailableTableNames(context: {
+    entityManager: EntityManager;
+    logger: Logger;
+    polygonPartsPayload: PolygonPartsPayload;
+  }): Promise<EntityNames> {
+    const { entityManager, logger, polygonPartsPayload } = context;
     const entityNames = this.getEntitiesNames(polygonPartsPayload);
 
-    logger.debug({ msg: `verifying polygon parts table names are available` });
+    logger.debug({ msg: 'verifying polygon parts table names are available' });
 
     await Promise.all(
       Object.values<EntityName>({ ...entityNames }).map(async ({ databaseObjectQualifiedName, entityName }) => {
         try {
-          const exists = await entityManager
-            .createQueryBuilder()
-            .select()
-            .from('information_schema.tables', 'information_schema.tables')
-            .where(`table_schema = '${this.schema}'`)
-            .andWhere(`table_name = '${entityName}'`)
-            .getExists();
+          const exists = await this.entityExists(entityManager, entityName);
           if (exists) {
             throw new ConflictError(`table with the name '${databaseObjectQualifiedName}' already exists`);
           }
@@ -86,11 +111,10 @@ export class PolygonPartsManager {
         }
       })
     );
-
     return entityNames;
   }
 
-  private async createTables(ingestionContext: IngestionContext): Promise<void> {
+  private async createTables(context: { entityNames: EntityNames; entityManager: EntityManager; logger: Logger }): Promise<void> {
     const {
       entityManager,
       logger,
@@ -98,9 +122,9 @@ export class PolygonPartsManager {
         parts: { databaseObjectQualifiedName: partsEntityQualifiedName },
         polygonParts: { databaseObjectQualifiedName: polygonPartsEntityQualifiedName },
       },
-    } = ingestionContext;
+    } = context;
 
-    logger.debug({ msg: `creating polygon parts tables` });
+    logger.debug({ msg: 'creating polygon parts tables' });
 
     try {
       const createPolygonPartsProcedure = this.applicationConfig.createPolygonPartsTablesStoredProcedure;
@@ -112,7 +136,12 @@ export class PolygonPartsManager {
     }
   }
 
-  private async insert(ingestionContext: IngestionContext): Promise<void> {
+  private async insertParts(context: {
+    entityNames: EntityNames;
+    entityManager: EntityManager;
+    logger: Logger;
+    polygonPartsPayload: PolygonPartsPayload;
+  }): Promise<void> {
     const {
       entityManager,
       entityNames: {
@@ -120,49 +149,16 @@ export class PolygonPartsManager {
       },
       logger,
       polygonPartsPayload,
-    } = ingestionContext;
-    const { partsData, ...props } = polygonPartsPayload;
+    } = context;
 
-    logger.debug({ msg: `inserting polygon parts data` });
+    logger.debug({ msg: 'inserting polygon parts data' });
 
-    // inserted props are ordered in the order of the columns of the entity, since the entity is not modeled directly by typeorm
-    const insertEntities: IngestionProperties[] = partsData.map((partData) => {
-      return {
-        productId: props.productId,
-        productType: props.productType,
-        catalogId: props.catalogId,
-        sourceId: partData.sourceId,
-        sourceName: partData.sourceName,
-        productVersion: props.productVersion,
-        ingestionDateUTC: undefined,
-        imagingTimeBeginUTC: partData.imagingTimeBeginUTC,
-        imagingTimeEndUTC: partData.imagingTimeEndUTC,
-        resolutionDegree: partData.resolutionDegree,
-        resolutionMeter: partData.resolutionMeter,
-        sourceResolutionMeter: partData.sourceResolutionMeter,
-        horizontalAccuracyCE90: partData.horizontalAccuracyCE90,
-        sensors: partData.sensors.join(this.applicationConfig.arraySeparator),
-        countries: partData.countries?.join(this.applicationConfig.arraySeparator),
-        cities: partData.cities?.join(this.applicationConfig.arraySeparator),
-        description: partData.description,
-        footprint: partData.footprint,
-      };
-    });
+    const insertPartsData = payloadToInsertPartsData(polygonPartsPayload);
 
     try {
-      if (insertEntities.length === 1) {
-        // QueryBuilder API is used since insert() of a single record uses the object keys as fields
-        // which is unsuitable since the keys have a mapping to column names
-        const columns = Object.keys(insertEntities[0]).map((key) => camelCaseToSnakeCase(key));
-        await entityManager
-          .createQueryBuilder()
-          .insert()
-          .into<IngestionProperties>(`${partsEntityQualifiedName}`, columns)
-          .values(insertEntities[0])
-          .execute();
-      } else {
-        await entityManager.insert<IngestionProperties[]>(`${partsEntityQualifiedName}`, insertEntities);
-      }
+      const part = entityManager.getRepository(Part);
+      part.metadata.tablePath = partsEntityQualifiedName; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
+      await part.insert(insertPartsData);
     } catch (error) {
       const errorMessage = `Could not insert polygon parts data to table '${partsEntityQualifiedName}'`;
       logger.error({ msg: errorMessage, error });
@@ -170,17 +166,12 @@ export class PolygonPartsManager {
     }
   }
 
-  private async updatePolygonParts(ingestionContext: IngestionContext): Promise<void> {
-    const {
-      entityManager,
-      logger,
-      entityNames: {
-        parts: { databaseObjectQualifiedName: partsEntityQualifiedName },
-        polygonParts: { databaseObjectQualifiedName: polygonPartsEntityQualifiedName },
-      },
-    } = ingestionContext;
+  private async calculatePolygonParts(context: { entityNames: EntityNames; entityManager: EntityManager; logger: Logger }): Promise<void> {
+    const { entityManager, logger, entityNames } = context;
+    const partsEntityQualifiedName = entityNames.parts.databaseObjectQualifiedName;
+    const polygonPartsEntityQualifiedName = entityNames.polygonParts.databaseObjectQualifiedName;
 
-    logger.debug({ msg: `updating polygon parts data` });
+    logger.debug({ msg: 'updating polygon parts data' });
 
     const updatePolygonPartsProcedure = this.applicationConfig.updatePolygonPartsTablesStoredProcedure;
 
@@ -209,5 +200,71 @@ export class PolygonPartsManager {
       parts: { entityName: partsEntityName, databaseObjectQualifiedName: this.getDatabaseObjectQualifiedName(partsEntityName) },
       polygonParts: { entityName: polygonPartsEntityName, databaseObjectQualifiedName: this.getDatabaseObjectQualifiedName(polygonPartsEntityName) },
     };
+  }
+
+  private async entityExists(entityManager: EntityManager, entityName: string): Promise<boolean> {
+    const exists = await entityManager
+      .createQueryBuilder()
+      .select()
+      .from('information_schema.tables', 'information_schema.tables')
+      .where(`table_schema = '${this.schema}'`)
+      .andWhere(`table_name = '${entityName}'`)
+      .getExists();
+    return exists;
+  }
+
+  private async getEntitiesNamesIfExists(context: {
+    entityManager: EntityManager;
+    logger: Logger;
+    polygonPartsPayload: PolygonPartsPayload;
+  }): Promise<EntityNames> {
+    const { entityManager, logger, polygonPartsPayload } = context;
+    const entityNames = this.getEntitiesNames(polygonPartsPayload);
+
+    logger.debug({ msg: `verifying entities exists` });
+
+    await Promise.all(
+      Object.values<EntityName>({ ...entityNames }).map(async ({ databaseObjectQualifiedName, entityName }) => {
+        try {
+          const exists = await this.entityExists(entityManager, entityName);
+          if (!exists) {
+            throw new NotFoundError(`table with the name '${databaseObjectQualifiedName}' doesnt exists`);
+          }
+        } catch (error) {
+          const errorMessage = `Could not verify polygon parts table name '${databaseObjectQualifiedName}' is available`;
+          logger.error({ msg: errorMessage, error });
+          throw error;
+        }
+      })
+    );
+    return entityNames;
+  }
+
+  private async truncateEntities(updateContext: {
+    entityManager: EntityManager;
+    logger: Logger;
+    polygonPartsPayload: PolygonPartsPayload;
+  }): Promise<EntityNames> {
+    const { entityManager, logger, polygonPartsPayload } = updateContext;
+    const entityNames = this.getEntitiesNames(polygonPartsPayload);
+
+    logger.debug({ msg: `truncating entities` });
+
+    await Promise.all(
+      Object.values<EntityName>({ ...entityNames }).map(async ({ databaseObjectQualifiedName, entityName }) => {
+        try {
+          await this.truncateEntity(entityManager, entityName);
+        } catch (error) {
+          const errorMessage = `Could not truncate table '${databaseObjectQualifiedName}' `;
+          logger.error({ msg: errorMessage, error });
+          throw error;
+        }
+      })
+    );
+    return entityNames;
+  }
+
+  private async truncateEntity(entityManager: EntityManager, entityName: string): Promise<void> {
+    await entityManager.query(`TRUNCATE ${entityName} RESTART IDENTITY CASCADE;`);
   }
 }

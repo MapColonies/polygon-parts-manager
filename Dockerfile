@@ -3,7 +3,7 @@ FROM node:20 AS build
 
 WORKDIR /tmp/buildApp
 
-COPY ./package*.json ./
+COPY ./package*.json ./openapi3.yaml ./
 
 RUN npm install
 COPY . .

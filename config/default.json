@@ -55,9 +55,10 @@
     "database": "postgres",
     "schema": "polygon_parts",
     "synchronize": false,
+    "migrationsRun": false,
     "logging": false,
-    "entities": ["src/**/DAL/*.ts"],
-    "migrations": ["src/db/migrations/*.js", "src/db/migrations/*.ts"],
+    "entities": ["**/DAL/*.js"],
+    "migrations": ["db/migrations/*.js"],
     "applicationName": "polygon_parts"
   }
 }

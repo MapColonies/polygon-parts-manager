@@ -1,12 +1,14 @@
 import { readFileSync } from 'fs';
 import { Logger } from '@map-colonies/js-logger';
 import { inject, singleton } from 'tsyringe';
-import { DataSource, DataSourceOptions } from 'typeorm';
+import { DataSource, type DataSourceOptions } from 'typeorm';
+import type { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { SERVICES } from '../common/constants';
 import { DBConnectionError } from '../common/errors';
-import { DbConfig, IConfig } from '../common/interfaces';
-
-export const CONNECTION_MANAGER_SYMBOL = Symbol('connectionManager');
+import type { DbConfig, IConfig } from '../common/interfaces';
+import { Part } from '../polygonParts/DAL/part';
+import { PolygonPart } from '../polygonParts/DAL/polygonPart';
+import { namingStrategy } from '../polygonParts/DAL/utils';
 
 @singleton()
 export class ConnectionManager {
@@ -19,13 +21,13 @@ export class ConnectionManager {
     this.dataSource = new DataSource(this.dataSourceOptions);
   }
 
-  public static createConnectionOptions(dbConfig: DbConfig): DataSourceOptions {
+  public static createConnectionOptions(dbConfig: DbConfig): PostgresConnectionOptions {
     const { enableSslAuth, sslPaths, ...connectionOptions } = dbConfig;
     if (enableSslAuth) {
       connectionOptions.password = undefined;
       connectionOptions.ssl = { key: readFileSync(sslPaths.key), cert: readFileSync(sslPaths.cert), ca: readFileSync(sslPaths.ca) };
     }
-    return connectionOptions;
+    return { entities: [Part, PolygonPart], namingStrategy, ...connectionOptions };
   }
 
   public async init(): Promise<void> {

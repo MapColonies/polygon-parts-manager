@@ -1,10 +1,15 @@
 {
   "db": {
-    "host": "postgres",
+    "host": "localhost",
     "schema": "polygon_parts",
     "username": "postgres",
     "password": "1234",
-    "database": "postgres",
-    "enableSslAuth": false
+    "database": "test",
+    "enableSslAuth": false,
+    "logging": false,
+    "entities": ["src/**/DAL/*.ts"],
+    "migrations": ["src/db/migrations/*.ts"],
+    "synchronize": false,
+    "migrationsRun": false
   }
 }

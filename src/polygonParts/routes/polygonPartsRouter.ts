@@ -7,6 +7,7 @@ const polygonPartsRouterFactory: FactoryFunction<Router> = (dependencyContainer)
   const controller = dependencyContainer.resolve(PolygonPartsController);
 
   router.post('/', controller.createPolygonParts);
+  router.put('/', controller.updatePolygonParts);
 
   return router;
 };

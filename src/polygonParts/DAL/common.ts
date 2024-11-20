@@ -1,11 +1,14 @@
-import { Check, Column, CreateDateColumn, Index, type Polygon } from 'typeorm';
+import { Check, Column, CreateDateColumn, Index, PrimaryGeneratedColumn, type Polygon } from 'typeorm';
 import type { CommonRecord, ProductType } from '../models/interfaces';
 import { PRODUCT_TYPES } from '../models/constants';
 
 export class Common implements CommonRecord {
+  @PrimaryGeneratedColumn('uuid')
+  public readonly id!: string;
+
   @Column({ name: 'product_id', type: 'text', collation: 'C.UTF-8' })
   @Index()
-  @Check('product id', `product_id ~* '^[A-Za-z]{1}[A-Za-z0-9_]{0,62}$'`)
+  @Check('product id', `"product_id" ~ '^[A-Za-z]{1}[A-Za-z0-9_]{0,37}$'`)
   public productId!: string;
 
   @Column({
@@ -27,7 +30,7 @@ export class Common implements CommonRecord {
   public sourceName!: string;
 
   @Column({ type: 'text', collation: 'C.UTF-8' })
-  @Check('product version', `"product_version" ~* '^[1-9]\\\\d*(\\\\.(0|[1-9]\\\\d?))?$'`)
+  @Check('product version', `"product_version" ~ '^[1-9]\\\\d*(\\\\.(0|[1-9]\\\\d?))?$'`)
   public productVersion!: string;
 
   @CreateDateColumn({ type: 'timestamp with time zone', insert: false })
@@ -74,7 +77,7 @@ export class Common implements CommonRecord {
   @Column({ type: 'text', collation: 'C.UTF-8', nullable: true })
   public description?: string;
 
-  @Column({ type: 'geometry', spatialFeatureType: 'Polygon', srid: 4326 })
+  @Column({ type: 'geometry', spatialFeatureType: 'Polygon', srid: 4326, precision: 20 })
   @Index({ spatial: true })
   @Check('valid geometry', `ST_IsValid("footprint")`)
   @Check('geometry extent', `Box2D("footprint") @Box2D(ST_GeomFromText('LINESTRING(-180 -90, 180 90)'))`)

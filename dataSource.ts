@@ -1,35 +1,24 @@
 import config from 'config';
-import { DataSource, DefaultNamingStrategy, type DataSourceOptions, type Table } from 'typeorm';
+import { DataSource, type DataSourceOptions } from 'typeorm';
 import { ConnectionManager } from './src/common/connectionManager';
-import { type DbConfig } from './src/common/interfaces';
-import { camelCaseToSnakeCase } from './src/common/utils';
+import type { DbConfig } from './src/common/interfaces';
+import { namingStrategy } from './src/polygonParts/DAL/utils';
 
 const connectionOptions = config.get<DbConfig>('db');
 
-const customNamingStrategy = new DefaultNamingStrategy();
-customNamingStrategy.indexName = (tableOrName: Table | string, columnNames: string[], where?: string): string => {
-  return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_${columnNames.join('_')}${where !== undefined ? '_partial' : ''}_idx`;
-};
-customNamingStrategy.uniqueConstraintName = (tableOrName: Table | string, columnNames: string[]): string => {
-  return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_${columnNames.join('_')}`;
-};
-customNamingStrategy.columnName = (propertyName: string): string => {
-  return camelCaseToSnakeCase(propertyName);
+const defaultDataSourceOptions = {
+  namingStrategy,
 };
 
-const defaultDataSourceOptions = {
+const overridingDataSourceOptions = {
   entities: ['src/**/DAL/*.ts'],
-  logging: true,
-  synchronize: false,
   migrations: ['src/db/migrations/*.ts'],
-  migrationsRun: false,
-  migrationsTableName: 'migrations',
-  namingStrategy: customNamingStrategy,
-} satisfies Partial<DataSourceOptions>;
+};
 
 const dataSourceOptions: DataSourceOptions = {
   ...defaultDataSourceOptions,
   ...ConnectionManager.createConnectionOptions(connectionOptions),
+  ...overridingDataSourceOptions,
 };
 
 export const appDataSource = new DataSource(dataSourceOptions);

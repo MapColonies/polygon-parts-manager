@@ -35,33 +35,6 @@ const partDataDetails: PartDataDetails = {
   description: 'string',
 };
 
-const europeFootprint: Polygon = {
-  type: 'Polygon',
-  coordinates: [
-    [
-      [-11.215763071087054, 55.96351377452038],
-      [-6.719781234377905, 42.09374429147678],
-      [-5.06285410114657, 39.6502337427211],
-      [19.685007346186524, 37.53507900657999],
-      [28.764891217480397, 55.090669595591635],
-      [-11.215763071087054, 55.96351377452038],
-    ],
-  ],
-};
-
-const intersectionWithFranceAndGermanyFootprint: Polygon = {
-  type: 'Polygon',
-  coordinates: [
-    [
-      [0.03338779470774966, 48.663448425842006],
-      [5.431175578792505, 47.15592163018394],
-      [11.510350564251098, 48.15427399189073],
-      [8.470968666450517, 52.39099512132344],
-      [0.03338779470774966, 48.663448425842006],
-    ],
-  ],
-};
-
 function generateRequest(layerMetadata: LayerMetadata, partDataDetails: PartDataDetails, footprints: Polygon[]): PolygonPartsPayload {
   return {
     ...layerMetadata,

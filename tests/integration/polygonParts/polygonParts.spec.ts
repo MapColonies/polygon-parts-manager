@@ -16,7 +16,6 @@ import { SERVICES } from '../../../src/common/constants';
 import type { DbConfig } from '../../../src/common/interfaces';
 import { Part } from '../../../src/polygonParts/DAL/part';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
-import { payloadToInsertPartsData } from '../../../src/polygonParts/DAL/utils';
 import {
   createInitPayloadRequest,
   franceFootprint,
@@ -34,7 +33,7 @@ import polygonEarth from './data/polygonEarth.json';
 import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
 import { INITIAL_DB } from './helpers/constants';
-import { HelperDB, createDB, createPolygonPartsPayload } from './helpers/db';
+import { HelperDB, createDB, createPolygonPartsPayload, deleteDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import { getEntitiesNames, isValidUUIDv4, toExpectedPostgresResponse } from './helpers/utils';
 
@@ -1361,12 +1360,12 @@ describe('polygonParts', () => {
         await requestSender.createPolygonParts(createInitPayloadRequest);
         const updatePayload = separatePolygonsRequest;
         const { parts, polygonParts } = getEntitiesNames(updatePayload);
-        const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error());
+        const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error('Transaction failed'));
 
         const response = await requestSender.updatePolygonParts(updatePayload, true);
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-        expect(response.body).toMatchObject({ message: 'Unknown Error' });
+        expect(response.body).toMatchObject({ message: 'Transaction failed' });
         expect(spyQuery).toHaveBeenCalledTimes(1);
         expect(response).toSatisfyApiSpec();
 
@@ -1387,13 +1386,13 @@ describe('polygonParts', () => {
         const spyQuery = jest
           .spyOn(EntityManager.prototype, 'query')
           .mockImplementationOnce(originalQuery)
-          .mockRejectedValueOnce(new Error())
+          .mockRejectedValueOnce(new Error('Failed to truncate table'))
           .mockImplementationOnce(originalQuery);
 
         const response = await requestSender.updatePolygonParts(updatePayload, true);
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-        expect(response.body).toMatchObject({ message: 'Unknown Error' });
+        expect(response.body).toMatchObject({ message: 'Failed to truncate table' });
         expect(spyQuery).toHaveBeenCalledTimes(3);
         expect(response).toSatisfyApiSpec();
 
@@ -1415,12 +1414,12 @@ describe('polygonParts', () => {
           .spyOn(EntityManager.prototype, 'query')
           .mockImplementationOnce(originalQuery)
           .mockImplementationOnce(originalQuery)
-          .mockRejectedValueOnce(new Error());
+          .mockRejectedValueOnce(new Error('Failed to truncate table'));
 
         const response = await requestSender.updatePolygonParts(updatePayload, true);
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-        expect(response.body).toMatchObject({ message: 'Unknown Error' });
+        expect(response.body).toMatchObject({ message: 'Failed to truncate table' });
         expect(spyQuery).toHaveBeenCalledTimes(3);
         expect(response).toSatisfyApiSpec();
 
@@ -1436,12 +1435,12 @@ describe('polygonParts', () => {
         await requestSender.createPolygonParts(createInitPayloadRequest);
         const updatePayload = separatePolygonsRequest;
         const { parts, polygonParts } = getEntitiesNames(updatePayload);
-        const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValueOnce(new Error());
+        const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValueOnce(new Error('Failed to execute query'));
 
         const response = await requestSender.updatePolygonParts(updatePayload, true);
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-        expect(response.body).toMatchObject({ message: 'Unknown Error' });
+        expect(response.body).toMatchObject({ message: 'Failed to execute query' });
         expect(response).toSatisfyApiSpec();
         expect(spyGetExists).toHaveBeenCalledTimes(2);
 
@@ -1457,12 +1456,15 @@ describe('polygonParts', () => {
         await requestSender.createPolygonParts(createInitPayloadRequest);
         const updatePayload = separatePolygonsRequest;
         const { parts, polygonParts } = getEntitiesNames(updatePayload);
-        const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockResolvedValueOnce(true).mockRejectedValueOnce(new Error());
+        const spyGetExists = jest
+          .spyOn(SelectQueryBuilder.prototype, 'getExists')
+          .mockResolvedValueOnce(true)
+          .mockRejectedValueOnce(new Error('Failed to execute query'));
 
         const response = await requestSender.updatePolygonParts(updatePayload, true);
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-        expect(response.body).toMatchObject({ message: 'Unknown Error' });
+        expect(response.body).toMatchObject({ message: 'Failed to execute query' });
         expect(response).toSatisfyApiSpec();
         expect(spyGetExists).toHaveBeenCalledTimes(2);
 
@@ -1478,12 +1480,12 @@ describe('polygonParts', () => {
         await requestSender.createPolygonParts(createInitPayloadRequest);
         const updatePayload = separatePolygonsRequest;
         const { parts, polygonParts } = getEntitiesNames(updatePayload);
-        const spyInsert = jest.spyOn(Repository.prototype, 'insert').mockRejectedValueOnce(new Error());
+        const spyInsert = jest.spyOn(Repository.prototype, 'insert').mockRejectedValueOnce(new Error(`Failed to insert to ${parts.entityName}`));
 
         const response = await requestSender.updatePolygonParts(updatePayload, true);
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-        expect(response.body).toMatchObject({ message: 'Unknown Error' });
+        expect(response.body).toMatchObject({ message: `Failed to insert to ${parts.entityName}` });
         expect(response).toSatisfyApiSpec();
         expect(spyInsert).toHaveBeenCalledTimes(1);
 
@@ -1501,12 +1503,15 @@ describe('polygonParts', () => {
         const { parts, polygonParts } = getEntitiesNames(updatePayload);
         // eslint-disable-next-line @typescript-eslint/unbound-method
         const originalQuery = EntityManager.prototype.query;
-        const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockImplementationOnce(originalQuery).mockRejectedValueOnce(new Error());
+        const spyQuery = jest
+          .spyOn(EntityManager.prototype, 'query')
+          .mockImplementationOnce(originalQuery)
+          .mockRejectedValueOnce(new Error(`Failed to calculate polygon parts on  ${polygonParts.entityName}`));
 
         const response = await requestSender.updatePolygonParts(updatePayload, false);
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-        expect(response.body).toMatchObject({ message: 'Unknown Error' });
+        expect(response.body).toMatchObject({ message: `Failed to calculate polygon parts on  ${polygonParts.entityName}` });
         expect(response).toSatisfyApiSpec();
         expect(spyQuery).toHaveBeenCalledTimes(2);
 
@@ -1531,12 +1536,12 @@ describe('polygonParts', () => {
           .mockImplementationOnce(originalQuery)
           .mockImplementationOnce(originalQuery)
           .mockImplementationOnce(originalQuery)
-          .mockRejectedValueOnce(new Error());
+          .mockRejectedValueOnce(new Error(`Failed to calculate polygon parts on  ${polygonParts.entityName}`));
 
         const response = await requestSender.updatePolygonParts(updatePayload, true);
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-        expect(response.body).toMatchObject({ message: 'Unknown Error' });
+        expect(response.body).toMatchObject({ message: `Failed to calculate polygon parts on  ${polygonParts.entityName}` });
         expect(response).toSatisfyApiSpec();
         expect(spyQuery).toHaveBeenCalledTimes(4);
 

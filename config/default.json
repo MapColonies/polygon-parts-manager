@@ -25,6 +25,15 @@
       }
     }
   },
+  "httpRetry": {
+    "attempts": 5,
+    "delay": "exponential",
+    "shouldResetTimeout": true
+  },
+  "disableHttpClientLogs": true,
+  "servicesUrl": {
+    "catalogManager": "http://localhost:8085"
+  },
   "application": {
     "arraySeparator": ",",
     "createPolygonPartsTablesStoredProcedure": "create_polygon_parts_tables",
@@ -45,7 +54,7 @@
     "host": "localhost",
     "port": 5432,
     "username": "postgres",
-    "password": "postgres",
+    "password": "1234",
     "enableSslAuth": false,
     "sslPaths": {
       "ca": "",

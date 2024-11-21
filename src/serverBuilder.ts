@@ -1,15 +1,16 @@
-import express, { Router } from 'express';
+import { getErrorHandlerMiddleware } from '@map-colonies/error-express-handler';
+import httpLogger from '@map-colonies/express-access-log-middleware';
+import { Logger } from '@map-colonies/js-logger';
+import { type OpenapiRouterConfig, OpenapiViewerRouter } from '@map-colonies/openapi-express-viewer';
+import { collectMetricsExpressMiddleware, getTraceContexHeaderMiddleware } from '@map-colonies/telemetry';
 import bodyParser from 'body-parser';
 import compression from 'compression';
-import { OpenapiViewerRouter, OpenapiRouterConfig } from '@map-colonies/openapi-express-viewer';
-import { getErrorHandlerMiddleware } from '@map-colonies/error-express-handler';
+import express, { Router } from 'express';
 import { middleware as OpenApiMiddleware } from 'express-openapi-validator';
 import { inject, injectable } from 'tsyringe';
-import { Logger } from '@map-colonies/js-logger';
-import httpLogger from '@map-colonies/express-access-log-middleware';
-import { collectMetricsExpressMiddleware, getTraceContexHeaderMiddleware } from '@map-colonies/telemetry';
+import { AGGREGATION_ROUTER_SYMBOL } from './aggregation/routes/aggregationRouter';
 import { SERVICES } from './common/constants';
-import { IConfig } from './common/interfaces';
+import type { IConfig } from './common/interfaces';
 import { POLYGON_PARTS_ROUTER_SYMBOL } from './polygonParts/routes/polygonPartsRouter';
 
 @injectable()
@@ -19,7 +20,8 @@ export class ServerBuilder {
   public constructor(
     @inject(SERVICES.CONFIG) private readonly config: IConfig,
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
-    @inject(POLYGON_PARTS_ROUTER_SYMBOL) private readonly polygonPartsRouter: Router
+    @inject(POLYGON_PARTS_ROUTER_SYMBOL) private readonly polygonPartsRouter: Router,
+    @inject(AGGREGATION_ROUTER_SYMBOL) private readonly aggregationRouter: Router
   ) {
     this.serverInstance = express();
   }
@@ -43,6 +45,7 @@ export class ServerBuilder {
 
   private buildRoutes(): void {
     this.serverInstance.use('/polygonParts', this.polygonPartsRouter);
+    this.serverInstance.use('/aggregation', this.aggregationRouter);
     this.buildDocsRoutes();
   }
 

@@ -39,6 +39,21 @@
       }
     }
   },
+  "httpRetry": {
+    "attempts": "HTTP_RETRY_ATTEMPTS",
+    "delay": "HTTP_RETRY_DELAY",
+    "shouldResetTimeout": {
+      "__name": "HTTP_RETRY_RESET_TIMEOUT",
+      "__format": "boolean"
+    }
+  },
+  "disableHttpClientLogs": {
+    "__name": "DISABLE_HTTP_CLIENT_LOGS",
+    "__format": "boolean"
+  },
+  "servicesUrl": {
+    "catalogManager": "CATALOG_MANAGER_URL"
+  },
   "application": {
     "arraySeparator": "ARRAY_SEPARATOR",
     "createPolygonPartsTablesStoredProcedure": "CREATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE",

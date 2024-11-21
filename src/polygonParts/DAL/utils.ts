@@ -1,8 +1,9 @@
 import config from 'config';
 import { DefaultNamingStrategy, type Table } from 'typeorm';
+import { DEFAULT_SCHEMA } from '../../common/constants';
 import type { ApplicationConfig } from '../../common/interfaces';
 import { camelCaseToSnakeCase } from '../../common/utils';
-import type { InsertPartData, PolygonPartsPayload } from '../models/interfaces';
+import type { DBSchema, EntityNames, InsertPartData, PolygonPartsPayload } from '../models/interfaces';
 
 const customNamingStrategy = new DefaultNamingStrategy();
 customNamingStrategy.indexName = (tableOrName: Table | string, columnNames: string[], where?: string): string => {
@@ -23,6 +24,8 @@ customNamingStrategy.primaryKeyName = (tableOrName: Table | string): string => {
 };
 
 const arraySeparator = config.get<ApplicationConfig['arraySeparator']>('application.arraySeparator');
+const applicationConfig = config.get<ApplicationConfig>('application');
+const schema = config.get<DBSchema>('db.schema') ?? DEFAULT_SCHEMA;
 
 export function payloadToInsertPartsData(polygonPartsPayload: PolygonPartsPayload): InsertPartData[] {
   const { partsData, ...layerMetadata } = polygonPartsPayload;
@@ -37,5 +40,21 @@ export function payloadToInsertPartsData(polygonPartsPayload: PolygonPartsPayloa
     };
   });
 }
+
+export const getDatabaseObjectQualifiedName = (value: string): string => {
+  return `${schema}.${value}`;
+};
+
+export const getEntitiesNames = (polygonPartsPayload: Pick<PolygonPartsPayload, 'productId' | 'productType'>): EntityNames => {
+  const { productId, productType } = polygonPartsPayload;
+  const baseName = [productId, productType].join('_').toLowerCase();
+  const partsEntityName = `${applicationConfig.entities.parts.namePrefix}${baseName}${applicationConfig.entities.parts.nameSuffix}`;
+  const polygonPartsEntityName = `${applicationConfig.entities.polygonParts.namePrefix}${baseName}${applicationConfig.entities.polygonParts.nameSuffix}`;
+
+  return {
+    parts: { entityName: partsEntityName, databaseObjectQualifiedName: getDatabaseObjectQualifiedName(partsEntityName) },
+    polygonParts: { entityName: polygonPartsEntityName, databaseObjectQualifiedName: getDatabaseObjectQualifiedName(polygonPartsEntityName) },
+  };
+};
 
 export const namingStrategy = customNamingStrategy;

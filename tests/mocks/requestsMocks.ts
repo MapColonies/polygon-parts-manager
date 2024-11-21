@@ -2,9 +2,9 @@
 import { PolygonPart } from '@map-colonies/mc-model-types';
 import { Polygon } from 'geojson';
 import { PolygonPartsPayload } from '../../src/polygonParts/models/interfaces';
+import { createPolygonPart } from '../integration/polygonParts/helpers/db';
 
 type LayerMetadata = Pick<PolygonPartsPayload, 'catalogId' | 'productId' | 'productType' | 'productVersion'>;
-type PartDataDetails = Omit<PolygonPart, 'footprint'>;
 
 const createLayerMetadata: LayerMetadata = {
   productId: 'BLUE_MARBLE',
@@ -14,38 +14,21 @@ const createLayerMetadata: LayerMetadata = {
 };
 
 const updateLayerMetadata: LayerMetadata = {
-  productId: 'BLUE_MARBLE',
-  productType: 'Orthophoto',
-  catalogId: 'c52d8189-7e07-456a-8c6b-53859523c3e9',
+  ...createLayerMetadata,
   productVersion: '2.0',
 };
 
-const partDataDetails: PartDataDetails = {
-  sourceId: 'string',
-  sourceName: 'string',
-  imagingTimeBeginUTC: new Date('2024-11-13T14:26:21.715Z'),
-  imagingTimeEndUTC: new Date('2024-11-13T14:26:21.715Z'),
-  resolutionDegree: 0.703125,
-  resolutionMeter: 78271.52,
-  sourceResolutionMeter: 78271.52,
-  horizontalAccuracyCE90: 4000,
-  sensors: ['string'],
-  countries: ['string'],
-  cities: ['string'],
-  description: 'string',
-};
-
-function generateRequest(layerMetadata: LayerMetadata, partDataDetails: PartDataDetails, footprints: Polygon[]): PolygonPartsPayload {
+function generateRequest(layerMetadata: LayerMetadata, footprints: Polygon[]): PolygonPartsPayload {
   return {
     ...layerMetadata,
-    partsData: generatePartsData(partDataDetails, footprints),
+    partsData: generatePolygonPart(footprints),
   };
 }
 
-function generatePartsData(partDataDetails: PartDataDetails, footprints: Polygon[]): PolygonPart[] {
+function generatePolygonPart(footprints: Polygon[]): PolygonPart[] {
   return footprints.map((footprint) => {
     return {
-      ...partDataDetails,
+      ...createPolygonPart(),
       footprint,
     };
   });
@@ -166,13 +149,9 @@ export const italyWithoutIntersection: Polygon = {
   ],
 };
 
-export const createInitPayloadRequest: PolygonPartsPayload = generateRequest(createLayerMetadata, partDataDetails, [worldFootprint]);
-export const separatePolygonsRequest: PolygonPartsPayload = generateRequest(updateLayerMetadata, partDataDetails, [
-  franceFootprint,
-  germanyFootprint,
-  italyFootprint,
-]);
-export const intersectionWithItalyRequest: PolygonPartsPayload = generateRequest(updateLayerMetadata, partDataDetails, [
+export const createInitPayloadRequest: PolygonPartsPayload = generateRequest(createLayerMetadata, [worldFootprint]);
+export const separatePolygonsRequest: PolygonPartsPayload = generateRequest(updateLayerMetadata, [franceFootprint, germanyFootprint, italyFootprint]);
+export const intersectionWithItalyRequest: PolygonPartsPayload = generateRequest(updateLayerMetadata, [
   italyFootprint,
   intersectionWithItalyFootprint,
 ]);

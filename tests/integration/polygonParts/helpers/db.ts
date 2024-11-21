@@ -15,51 +15,50 @@ export const deleteDB = async (options: DataSourceOptions): Promise<void> => {
   await dropDatabase({ options });
 };
 
-export const createPolygonPartsPayload = (partsCount = 1): PolygonPartsPayload => {
-  const partDataGenerator = (): PolygonPart => {
-    return {
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers, @typescript-eslint/naming-convention
-      footprint: randomPolygon(1, { bbox: [-170, -80, 170, 80], max_radial_length: 10 }).features[0].geometry, // polygon maximum extent cannot exceed [-180,-90,180,90]
-      horizontalAccuracyCE90: faker.number.float(VALIDATIONS.horizontalAccuracyCE90),
-      imagingTimeBeginUTC: dateOlder,
-      imagingTimeEndUTC: dateRecent,
-      resolutionDegree: faker.number.float(VALIDATIONS.resolutionDeg),
-      resolutionMeter: faker.number.float(VALIDATIONS.resolutionMeter),
-      sensors: faker.helpers.multiple(
+export const createPolygonPart = (): PolygonPart => {
+  const date1 = faker.date.past();
+  const date2 = faker.date.past();
+  const [dateOlder, dateRecent] = date1 < date2 ? [date1, date2] : [date2, date1];
+  return {
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers, @typescript-eslint/naming-convention
+    footprint: randomPolygon(1, { bbox: [-170, -80, 170, 80], max_radial_length: 10 }).features[0].geometry, // polygon maximum extent cannot exceed [-180,-90,180,90]
+    horizontalAccuracyCE90: faker.number.float(VALIDATIONS.horizontalAccuracyCE90),
+    imagingTimeBeginUTC: dateOlder,
+    imagingTimeEndUTC: dateRecent,
+    resolutionDegree: faker.number.float(VALIDATIONS.resolutionDeg),
+    resolutionMeter: faker.number.float(VALIDATIONS.resolutionMeter),
+    sensors: faker.helpers.multiple(
+      () => {
+        return faker.word.words();
+      },
+      { count: { min: 0, max: 3 } }
+    ),
+    sourceName: faker.word.words().replace(' ', '_'),
+    sourceResolutionMeter: faker.number.float(VALIDATIONS.resolutionMeter),
+    cities: faker.helpers.maybe(() => {
+      return faker.helpers.multiple(
         () => {
           return faker.word.words();
         },
         { count: { min: 0, max: 3 } }
-      ),
-      sourceName: faker.word.words().replace(' ', '_'),
-      sourceResolutionMeter: faker.number.float(VALIDATIONS.resolutionMeter),
-      cities: faker.helpers.maybe(() => {
-        return faker.helpers.multiple(
-          () => {
-            return faker.word.words();
-          },
-          { count: { min: 0, max: 3 } }
-        );
-      }),
-      countries: faker.helpers.maybe(() => {
-        return faker.helpers.multiple(
-          () => {
-            return faker.word.words();
-          },
-          { count: { min: 0, max: 3 } }
-        );
-      }),
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-      description: faker.helpers.maybe(() => faker.word.words({ count: { min: 0, max: 10 } })),
-      sourceId: faker.helpers.maybe(() => faker.word.words()),
-    };
+      );
+    }),
+    countries: faker.helpers.maybe(() => {
+      return faker.helpers.multiple(
+        () => {
+          return faker.word.words();
+        },
+        { count: { min: 0, max: 3 } }
+      );
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    description: faker.helpers.maybe(() => faker.word.words({ count: { min: 0, max: 10 } })),
+    sourceId: faker.helpers.maybe(() => faker.word.words()),
   };
+};
 
-  const date1 = faker.date.past();
-  const date2 = faker.date.past();
-  const [dateOlder, dateRecent] = date1 < date2 ? [date1, date2] : [date2, date1];
-
-  const partsData = Array.from({ length: partsCount }, partDataGenerator);
+export const createPolygonPartsPayload = (partsCount = 1): PolygonPartsPayload => {
+  const partsData = Array.from({ length: partsCount }, createPolygonPart);
 
   return {
     catalogId: faker.string.uuid(),

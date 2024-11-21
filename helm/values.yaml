@@ -3,6 +3,7 @@ global:
   tracing: {}
   metrics: {}
   environment: {}
+  serviceUrls: {}
   db: {}
   ca:
     secretName: ''
@@ -36,6 +37,9 @@ metrics:
     scrape: false
     port: 8080
 
+serviceUrls:
+  catalogManager: ""
+
 image:
   repository: polygon-parts-manager
   tag: 'latest'
@@ -59,6 +63,11 @@ env:
       polygonParts:
         namePrefix: ''
         nameSuffix: ''
+  httpRetry:
+    attempts: 5
+    delay: exponential
+    resetTimeout: 30000
+  disableHttpClientLogs: true
 
 # external
 db:

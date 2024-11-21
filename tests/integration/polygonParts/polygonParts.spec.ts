@@ -7,7 +7,6 @@ import config from 'config';
 import type { FeatureCollection, Polygon } from 'geojson';
 import { StatusCodes as httpStatusCodes } from 'http-status-codes';
 import { xor } from 'martinez-polygon-clipping';
-import { types } from 'pg';
 import { container } from 'tsyringe';
 import { EntityManager, Repository, SelectQueryBuilder, type DataSourceOptions } from 'typeorm';
 import { getApp } from '../../../src/app';
@@ -24,11 +23,6 @@ import { INITIAL_DB } from './helpers/constants';
 import { HelperDB, createDB, createPolygonPartsPayload } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import { getEntitiesNames, isValidUUIDv4, toExpectedPostgresResponse } from './helpers/utils';
-
-// postgresql - parse NUMERIC and BIGINT as numbers instead of strings
-types.setTypeParser(types.builtins.NUMERIC, (value) => parseFloat(value));
-types.setTypeParser(types.builtins.INT8, (value) => parseInt(value, 10));
-types.setTypeParser(types.builtins.FLOAT4, (value) => parseFloat(value));
 
 let testDataSourceOptions: DataSourceOptions;
 const dbConfig = config.get<Required<DbConfig>>('db');

@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { Logger } from '@map-colonies/js-logger';
+import { types } from 'pg';
 import { inject, singleton } from 'tsyringe';
 import { DataSource, type DataSourceOptions } from 'typeorm';
 import type { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
@@ -9,6 +10,11 @@ import type { DbConfig, IConfig } from '../common/interfaces';
 import { Part } from '../polygonParts/DAL/part';
 import { PolygonPart } from '../polygonParts/DAL/polygonPart';
 import { namingStrategy } from '../polygonParts/DAL/utils';
+
+// postgresql - parse NUMERIC and BIGINT as numbers instead of strings
+types.setTypeParser(types.builtins.NUMERIC, (value) => parseFloat(value));
+types.setTypeParser(types.builtins.INT8, (value) => parseInt(value, 10));
+types.setTypeParser(types.builtins.FLOAT4, (value) => parseFloat(value));
 
 @singleton()
 export class ConnectionManager {

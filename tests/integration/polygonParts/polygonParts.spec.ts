@@ -745,12 +745,13 @@ describe('polygonParts', () => {
       it('should return 500 status code for a database error - set search_path error', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
-        const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error());
+        const expectedErrorMessage = 'search_path error';
+        const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error(expectedErrorMessage));
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-        expect(response.body).toMatchObject({ message: 'Unknown Error' });
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
         expect(response).toSatisfyApiSpec();
         expect(spyQuery).toHaveBeenCalledTimes(1);
 
@@ -765,12 +766,13 @@ describe('polygonParts', () => {
       it('should return 500 status code for a database error - verify available tables (first table) error', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
-        const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValueOnce(new Error());
+        const expectedErrorMessage = 'exists error';
+        const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValueOnce(new Error(expectedErrorMessage));
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-        expect(response.body).toMatchObject({ message: 'Unknown Error' });
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
         expect(response).toSatisfyApiSpec();
         expect(spyGetExists).toHaveBeenCalledTimes(2);
 
@@ -787,12 +789,13 @@ describe('polygonParts', () => {
       it('should return 500 status code for a database error - verify available tables (second table) error', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
-        const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockResolvedValueOnce(false).mockRejectedValueOnce(new Error());
+        const expectedErrorMessage = 'exists error';
+        const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockResolvedValueOnce(false).mockRejectedValueOnce(new Error(expectedErrorMessage));
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-        expect(response.body).toMatchObject({ message: 'Unknown Error' });
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
         expect(response).toSatisfyApiSpec();
         expect(spyGetExists).toHaveBeenCalledTimes(2);
 
@@ -811,12 +814,13 @@ describe('polygonParts', () => {
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
         // eslint-disable-next-line @typescript-eslint/unbound-method
         const originalQuery = EntityManager.prototype.query;
-        const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockImplementationOnce(originalQuery).mockRejectedValueOnce(new Error());
+        const expectedErrorMessage = 'query error';
+        const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockImplementationOnce(originalQuery).mockRejectedValueOnce(new Error(expectedErrorMessage));
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-        expect(response.body).toMatchObject({ message: 'Unknown Error' });
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
         expect(response).toSatisfyApiSpec();
         expect(spyQuery).toHaveBeenCalledTimes(2);
 
@@ -831,12 +835,13 @@ describe('polygonParts', () => {
       it('should return 500 status code for a database error - insert error', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
-        const spyInsert = jest.spyOn(Repository.prototype, 'insert').mockRejectedValueOnce(new Error());
+        const expectedErrorMessage = 'insert error';
+        const spyInsert = jest.spyOn(Repository.prototype, 'insert').mockRejectedValueOnce(new Error(expectedErrorMessage));
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-        expect(response.body).toMatchObject({ message: 'Unknown Error' });
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
         expect(response).toSatisfyApiSpec();
         expect(spyInsert).toHaveBeenCalledTimes(1);
 
@@ -853,16 +858,17 @@ describe('polygonParts', () => {
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
         // eslint-disable-next-line @typescript-eslint/unbound-method
         const originalQuery = EntityManager.prototype.query;
+        const expectedErrorMessage = 'query error';
         const spyQuery = jest
           .spyOn(EntityManager.prototype, 'query')
           .mockImplementationOnce(originalQuery)
           .mockImplementationOnce(originalQuery)
-          .mockRejectedValueOnce(new Error());
+          .mockRejectedValueOnce(new Error(expectedErrorMessage));
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-        expect(response.body).toMatchObject({ message: 'Unknown Error' });
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
         expect(response).toSatisfyApiSpec();
         expect(spyQuery).toHaveBeenCalledTimes(3);
 

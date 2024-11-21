@@ -790,7 +790,10 @@ describe('polygonParts', () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
         const expectedErrorMessage = 'exists error';
-        const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockResolvedValueOnce(false).mockRejectedValueOnce(new Error(expectedErrorMessage));
+        const spyGetExists = jest
+          .spyOn(SelectQueryBuilder.prototype, 'getExists')
+          .mockResolvedValueOnce(false)
+          .mockRejectedValueOnce(new Error(expectedErrorMessage));
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
@@ -815,7 +818,10 @@ describe('polygonParts', () => {
         // eslint-disable-next-line @typescript-eslint/unbound-method
         const originalQuery = EntityManager.prototype.query;
         const expectedErrorMessage = 'query error';
-        const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockImplementationOnce(originalQuery).mockRejectedValueOnce(new Error(expectedErrorMessage));
+        const spyQuery = jest
+          .spyOn(EntityManager.prototype, 'query')
+          .mockImplementationOnce(originalQuery)
+          .mockRejectedValueOnce(new Error(expectedErrorMessage));
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 

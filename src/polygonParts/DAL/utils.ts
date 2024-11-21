@@ -3,7 +3,8 @@ import { DefaultNamingStrategy, type Table } from 'typeorm';
 import { DEFAULT_SCHEMA } from '../../common/constants';
 import type { ApplicationConfig } from '../../common/interfaces';
 import { camelCaseToSnakeCase } from '../../common/utils';
-import type { DBSchema, EntityNames, InsertPartData, PolygonPartsPayload } from '../models/interfaces';
+import { PRODUCT_TYPES } from '../models/constants';
+import type { DBSchema, EntityNames, InsertPartData, PolygonPartsPayload, ProductType } from '../models/interfaces';
 
 const customNamingStrategy = new DefaultNamingStrategy();
 customNamingStrategy.indexName = (tableOrName: Table | string, columnNames: string[], where?: string): string => {
@@ -55,6 +56,10 @@ export const getEntitiesNames = (polygonPartsPayload: Pick<PolygonPartsPayload, 
     parts: { entityName: partsEntityName, databaseObjectQualifiedName: getDatabaseObjectQualifiedName(partsEntityName) },
     polygonParts: { entityName: polygonPartsEntityName, databaseObjectQualifiedName: getDatabaseObjectQualifiedName(polygonPartsEntityName) },
   };
+};
+
+export const isPolygonType = (value: string): value is ProductType => {
+  return PRODUCT_TYPES.includes(value as ProductType);
 };
 
 export const namingStrategy = customNamingStrategy;

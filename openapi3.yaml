@@ -10,6 +10,39 @@ tags:
   - name: polygon-parts
     description: CRUD operations to manage polygon-parts
 paths:
+  /aggregation/{catalogId}:
+    get:
+      tags:
+        - aggregation
+      summary: Get aggregated polygon-parts data by catalog id
+      description: Get aggregated polygon-parts data by catalog id
+      operationId: getAggregationMetadata
+      parameters:
+        - in: path
+          name: catalogId
+          schema:
+            type: string
+          # $ref: ./Schema/ingestionTrigger/metadata/rasterLayerMetadata.yaml#/components/schemas/RasterLayerBaseMetadata/productId
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Aggregation'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
   /polygonParts:
     post:
       tags:
@@ -101,6 +134,53 @@ components:
     PolygonPartsPayload:
       $ref: >-
         ./Schema/polygonPartsManager/payload.yaml#/components/schemas/PolygonPartsPayload
+    Aggregation:
+      type: object
+      additionalProperties: false
+      properties:
+        imagingTimeBeginUTC:
+          type: string
+          description: Oldest imaging date (UTC)
+          format: date-time
+        imagingTimeEndUTC:
+          type: string
+          description: Latest imaging date (UTC)
+          format: date-time
+        maxResolutionDeg:
+          type: number
+          format: double
+        minResolutionDeg:
+          type: number
+          format: double
+        maxResolutionMeter:
+          type: number
+          format: double
+        minResolutionMeter:
+          type: number
+          format: double
+        maxHorizontalAccuracyCE90:
+          type: number
+          format: double
+        minHorizontalAccuracyCE90:
+          type: number
+          format: double
+        sensors:
+          type: string
+        footprint:
+          oneOf:
+            - $ref: './Schema/geojson.yaml#/components/schemas/Polygon'
+            - $ref: './Schema/geojson.yaml#/components/schemas/MultiPolygon'
+      required:
+        - imagingTimeBeginUTC
+        - imagingTimeEndUTC
+        - maxResolutionDeg
+        - minResolutionDeg
+        - maxResolutionMeter
+        - minResolutionMeter
+        - maxHorizontalAccuracyCE90
+        - minHorizontalAccuracyCE90
+        - sensors
+        - footprint
     ErrorMessage:
       type: object
       properties:

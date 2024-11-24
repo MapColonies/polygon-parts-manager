@@ -1,6 +1,6 @@
 /* eslint-disable  @typescript-eslint/no-magic-numbers */
 import { PolygonPart } from '@map-colonies/mc-model-types';
-import { Polygon } from 'geojson';
+import type { Polygon } from 'geojson';
 import { PolygonPartsPayload } from '../../src/polygonParts/models/interfaces';
 import { createPolygonPart } from '../integration/polygonParts/helpers/db';
 

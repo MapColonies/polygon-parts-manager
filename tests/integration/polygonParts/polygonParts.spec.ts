@@ -59,6 +59,8 @@ describe('polygonParts', () => {
 
   afterAll(async () => {
     await helperDB.destroyConnection();
+    /* uncomment this when running locally, this deletes the created db after all tests, 
+    instead of removing it manually after each run.*/
     //await deleteDB(testDataSourceOptions);
   });
 

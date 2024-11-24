@@ -3,7 +3,7 @@
     "host": "localhost",
     "schema": "polygon_parts",
     "username": "postgres",
-    "password": "1234",
+    "password": "mysecretpassword",
     "database": "test",
     "enableSslAuth": false,
     "logging": false,

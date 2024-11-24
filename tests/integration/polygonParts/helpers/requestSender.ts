@@ -8,4 +8,8 @@ export class PolygonPartsRequestSender {
   public async createPolygonParts(body: PolygonPartsPayload): Promise<supertest.Response> {
     return supertest.agent(this.app).post('/polygonParts').set('Content-Type', 'application/json').send(body);
   }
+
+  public async updatePolygonParts(body: PolygonPartsPayload, isSwap: boolean): Promise<supertest.Response> {
+    return supertest.agent(this.app).put('/polygonParts').query({ isSwap }).set('Content-Type', 'application/json').send(body);
+  }
 }

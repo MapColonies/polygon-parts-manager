@@ -15,12 +15,24 @@ import { SERVICES } from '../../../src/common/constants';
 import type { DbConfig } from '../../../src/common/interfaces';
 import { Part } from '../../../src/polygonParts/DAL/part';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
+import {
+  createInitPayloadRequest,
+  franceFootprint,
+  germanyFootprint,
+  intersectionWithItalyFootprint,
+  intersectionWithItalyRequest,
+  italyFootprint,
+  italyWithoutIntersection,
+  separatePolygonsRequest,
+  worldFootprint,
+  worldMinusSeparateCountries,
+} from '../../mocks/requestsMocks';
 import type { PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import polygonEarth from './data/polygonEarth.json';
 import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
 import { INITIAL_DB } from './helpers/constants';
-import { HelperDB, createDB, createPolygonPartsPayload } from './helpers/db';
+import { HelperDB, createDB, createPolygonPartsPayload, deleteDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import { getEntitiesNames, isValidUUIDv4, toExpectedPostgresResponse } from './helpers/utils';
 
@@ -41,6 +53,9 @@ describe('polygonParts', () => {
 
   afterAll(async () => {
     await helperDB.destroyConnection();
+    /* uncomment this when running locally, this deletes the created db after all tests, 
+    instead of removing it manually after each run.*/
+    //await deleteDB(testDataSourceOptions);
   });
 
   beforeEach(async () => {
@@ -351,6 +366,84 @@ describe('polygonParts', () => {
       });
 
       it.todo('test connection re-connection');
+    });
+
+    describe('PUT /polygonParts', () => {
+      beforeEach(async () => {
+        const insertPolygonPartsPayload = createInitPayloadRequest;
+        await requestSender.createPolygonParts(insertPolygonPartsPayload);
+      });
+
+      it('should return 200 status code on regular update with 3 non intersecting polygons', async () => {
+        const updatePayload = separatePolygonsRequest;
+        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+
+        const response = await requestSender.updatePolygonParts(updatePayload, false);
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response).toSatisfyApiSpec();
+
+        expect(polygonPartRecords).toHaveLength(4);
+        expect(partRecords).toHaveLength(4);
+        expect(partRecords[0].footprint).toEqual(worldFootprint);
+        expect(partRecords[1].footprint).toEqual(franceFootprint);
+        expect(partRecords[2].footprint).toEqual(germanyFootprint);
+        expect(partRecords[3].footprint).toEqual(italyFootprint);
+        expect(partRecords[1].insertionOrder).toBe(2);
+        expect(partRecords[2].insertionOrder).toBe(3);
+        expect(partRecords[3].insertionOrder).toBe(4);
+        expect(partRecords[1].isProcessedPart).toBe(true);
+        expect(partRecords[2].isProcessedPart).toBe(true);
+        expect(partRecords[3].isProcessedPart).toBe(true);
+
+        expect(polygonPartRecords[0].footprint).toEqual(worldMinusSeparateCountries);
+        expect(polygonPartRecords[0].insertionOrder).toBe(1);
+      });
+
+      it('should return 200 status code on regular update with 2 intersecting polygons', async () => {
+        const updatePayload = intersectionWithItalyRequest;
+        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+
+        const response = await requestSender.updatePolygonParts(updatePayload, false);
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response).toSatisfyApiSpec();
+
+        expect(polygonPartRecords).toHaveLength(3);
+        expect(partRecords).toHaveLength(3);
+        expect(partRecords[0].footprint).toEqual(worldFootprint);
+        expect(partRecords[1].footprint).toEqual(italyFootprint);
+        expect(partRecords[2].footprint).toEqual(intersectionWithItalyFootprint);
+        expect(partRecords[1].insertionOrder).toBe(2);
+        expect(partRecords[2].insertionOrder).toBe(3);
+        expect(partRecords[1].isProcessedPart).toBe(true);
+        expect(partRecords[2].isProcessedPart).toBe(true);
+
+        expect(polygonPartRecords[1].footprint).toEqual(italyWithoutIntersection);
+      });
+
+      it('should return 200 status code on swap update with world polygon', async () => {
+        await requestSender.updatePolygonParts(separatePolygonsRequest, false);
+        const updatePayload = createInitPayloadRequest;
+        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+
+        const response = await requestSender.updatePolygonParts(updatePayload, true);
+
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response).toSatisfyApiSpec();
+
+        expect(polygonPartRecords).toHaveLength(1);
+        expect(partRecords).toHaveLength(1);
+        expect(partRecords[0].footprint).toEqual(worldFootprint);
+        expect(polygonPartRecords[0].footprint).toEqual(worldFootprint);
+      });
     });
   });
 
@@ -710,6 +803,356 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
     });
+
+    describe('PUT /polygonParts', () => {
+      beforeEach(async () => {
+        const insertPolygonPartsPayload = createInitPayloadRequest;
+        await requestSender.createPolygonParts(insertPolygonPartsPayload);
+      });
+
+      it('should return 400 status code if a product type is invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, productType: 'bad value' };
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = {
+          message: `request/body/productType must be equal to one of the allowed values: Orthophoto, OrthophotoHistory, OrthophotoBest, RasterMap, RasterMapBest, RasterAid, RasterAidBest, RasterVector, RasterVectorBest`,
+        };
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload as unknown as PolygonPartsPayload, false);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a catalog id is invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, catalogId: 'bad value' };
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/catalogId must match format "uuid"` };
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, false);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a product id is invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, productId: 'bad value' };
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/productId must match pattern "^[A-Za-z]{1}[A-Za-z0-9_]{0,37}$"` };
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a product version is invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, productVersion: 'bad value' };
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/productVersion must match pattern "^[1-9]\\d*(\\.(0|[1-9]\\d?))?$"` };
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a countries is invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], countries: [123] } as unknown as PolygonPartType];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/partsData/0/countries/0 must be string` };
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a cities is invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], cities: [123] } as unknown as PolygonPartType];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/partsData/0/cities/0 must be string` };
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a sensors is invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sensors: 123 } as unknown as PolygonPartType];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/partsData/0/sensors must be array` };
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a source name is invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sourceName: 123 } as unknown as PolygonPartType];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/partsData/0/sourceName must be string` };
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a resolution degree is invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], resolutionDegree: 123 } as unknown as PolygonPartType];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/partsData/0/resolutionDegree must be <= 0.703125` };
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a resolution meter is invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], resolutionMeter: 0 } as unknown as PolygonPartType];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/partsData/0/resolutionMeter must be >= 0.0185` };
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a source resolution meter is invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sourceResolutionMeter: 0 } as unknown as PolygonPartType];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/partsData/0/sourceResolutionMeter must be >= 0.0185` };
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a horizontal accuracy ce90 is invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [
+          { ...updatePolygonPartsPayload.partsData[0], horizontalAccuracyCE90: 5000 } as unknown as PolygonPartType,
+        ];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/partsData/0/horizontalAccuracyCE90 must be <= 4000` };
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a imaging time begin utc is invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [
+          { ...updatePolygonPartsPayload.partsData[0], imagingTimeBeginUTC: 'bad value' } as unknown as PolygonPartType,
+        ];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/partsData/0/imagingTimeBeginUTC must match format "date-time"` };
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a imaging time end utc is invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [
+          { ...updatePolygonPartsPayload.partsData[0], imagingTimeEndUTC: 'bad value' } as unknown as PolygonPartType,
+        ];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/partsData/0/imagingTimeEndUTC must match format "date-time"` };
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a footprint is invalid value - polygon must have coordinates property', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const { coordinates, ...badFootprint } = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/partsData/0/footprint must have required property 'coordinates'` };
+
+        const response = await requestSender.createPolygonParts(updatePolygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a footprint is invalid value - polygon must have at least 3 vertices', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const badFootprint = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
+        badFootprint.coordinates[0] = badFootprint.coordinates[0].filter((_, index) => (index === 1 ? false : true));
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint }];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/partsData/0/footprint/coordinates/0 must NOT have fewer than 4 items` };
+
+        const response = await requestSender.createPolygonParts(updatePolygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a footprint is invalid value - polygon must have coordinates values in (-180,180) range', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const badFootprint = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
+        badFootprint.coordinates[0][0][1] = 181;
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint }];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/partsData/0/footprint/coordinates/0/0/1 must be <= 180` };
+
+        const response = await requestSender.createPolygonParts(updatePolygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a footprint is invalid value - polygon must have type property', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const { type, ...badFootprint } = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/partsData/0/footprint must have required property 'type'` };
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, false);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a footprint is invalid value - polygon must have type property set to Polygon', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const badFootprint = { ...randomPolygon(1, { num_vertices: 3 }).features[0].geometry, type: 'Point' };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/partsData/0/footprint/type must be equal to one of the allowed values: Polygon` };
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a source id is invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sourceId: 123 } as unknown as PolygonPartType];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/partsData/0/sourceId must be string` };
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a description is invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], description: 123 } as unknown as PolygonPartType];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const expectedErrorMessage = { message: `request/body/partsData/0/description must be string` };
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if a partsData has no items', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [];
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        expect(response.body).toMatchObject({ message: `request/body/partsData must NOT have fewer than 1 items` });
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+    });
   });
 
   describe('Sad Path', () => {
@@ -888,6 +1331,236 @@ describe('polygonParts', () => {
 
       it.todo('should return 500 status code for a database error - no connection');
       it.todo('should return 500 status code for a database error - timeout');
+    });
+
+    describe('PUT /polygonParts', () => {
+      afterEach(() => {
+        jest.restoreAllMocks(); // Restore original implementations
+      });
+      it('should return 404 status code if a part resource doesnt exist', async () => {
+        const updatePayload = separatePolygonsRequest;
+        const { parts } = getEntitiesNames(updatePayload);
+
+        const response = await requestSender.updatePolygonParts(updatePayload, false);
+
+        expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
+        expect(response.body).toMatchObject({ message: `table with the name '${parts.databaseObjectQualifiedName}' doesnt exists` });
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 404 status code if a polygon part resource doesnt exist', async () => {
+        const updatePayload = separatePolygonsRequest;
+        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        await helperDB.createTable(parts.entityName, schema);
+
+        const response = await requestSender.updatePolygonParts(updatePayload, false);
+
+        expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
+        expect(response.body).toMatchObject({ message: `table with the name '${polygonParts.databaseObjectQualifiedName}' doesnt exists` });
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 500 status code for a database error - set search_path error', async () => {
+        await requestSender.createPolygonParts(createInitPayloadRequest);
+        const updatePayload = separatePolygonsRequest;
+        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error('Transaction failed'));
+
+        const response = await requestSender.updatePolygonParts(updatePayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: 'Transaction failed' });
+        expect(spyQuery).toHaveBeenCalledTimes(1);
+        expect(response).toSatisfyApiSpec();
+
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeTrue();
+        expect(existsPolygonParts).toBeTrue();
+
+        expect.assertions(6);
+      });
+
+      it('should return 500 status code if when truncate parts fails', async () => {
+        await requestSender.createPolygonParts(createInitPayloadRequest);
+        const updatePayload = separatePolygonsRequest;
+        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalQuery = EntityManager.prototype.query;
+        const spyQuery = jest
+          .spyOn(EntityManager.prototype, 'query')
+          .mockImplementationOnce(originalQuery)
+          .mockRejectedValueOnce(new Error('Failed to truncate table'))
+          .mockImplementationOnce(originalQuery);
+
+        const response = await requestSender.updatePolygonParts(updatePayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: 'Failed to truncate table' });
+        expect(spyQuery).toHaveBeenCalledTimes(3);
+        expect(response).toSatisfyApiSpec();
+
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeTrue();
+        expect(existsPolygonParts).toBeTrue();
+
+        expect.assertions(6);
+      });
+
+      it('should return 500 status code if when truncate polygon parts fails', async () => {
+        await requestSender.createPolygonParts(createInitPayloadRequest);
+        const updatePayload = separatePolygonsRequest;
+        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalQuery = EntityManager.prototype.query;
+        const spyQuery = jest
+          .spyOn(EntityManager.prototype, 'query')
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockRejectedValueOnce(new Error('Failed to truncate table'));
+
+        const response = await requestSender.updatePolygonParts(updatePayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: 'Failed to truncate table' });
+        expect(spyQuery).toHaveBeenCalledTimes(3);
+        expect(response).toSatisfyApiSpec();
+
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeTrue();
+        expect(existsPolygonParts).toBeTrue();
+
+        expect.assertions(6);
+      });
+
+      it('should return 500 status code for a database error - verify tables exists (first table) error', async () => {
+        await requestSender.createPolygonParts(createInitPayloadRequest);
+        const updatePayload = separatePolygonsRequest;
+        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValueOnce(new Error('Failed to execute query'));
+
+        const response = await requestSender.updatePolygonParts(updatePayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: 'Failed to execute query' });
+        expect(response).toSatisfyApiSpec();
+        expect(spyGetExists).toHaveBeenCalledTimes(2);
+
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeTrue();
+        expect(existsPolygonParts).toBeTrue();
+
+        expect.assertions(6);
+      });
+
+      it('should return 500 status code for a database error - verify tables exists(second table) error', async () => {
+        await requestSender.createPolygonParts(createInitPayloadRequest);
+        const updatePayload = separatePolygonsRequest;
+        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        const spyGetExists = jest
+          .spyOn(SelectQueryBuilder.prototype, 'getExists')
+          .mockResolvedValueOnce(true)
+          .mockRejectedValueOnce(new Error('Failed to execute query'));
+
+        const response = await requestSender.updatePolygonParts(updatePayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: 'Failed to execute query' });
+        expect(response).toSatisfyApiSpec();
+        expect(spyGetExists).toHaveBeenCalledTimes(2);
+
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeTrue();
+        expect(existsPolygonParts).toBeTrue();
+
+        expect.assertions(6);
+      });
+
+      it('should return 500 status code for a database error - insert error', async () => {
+        await requestSender.createPolygonParts(createInitPayloadRequest);
+        const updatePayload = separatePolygonsRequest;
+        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        const spyInsert = jest.spyOn(Repository.prototype, 'insert').mockRejectedValueOnce(new Error(`Failed to insert to ${parts.entityName}`));
+
+        const response = await requestSender.updatePolygonParts(updatePayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: `Failed to insert to ${parts.entityName}` });
+        expect(response).toSatisfyApiSpec();
+        expect(spyInsert).toHaveBeenCalledTimes(1);
+
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeTrue();
+        expect(existsPolygonParts).toBeTrue();
+
+        expect.assertions(6);
+      });
+
+      it('should return 500 status code for a database error - calculate polygon parts error on regular update', async () => {
+        await requestSender.createPolygonParts(createInitPayloadRequest);
+        const updatePayload = separatePolygonsRequest;
+        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalQuery = EntityManager.prototype.query;
+        const spyQuery = jest
+          .spyOn(EntityManager.prototype, 'query')
+          .mockImplementationOnce(originalQuery)
+          .mockRejectedValueOnce(new Error(`Failed to calculate polygon parts on  ${polygonParts.entityName}`));
+
+        const response = await requestSender.updatePolygonParts(updatePayload, false);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: `Failed to calculate polygon parts on  ${polygonParts.entityName}` });
+        expect(response).toSatisfyApiSpec();
+        expect(spyQuery).toHaveBeenCalledTimes(2);
+
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeTrue();
+        expect(existsPolygonParts).toBeTrue();
+
+        expect.assertions(6);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+      });
+
+      it('should return 500 status code for a database error - calculate polygon parts error on swap update', async () => {
+        await requestSender.createPolygonParts(createInitPayloadRequest);
+        const updatePayload = separatePolygonsRequest;
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalQuery = EntityManager.prototype.query;
+        const spyQuery = jest
+          .spyOn(EntityManager.prototype, 'query')
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockRejectedValueOnce(new Error(`Failed to calculate polygon parts on  ${polygonParts.entityName}`));
+
+        const response = await requestSender.updatePolygonParts(updatePayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: `Failed to calculate polygon parts on  ${polygonParts.entityName}` });
+        expect(response).toSatisfyApiSpec();
+        expect(spyQuery).toHaveBeenCalledTimes(4);
+
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeTrue();
+        expect(existsPolygonParts).toBeTrue();
+
+        expect.assertions(6);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+      });
     });
   });
 });

@@ -1,4 +1,4 @@
-import { InternalServerError, NotFoundError } from '@map-colonies/error-types';
+import { InternalServerError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { SelectQueryBuilder } from 'typeorm';
@@ -6,8 +6,8 @@ import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import { CatalogClient } from '../../httpClient/catalogClient';
 import { PolygonPart } from '../../polygonParts/DAL/polygonPart';
-import { getEntitiesNames, isPolygonType } from '../../polygonParts/DAL/utils';
-import { PolygonPartsPayload } from '../../polygonParts/models/interfaces';
+import { getEntitiesNames } from '../../polygonParts/DAL/utils';
+import type { PolygonPartsPayload } from '../../polygonParts/models/interfaces';
 import type { AggregationMetadata, AggregationParams } from './interfaces';
 
 @injectable()
@@ -23,26 +23,7 @@ export class AggregationManager {
 
     const findOptions = { id: aggregationParams.catalogId };
     const layerMetadatas = await this.catalogClient.find(findOptions);
-    const layerMetadata = layerMetadatas.at(0);
-
-    if (layerMetadata === undefined) {
-      throw new NotFoundError('Could not find a catalog layer for the requested id');
-    }
-
-    if (layerMetadata.metadata?.productId === undefined) {
-      throw new InternalServerError('Catalog layer for the requested id is missing a product id value');
-    }
-
-    if (layerMetadata.metadata.productType === undefined) {
-      throw new InternalServerError('Catalog layer for the requested id is missing a product type value');
-    }
-
-    const { productId, productType } = layerMetadata.metadata;
-    if (!isPolygonType(productType)) {
-      throw new Error('Unsupported aggregation product type');
-    }
-
-    const aggregationQuery = this.buildAggregationQuery({ productId, productType });
+    const aggregationQuery = this.buildAggregationQuery(layerMetadatas.metadata);
 
     try {
       const aggregation = await aggregationQuery.getRawOne<AggregationMetadata>();

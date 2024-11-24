@@ -15,6 +15,7 @@ import { SERVICES } from '../../../src/common/constants';
 import type { DbConfig } from '../../../src/common/interfaces';
 import { Part } from '../../../src/polygonParts/DAL/part';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
+import type { PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import {
   createInitPayloadRequest,
   franceFootprint,
@@ -27,12 +28,11 @@ import {
   worldFootprint,
   worldMinusSeparateCountries,
 } from '../../mocks/requestsMocks';
-import type { PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import polygonEarth from './data/polygonEarth.json';
 import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
 import { INITIAL_DB } from './helpers/constants';
-import { HelperDB, createDB, createPolygonPartsPayload, deleteDB } from './helpers/db';
+import { HelperDB, createDB, createPolygonPartsPayload } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import { getEntitiesNames, isValidUUIDv4, toExpectedPostgresResponse } from './helpers/utils';
 

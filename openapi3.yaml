@@ -22,7 +22,7 @@ paths:
           name: catalogId
           schema:
             type: string
-          # $ref: ./Schema/ingestionTrigger/metadata/rasterLayerMetadata.yaml#/components/schemas/RasterLayerBaseMetadata/productId
+            format: uuid
           required: true
       responses:
         '200':

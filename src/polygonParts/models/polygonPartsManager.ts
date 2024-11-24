@@ -1,4 +1,4 @@
-import { ConflictError, HttpError, InternalServerError, NotFoundError } from '@map-colonies/error-types';
+import { ConflictError, NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { EntityManager } from 'typeorm';

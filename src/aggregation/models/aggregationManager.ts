@@ -55,7 +55,7 @@ export class AggregationManager {
     } catch (error) {
       const errorMessage = `Could not aggregate polygon parts`;
       this.logger.error({ msg: errorMessage, error });
-      throw new InternalServerError(errorMessage);
+      throw error;
     }
   }
 

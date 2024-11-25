@@ -1,10 +1,11 @@
+import type { AggregationLayerMetadata } from '@map-colonies/mc-model-types';
 import type { RequestHandler } from 'express';
 import httpStatus from 'http-status-codes';
 import { inject, injectable } from 'tsyringe';
 import { AggregationManager } from '../models/aggregationManager';
-import type { AggregationMetadata, AggregationParams } from '../models/interfaces';
+import type { AggregationParams } from '../models/interfaces';
 
-type GetAggregationHandler = RequestHandler<AggregationParams, AggregationMetadata, undefined>;
+type GetAggregationHandler = RequestHandler<AggregationParams, AggregationLayerMetadata, undefined>;
 
 @injectable()
 export class AggregationController {
@@ -12,7 +13,7 @@ export class AggregationController {
 
   public getAggregationMetadata: GetAggregationHandler = async (req, res, next) => {
     try {
-      const aggregationMetadata = await this.aggregationManager.getAggregationMetadata(req.params);
+      const aggregationMetadata = await this.aggregationManager.getAggregationLayerMetadata(req.params);
       return res.status(httpStatus.OK).json(aggregationMetadata);
     } catch (error) {
       next(error);

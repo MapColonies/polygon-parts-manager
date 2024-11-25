@@ -47,6 +47,9 @@
         "namePrefix": "",
         "nameSuffix": ""
       }
+    },
+    "aggregation": {
+      "maxDecimalDigits": 12
     }
   },
   "db": {

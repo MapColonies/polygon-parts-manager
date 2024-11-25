@@ -22,6 +22,7 @@ data:
   ENTITY_PARTS_NAME_SUFFIX: {{ .Values.env.application.entities.parts.nameSuffix | quote }}
   ENTITY_POLYGON_PARTS_NAME_PREFIX: {{ .Values.env.application.entities.polygonParts.namePrefix | quote }}
   ENTITY_POLYGON_PARTS_NAME_SUFFIX: {{ .Values.env.application.entities.polygonParts.nameSuffix | quote }}
+  AGGREGATION_MAX_DECIMAL_DIGITS: {{ .Values.env.application.aggregation.maxDecimalDigits | quote }}
   DB_HOST: {{ $db.host | quote }}
   DB_PORT: {{ $db.port | quote }}
   DB_NAME: {{ $db.name | quote }}

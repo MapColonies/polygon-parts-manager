@@ -67,6 +67,9 @@
         "namePrefix": "ENTITY_POLYGON_PARTS_NAME_PREFIX",
         "nameSuffix": "ENTITY_POLYGON_PARTS_NAME_SUFFIX"
       }
+    },
+    "aggregation": {
+      "maxDecimalDigits": "AGGREGATION_MAX_DECIMAL_DIGITS"
     }
   },
   "db": {

@@ -31,7 +31,7 @@ export const createPolygonPart = (): PolygonPart => {
       () => {
         return faker.word.words();
       },
-      { count: { min: 0, max: 3 } }
+      { count: { min: 1, max: 3 } }
     ),
     sourceName: faker.word.words().replace(' ', '_'),
     sourceResolutionMeter: faker.number.float(VALIDATIONS.resolutionMeter),

@@ -16,7 +16,7 @@ paths:
         - aggregation
       summary: Get aggregated polygon-parts data by catalog id
       description: Get aggregated polygon-parts data by catalog id
-      operationId: getAggregationMetadata
+      operationId: getAggregationLayerMetadata
       parameters:
         - in: path
           name: catalogId

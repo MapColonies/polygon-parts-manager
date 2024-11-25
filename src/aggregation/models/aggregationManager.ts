@@ -14,6 +14,7 @@ import { aggregationMetadataSchema } from './validations';
 
 @injectable()
 export class AggregationManager {
+  private readonly arraySeparator: string;
   private readonly maxDecimalDigits: number;
 
   public constructor(
@@ -22,6 +23,7 @@ export class AggregationManager {
     @inject(SERVICES.CONNECTION_MANAGER) private readonly connectionManager: ConnectionManager,
     @inject(CatalogClient) private readonly catalogClient: CatalogClient
   ) {
+    this.arraySeparator = this.config.get<string>('application.arraySeparator');
     this.maxDecimalDigits = this.config.get<number>('application.aggregation.maxDecimalDigits');
   }
 
@@ -68,7 +70,7 @@ export class AggregationManager {
       .addSelect((subQuery) => {
         return subQuery.select(`array_agg("sensors_sub_query".sensors_records)`).from((innerSubQuery) => {
           return innerSubQuery
-            .select(`DISTINCT unnest(string_to_array("polygon_part".sensors, ','))`, 'sensors_records')
+            .select(`DISTINCT unnest(string_to_array("polygon_part".sensors, '${this.arraySeparator}'))`, 'sensors_records')
             .from(polygonPartTableName, 'polygon_part')
             .orderBy('sensors_records', 'ASC');
         }, 'sensors_sub_query');

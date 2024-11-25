@@ -11,7 +11,7 @@ type GetAggregationHandler = RequestHandler<AggregationParams, AggregationLayerM
 export class AggregationController {
   public constructor(@inject(AggregationManager) private readonly aggregationManager: AggregationManager) {}
 
-  public getAggregationMetadata: GetAggregationHandler = async (req, res, next) => {
+  public getAggregationLayerMetadata: GetAggregationHandler = async (req, res, next) => {
     try {
       const aggregationMetadata = await this.aggregationManager.getAggregationLayerMetadata(req.params);
       return res.status(httpStatus.OK).json(aggregationMetadata);

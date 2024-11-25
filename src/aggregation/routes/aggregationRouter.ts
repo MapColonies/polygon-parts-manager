@@ -6,7 +6,7 @@ const aggregationRouterFactory: FactoryFunction<Router> = (dependencyContainer) 
   const router = Router();
   const controller = dependencyContainer.resolve(AggregationController);
 
-  router.get('/:catalogId', controller.getAggregationMetadata);
+  router.get('/:catalogId', controller.getAggregationLayerMetadata);
 
   return router;
 };

@@ -30,7 +30,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Aggregation'
+                $ref: '#/components/schemas/AggregationLayerMetadata'
         '400':
           description: Bad Request
           content:
@@ -134,9 +134,9 @@ components:
     PolygonPartsPayload:
       $ref: >-
         ./Schema/polygonPartsManager/payload.yaml#/components/schemas/PolygonPartsPayload
-    Aggregation:
-      type: object
+    AggregationLayerMetadata:
       additionalProperties: false
+      type: object
       properties:
         imagingTimeBeginUTC:
           type: string
@@ -148,24 +148,49 @@ components:
           format: date-time
         maxResolutionDeg:
           type: number
+          minimum: 1.67638e-7
+          maximum: 0.703125
           format: double
+          description: Maximal resolution of layer in degrees/pixel
         minResolutionDeg:
           type: number
+          minimum: 1.67638e-7
+          maximum: 0.703125
           format: double
+          description: Minimal resolution of layer in degrees/pixel
         maxResolutionMeter:
           type: number
+          minimum: 0.0185
+          maximum: 78271.52
           format: double
+          description: Maximal resolution of layer in meters
         minResolutionMeter:
           type: number
+          minimum: 0.0185
+          maximum: 78271.52
           format: double
+          description: Minimal resolution of layer in meters
         maxHorizontalAccuracyCE90:
           type: number
+          minimum: 0.01
+          maximum: 4000
           format: double
+          description: Maximal horizontal accuracy
         minHorizontalAccuracyCE90:
           type: number
+          minimum: 0.01
+          maximum: 4000
           format: double
-        sensors:
+          description: Minimal horizontal accuracy
+        productBoundingBox:
           type: string
+        sensors:
+          type: array
+          items:
+            type: string
+            pattern: ^(?! ).+(?<! )$
+          minItems: 1
+          description: Layer sensors list
         footprint:
           oneOf:
             - $ref: './Schema/geojson.yaml#/components/schemas/Polygon'
@@ -179,6 +204,7 @@ components:
         - minResolutionMeter
         - maxHorizontalAccuracyCE90
         - minHorizontalAccuracyCE90
+        - productBoundingBox
         - sensors
         - footprint
     ErrorMessage:

@@ -1,5 +1,5 @@
 import type { Logger } from '@map-colonies/js-logger';
-import type { AggregationLayerMetadata } from '@map-colonies/mc-model-types';
+import { aggregationLayerMetadataSchema, type AggregationLayerMetadata } from '@map-colonies/mc-model-types';
 import { inject, injectable } from 'tsyringe';
 import { SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
@@ -10,7 +10,6 @@ import { PolygonPart } from '../../polygonParts/DAL/polygonPart';
 import { getEntitiesNames } from '../../polygonParts/DAL/utils';
 import type { PolygonPartsPayload } from '../../polygonParts/models/interfaces';
 import type { AggregationParams } from './interfaces';
-import { aggregationMetadataSchema } from './validations';
 
 @injectable()
 export class AggregationManager {
@@ -37,7 +36,7 @@ export class AggregationManager {
 
     try {
       const aggregationResult = await aggregationQuery.getRawOne<AggregationLayerMetadata>();
-      const aggregationMetadataLayer = aggregationMetadataSchema.parse(aggregationResult);
+      const aggregationMetadataLayer = aggregationLayerMetadataSchema.parse(aggregationResult);
       return aggregationMetadataLayer;
     } catch (error) {
       const errorMessage = `Could not aggregate polygon parts`;

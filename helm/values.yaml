@@ -63,6 +63,8 @@ env:
       polygonParts:
         namePrefix: ''
         nameSuffix: ''
+    aggregation:
+      maxDecimalDigits: 12
   httpRetry:
     attempts: 5
     delay: exponential

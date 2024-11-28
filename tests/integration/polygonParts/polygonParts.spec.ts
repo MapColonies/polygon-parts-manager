@@ -15,6 +15,7 @@ import { SERVICES } from '../../../src/common/constants';
 import type { DbConfig } from '../../../src/common/interfaces';
 import { Part } from '../../../src/polygonParts/DAL/part';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
+import { getEntitiesNames } from '../../../src/polygonParts/DAL/utils';
 import type { PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import {
   createInitPayloadRequest,
@@ -34,7 +35,7 @@ import polygonHoleSplitter from './data/polygonHoleSplitter.json';
 import { INITIAL_DB } from './helpers/constants';
 import { HelperDB, createDB, createPolygonPartsPayload } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
-import { getEntitiesNames, isValidUUIDv4, toExpectedPostgresResponse } from './helpers/utils';
+import { isValidUUIDv4, toExpectedPostgresResponse } from './helpers/utils';
 
 let testDataSourceOptions: DataSourceOptions;
 const dbConfig = config.get<Required<DbConfig>>('db');

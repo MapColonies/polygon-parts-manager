@@ -45,7 +45,7 @@ export const getDatabaseObjectQualifiedName = (value: string): string => {
   return `${schema}.${value}`;
 };
 
-export const getEntitiesNames = (polygonPartsPayload: Pick<PolygonPartsPayload, 'productId' | 'productType'>): EntityNames => {
+export const getEntitiesNames = (polygonPartsPayload: PolygonPartsPayload): EntityNames => {
   const { productId, productType } = polygonPartsPayload;
   const baseName = [productId, productType].join('_').toLowerCase();
   const partsEntityName = `${applicationConfig.entities.parts.namePrefix}${baseName}${applicationConfig.entities.parts.nameSuffix}`;

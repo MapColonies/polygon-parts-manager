@@ -15,6 +15,9 @@ export interface ApplicationConfig {
       nameSuffix: string;
     };
   };
+  aggregation: {
+    maxDecimalDigits: number;
+  };
 }
 
 export type DbConfig = PostgresConnectionOptions & {

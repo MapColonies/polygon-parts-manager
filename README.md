@@ -88,16 +88,16 @@ production.json:
     "port": 5432,
     "username": "postgres",
     "password": "password",
-    "enableSslAuth": false,
-    "sslPaths": {
-      "ca": "",
+    "enableSslAuth": false      //Note: when ssl is enabled , ssl keys could be mounted the same way as config
+    "sslPaths": {  //Note: this should hold the paths to the keys inside the mounted folder
+      "ca": "",  
       "key": "",
       "cert": ""
     },
     "database": "test_migrations",
     "schema": "polygon_parts",
     "synchronize": false,
-    "logging": "all",
+    "logging": "all",    //available values: false , true, "all" 
     "entities": ["**/DAL/*.js"],
     "migrations": ["db/migrations/*.js"],
     "applicationName": "polygon_parts"

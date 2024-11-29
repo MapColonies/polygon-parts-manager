@@ -25,15 +25,6 @@
       }
     }
   },
-  "httpRetry": {
-    "attempts": 5,
-    "delay": "exponential",
-    "shouldResetTimeout": true
-  },
-  "disableHttpClientLogs": true,
-  "servicesUrl": {
-    "catalogManager": "http://localhost:8085"
-  },
   "application": {
     "arraySeparator": ",",
     "createPolygonPartsTablesStoredProcedure": "create_polygon_parts_tables",

@@ -37,9 +37,6 @@ metrics:
     scrape: false
     port: 8080
 
-serviceUrls:
-  catalogManager: ""
-
 image:
   repository: polygon-parts-manager
   tag: 'latest'
@@ -65,11 +62,6 @@ env:
         nameSuffix: ''
     aggregation:
       maxDecimalDigits: 12
-  httpRetry:
-    attempts: 5
-    delay: exponential
-    resetTimeout: 30000
-  disableHttpClientLogs: true
 
 # external
 db:

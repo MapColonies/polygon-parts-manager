@@ -10,11 +10,6 @@ kind: ConfigMap
 metadata:
   name: {{ $configmapName }}
 data:
-  HTTP_RETRY_ATTEMPTS: {{ .Values.env.httpRetry.attempts | quote }} # TODO: use *with* template
-  HTTP_RETRY_DELAY: {{ .Values.env.httpRetry.delay | quote }}
-  HTTP_RETRY_RESET_TIMEOUT: {{ .Values.env.httpRetry.resetTimeout | quote }}
-  DISABLE_HTTP_CLIENT_LOGS: {{ .Values.env.disableHttpClientLogs | quote }}
-  CATALOG_MANAGER_URL: {{ $serviceUrls.catalogManager | quote }}
   ARRAY_SEPARATOR: {{ .Values.env.application.arraySeparator | quote }}
   CREATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE: {{ .Values.env.application.createPolygonPartsTablesStoredProcedure | quote }}
   UPDATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE: {{ .Values.env.application.updatePolygonPartsTablesStoredProcedure | quote }}

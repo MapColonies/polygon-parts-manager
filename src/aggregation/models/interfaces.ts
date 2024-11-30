@@ -1,8 +1,6 @@
-import { IPolygonPart } from '@map-colonies/mc-model-types';
+import type { PolygonPartsEntityName } from '@map-colonies/mc-model-types';
 
 /**
  * Aggregation params
  */
-export interface AggregationParams {
-  readonly catalogId: Pick<IPolygonPart, 'id'>['id'];
-}
+export interface AggregationParams extends Readonly<PolygonPartsEntityName> {}

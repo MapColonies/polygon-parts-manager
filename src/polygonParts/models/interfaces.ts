@@ -1,9 +1,13 @@
-import type { PolygonPart, PolygonPartsPayload as PolygonPartsPayloadType, ProductType as ProductTypeEnum } from '@map-colonies/mc-model-types';
+import type {
+  PolygonPart,
+  PolygonPartsEntityName,
+  PolygonPartsPayload as PolygonPartsPayloadType,
+  RasterProductTypes,
+} from '@map-colonies/mc-model-types';
 import type { DbConfig } from '../../common/interfaces';
-import type { EnsureType } from '../../common/types';
-import { PRODUCT_TYPES } from './constants';
 
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
+interface PolygonPartsResponse extends PolygonPartsEntityName {}
 
 /**
  * Properties of part data for insertion
@@ -18,8 +22,18 @@ export interface InsertPartData extends Readonly<Omit<CommonPayload, 'countries'
  * Polygon parts ingestion payload
  */
 export interface PolygonPartsPayload extends Omit<PolygonPartsPayloadType, 'productType'> {
-  readonly productType: ProductType;
+  readonly productType: RasterProductTypes;
 }
+
+/**
+ * Polygon parts ingestion response
+ */
+export interface CreatePolygonPartsResponse extends PolygonPartsResponse {}
+
+/**
+ * Polygon parts update response
+ */
+export interface UpdatePolygonPartsResponse extends PolygonPartsResponse {}
 
 /**
  * Common record properties of part and polygon part
@@ -65,11 +79,6 @@ export interface EntityNames {
  * DB schema type
  */
 export type DBSchema = DbConfig['schema'];
-
-/**
- * Product type values acceptable for polygon parts
- */
-export type ProductType = Extract<`${ProductTypeEnum}`, EnsureType<(typeof PRODUCT_TYPES)[number], `${ProductTypeEnum}`>>;
 
 export interface IsSwapQueryParams {
   isSwap: boolean;

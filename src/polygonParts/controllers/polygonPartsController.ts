@@ -1,14 +1,17 @@
 import type { RequestHandler } from 'express';
 import httpStatus from 'http-status-codes';
 import { inject, injectable } from 'tsyringe';
-import type { IsSwapQueryParams, PolygonPartsPayload } from '../models/interfaces';
+import type {
+  CreatePolygonPartsResponse,
+  EntityNames,
+  IsSwapQueryParams,
+  PolygonPartsPayload,
+  UpdatePolygonPartsResponse,
+} from '../models/interfaces';
 import { PolygonPartsManager } from '../models/polygonPartsManager';
 
-type CreatePolygonPartsHandler = RequestHandler<undefined, string, PolygonPartsPayload>;
-type UpdatePolygonPartsHandler = RequestHandler<undefined, string, PolygonPartsPayload, IsSwapQueryParams>;
-
-const HTTP_STATUS_CREATED_TEXT = httpStatus.getStatusText(httpStatus.CREATED);
-const HTTP_STATUS_OK_TEXT = httpStatus.getStatusText(httpStatus.OK);
+export type CreatePolygonPartsHandler = RequestHandler<undefined, CreatePolygonPartsResponse, PolygonPartsPayload, undefined, EntityNames>;
+export type UpdatePolygonPartsHandler = RequestHandler<undefined, UpdatePolygonPartsResponse, PolygonPartsPayload, IsSwapQueryParams, EntityNames>;
 
 @injectable()
 export class PolygonPartsController {
@@ -16,8 +19,8 @@ export class PolygonPartsController {
 
   public createPolygonParts: CreatePolygonPartsHandler = async (req, res, next) => {
     try {
-      await this.polygonPartsManager.createPolygonParts(req.body);
-      return res.status(httpStatus.CREATED).send(HTTP_STATUS_CREATED_TEXT);
+      const response = await this.polygonPartsManager.createPolygonParts(req.body, res.locals);
+      return res.status(httpStatus.CREATED).send(response);
     } catch (error) {
       next(error);
     }
@@ -26,8 +29,8 @@ export class PolygonPartsController {
   public updatePolygonParts: UpdatePolygonPartsHandler = async (req, res, next) => {
     try {
       const isSwap = req.query.isSwap;
-      await this.polygonPartsManager.updatePolygonParts(isSwap, req.body);
-      return res.status(httpStatus.OK).send(HTTP_STATUS_OK_TEXT);
+      const response = await this.polygonPartsManager.updatePolygonParts(isSwap, req.body, res.locals);
+      return res.status(httpStatus.OK).send(response);
     } catch (error) {
       next(error);
     }

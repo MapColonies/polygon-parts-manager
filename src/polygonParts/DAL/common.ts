@@ -1,6 +1,6 @@
+import { RASTER_PRODUCT_TYPES, type RasterProductTypes } from '@map-colonies/mc-model-types';
 import { Check, Column, CreateDateColumn, Index, PrimaryGeneratedColumn, type Polygon } from 'typeorm';
-import type { CommonRecord, ProductType } from '../models/interfaces';
-import { PRODUCT_TYPES } from '../models/constants';
+import type { CommonRecord } from '../models/interfaces';
 
 export class Common implements CommonRecord {
   @PrimaryGeneratedColumn('uuid')
@@ -14,10 +14,10 @@ export class Common implements CommonRecord {
   @Column({
     type: 'enum',
     enumName: 'product_type_enum',
-    enum: PRODUCT_TYPES,
+    enum: RASTER_PRODUCT_TYPES,
   })
   @Index()
-  public productType!: ProductType;
+  public productType!: RasterProductTypes;
 
   @Column({ type: 'uuid' })
   @Index()

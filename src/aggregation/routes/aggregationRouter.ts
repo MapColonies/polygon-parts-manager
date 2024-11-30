@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import type { FactoryFunction } from 'tsyringe';
+import { validateGetAggregationLayerMetadata } from '../../common/middlewares/validations';
 import { AggregationController } from '../controllers/aggregationController';
 
 const aggregationRouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
   const router = Router();
   const controller = dependencyContainer.resolve(AggregationController);
 
-  router.get('/:catalogId', controller.getAggregationLayerMetadata);
+  router.get('/:polygonPartsEntityName', validateGetAggregationLayerMetadata, controller.getAggregationLayerMetadata);
 
   return router;
 };

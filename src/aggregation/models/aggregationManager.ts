@@ -1,59 +1,70 @@
+import { NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
-import { aggregationLayerMetadataSchema, type AggregationLayerMetadata } from '@map-colonies/mc-model-types';
+import { aggregationMetadataSchema, type AggregationLayerMetadata, type PolygonPartsEntityName } from '@map-colonies/mc-model-types';
 import { inject, injectable } from 'tsyringe';
-import { SelectQueryBuilder } from 'typeorm';
+import { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
-import { SERVICES } from '../../common/constants';
-import type { IConfig } from '../../common/interfaces';
-import { CatalogClient } from '../../httpClient/catalogClient';
+import { DEFAULT_SCHEMA, SERVICES } from '../../common/constants';
+import type { ApplicationConfig, IConfig } from '../../common/interfaces';
 import { PolygonPart } from '../../polygonParts/DAL/polygonPart';
-import { getEntitiesNames } from '../../polygonParts/DAL/utils';
-import type { PolygonPartsPayload } from '../../polygonParts/models/interfaces';
+import { getDatabaseObjectQualifiedName } from '../../polygonParts/DAL/utils';
+import type { DBSchema } from '../../polygonParts/models/interfaces';
 import type { AggregationParams } from './interfaces';
 
 @injectable()
 export class AggregationManager {
   private readonly arraySeparator: string;
   private readonly maxDecimalDigits: number;
+  private readonly schema: NonNullable<DBSchema>;
 
   public constructor(
     @inject(SERVICES.CONFIG) private readonly config: IConfig,
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
-    @inject(SERVICES.CONNECTION_MANAGER) private readonly connectionManager: ConnectionManager,
-    @inject(CatalogClient) private readonly catalogClient: CatalogClient
+    @inject(SERVICES.CONNECTION_MANAGER) private readonly connectionManager: ConnectionManager
   ) {
-    this.arraySeparator = this.config.get<string>('application.arraySeparator');
-    this.maxDecimalDigits = this.config.get<number>('application.aggregation.maxDecimalDigits');
+    this.arraySeparator = this.config.get<ApplicationConfig['arraySeparator']>('application.arraySeparator');
+    this.maxDecimalDigits = this.config.get<ApplicationConfig['aggregation']['maxDecimalDigits']>('application.aggregation.maxDecimalDigits');
+    this.schema = config.get<DBSchema>('db.schema') ?? DEFAULT_SCHEMA;
   }
 
   public async getAggregationLayerMetadata(aggregationParams: AggregationParams): Promise<AggregationLayerMetadata> {
-    const logger = this.logger.child({ catalogId: aggregationParams.catalogId });
+    const { polygonPartsEntityName } = aggregationParams;
+    const logger = this.logger.child({ polygonPartsEntityName: polygonPartsEntityName });
     logger.info({ msg: 'metadata aggregation request' });
 
-    const findOptions = { id: aggregationParams.catalogId };
-    const layerMetadatas = await this.catalogClient.find(findOptions);
-    const aggregationQuery = this.buildAggregationQuery(layerMetadatas.metadata);
-
     try {
-      const aggregationResult = await aggregationQuery.getRawOne<AggregationLayerMetadata>();
-      const aggregationMetadataLayer = aggregationLayerMetadataSchema.parse(aggregationResult);
-      return aggregationMetadataLayer;
+      const response = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        const exists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName);
+        if (!exists) {
+          throw new NotFoundError(`table with the name '${polygonPartsEntityName}' doesn't exists`);
+        }
+        const aggregationQuery = this.buildAggregationQuery(entityManager, getDatabaseObjectQualifiedName(polygonPartsEntityName));
+
+        try {
+          const aggregationResult = await aggregationQuery.getRawOne<AggregationLayerMetadata>();
+          const aggregationMetadataLayer = aggregationMetadataSchema.parse(aggregationResult);
+          return aggregationMetadataLayer;
+        } catch (error) {
+          const errorMessage = `Could not aggregate polygon parts`;
+          this.logger.error({ msg: errorMessage, error });
+          throw error;
+        }
+      });
+
+      return response;
     } catch (error) {
-      const errorMessage = `Could not aggregate polygon parts`;
-      this.logger.error({ msg: errorMessage, error });
+      const errorMessage = 'Transaction failed';
+      logger.error({ msg: errorMessage, error });
       throw error;
     }
   }
 
-  private buildAggregationQuery({
-    productId,
-    productType,
-  }: Pick<PolygonPartsPayload, 'productId' | 'productType'>): SelectQueryBuilder<AggregationLayerMetadata> {
-    const dataSource = this.connectionManager.getDataSource();
-    const polygonPart = dataSource.getRepository(PolygonPart);
-
-    const polygonPartTableName = getEntitiesNames({ productId, productType }).polygonParts.databaseObjectQualifiedName;
-    polygonPart.metadata.tablePath = polygonPartTableName;
+  private buildAggregationQuery(
+    entityManager: EntityManager,
+    polygonPartsEntityName: PolygonPartsEntityName['polygonPartsEntityName']
+  ): SelectQueryBuilder<AggregationLayerMetadata> {
+    const polygonPart = entityManager.getRepository(PolygonPart);
+    polygonPart.metadata.tablePath = polygonPartsEntityName; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
 
     const aggregationCTE = polygonPart
       .createQueryBuilder('polygon_part')
@@ -70,7 +81,7 @@ export class AggregationManager {
         return subQuery.select(`array_agg("sensors_sub_query".sensors_records)`).from((innerSubQuery) => {
           return innerSubQuery
             .select(`DISTINCT unnest(string_to_array("polygon_part".sensors, '${this.arraySeparator}'))`, 'sensors_records')
-            .from(polygonPartTableName, 'polygon_part')
+            .from(polygonPartsEntityName, 'polygon_part')
             .orderBy('sensors_records', 'ASC');
         }, 'sensors_sub_query');
       }, 'sensors');
@@ -81,6 +92,8 @@ export class AggregationManager {
       .select('*')
       .addSelect(`trim(both '[]' from "aggregationCTE".footprint ->> 'bbox')`, 'productBoundingBox')
       .from<AggregationLayerMetadata>('aggregationCTE', 'aggregationCTE');
+
+    console.log('SQL', aggregationQuery.getSql());
 
     return aggregationQuery;
   }

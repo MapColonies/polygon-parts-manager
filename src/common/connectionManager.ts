@@ -2,14 +2,15 @@ import { readFileSync } from 'fs';
 import { Logger } from '@map-colonies/js-logger';
 import { types } from 'pg';
 import { inject, singleton } from 'tsyringe';
-import { DataSource, type DataSourceOptions } from 'typeorm';
+import { DataSource, type DataSourceOptions, type EntityManager } from 'typeorm';
 import type { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
-import { SERVICES } from '../common/constants';
+import { DEFAULT_SCHEMA, SERVICES } from '../common/constants';
 import { DBConnectionError } from '../common/errors';
 import type { DbConfig, IConfig } from '../common/interfaces';
 import { Part } from '../polygonParts/DAL/part';
 import { PolygonPart } from '../polygonParts/DAL/polygonPart';
 import { namingStrategy } from '../polygonParts/DAL/utils';
+import type { DBSchema } from '../polygonParts/models/interfaces';
 
 // postgresql - parse NUMERIC and BIGINT as numbers instead of strings
 types.setTypeParser(types.builtins.NUMERIC, (value) => parseFloat(value));
@@ -20,9 +21,11 @@ types.setTypeParser(types.builtins.FLOAT4, (value) => parseFloat(value));
 export class ConnectionManager {
   private readonly dataSource: DataSource;
   private readonly dataSourceOptions: DataSourceOptions;
+  private readonly schema: NonNullable<DBSchema>;
 
   public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, @inject(SERVICES.CONFIG) private readonly config: IConfig) {
     const connectionConfig = this.config.get<DbConfig>('db');
+    this.schema = connectionConfig.schema ?? DEFAULT_SCHEMA;
     this.dataSourceOptions = ConnectionManager.createConnectionOptions(connectionConfig);
     this.dataSource = new DataSource(this.dataSourceOptions);
   }
@@ -72,5 +75,16 @@ export class ConnectionManager {
       throw new DBConnectionError();
     }
     await this.dataSource.destroy();
+  }
+
+  public async entityExists(entityManager: EntityManager, entityName: string): Promise<boolean> {
+    const exists = await entityManager
+      .createQueryBuilder()
+      .select()
+      .from('information_schema.tables', 'information_schema.tables')
+      .where(`table_schema = '${this.schema}'`)
+      .andWhere(`table_name = '${entityName}'`)
+      .getExists();
+    return exists;
   }
 }

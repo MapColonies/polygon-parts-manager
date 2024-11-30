@@ -6,8 +6,8 @@ import { ConnectionManager } from '../../common/connectionManager';
 import { DEFAULT_SCHEMA, SERVICES } from '../../common/constants';
 import type { ApplicationConfig, IConfig } from '../../common/interfaces';
 import { Part } from '../DAL/part';
-import { getEntitiesNames, payloadToInsertPartsData } from '../DAL/utils';
-import type { DBSchema, EntityName, EntityNames, PolygonPartsPayload } from './interfaces';
+import { payloadToInsertPartsData } from '../DAL/utils';
+import type { CreatePolygonPartsResponse, DBSchema, EntityName, EntityNames, PolygonPartsPayload, UpdatePolygonPartsResponse } from './interfaces';
 
 @injectable()
 export class PolygonPartsManager {
@@ -23,27 +23,31 @@ export class PolygonPartsManager {
     this.schema = config.get<DBSchema>('db.schema') ?? DEFAULT_SCHEMA;
   }
 
-  public async createPolygonParts(polygonPartsPayload: PolygonPartsPayload): Promise<void> {
+  public async createPolygonParts(polygonPartsPayload: PolygonPartsPayload, entityNames: EntityNames): Promise<CreatePolygonPartsResponse> {
     const { catalogId } = polygonPartsPayload;
 
     const logger = this.logger.child({ catalogId });
     logger.info({ msg: 'creating polygon parts' });
 
     try {
-      await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+      const polygonPartsEntityName = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
         const baseIngestionContext = {
           entityManager,
           logger,
-          polygonPartsPayload,
+          entityNames,
         };
 
         await entityManager.query(`SET search_path TO ${this.schema},public`);
-        const entityNames = await this.verifyAvailableTableNames(baseIngestionContext);
-        const ingestionContext = { ...baseIngestionContext, entityNames };
+        await this.verifyAvailableTableNames(baseIngestionContext);
+        const ingestionContext = { ...baseIngestionContext, polygonPartsPayload };
         await this.createTables(ingestionContext);
         await this.insertParts(ingestionContext);
         await this.calculatePolygonParts(ingestionContext);
+
+        return entityNames.polygonParts.entityName;
       });
+
+      return { polygonPartsEntityName };
     } catch (error) {
       const errorMessage = 'Transaction failed';
       logger.error({ msg: errorMessage, error });
@@ -51,29 +55,37 @@ export class PolygonPartsManager {
     }
   }
 
-  public async updatePolygonParts(isSwap: boolean, polygonPartsPayload: PolygonPartsPayload): Promise<void> {
+  public async updatePolygonParts(
+    isSwap: boolean,
+    polygonPartsPayload: PolygonPartsPayload,
+    entityNames: EntityNames
+  ): Promise<UpdatePolygonPartsResponse> {
     const { catalogId } = polygonPartsPayload;
 
     const logger = this.logger.child({ catalogId });
     logger.info({ msg: `updating polygon parts` });
 
     try {
-      await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+      const polygonPartsEntityName = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
         const baseUpdateContext = {
           entityManager,
           logger,
-          polygonPartsPayload,
+          entityNames,
         };
 
         await entityManager.query(`SET search_path TO ${this.schema},public`);
-        const entityNames = await this.getEntitiesNamesIfExists(baseUpdateContext);
-        const updateContext = { ...baseUpdateContext, entityNames };
+        await this.getEntitiesNamesIfExists(baseUpdateContext);
+        const updateContext = { ...baseUpdateContext, polygonPartsPayload };
         if (isSwap) {
           await this.truncateEntities(updateContext);
         }
         await this.insertParts(updateContext);
         await this.calculatePolygonParts(updateContext);
+
+        return entityNames.polygonParts.entityName;
       });
+
+      return { polygonPartsEntityName };
     } catch (error) {
       const errorMessage = 'Transaction failed';
       logger.error({ msg: errorMessage, error });
@@ -81,20 +93,14 @@ export class PolygonPartsManager {
     }
   }
 
-  private async verifyAvailableTableNames(context: {
-    entityManager: EntityManager;
-    logger: Logger;
-    polygonPartsPayload: PolygonPartsPayload;
-  }): Promise<EntityNames> {
-    const { entityManager, logger, polygonPartsPayload } = context;
-    const entityNames = getEntitiesNames(polygonPartsPayload);
-
+  private async verifyAvailableTableNames(context: { entityManager: EntityManager; logger: Logger; entityNames: EntityNames }): Promise<void> {
+    const { entityManager, logger, entityNames } = context;
     logger.debug({ msg: 'verifying polygon parts table names are available' });
 
     await Promise.all(
       Object.values<EntityName>({ ...entityNames }).map(async ({ databaseObjectQualifiedName, entityName }) => {
         try {
-          const exists = await this.entityExists(entityManager, entityName);
+          const exists = await this.connectionManager.entityExists(entityManager, entityName);
           if (exists) {
             throw new ConflictError(`table with the name '${databaseObjectQualifiedName}' already exists`);
           }
@@ -105,7 +111,6 @@ export class PolygonPartsManager {
         }
       })
     );
-    return entityNames;
   }
 
   private async createTables(context: { entityNames: EntityNames; entityManager: EntityManager; logger: Logger }): Promise<void> {
@@ -180,33 +185,16 @@ export class PolygonPartsManager {
     }
   }
 
-  private async entityExists(entityManager: EntityManager, entityName: string): Promise<boolean> {
-    const exists = await entityManager
-      .createQueryBuilder()
-      .select()
-      .from('information_schema.tables', 'information_schema.tables')
-      .where(`table_schema = '${this.schema}'`)
-      .andWhere(`table_name = '${entityName}'`)
-      .getExists();
-    return exists;
-  }
-
-  private async getEntitiesNamesIfExists(context: {
-    entityManager: EntityManager;
-    logger: Logger;
-    polygonPartsPayload: PolygonPartsPayload;
-  }): Promise<EntityNames> {
-    const { entityManager, logger, polygonPartsPayload } = context;
-    const entityNames = getEntitiesNames(polygonPartsPayload);
-
+  private async getEntitiesNamesIfExists(context: { entityManager: EntityManager; logger: Logger; entityNames: EntityNames }): Promise<void> {
+    const { entityManager, logger, entityNames } = context;
     logger.debug({ msg: `verifying entities exists` });
 
     await Promise.all(
       Object.values<EntityName>({ ...entityNames }).map(async ({ databaseObjectQualifiedName, entityName }) => {
         try {
-          const exists = await this.entityExists(entityManager, entityName);
+          const exists = await this.connectionManager.entityExists(entityManager, entityName);
           if (!exists) {
-            throw new NotFoundError(`table with the name '${databaseObjectQualifiedName}' doesnt exists`);
+            throw new NotFoundError(`table with the name '${databaseObjectQualifiedName}' doesn't exists`);
           }
         } catch (error) {
           const errorMessage = `Could not verify polygon parts table name '${databaseObjectQualifiedName}' is available`;
@@ -215,17 +203,10 @@ export class PolygonPartsManager {
         }
       })
     );
-    return entityNames;
   }
 
-  private async truncateEntities(updateContext: {
-    entityManager: EntityManager;
-    logger: Logger;
-    polygonPartsPayload: PolygonPartsPayload;
-  }): Promise<EntityNames> {
-    const { entityManager, logger, polygonPartsPayload } = updateContext;
-    const entityNames = getEntitiesNames(polygonPartsPayload);
-
+  private async truncateEntities(updateContext: { entityManager: EntityManager; logger: Logger; entityNames: EntityNames }): Promise<void> {
+    const { entityManager, logger, entityNames } = updateContext;
     logger.debug({ msg: `truncating entities` });
 
     await Promise.all(
@@ -239,7 +220,6 @@ export class PolygonPartsManager {
         }
       })
     );
-    return entityNames;
   }
 
   private async truncateEntity(entityManager: EntityManager, entityName: string): Promise<void> {

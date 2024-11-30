@@ -1,10 +1,9 @@
 import { faker } from '@faker-js/faker';
-import { PolygonPart, VALIDATIONS } from '@map-colonies/mc-model-types';
+import { PolygonPart, RASTER_PRODUCT_TYPES, VALIDATIONS } from '@map-colonies/mc-model-types';
 import { randomPolygon } from '@turf/random';
 import { randexp } from 'randexp';
 import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
 import { DatabaseCreateContext, createDatabase, dropDatabase } from 'typeorm-extension';
-import { PRODUCT_TYPES } from '../../../../src/polygonParts/models/constants';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 
 export const createDB = async (options: Partial<DatabaseCreateContext>): Promise<void> => {
@@ -64,7 +63,7 @@ export const createPolygonPartsPayload = (partsCount = 1): PolygonPartsPayload =
     catalogId: faker.string.uuid(),
     partsData: partsData,
     productId: randexp(VALIDATIONS.productId.pattern),
-    productType: faker.helpers.arrayElement(PRODUCT_TYPES),
+    productType: faker.helpers.arrayElement(RASTER_PRODUCT_TYPES),
     productVersion: randexp(VALIDATIONS.productVersion.pattern),
   };
 };

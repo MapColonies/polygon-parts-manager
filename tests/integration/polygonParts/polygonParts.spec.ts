@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import jsLogger from '@map-colonies/js-logger';
-import type { PolygonPart as PolygonPartType } from '@map-colonies/mc-model-types';
+import type { PolygonPart as PolygonPartType, PolygonPartsEntityName } from '@map-colonies/mc-model-types';
 import { trace } from '@opentelemetry/api';
 import { randomPolygon } from '@turf/random';
 import config from 'config';
@@ -54,9 +54,9 @@ describe('polygonParts', () => {
 
   afterAll(async () => {
     await helperDB.destroyConnection();
-    /* uncomment this when running locally, this deletes the created db after all tests, 
+    /* uncomment this when running locally, this deletes the created db after all tests,
     instead of removing it manually after each run.*/
-    //await deleteDB(testDataSourceOptions);
+    // await deleteDB(testDataSourceOptions);
   });
 
   beforeEach(async () => {
@@ -96,6 +96,7 @@ describe('polygonParts', () => {
         // TODO: once openapi type generator is utilized consider using it's status definition
         // TODO: consider adding a custom matcher - extending jest
         expect(response.status).toBe(httpStatusCodes.CREATED);
+        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords).toMatchObject(expectedPartRecord);
@@ -112,7 +113,7 @@ describe('polygonParts', () => {
         expect(polygonPartRecords[0].insertionOrder).toStrictEqual(partRecords[0].insertionOrder);
         expect(isValidUUIDv4(polygonPartRecords[0].id)).toBeTrue();
 
-        expect.assertions(14);
+        expect.assertions(15);
       });
 
       it('should return 201 status code and create the resources for a single part with a hole', async () => {
@@ -127,6 +128,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
+        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords).toMatchObject(expectedPartRecord);
@@ -143,7 +145,7 @@ describe('polygonParts', () => {
         expect(polygonPartRecords[0].insertionOrder).toStrictEqual(partRecords[0].insertionOrder);
         expect(isValidUUIDv4(polygonPartRecords[0].id)).toBeTrue();
 
-        expect.assertions(14);
+        expect.assertions(15);
       });
 
       it.each([
@@ -161,6 +163,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
+        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
@@ -208,6 +211,7 @@ describe('polygonParts', () => {
         const [polygonPart1, polygonPart2, polygonPart3] = polygonPartRecords;
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
+        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords).toMatchObject([expectedPolygonHole, expectedPolygonSplitter]);
@@ -255,7 +259,7 @@ describe('polygonParts', () => {
           }
         });
 
-        expect.assertions(33);
+        expect.assertions(34);
       });
 
       it('should return 201 status code and create the resources for multiple parts, where the second covers the first', async () => {
@@ -275,6 +279,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
+        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
@@ -298,7 +303,7 @@ describe('polygonParts', () => {
           }
         });
 
-        expect.assertions(19);
+        expect.assertions(20);
       });
 
       it('should return 201 status code and create the resources for multiple parts, where the second is completely within the first (creating a hole)', async () => {
@@ -321,6 +326,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
+        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
@@ -363,7 +369,7 @@ describe('polygonParts', () => {
           }
         });
 
-        expect.assertions(26);
+        expect.assertions(27);
       });
 
       it.todo('test connection re-connection');
@@ -384,6 +390,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
         expect(response).toSatisfyApiSpec();
 
         expect(polygonPartRecords).toHaveLength(4);
@@ -401,6 +408,8 @@ describe('polygonParts', () => {
 
         expect(polygonPartRecords[0].footprint).toEqual(worldMinusSeparateCountries);
         expect(polygonPartRecords[0].insertionOrder).toBe(1);
+
+        expect.assertions(17);
       });
 
       it('should return 200 status code on regular update with 2 intersecting polygons', async () => {
@@ -412,6 +421,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
         expect(response).toSatisfyApiSpec();
 
         expect(polygonPartRecords).toHaveLength(3);
@@ -425,6 +435,8 @@ describe('polygonParts', () => {
         expect(partRecords[2].isProcessedPart).toBe(true);
 
         expect(polygonPartRecords[1].footprint).toEqual(italyWithoutIntersection);
+
+        expect.assertions(13);
       });
 
       it('should return 200 status code on swap update with world polygon', async () => {
@@ -438,12 +450,15 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
         expect(response).toSatisfyApiSpec();
 
         expect(polygonPartRecords).toHaveLength(1);
         expect(partRecords).toHaveLength(1);
         expect(partRecords[0].footprint).toEqual(worldFootprint);
         expect(polygonPartRecords[0].footprint).toEqual(worldFootprint);
+
+        expect.assertions(7);
       });
     });
   });
@@ -1338,20 +1353,20 @@ describe('polygonParts', () => {
       afterEach(() => {
         jest.restoreAllMocks(); // Restore original implementations
       });
-      it('should return 404 status code if a part resource doesnt exist', async () => {
+      it("should return 404 status code if a part resource doesn't exist", async () => {
         const updatePayload = separatePolygonsRequest;
         const { parts } = getEntitiesNames(updatePayload);
 
         const response = await requestSender.updatePolygonParts(updatePayload, false);
 
         expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
-        expect(response.body).toMatchObject({ message: `table with the name '${parts.databaseObjectQualifiedName}' doesnt exists` });
+        expect(response.body).toMatchObject({ message: `table with the name '${parts.databaseObjectQualifiedName}' doesn't exists` });
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);
       });
 
-      it('should return 404 status code if a polygon part resource doesnt exist', async () => {
+      it("should return 404 status code if a polygon part resource doesn't exist", async () => {
         const updatePayload = separatePolygonsRequest;
         const { parts, polygonParts } = getEntitiesNames(updatePayload);
         await helperDB.createTable(parts.entityName, schema);
@@ -1359,7 +1374,7 @@ describe('polygonParts', () => {
         const response = await requestSender.updatePolygonParts(updatePayload, false);
 
         expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
-        expect(response.body).toMatchObject({ message: `table with the name '${polygonParts.databaseObjectQualifiedName}' doesnt exists` });
+        expect(response.body).toMatchObject({ message: `table with the name '${polygonParts.databaseObjectQualifiedName}' doesn't exists` });
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);

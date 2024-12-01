@@ -34,7 +34,7 @@ export const validateGetAggregationLayerMetadata: GetAggregationLayerMetadataHan
     next();
   } catch (error) {
     if (error instanceof ZodError) {
-      throw new BadRequestError(`Input could not qualify for allowed entity identifiers: ${error.message}`);
+      throw new BadRequestError(`Input could not qualify for a valid entity identifiers: ${error.message}`);
     }
     next(error);
   }
@@ -47,7 +47,7 @@ export const parseCreatePolygonParts: CreatePolygonPartsHandler = (req, res, nex
     next();
   } catch (error) {
     if (error instanceof ZodError) {
-      throw new BadRequestError(`Input could not qualify for allowed entity identifiers: ${error.message}`);
+      throw new BadRequestError(`Input could not qualify for a valid entity identifiers: ${error.message}`);
     }
     next(error);
   }

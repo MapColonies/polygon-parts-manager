@@ -49,7 +49,7 @@ export class PolygonPartsManager {
 
       return { polygonPartsEntityName };
     } catch (error) {
-      const errorMessage = 'Transaction failed';
+      const errorMessage = 'Create polygon parts transaction failed';
       logger.error({ msg: errorMessage, error });
       throw error;
     }
@@ -87,7 +87,7 @@ export class PolygonPartsManager {
 
       return { polygonPartsEntityName };
     } catch (error) {
-      const errorMessage = 'Transaction failed';
+      const errorMessage = 'Update polygon parts transaction failed';
       logger.error({ msg: errorMessage, error });
       throw error;
     }

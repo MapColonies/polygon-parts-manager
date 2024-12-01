@@ -53,7 +53,7 @@ export class AggregationManager {
 
       return response;
     } catch (error) {
-      const errorMessage = 'Transaction failed';
+      const errorMessage = 'Aggregation query transaction failed';
       logger.error({ msg: errorMessage, error });
       throw error;
     }

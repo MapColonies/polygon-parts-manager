@@ -6,14 +6,18 @@ import type { CreatePolygonPartsHandler, UpdatePolygonPartsHandler } from '../..
 import { getEntitiesNames } from '../../polygonParts/DAL/utils';
 import type { EntityName, EntityNames, PolygonPartsPayload } from '../../polygonParts/models/interfaces';
 
+const VALID_DATABASE_OBJECT_NAME = '[a-z][a-z0-9_]{0,61}[a-z0-9]';
+const databaseObjectQualifiedName = `^${VALID_DATABASE_OBJECT_NAME}\\.${VALID_DATABASE_OBJECT_NAME}$`;
+const databaseObjectQualifiedNameRegex = new RegExp(databaseObjectQualifiedName);
+
 const polygonPartsDBEntityNameSchema: ZodType<EntityName> = z.object({
   entityName: polygonPartsEntityNameSchema.shape.polygonPartsEntityName,
-  databaseObjectQualifiedName: z.string().regex(new RegExp('^[a-z][a-z0-9_]{0,62}\\.[a-z][a-z0-9_]{0,62}$')),
+  databaseObjectQualifiedName: z.string().regex(databaseObjectQualifiedNameRegex),
 });
 
 const partsDBEntityNameSchema: ZodType<EntityName> = z.object({
   entityName: z.string().regex(new RegExp(VALIDATIONS.polygonPartsEntityName.pattern)),
-  databaseObjectQualifiedName: z.string().regex(new RegExp('^[a-z][a-z0-9_]{0,62}\\.[a-z][a-z0-9_]{0,62}$')),
+  databaseObjectQualifiedName: z.string().regex(databaseObjectQualifiedNameRegex),
 });
 
 const entityNamesSchema: ZodType<EntityNames> = z

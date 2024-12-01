@@ -7,7 +7,6 @@ import type {
 import type { DbConfig } from '../../common/interfaces';
 
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
-interface PolygonPartsResponse extends PolygonPartsEntityName {}
 
 /**
  * Properties of part data for insertion
@@ -26,14 +25,9 @@ export interface PolygonPartsPayload extends Omit<PolygonPartsPayloadType, 'prod
 }
 
 /**
- * Polygon parts ingestion response
+ * Polygon parts response
  */
-export interface CreatePolygonPartsResponse extends PolygonPartsResponse {}
-
-/**
- * Polygon parts update response
- */
-export interface UpdatePolygonPartsResponse extends PolygonPartsResponse {}
+export interface PolygonPartsResponse extends PolygonPartsEntityName {}
 
 /**
  * Common record properties of part and polygon part

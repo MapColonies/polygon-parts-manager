@@ -7,7 +7,7 @@ import { DEFAULT_SCHEMA, SERVICES } from '../../common/constants';
 import type { ApplicationConfig, IConfig } from '../../common/interfaces';
 import { Part } from '../DAL/part';
 import { payloadToInsertPartsData } from '../DAL/utils';
-import type { CreatePolygonPartsResponse, DBSchema, EntityName, EntityNames, PolygonPartsPayload, UpdatePolygonPartsResponse } from './interfaces';
+import type { DBSchema, EntityName, EntityNames, PolygonPartsPayload, PolygonPartsResponse } from './interfaces';
 
 @injectable()
 export class PolygonPartsManager {
@@ -23,7 +23,7 @@ export class PolygonPartsManager {
     this.schema = config.get<DBSchema>('db.schema') ?? DEFAULT_SCHEMA;
   }
 
-  public async createPolygonParts(polygonPartsPayload: PolygonPartsPayload, entityNames: EntityNames): Promise<CreatePolygonPartsResponse> {
+  public async createPolygonParts(polygonPartsPayload: PolygonPartsPayload, entityNames: EntityNames): Promise<PolygonPartsResponse> {
     const { catalogId } = polygonPartsPayload;
 
     const logger = this.logger.child({ catalogId });
@@ -59,7 +59,7 @@ export class PolygonPartsManager {
     isSwap: boolean,
     polygonPartsPayload: PolygonPartsPayload,
     entityNames: EntityNames
-  ): Promise<UpdatePolygonPartsResponse> {
+  ): Promise<PolygonPartsResponse> {
     const { catalogId } = polygonPartsPayload;
 
     const logger = this.logger.child({ catalogId });

@@ -138,7 +138,7 @@ components:
     PolygonPartsEntityName:
       type: string
       description: polygon-parts entity name
-      pattern: ^[a-z][a-z0-9_]{0,62}$
+      pattern: ^[a-z][a-z0-9_]{0,61}[a-z0-9]$
       example: world_orthophoto
     PolygonPartsPayload:
       $ref: >-

@@ -93,8 +93,6 @@ export class AggregationManager {
       .addSelect(`trim(both '[]' from "aggregationCTE".footprint ->> 'bbox')`, 'productBoundingBox')
       .from<AggregationLayerMetadata>('aggregationCTE', 'aggregationCTE');
 
-    console.log('SQL', aggregationQuery.getSql());
-
     return aggregationQuery;
   }
 }

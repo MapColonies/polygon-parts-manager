@@ -30,7 +30,7 @@ const parsePolygonPartsEntityName = (polygonPartsPayload: PolygonPartsPayload): 
 
 export const validateGetAggregationLayerMetadata: GetAggregationLayerMetadataHandler = (req, _, next) => {
   try {
-    polygonPartsEntityNameSchema.shape.polygonPartsEntityName.parse(req.params.polygonPartsEntityName);
+    polygonPartsEntityNameSchema.parse(req.params);
     next();
   } catch (error) {
     if (error instanceof ZodError) {

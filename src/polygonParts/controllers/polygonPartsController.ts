@@ -1,12 +1,7 @@
 import type { RequestHandler } from 'express';
 import httpStatus from 'http-status-codes';
 import { inject, injectable } from 'tsyringe';
-import type {
-  EntityNames,
-  IsSwapQueryParams,
-  PolygonPartsPayload,
-  PolygonPartsResponse
-} from '../models/interfaces';
+import type { EntityNames, IsSwapQueryParams, PolygonPartsPayload, PolygonPartsResponse } from '../models/interfaces';
 import { PolygonPartsManager } from '../models/polygonPartsManager';
 
 export type CreatePolygonPartsHandler = RequestHandler<undefined, PolygonPartsResponse, PolygonPartsPayload, undefined, EntityNames>;

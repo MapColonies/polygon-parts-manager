@@ -70,12 +70,12 @@ export class AggregationManager {
       .createQueryBuilder('polygon_part')
       .select('min("polygon_part".imaging_time_begin_utc)::timestamptz', 'imagingTimeBeginUTC')
       .addSelect('max("polygon_part".imaging_time_end_utc)::timestamptz', 'imagingTimeEndUTC')
-      .addSelect('max("polygon_part".resolution_degree)::numeric', 'maxResolutionDeg')
-      .addSelect('min("polygon_part".resolution_degree)::numeric', 'minResolutionDeg')
-      .addSelect('max("polygon_part".resolution_meter)::numeric', 'maxResolutionMeter')
-      .addSelect('min("polygon_part".resolution_meter)::numeric', 'minResolutionMeter')
-      .addSelect('max("polygon_part".horizontal_accuracy_ce90)::real', 'maxHorizontalAccuracyCE90')
-      .addSelect('min("polygon_part".horizontal_accuracy_ce90)::real', 'minHorizontalAccuracyCE90')
+      .addSelect('min("polygon_part".resolution_degree)::numeric', 'maxResolutionDeg')
+      .addSelect('max("polygon_part".resolution_degree)::numeric', 'minResolutionDeg')
+      .addSelect('min("polygon_part".resolution_meter)::numeric', 'maxResolutionMeter')
+      .addSelect('max("polygon_part".resolution_meter)::numeric', 'minResolutionMeter')
+      .addSelect('min("polygon_part".horizontal_accuracy_ce90)::real', 'maxHorizontalAccuracyCE90')
+      .addSelect('max("polygon_part".horizontal_accuracy_ce90)::real', 'minHorizontalAccuracyCE90')
       .addSelect(`st_asgeojson(st_union("polygon_part".footprint), maxdecimaldigits => ${this.maxDecimalDigits}, options => 1)::json`, 'footprint')
       .addSelect((subQuery) => {
         return subQuery.select(`array_agg("sensors_sub_query".sensors_records)`).from((innerSubQuery) => {

@@ -33,7 +33,7 @@ import polygonEarth from './data/polygonEarth.json';
 import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
 import { INITIAL_DB } from './helpers/constants';
-import { HelperDB, createDB, createPolygonPartsPayload } from './helpers/db';
+import { HelperDB, createDB, createPolygonPartsPayload, deleteDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import { isValidUUIDv4, toExpectedPostgresResponse } from './helpers/utils';
 
@@ -56,7 +56,7 @@ describe('polygonParts', () => {
     await helperDB.destroyConnection();
     /* uncomment this when running locally, this deletes the created db after all tests,
     instead of removing it manually after each run.*/
-    // await deleteDB(testDataSourceOptions);
+    await deleteDB(testDataSourceOptions);
   });
 
   beforeEach(async () => {
@@ -370,6 +370,102 @@ describe('polygonParts', () => {
         });
 
         expect.assertions(27);
+      });
+
+      it('should return 201 status code if resolution degree is right on the lower border (0.000000167638063430786)', async () => {
+        const polygonPartsPayload = createPolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: 0.000000167638063430786 }];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.CREATED);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 201 status code if resolution degree is right on the upper border (0.703125)', async () => {
+        const polygonPartsPayload = createPolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: 0.703125 }];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.CREATED);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 201 status code if resolution meter is right on the lower border (0.0185)', async () => {
+        const polygonPartsPayload = createPolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: 0.0185 }];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.CREATED);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 201 status code if resolution meter is right on the upper border (78271.52)', async () => {
+        const polygonPartsPayload = createPolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: 78271.52 }];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.CREATED);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 201 status code if source resolution meter is right on the lower border (0.0185)', async () => {
+        const polygonPartsPayload = createPolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: 0.0185 }];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.CREATED);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 201 status code if source resolution meter is right on the upper border (78271.52)', async () => {
+        const polygonPartsPayload = createPolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: 78271.52 }];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.CREATED);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 201 status code if horizontal accuracy ce90 is right on the lower border (0.01)', async () => {
+        const polygonPartsPayload = createPolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], horizontalAccuracyCE90: 0.01 }];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.CREATED);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 201 status code if horizontal accuracy ce90 is right on the upper border (4000)', async () => {
+        const polygonPartsPayload = createPolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], horizontalAccuracyCE90: 4000 }];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.CREATED);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
       });
 
       it.todo('test connection re-connection');

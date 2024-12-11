@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.3.4](https://github.com/MapColonies/polygon-parts-manager/compare/v1.3.3...v1.3.4) (2024-12-11)
+
+
+### Bug Fixes
+
+* changed horizontal accuracies to numeric (MAPCO-5791) ([#24](https://github.com/MapColonies/polygon-parts-manager/issues/24)) ([6c8bcdd](https://github.com/MapColonies/polygon-parts-manager/commit/6c8bcdd35f20d4f1f1437256e4ddc0b2552e190c))
+
 ### [1.3.3](https://github.com/MapColonies/polygon-parts-manager/compare/v1.3.2...v1.3.3) (2024-12-08)
 
 

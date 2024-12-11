@@ -74,8 +74,8 @@ export class AggregationManager {
       .addSelect('max("polygon_part".resolution_degree)::numeric', 'minResolutionDeg') // minResolutionDeg - refers to the worst value (higher is worse)
       .addSelect('min("polygon_part".resolution_meter)::numeric', 'maxResolutionMeter') // maxResolutionMeter - refers to the best value (lower is better)
       .addSelect('max("polygon_part".resolution_meter)::numeric', 'minResolutionMeter') // minResolutionMeter - refers to the worst value (higher is worse)
-      .addSelect('min("polygon_part".horizontal_accuracy_ce90)::real', 'maxHorizontalAccuracyCE90') // maxHorizontalAccuracyCE90 - refers to the best value (lower is better)
-      .addSelect('max("polygon_part".horizontal_accuracy_ce90)::real', 'minHorizontalAccuracyCE90') // minHorizontalAccuracyCE90 - refers to the worst value (higher is worse)
+      .addSelect('min("polygon_part".horizontal_accuracy_ce90)::numeric', 'maxHorizontalAccuracyCE90') // maxHorizontalAccuracyCE90 - refers to the best value (lower is better)
+      .addSelect('max("polygon_part".horizontal_accuracy_ce90)::numeric', 'minHorizontalAccuracyCE90') // minHorizontalAccuracyCE90 - refers to the worst value (higher is worse)
       .addSelect(`st_asgeojson(st_union("polygon_part".footprint), maxdecimaldigits => ${this.maxDecimalDigits}, options => 1)::json`, 'footprint')
       .addSelect((subQuery) => {
         return subQuery.select(`array_agg("sensors_sub_query".sensors_records)`).from((innerSubQuery) => {

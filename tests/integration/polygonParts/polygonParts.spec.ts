@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import jsLogger from '@map-colonies/js-logger';
-import type { PolygonPart as PolygonPartType, PolygonPartsEntityName } from '@map-colonies/mc-model-types';
+import { PolygonPart as PolygonPartType, PolygonPartsEntityName, VALIDATIONS } from '@map-colonies/mc-model-types';
 import { trace } from '@opentelemetry/api';
 import { randomPolygon } from '@turf/random';
 import config from 'config';
@@ -90,7 +90,7 @@ describe('polygonParts', () => {
         const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
-        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part); // mark
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         // TODO: once openapi type generator is utilized consider using it's status definition
@@ -374,98 +374,162 @@ describe('polygonParts', () => {
 
       it('should return 201 status code if resolution degree is right on the lower border (0.000000167638063430786)', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
-        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: 0.000000167638063430786 }];
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: VALIDATIONS.resolutionDeg.min as number }];
+        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(partRecords).toMatchObject(expectedPartRecord);
+        expect(polygonPartRecords).toMatchObject(expectedPartRecord);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(2);
+        expect.assertions(4);
       });
 
       it('should return 201 status code if resolution degree is right on the upper border (0.703125)', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
-        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: 0.703125 }];
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: VALIDATIONS.resolutionDeg.max as number }];
+        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(partRecords).toMatchObject(expectedPartRecord);
+        expect(polygonPartRecords).toMatchObject(expectedPartRecord);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(2);
+        expect.assertions(4);
       });
 
       it('should return 201 status code if resolution meter is right on the lower border (0.0185)', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
-        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionMeter: 0.0185 }];
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionMeter: VALIDATIONS.resolutionMeter.min as number }];
+        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(partRecords).toMatchObject(expectedPartRecord);
+        expect(polygonPartRecords).toMatchObject(expectedPartRecord);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(2);
+        expect.assertions(4);
       });
 
       it('should return 201 status code if resolution meter is right on the upper border (78271.52)', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
-        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionMeter: 78271.52 }];
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionMeter: VALIDATIONS.resolutionMeter.max as number }];
+        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(partRecords).toMatchObject(expectedPartRecord);
+        expect(polygonPartRecords).toMatchObject(expectedPartRecord);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(2);
+        expect.assertions(4);
       });
 
       it('should return 201 status code if source resolution meter is right on the lower border (0.0185)', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
-        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceResolutionMeter: 0.0185 }];
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceResolutionMeter: VALIDATIONS.resolutionMeter.min as number }];
+        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(partRecords).toMatchObject(expectedPartRecord);
+        expect(polygonPartRecords).toMatchObject(expectedPartRecord);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(2);
+        expect.assertions(4);
       });
 
       it('should return 201 status code if source resolution meter is right on the upper border (78271.52)', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
-        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceResolutionMeter: 78271.52 }];
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceResolutionMeter: VALIDATIONS.resolutionMeter.max as number }];
+        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(partRecords).toMatchObject(expectedPartRecord);
+        expect(polygonPartRecords).toMatchObject(expectedPartRecord);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(2);
+        expect.assertions(4);
       });
 
       it('should return 201 status code if horizontal accuracy ce90 is right on the lower border (0.01)', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
-        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], horizontalAccuracyCE90: 0.01 }];
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], horizontalAccuracyCE90: VALIDATIONS.horizontalAccuracyCE90.min }];
+        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(partRecords).toMatchObject(expectedPartRecord);
+        expect(polygonPartRecords).toMatchObject(expectedPartRecord);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(2);
+        expect.assertions(4);
       });
 
       it('should return 201 status code if horizontal accuracy ce90 is right on the upper border (4000)', async () => {
         const polygonPartsPayload = createPolygonPartsPayload(1);
-        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], horizontalAccuracyCE90: 4000 }];
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], horizontalAccuracyCE90: VALIDATIONS.horizontalAccuracyCE90.max }];
+        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(partRecords).toMatchObject(expectedPartRecord);
+        expect(polygonPartRecords).toMatchObject(expectedPartRecord);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(2);
+        expect.assertions(4);
       });
 
       it.todo('test connection re-connection');

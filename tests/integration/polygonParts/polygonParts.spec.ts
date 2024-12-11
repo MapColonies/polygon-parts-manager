@@ -90,7 +90,7 @@ describe('polygonParts', () => {
         const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
-        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part); // mark
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         // TODO: once openapi type generator is utilized consider using it's status definition

@@ -39,7 +39,8 @@ metrics:
 
 image:
   repository: polygon-parts-manager
-  tag: 'latest'
+  # If commented, appVersion will be taken. See: _helpers.tpl
+  # tag: 'latest'
 
 env:
   port: 80

@@ -40,7 +40,10 @@
     }
   },
   "application": {
-    "chunkSize": "CHUNK_SIZE",
+    "chunkSize": {
+      "__name": "CHUNK_SIZE",
+      "__format": "number"
+    },
     "arraySeparator": "ARRAY_SEPARATOR",
     "createPolygonPartsTablesStoredProcedure": "CREATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE",
     "updatePolygonPartsTablesStoredProcedure": "UPDATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE",
@@ -55,7 +58,10 @@
       }
     },
     "aggregation": {
-      "maxDecimalDigits": "AGGREGATION_MAX_DECIMAL_DIGITS"
+      "maxDecimalDigits": {
+        "__name": "AGGREGATION_MAX_DECIMAL_DIGITS",
+        "__format": "number"
+      }
     }
   },
   "db": {

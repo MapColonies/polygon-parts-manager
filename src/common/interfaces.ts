@@ -1,6 +1,7 @@
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
 export interface ApplicationConfig {
+  chunkSize: number;
   arraySeparator: string;
   createPolygonPartsTablesStoredProcedure: string;
   updatePolygonPartsTablesStoredProcedure: string;

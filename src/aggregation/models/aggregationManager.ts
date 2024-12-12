@@ -30,13 +30,13 @@ export class AggregationManager {
   public async getAggregationLayerMetadata(aggregationParams: AggregationParams): Promise<AggregationLayerMetadata> {
     const { polygonPartsEntityName } = aggregationParams;
     const logger = this.logger.child({ polygonPartsEntityName: polygonPartsEntityName });
-    logger.info({ msg: 'metadata aggregation request' });
+    logger.info({ msg: 'Metadata aggregation request' });
 
     try {
       const response = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
         const exists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName);
         if (!exists) {
-          throw new NotFoundError(`table with the name '${polygonPartsEntityName}' doesn't exists`);
+          throw new NotFoundError(`Table with the name '${polygonPartsEntityName}' doesn't exists`);
         }
         const aggregationQuery = this.buildAggregationQuery(entityManager, getDatabaseObjectQualifiedName(polygonPartsEntityName));
 

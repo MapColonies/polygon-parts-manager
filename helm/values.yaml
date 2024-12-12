@@ -50,6 +50,7 @@ env:
   responseCompressionEnabled: true
   requestPayloadLimit: 1mb
   application:
+    chunkSize: 1000
     arraySeparator: ','
     createPolygonPartsTablesStoredProcedure: 'create_polygon_parts_tables'
     updatePolygonPartsTablesStoredProcedure: 'update_polygon_parts'

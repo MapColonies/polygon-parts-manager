@@ -157,7 +157,7 @@ export class PolygonPartsManager {
     try {
       const part = entityManager.getRepository(Part);
       part.metadata.tablePath = partsEntityQualifiedName; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
-      await part.insert(insertPartsData);
+      await part.save(insertPartsData, { chunk: this.applicationConfig.chunkSize });
     } catch (error) {
       const errorMessage = `Could not insert polygon parts data to table '${partsEntityQualifiedName}'`;
       logger.error({ msg: errorMessage, error });

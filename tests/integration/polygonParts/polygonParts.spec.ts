@@ -1341,7 +1341,7 @@ describe('polygonParts', () => {
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.CONFLICT);
-        expect(response.body).toMatchObject({ message: `table with the name '${parts.databaseObjectQualifiedName}' already exists` });
+        expect(response.body).toMatchObject({ message: `Table with the name '${parts.databaseObjectQualifiedName}' already exists` });
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);
@@ -1355,7 +1355,7 @@ describe('polygonParts', () => {
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.CONFLICT);
-        expect(response.body).toMatchObject({ message: `table with the name '${polygonParts.databaseObjectQualifiedName}' already exists` });
+        expect(response.body).toMatchObject({ message: `Table with the name '${polygonParts.databaseObjectQualifiedName}' already exists` });
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);
@@ -1520,7 +1520,7 @@ describe('polygonParts', () => {
         const response = await requestSender.updatePolygonParts(updatePayload, false);
 
         expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
-        expect(response.body).toMatchObject({ message: `table with the name '${parts.databaseObjectQualifiedName}' doesn't exists` });
+        expect(response.body).toMatchObject({ message: `Table with the name '${parts.databaseObjectQualifiedName}' doesn't exists` });
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);
@@ -1534,7 +1534,7 @@ describe('polygonParts', () => {
         const response = await requestSender.updatePolygonParts(updatePayload, false);
 
         expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
-        expect(response.body).toMatchObject({ message: `table with the name '${polygonParts.databaseObjectQualifiedName}' doesn't exists` });
+        expect(response.body).toMatchObject({ message: `Table with the name '${polygonParts.databaseObjectQualifiedName}' doesn't exists` });
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);

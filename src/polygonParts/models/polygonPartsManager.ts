@@ -27,7 +27,7 @@ export class PolygonPartsManager {
     const { catalogId } = polygonPartsPayload;
 
     const logger = this.logger.child({ catalogId });
-    logger.info({ msg: 'creating polygon parts' });
+    logger.info({ msg: 'Creating polygon parts' });
 
     try {
       const polygonPartsEntityName = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
@@ -63,7 +63,7 @@ export class PolygonPartsManager {
     const { catalogId } = polygonPartsPayload;
 
     const logger = this.logger.child({ catalogId });
-    logger.info({ msg: `updating polygon parts` });
+    logger.info({ msg: `Updating polygon parts` });
 
     try {
       const polygonPartsEntityName = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
@@ -95,14 +95,14 @@ export class PolygonPartsManager {
 
   private async verifyAvailableTableNames(context: { entityManager: EntityManager; logger: Logger; entityNames: EntityNames }): Promise<void> {
     const { entityManager, logger, entityNames } = context;
-    logger.debug({ msg: 'verifying polygon parts table names are available' });
+    logger.debug({ msg: 'Verifying polygon parts table names are available' });
 
     await Promise.all(
       Object.values<EntityName>({ ...entityNames }).map(async ({ databaseObjectQualifiedName, entityName }) => {
         try {
           const exists = await this.connectionManager.entityExists(entityManager, entityName);
           if (exists) {
-            throw new ConflictError(`table with the name '${databaseObjectQualifiedName}' already exists`);
+            throw new ConflictError(`Table with the name '${databaseObjectQualifiedName}' already exists`);
           }
         } catch (error) {
           const errorMessage = `Could not verify polygon parts table name '${databaseObjectQualifiedName}' is available`;
@@ -123,7 +123,7 @@ export class PolygonPartsManager {
       },
     } = context;
 
-    logger.debug({ msg: 'creating polygon parts tables' });
+    logger.debug({ msg: 'Creating polygon parts tables' });
 
     try {
       const createPolygonPartsProcedure = this.applicationConfig.createPolygonPartsTablesStoredProcedure;
@@ -150,7 +150,7 @@ export class PolygonPartsManager {
       polygonPartsPayload,
     } = context;
 
-    logger.debug({ msg: 'inserting polygon parts data' });
+    logger.debug({ msg: 'Inserting polygon parts data' });
 
     const insertPartsData = payloadToInsertPartsData(polygonPartsPayload);
 
@@ -170,7 +170,7 @@ export class PolygonPartsManager {
     const partsEntityQualifiedName = entityNames.parts.databaseObjectQualifiedName;
     const polygonPartsEntityQualifiedName = entityNames.polygonParts.databaseObjectQualifiedName;
 
-    logger.debug({ msg: 'updating polygon parts data' });
+    logger.debug({ msg: 'Updating polygon parts data' });
 
     const updatePolygonPartsProcedure = this.applicationConfig.updatePolygonPartsTablesStoredProcedure;
 
@@ -187,14 +187,14 @@ export class PolygonPartsManager {
 
   private async getEntitiesNamesIfExists(context: { entityManager: EntityManager; logger: Logger; entityNames: EntityNames }): Promise<void> {
     const { entityManager, logger, entityNames } = context;
-    logger.debug({ msg: `verifying entities exists` });
+    logger.debug({ msg: `Verifying entities exists` });
 
     await Promise.all(
       Object.values<EntityName>({ ...entityNames }).map(async ({ databaseObjectQualifiedName, entityName }) => {
         try {
           const exists = await this.connectionManager.entityExists(entityManager, entityName);
           if (!exists) {
-            throw new NotFoundError(`table with the name '${databaseObjectQualifiedName}' doesn't exists`);
+            throw new NotFoundError(`Table with the name '${databaseObjectQualifiedName}' doesn't exists`);
           }
         } catch (error) {
           const errorMessage = `Could not verify polygon parts table name '${databaseObjectQualifiedName}' is available`;
@@ -207,7 +207,7 @@ export class PolygonPartsManager {
 
   private async truncateEntities(updateContext: { entityManager: EntityManager; logger: Logger; entityNames: EntityNames }): Promise<void> {
     const { entityManager, logger, entityNames } = updateContext;
-    logger.debug({ msg: `truncating entities` });
+    logger.debug({ msg: `Truncating entities` });
 
     await Promise.all(
       Object.values<EntityName>({ ...entityNames }).map(async ({ databaseObjectQualifiedName, entityName }) => {

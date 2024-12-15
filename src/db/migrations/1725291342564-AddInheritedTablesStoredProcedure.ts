@@ -34,9 +34,9 @@ export class AddInheritedTablesStoredProcedure1725291342564 implements Migration
                 END IF;
 
                 EXECUTE 'CREATE TABLE ' || schm_tbl_name_parts || '
-                (LIKE "polygon_parts"."parts" INCLUDING ALL)
-
-                TABLESPACE pg_default;';
+                    (LIKE "polygon_parts"."parts" INCLUDING ALL)
+                    INHERITS ("polygon_parts"."parts")
+                    TABLESPACE pg_default;';
 
                 EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_parts || '_footprint_idx
                     ON ' || schm_tbl_name_parts || ' USING gist
@@ -84,9 +84,9 @@ export class AddInheritedTablesStoredProcedure1725291342564 implements Migration
                     TABLESPACE pg_default;';
 
                 EXECUTE 'CREATE TABLE ' || schm_tbl_name_polygon_parts || '
-                (LIKE "polygon_parts"."polygon_parts" INCLUDING ALL)
-
-                TABLESPACE pg_default;';
+                    (LIKE "polygon_parts"."polygon_parts" INCLUDING ALL)
+                    INHERITS ("polygon_parts"."polygon_parts")
+                    TABLESPACE pg_default;';
 
                 EXECUTE 'CREATE INDEX IF NOT EXISTS ' || tbl_name_polygon_parts || '_footprint_idx
                     ON ' || schm_tbl_name_polygon_parts || ' USING gist

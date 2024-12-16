@@ -6,7 +6,7 @@ export class Common implements CommonRecord {
   @PrimaryGeneratedColumn('uuid')
   public readonly id!: string;
 
-  @Column({ name: 'product_id', type: 'text', collation: 'C.UTF-8' })
+  @Column({ name: 'product_id', type: 'text', collation: 'ucs_basic' })
   @Index()
   @Check('product id', `"product_id" ~ '^[A-Za-z]{1}[A-Za-z0-9_]{0,37}$'`)
   public productId!: string;
@@ -23,13 +23,13 @@ export class Common implements CommonRecord {
   @Index()
   public catalogId!: string;
 
-  @Column({ type: 'text', collation: 'C.UTF-8', nullable: true })
+  @Column({ type: 'text', collation: 'ucs_basic', nullable: true })
   public sourceId?: string;
 
-  @Column({ type: 'text', collation: 'C.UTF-8' })
+  @Column({ type: 'text', collation: 'ucs_basic' })
   public sourceName!: string;
 
-  @Column({ type: 'text', collation: 'C.UTF-8' })
+  @Column({ type: 'text', collation: 'ucs_basic' })
   @Check('product version', `"product_version" ~ '^[1-9]\\\\d*(\\\\.(0|[1-9]\\\\d?))?$'`)
   public productVersion!: string;
 
@@ -65,16 +65,16 @@ export class Common implements CommonRecord {
   @Check('horizontal accuracy ce90', `"horizontal_accuracy_ce90" BETWEEN 0.01 AND 4000`)
   public horizontalAccuracyCE90!: number;
 
-  @Column({ type: 'text', collation: 'C.UTF-8' })
+  @Column({ type: 'text', collation: 'ucs_basic' })
   public sensors!: string;
 
-  @Column({ type: 'text', collation: 'C.UTF-8', nullable: true })
+  @Column({ type: 'text', collation: 'ucs_basic', nullable: true })
   public countries?: string;
 
-  @Column({ type: 'text', collation: 'C.UTF-8', nullable: true })
+  @Column({ type: 'text', collation: 'ucs_basic', nullable: true })
   public cities?: string;
 
-  @Column({ type: 'text', collation: 'C.UTF-8', nullable: true })
+  @Column({ type: 'text', collation: 'ucs_basic', nullable: true })
   public description?: string;
 
   @Column({ type: 'geometry', spatialFeatureType: 'Polygon', srid: 4326, precision: 20 })

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.3.6](https://github.com/MapColonies/polygon-parts-manager/compare/v1.3.5...v1.3.6) (2024-12-22)
+
+
+### Bug Fixes
+
+* make child tables inherit parents ([#29](https://github.com/MapColonies/polygon-parts-manager/issues/29)) ([c2b3b88](https://github.com/MapColonies/polygon-parts-manager/commit/c2b3b8885ea63ee8165528ae6e832688e40253b9))
+
 ### [1.3.5](https://github.com/MapColonies/polygon-parts-manager/compare/v1.3.4...v1.3.5) (2024-12-16)
 
 

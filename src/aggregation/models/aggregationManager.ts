@@ -4,18 +4,16 @@ import { aggregationMetadataSchema, type AggregationLayerMetadata, type PolygonP
 import { inject, injectable } from 'tsyringe';
 import { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
-import { DEFAULT_SCHEMA, SERVICES } from '../../common/constants';
+import { SERVICES } from '../../common/constants';
 import type { ApplicationConfig, IConfig } from '../../common/interfaces';
 import { PolygonPart } from '../../polygonParts/DAL/polygonPart';
 import { getDatabaseObjectQualifiedName } from '../../polygonParts/DAL/utils';
-import type { DBSchema } from '../../polygonParts/models/interfaces';
 import type { AggregationParams } from './interfaces';
 
 @injectable()
 export class AggregationManager {
   private readonly arraySeparator: string;
   private readonly maxDecimalDigits: number;
-  private readonly schema: NonNullable<DBSchema>;
   private readonly fixGeometry: ApplicationConfig['aggregation']['fixGeometry'];
 
   public constructor(
@@ -26,7 +24,6 @@ export class AggregationManager {
     this.arraySeparator = this.config.get<ApplicationConfig['arraySeparator']>('application.arraySeparator');
     this.maxDecimalDigits = this.config.get<ApplicationConfig['aggregation']['maxDecimalDigits']>('application.aggregation.maxDecimalDigits');
     this.fixGeometry = this.config.get<ApplicationConfig['aggregation']['fixGeometry']>('application.aggregation.fixGeometry');
-    this.schema = config.get<DBSchema>('db.schema') ?? DEFAULT_SCHEMA;
   }
 
   public async getAggregationLayerMetadata(aggregationParams: AggregationParams): Promise<AggregationLayerMetadata> {

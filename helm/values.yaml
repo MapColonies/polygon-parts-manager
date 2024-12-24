@@ -63,6 +63,9 @@ env:
         nameSuffix: ''
     aggregation:
       maxDecimalDigits: 12
+      fixGeometry:
+        enabled: true
+        bufferSize: 0.000006
 
 # external
 db:

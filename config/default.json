@@ -41,7 +41,11 @@
       }
     },
     "aggregation": {
-      "maxDecimalDigits": 12
+      "maxDecimalDigits": 12,
+      "fixGeometry": {
+        "enabled": true,
+        "bufferSize": 0.000006
+      }
     }
   },
   "db": {

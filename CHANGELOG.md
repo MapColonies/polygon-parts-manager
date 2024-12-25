@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/MapColonies/polygon-parts-manager/compare/v1.3.6...v1.4.0) (2024-12-25)
+
+
+### Features
+
+* aggregation footprint ([#31](https://github.com/MapColonies/polygon-parts-manager/issues/31)) ([84d301a](https://github.com/MapColonies/polygon-parts-manager/commit/84d301a99d67522639f862c13ba7624ead11e122))
+
 ### [1.3.6](https://github.com/MapColonies/polygon-parts-manager/compare/v1.3.5...v1.3.6) (2024-12-22)
 
 

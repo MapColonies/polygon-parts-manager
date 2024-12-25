@@ -19,6 +19,10 @@ data:
   ENTITY_POLYGON_PARTS_NAME_PREFIX: {{ .Values.env.application.entities.polygonParts.namePrefix | quote }}
   ENTITY_POLYGON_PARTS_NAME_SUFFIX: {{ .Values.env.application.entities.polygonParts.nameSuffix | quote }}
   AGGREGATION_MAX_DECIMAL_DIGITS: {{ .Values.env.application.aggregation.maxDecimalDigits | quote }}
+  AGGREGATION_FIX_GEOMETRY_ENABLED: {{ .Values.env.application.aggregation.fixGeometry.enabled | quote }}
+  {{- if .Values.env.application.aggregation.fixGeometry.enabled }}
+  AGGREGATION_FIX_GEOMETRY_BUFFER_SIZE_DEG: {{ .Values.env.application.aggregation.fixGeometry.bufferSizeDeg | quote }}
+  {{- end }}
   DB_HOST: {{ $db.host | quote }}
   DB_PORT: {{ $db.port | quote }}
   DB_NAME: {{ $db.name | quote }}

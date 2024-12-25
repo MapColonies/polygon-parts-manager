@@ -16,6 +16,10 @@ export interface ApplicationConfig {
     };
   };
   aggregation: {
+    fixGeometry: {
+      enabled: boolean;
+      bufferSizeDeg: number;
+    };
     maxDecimalDigits: number;
   };
 }

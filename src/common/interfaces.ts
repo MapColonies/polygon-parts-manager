@@ -18,7 +18,7 @@ export interface ApplicationConfig {
   aggregation: {
     fixGeometry: {
       enabled: boolean;
-      bufferSize: number;
+      bufferSizeDeg: number;
     };
     maxDecimalDigits: number;
   };

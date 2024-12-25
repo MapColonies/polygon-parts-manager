@@ -70,7 +70,7 @@ export class AggregationManager {
       .createQueryBuilder()
       .select(
         this.fixGeometry.enabled
-          ? `st_buffer(st_buffer(${footprintUnionQuery}, ${this.fixGeometry.bufferSize}), -${this.fixGeometry.bufferSize})`
+          ? `st_buffer(st_buffer(${footprintUnionQuery}, ${this.fixGeometry.bufferSizeDeg}), -${this.fixGeometry.bufferSizeDeg})`
           : footprintUnionQuery,
         'footprint_union'
       )

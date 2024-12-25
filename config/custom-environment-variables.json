@@ -67,8 +67,8 @@
           "__name": "AGGREGATION_FIX_GEOMETRY_ENABLED",
           "__format": "boolean"
         },
-        "bufferSize": {
-          "__name": "AGGREGATION_FIX_GEOMETRY_BUFFER_SIZE",
+        "bufferSizeDeg": {
+          "__name": "AGGREGATION_FIX_GEOMETRY_BUFFER_SIZE_DEG",
           "__format": "number"
         }
       }

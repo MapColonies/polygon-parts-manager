@@ -21,7 +21,7 @@ data:
   AGGREGATION_MAX_DECIMAL_DIGITS: {{ .Values.env.application.aggregation.maxDecimalDigits | quote }}
   AGGREGATION_FIX_GEOMETRY_ENABLED: {{ .Values.env.application.aggregation.fixGeometry.enabled | quote }}
   {{- if .Values.env.application.aggregation.fixGeometry.enabled }}
-  AGGREGATION_FIX_GEOMETRY_BUFFER_SIZE: {{ .Values.env.application.aggregation.fixGeometry.bufferSize | quote }}
+  AGGREGATION_FIX_GEOMETRY_BUFFER_SIZE_DEG: {{ .Values.env.application.aggregation.fixGeometry.bufferSizeDeg | quote }}
   {{- end }}
   DB_HOST: {{ $db.host | quote }}
   DB_PORT: {{ $db.port | quote }}

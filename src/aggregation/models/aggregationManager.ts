@@ -76,9 +76,20 @@ export class AggregationManager {
       )
       .from(polygonPartsEntityName, 'polygon_part');
 
-    const aggregationQueryBuilder = polygonPart
+    const footprintAggregationCTE = entityManager
+      .createQueryBuilder()
+      .select(
+        `st_asgeojson(st_geometryn(st_collect("footprint_union".footprint_union), 1), maxdecimaldigits => ${this.maxDecimalDigits}, options => 1)::json`,
+        'footprint'
+      )
+      .addSelect(
+        `trim(both '[]' from (st_asgeojson(st_geometryn(st_collect("footprint_union".footprint_union), 1), maxdecimaldigits => ${this.maxDecimalDigits}, options => 1)::json ->> 'bbox'))`,
+        'productBoundingBox'
+      )
+      .from('footprint_union', 'footprint_union');
+
+    const metadataAggregationCTE = polygonPart
       .createQueryBuilder('polygon_part')
-      .addCommonTableExpression(footprintUnionCTE, 'footprintUnionCTE')
       .select('min("polygon_part".imaging_time_begin_utc)::timestamptz', 'imagingTimeBeginUTC')
       .addSelect('max("polygon_part".imaging_time_end_utc)::timestamptz', 'imagingTimeEndUTC')
       .addSelect('min("polygon_part".resolution_degree)::numeric', 'maxResolutionDeg') // maxResolutionDeg - refers to the best value (lower is better)
@@ -87,10 +98,6 @@ export class AggregationManager {
       .addSelect('max("polygon_part".resolution_meter)::numeric', 'minResolutionMeter') // minResolutionMeter - refers to the worst value (higher is worse)
       .addSelect('min("polygon_part".horizontal_accuracy_ce90)::numeric', 'maxHorizontalAccuracyCE90') // maxHorizontalAccuracyCE90 - refers to the best value (lower is better)
       .addSelect('max("polygon_part".horizontal_accuracy_ce90)::numeric', 'minHorizontalAccuracyCE90') // minHorizontalAccuracyCE90 - refers to the worst value (higher is worse)
-      .addSelect(
-        `st_asgeojson(st_geometryn(st_collect("footprintUnionCTE".footprint_union), 1), maxdecimaldigits => ${this.maxDecimalDigits}, options => 1)::json`,
-        'footprint'
-      )
       .addSelect((subQuery) => {
         return subQuery.select(`array_agg("sensors_sub_query".sensors_records)`).from((innerSubQuery) => {
           return innerSubQuery
@@ -99,12 +106,17 @@ export class AggregationManager {
             .from(polygonPartsEntityName, 'polygon_part')
             .orderBy('sensors_records', 'ASC');
         }, 'sensors_sub_query');
-      }, 'sensors')
-      .addSelect(
-        `trim(both '[]' from (st_asgeojson(st_geometryn(st_collect("footprintUnionCTE".footprint_union), 1), maxdecimaldigits => ${this.maxDecimalDigits}, options => 1)::json ->> 'bbox'))`,
-        'productBoundingBox'
-      )
-      .addFrom<AggregationLayerMetadata>('footprintUnionCTE', 'footprintUnionCTE');
+      }, 'sensors');
+
+    const aggregationQueryBuilder = entityManager
+      .createQueryBuilder()
+      .addCommonTableExpression(footprintUnionCTE, 'footprint_union')
+      .addCommonTableExpression(footprintAggregationCTE, 'footprint_aggregation')
+      .addCommonTableExpression(metadataAggregationCTE, 'metadata_aggregation')
+      .select('metadata_aggregation.*')
+      .addSelect('footprint_aggregation.*')
+      .from('footprint_aggregation', 'footprint_aggregation')
+      .addFrom<AggregationLayerMetadata>('metadata_aggregation', 'metadata_aggregation');
 
     return aggregationQueryBuilder;
   }

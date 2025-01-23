@@ -13,6 +13,7 @@ export interface ApplicationConfig {
     polygonParts: {
       namePrefix: string;
       nameSuffix: string;
+      minAreaSquareDeg: number;
     };
   };
   aggregation: {

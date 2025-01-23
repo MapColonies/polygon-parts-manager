@@ -24,10 +24,10 @@ export interface ApplicationConfig {
   };
 }
 
-export type DbConfig = PostgresConnectionOptions & {
+export interface DbConfig extends PostgresConnectionOptions {
   enableSslAuth: boolean;
   sslPaths: { ca: string; cert: string; key: string };
-};
+}
 
 export interface IConfig {
   get: <T>(setting: string) => T;

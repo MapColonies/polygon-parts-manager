@@ -2,7 +2,7 @@
 import { PolygonPart } from '@map-colonies/mc-model-types';
 import type { Polygon } from 'geojson';
 import { PolygonPartsPayload } from '../../src/polygonParts/models/interfaces';
-import { createPolygonPart } from '../integration/polygonParts/helpers/db';
+import { generatePolygonPart } from '../integration/polygonParts/helpers/db';
 
 type LayerMetadata = Pick<PolygonPartsPayload, 'catalogId' | 'productId' | 'productType' | 'productVersion'>;
 
@@ -28,7 +28,7 @@ function generateRequest(layerMetadata: LayerMetadata, footprints: Polygon[]): P
 function generatePolygonPartPayload(footprints: Polygon[]): PolygonPart[] {
   return footprints.map((footprint) => {
     return {
-      ...createPolygonPart(),
+      ...generatePolygonPart(),
       footprint,
     };
   });

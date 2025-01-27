@@ -15,7 +15,7 @@ export const deleteDB = async (options: DataSourceOptions): Promise<void> => {
   await dropDatabase({ options });
 };
 
-export const createPolygonPart = (): PolygonPart => {
+export const generatePolygonPart = (): PolygonPart => {
   const date1 = faker.date.past();
   const date2 = faker.date.past();
   const [dateOlder, dateRecent] = date1 < date2 ? [date1, date2] : [date2, date1];
@@ -72,7 +72,7 @@ export function generatePolygonPartsPayload(input: number | DeepPartial<PolygonP
     const partsCount = input;
     return {
       ...layerMetadata,
-      partsData: Array.from({ length: partsCount }, createPolygonPart),
+      partsData: Array.from({ length: partsCount }, generatePolygonPart),
     };
   }
 
@@ -81,7 +81,7 @@ export function generatePolygonPartsPayload(input: number | DeepPartial<PolygonP
   return {
     ...layerMetadata,
     ...templateLayerMetadata,
-    partsData: Array.from({ length: templatePartsData?.length ?? 1 }, createPolygonPart).map((partData, index) => {
+    partsData: Array.from({ length: templatePartsData?.length ?? 1 }, generatePolygonPart).map((partData, index) => {
       const templatePartsDataValues = templatePartsData?.[index];
       return templatePartsDataValues ? { ...partData, ...templatePartsDataValues } : partData;
     }),

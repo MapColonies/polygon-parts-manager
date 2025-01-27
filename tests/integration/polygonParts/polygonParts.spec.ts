@@ -933,6 +933,596 @@ describe('polygonParts', () => {
 
         expect.assertions(7);
       });
+
+      it('should return 200 status code and update the resources for a part with a small area (equal to or above threshold) intersecting existing polygon part (below threshold)', async () => {
+        const squareSideLength = applicationConfig.entities.polygonParts.minAreaSquareDeg ** 0.5;
+        const insertPolygonPartsPayload = createPolygonPartsPayload({
+          partsData: [
+            {
+              footprint: {
+                type: 'Polygon',
+                coordinates: [
+                  [
+                    [0, 0],
+                    [squareSideLength, 0],
+                    [squareSideLength, squareSideLength - Number.EPSILON],
+                    [0, squareSideLength],
+                    [0, 0],
+                  ],
+                ],
+              },
+            },
+          ],
+        });
+        await requestSender.createPolygonParts(insertPolygonPartsPayload);
+        const updatePolygonPartsPayload = createPolygonPartsPayload({
+          productId: insertPolygonPartsPayload.productId,
+          productType: insertPolygonPartsPayload.productType,
+          partsData: [
+            {
+              footprint: {
+                type: 'Polygon',
+                coordinates: [
+                  [
+                    [0, 0],
+                    [squareSideLength, 0],
+                    [squareSideLength, squareSideLength],
+                    [0, squareSideLength],
+                    [0, 0],
+                  ],
+                ],
+              },
+            },
+          ],
+        });
+        const { parts, polygonParts } = getEntitiesNames(insertPolygonPartsPayload);
+        const expectedPartRecords = [
+          ...toExpectedPostgresResponse(insertPolygonPartsPayload),
+          ...toExpectedPostgresResponse(updatePolygonPartsPayload),
+        ].map(({ footprint, ...expectedPartRecord }) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          return { footprint: expect.anything(), ...expectedPartRecord };
+        });
+        const expectedPolygonPartRecords = [expectedPartRecords[1]];
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, false);
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response).toSatisfyApiSpec();
+
+        expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
+        expect(
+          booleanEqual(partRecords[0].footprint, insertPolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+        expect(
+          booleanEqual(partRecords[1].footprint, updatePolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+        expect(polygonPartRecords).toMatchObject(expectedPolygonPartRecords);
+        expect(
+          booleanEqual(polygonPartRecords[0].footprint, updatePolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+
+        partRecords.forEach((partRecord, index) => {
+          expect(partRecord.ingestionDateUTC).toBeBeforeOrEqualTo(new Date());
+          expect(partRecord.footprint).toBePolygonGeometry();
+          expect(partRecord.isProcessedPart).toBeTrue();
+          expect(partRecord.insertionOrder).toBe(index + 1);
+          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+
+          const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
+
+          for (const relatedPolygonPartRecord of relatedPolygonPartRecords) {
+            expect(relatedPolygonPartRecord.ingestionDateUTC).toStrictEqual(partRecord.ingestionDateUTC);
+            expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
+            expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
+            expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
+            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+          }
+        });
+
+        expect.assertions(23);
+      });
+
+      it('should return 200 status code and update the resources for a part with a small area (equal to or above threshold) not intersecting existing polygon parts (below threshold)', async () => {
+        const squareSideLength = applicationConfig.entities.polygonParts.minAreaSquareDeg ** 0.5;
+        const insertPolygonPartsPayload = createPolygonPartsPayload({
+          partsData: [
+            {
+              footprint: {
+                type: 'Polygon',
+                coordinates: [
+                  [
+                    [0, 0],
+                    [squareSideLength, 0],
+                    [squareSideLength, squareSideLength - Number.EPSILON],
+                    [0, squareSideLength],
+                    [0, 0],
+                  ],
+                ],
+              },
+            },
+          ],
+        });
+        await requestSender.createPolygonParts(insertPolygonPartsPayload);
+        const updatePolygonPartsPayload = createPolygonPartsPayload({
+          productId: insertPolygonPartsPayload.productId,
+          productType: insertPolygonPartsPayload.productType,
+          partsData: [
+            {
+              footprint: {
+                type: 'Polygon',
+                coordinates: [
+                  [
+                    [10, 0],
+                    [10 + squareSideLength, 0],
+                    [10 + squareSideLength, squareSideLength],
+                    [10, squareSideLength],
+                    [10, 0],
+                  ],
+                ],
+              },
+            },
+          ],
+        });
+        const { parts, polygonParts } = getEntitiesNames(insertPolygonPartsPayload);
+        const expectedPartRecords = [
+          ...toExpectedPostgresResponse(insertPolygonPartsPayload),
+          ...toExpectedPostgresResponse(updatePolygonPartsPayload),
+        ].map(({ footprint, ...expectedPartRecord }) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          return { footprint: expect.anything(), ...expectedPartRecord };
+        });
+        const expectedPolygonPartRecords = expectedPartRecords;
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, false);
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response).toSatisfyApiSpec();
+
+        expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
+        expect(
+          booleanEqual(partRecords[0].footprint, insertPolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+        expect(
+          booleanEqual(partRecords[1].footprint, updatePolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+        expect(polygonPartRecords).toMatchObject(expectedPolygonPartRecords);
+        expect(
+          booleanEqual(polygonPartRecords[0].footprint, insertPolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+        expect(
+          booleanEqual(polygonPartRecords[1].footprint, updatePolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+
+        partRecords.forEach((partRecord, index) => {
+          expect(partRecord.ingestionDateUTC).toBeBeforeOrEqualTo(new Date());
+          expect(partRecord.footprint).toBePolygonGeometry();
+          expect(partRecord.isProcessedPart).toBeTrue();
+          expect(partRecord.insertionOrder).toBe(index + 1);
+          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+
+          const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
+
+          for (const relatedPolygonPartRecord of relatedPolygonPartRecords) {
+            expect(relatedPolygonPartRecord.ingestionDateUTC).toStrictEqual(partRecord.ingestionDateUTC);
+            expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
+            expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
+            expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
+            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+          }
+        });
+
+        expect.assertions(29);
+      });
+
+      it('should return 200 status code and update the resources for a part with a small area (below threshold) intersecting existing polygon part (below threshold)', async () => {
+        const squareSideLength = applicationConfig.entities.polygonParts.minAreaSquareDeg ** 0.5;
+        const insertPolygonPartsPayload = createPolygonPartsPayload({
+          partsData: [
+            {
+              footprint: {
+                type: 'Polygon',
+                coordinates: [
+                  [
+                    [0, 0],
+                    [squareSideLength, 0],
+                    [squareSideLength, squareSideLength - Number.EPSILON],
+                    [0, squareSideLength],
+                    [0, 0],
+                  ],
+                ],
+              },
+            },
+          ],
+        });
+        await requestSender.createPolygonParts(insertPolygonPartsPayload);
+        const updatePolygonPartsPayload = createPolygonPartsPayload({
+          productId: insertPolygonPartsPayload.productId,
+          productType: insertPolygonPartsPayload.productType,
+          partsData: [
+            {
+              footprint: {
+                type: 'Polygon',
+                coordinates: [
+                  [
+                    [0, 0],
+                    [squareSideLength, 0],
+                    [squareSideLength - Number.EPSILON, squareSideLength],
+                    [0, squareSideLength],
+                    [0, 0],
+                  ],
+                ],
+              },
+            },
+          ],
+        });
+        const { parts, polygonParts } = getEntitiesNames(insertPolygonPartsPayload);
+        const expectedPartRecords = [
+          ...toExpectedPostgresResponse(insertPolygonPartsPayload),
+          ...toExpectedPostgresResponse(updatePolygonPartsPayload),
+        ].map(({ footprint, ...expectedPartRecord }) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          return { footprint: expect.anything(), ...expectedPartRecord };
+        });
+        const expectedPolygonPartRecords = [expectedPartRecords[1]];
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, false);
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response).toSatisfyApiSpec();
+
+        expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
+        expect(
+          booleanEqual(partRecords[0].footprint, insertPolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+        expect(
+          booleanEqual(partRecords[1].footprint, updatePolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+        expect(polygonPartRecords).toMatchObject(expectedPolygonPartRecords);
+        expect(
+          booleanEqual(polygonPartRecords[0].footprint, updatePolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+
+        partRecords.forEach((partRecord, index) => {
+          expect(partRecord.ingestionDateUTC).toBeBeforeOrEqualTo(new Date());
+          expect(partRecord.footprint).toBePolygonGeometry();
+          expect(partRecord.isProcessedPart).toBeTrue();
+          expect(partRecord.insertionOrder).toBe(index + 1);
+          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+
+          const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
+
+          for (const relatedPolygonPartRecord of relatedPolygonPartRecords) {
+            expect(relatedPolygonPartRecord.ingestionDateUTC).toStrictEqual(partRecord.ingestionDateUTC);
+            expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
+            expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
+            expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
+            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+          }
+        });
+
+        expect.assertions(23);
+      });
+
+      it('should return 200 status code and update the resources for a part with a small area (below threshold) not intersecting existing polygon parts (below threshold)', async () => {
+        const squareSideLength = applicationConfig.entities.polygonParts.minAreaSquareDeg ** 0.5;
+        const insertPolygonPartsPayload = createPolygonPartsPayload({
+          partsData: [
+            {
+              footprint: {
+                type: 'Polygon',
+                coordinates: [
+                  [
+                    [0, 0],
+                    [squareSideLength, 0],
+                    [squareSideLength, squareSideLength - Number.EPSILON],
+                    [0, squareSideLength],
+                    [0, 0],
+                  ],
+                ],
+              },
+            },
+          ],
+        });
+        await requestSender.createPolygonParts(insertPolygonPartsPayload);
+        const updatePolygonPartsPayload = createPolygonPartsPayload({
+          productId: insertPolygonPartsPayload.productId,
+          productType: insertPolygonPartsPayload.productType,
+          partsData: [
+            {
+              footprint: {
+                type: 'Polygon',
+                coordinates: [
+                  [
+                    [10, 0],
+                    [10 + squareSideLength, 0],
+                    [10 + squareSideLength, squareSideLength - Number.EPSILON],
+                    [10, squareSideLength],
+                    [10, 0],
+                  ],
+                ],
+              },
+            },
+          ],
+        });
+        const { parts, polygonParts } = getEntitiesNames(insertPolygonPartsPayload);
+        const expectedPartRecords = [
+          ...toExpectedPostgresResponse(insertPolygonPartsPayload),
+          ...toExpectedPostgresResponse(updatePolygonPartsPayload),
+        ].map(({ footprint, ...expectedPartRecord }) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          return { footprint: expect.anything(), ...expectedPartRecord };
+        });
+        const expectedPolygonPartRecords = expectedPartRecords;
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, false);
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response).toSatisfyApiSpec();
+
+        expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
+        expect(
+          booleanEqual(partRecords[0].footprint, insertPolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+        expect(
+          booleanEqual(partRecords[1].footprint, updatePolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+        expect(polygonPartRecords).toMatchObject(expectedPolygonPartRecords);
+        expect(
+          booleanEqual(polygonPartRecords[0].footprint, insertPolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+        expect(
+          booleanEqual(polygonPartRecords[1].footprint, updatePolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+
+        partRecords.forEach((partRecord, index) => {
+          expect(partRecord.ingestionDateUTC).toBeBeforeOrEqualTo(new Date());
+          expect(partRecord.footprint).toBePolygonGeometry();
+          expect(partRecord.isProcessedPart).toBeTrue();
+          expect(partRecord.insertionOrder).toBe(index + 1);
+          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+
+          const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
+
+          for (const relatedPolygonPartRecord of relatedPolygonPartRecords) {
+            expect(relatedPolygonPartRecord.ingestionDateUTC).toStrictEqual(partRecord.ingestionDateUTC);
+            expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
+            expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
+            expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
+            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+          }
+        });
+
+        expect.assertions(29);
+      });
+
+      it('should return 200 status code and update the resources for a part with a small area (below threshold) intersecting existing polygon part (above threshold)', async () => {
+        const squareSideLength = applicationConfig.entities.polygonParts.minAreaSquareDeg ** 0.5;
+        const insertPolygonPartsPayload = createPolygonPartsPayload({
+          partsData: [
+            {
+              footprint: {
+                type: 'Polygon',
+                coordinates: [
+                  [
+                    [0, 0],
+                    [1, 0],
+                    [1, 1],
+                    [0, 1],
+                    [0, 0],
+                  ],
+                ],
+              },
+            },
+          ],
+        });
+        await requestSender.createPolygonParts(insertPolygonPartsPayload);
+        const updatePolygonPartsPayload = createPolygonPartsPayload({
+          productId: insertPolygonPartsPayload.productId,
+          productType: insertPolygonPartsPayload.productType,
+          partsData: [
+            {
+              footprint: {
+                type: 'Polygon',
+                coordinates: [
+                  [
+                    [0, 0],
+                    [squareSideLength, 0],
+                    [squareSideLength - Number.EPSILON, squareSideLength],
+                    [0, squareSideLength],
+                    [0, 0],
+                  ],
+                ],
+              },
+            },
+          ],
+        });
+        const { parts, polygonParts } = getEntitiesNames(insertPolygonPartsPayload);
+        const expectedPolygonPartFootprints = [
+          {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [squareSideLength, 0],
+                [1, 0],
+                [1, 1],
+                [0, 1],
+                [0, squareSideLength],
+                [squareSideLength - Number.EPSILON, squareSideLength],
+                [squareSideLength, 0],
+              ],
+            ],
+          },
+          {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [0, 0],
+                [squareSideLength, 0],
+                [squareSideLength - Number.EPSILON, squareSideLength],
+                [0, squareSideLength],
+                [0, 0],
+              ],
+            ],
+          },
+        ] satisfies [Polygon, Polygon];
+        const expectedPartRecords = [
+          ...toExpectedPostgresResponse(insertPolygonPartsPayload),
+          ...toExpectedPostgresResponse(updatePolygonPartsPayload),
+        ].map(({ footprint, ...expectedPartRecord }) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          return { footprint: expect.anything(), ...expectedPartRecord };
+        });
+        const expectedPolygonPartRecords = expectedPartRecords;
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, false);
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response).toSatisfyApiSpec();
+
+        expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
+        expect(
+          booleanEqual(partRecords[0].footprint, insertPolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+        expect(
+          booleanEqual(partRecords[1].footprint, updatePolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+        console.log('polygonPartRecords', JSON.stringify(polygonPartRecords));
+        console.log('expectedPolygonPartRecords', JSON.stringify(expectedPolygonPartRecords));
+        expect(polygonPartRecords).toMatchObject(expectedPolygonPartRecords);
+        expect(booleanEqual(polygonPartRecords[0].footprint, expectedPolygonPartFootprints[0], { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+        expect(booleanEqual(polygonPartRecords[1].footprint, expectedPolygonPartFootprints[1], { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+
+        partRecords.forEach((partRecord, index) => {
+          expect(partRecord.ingestionDateUTC).toBeBeforeOrEqualTo(new Date());
+          expect(partRecord.footprint).toBePolygonGeometry();
+          expect(partRecord.isProcessedPart).toBeTrue();
+          expect(partRecord.insertionOrder).toBe(index + 1);
+          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+
+          const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
+
+          for (const relatedPolygonPartRecord of relatedPolygonPartRecords) {
+            expect(relatedPolygonPartRecord.ingestionDateUTC).toStrictEqual(partRecord.ingestionDateUTC);
+            expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
+            expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
+            expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
+            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+          }
+        });
+
+        expect.assertions(29);
+      });
+
+      it('should return 200 status code and update the resources for a part with a small area (below threshold) not intersecting existing polygon part (above threshold)', async () => {
+        const squareSideLength = applicationConfig.entities.polygonParts.minAreaSquareDeg ** 0.5;
+        const insertPolygonPartsPayload = createPolygonPartsPayload({
+          partsData: [
+            {
+              footprint: {
+                type: 'Polygon',
+                coordinates: [
+                  [
+                    [0, 0],
+                    [1, 0],
+                    [1, 1],
+                    [0, 1],
+                    [0, 0],
+                  ],
+                ],
+              },
+            },
+          ],
+        });
+        await requestSender.createPolygonParts(insertPolygonPartsPayload);
+        const updatePolygonPartsPayload = createPolygonPartsPayload({
+          productId: insertPolygonPartsPayload.productId,
+          productType: insertPolygonPartsPayload.productType,
+          partsData: [
+            {
+              footprint: {
+                type: 'Polygon',
+                coordinates: [
+                  [
+                    [10, 0],
+                    [10 + squareSideLength, 0],
+                    [10 + squareSideLength - Number.EPSILON, squareSideLength],
+                    [10, squareSideLength],
+                    [10, 0],
+                  ],
+                ],
+              },
+            },
+          ],
+        });
+        const { parts, polygonParts } = getEntitiesNames(insertPolygonPartsPayload);
+        const expectedPartRecords = [
+          ...toExpectedPostgresResponse(insertPolygonPartsPayload),
+          ...toExpectedPostgresResponse(updatePolygonPartsPayload),
+        ].map(({ footprint, ...expectedPartRecord }) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          return { footprint: expect.anything(), ...expectedPartRecord };
+        });
+        const expectedPolygonPartRecords = expectedPartRecords;
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, false);
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response).toSatisfyApiSpec();
+
+        expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
+        expect(
+          booleanEqual(partRecords[0].footprint, insertPolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+        expect(
+          booleanEqual(partRecords[1].footprint, updatePolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+        expect(polygonPartRecords).toMatchObject(expectedPolygonPartRecords);
+        expect(
+          booleanEqual(polygonPartRecords[0].footprint, insertPolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+        expect(
+          booleanEqual(polygonPartRecords[1].footprint, updatePolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
+        ).toBeTrue();
+
+        partRecords.forEach((partRecord, index) => {
+          expect(partRecord.ingestionDateUTC).toBeBeforeOrEqualTo(new Date());
+          expect(partRecord.footprint).toBePolygonGeometry();
+          expect(partRecord.isProcessedPart).toBeTrue();
+          expect(partRecord.insertionOrder).toBe(index + 1);
+          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+
+          const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
+
+          for (const relatedPolygonPartRecord of relatedPolygonPartRecords) {
+            expect(relatedPolygonPartRecord.ingestionDateUTC).toStrictEqual(partRecord.ingestionDateUTC);
+            expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
+            expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
+            expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
+            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+          }
+        });
+
+        expect.assertions(29);
+      });
     });
   });
 

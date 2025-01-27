@@ -3,7 +3,6 @@ global:
   tracing: {}
   metrics: {}
   environment: {}
-  serviceUrls: {}
   db: {}
   ca:
     secretName: ''

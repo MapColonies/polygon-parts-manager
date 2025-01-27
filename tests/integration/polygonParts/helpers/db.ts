@@ -58,9 +58,9 @@ export const createPolygonPart = (): PolygonPart => {
 };
 
 // TODO: merge with generateRequest() in requestsMocks.ts
-export function createPolygonPartsPayload(partsCount: number): PolygonPartsPayload;
-export function createPolygonPartsPayload(template: DeepPartial<PolygonPartsPayload>): PolygonPartsPayload;
-export function createPolygonPartsPayload(input: number | DeepPartial<PolygonPartsPayload>): PolygonPartsPayload {
+export function generatePolygonPartsPayload(partsCount: number): PolygonPartsPayload;
+export function generatePolygonPartsPayload(template: DeepPartial<PolygonPartsPayload>): PolygonPartsPayload;
+export function generatePolygonPartsPayload(input: number | DeepPartial<PolygonPartsPayload>): PolygonPartsPayload {
   const layerMetadata = {
     catalogId: faker.string.uuid(),
     productId: randexp(VALIDATIONS.productId.pattern),

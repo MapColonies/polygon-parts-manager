@@ -21,11 +21,11 @@ const updateLayerMetadata: LayerMetadata = {
 function generateRequest(layerMetadata: LayerMetadata, footprints: Polygon[]): PolygonPartsPayload {
   return {
     ...layerMetadata,
-    partsData: generatePolygonPart(footprints),
+    partsData: generatePolygonPartPayload(footprints),
   };
 }
 
-function generatePolygonPart(footprints: Polygon[]): PolygonPart[] {
+function generatePolygonPartPayload(footprints: Polygon[]): PolygonPart[] {
   return footprints.map((footprint) => {
     return {
       ...createPolygonPart(),

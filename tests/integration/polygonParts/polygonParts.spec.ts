@@ -88,7 +88,7 @@ describe('polygonParts', () => {
     describe('POST /polygonParts', () => {
       // TODO: check for tracing is sent side effect
       it('should return 201 status code and create the resources for a single part', async () => {
-        const polygonPartsPayload = createPolygonPartsPayload();
+        const polygonPartsPayload = createPolygonPartsPayload(1);
         const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
         const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
@@ -437,7 +437,6 @@ describe('polygonParts', () => {
             ],
           },
         ] satisfies [Polygon, Polygon];
-
         const expectedPartRecords = toExpectedPostgresResponse(polygonPartsPayload).map(({ footprint, ...expectedPartRecord }) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           return { footprint: expect.anything(), ...expectedPartRecord };
@@ -532,7 +531,6 @@ describe('polygonParts', () => {
             ],
           ],
         } satisfies Polygon;
-
         const expectedPartRecords = toExpectedPostgresResponse(polygonPartsPayload).map(({ footprint, ...expectedPartRecord }) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           return { footprint: expect.anything(), ...expectedPartRecord };
@@ -640,7 +638,6 @@ describe('polygonParts', () => {
             ],
           },
         ] satisfies [Polygon, Polygon];
-
         const expectedPartRecords = toExpectedPostgresResponse(polygonPartsPayload).map(({ footprint, ...expectedPartRecord }) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           return { footprint: expect.anything(), ...expectedPartRecord };

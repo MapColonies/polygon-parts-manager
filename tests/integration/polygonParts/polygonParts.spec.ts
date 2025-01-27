@@ -848,12 +848,9 @@ describe('polygonParts', () => {
     });
 
     describe('PUT /polygonParts', () => {
-      beforeEach(async () => {
+      it('should return 200 status code on regular update with 3 non intersecting polygons', async () => {
         const insertPolygonPartsPayload = createInitPayloadRequest;
         await requestSender.createPolygonParts(insertPolygonPartsPayload);
-      });
-
-      it('should return 200 status code on regular update with 3 non intersecting polygons', async () => {
         const updatePayload = separatePolygonsRequest;
         const { parts, polygonParts } = getEntitiesNames(updatePayload);
 
@@ -885,6 +882,8 @@ describe('polygonParts', () => {
       });
 
       it('should return 200 status code on regular update with 2 intersecting polygons', async () => {
+        const insertPolygonPartsPayload = createInitPayloadRequest;
+        await requestSender.createPolygonParts(insertPolygonPartsPayload);
         const updatePayload = intersectionWithItalyRequest;
         const { parts, polygonParts } = getEntitiesNames(updatePayload);
 
@@ -912,6 +911,8 @@ describe('polygonParts', () => {
       });
 
       it('should return 200 status code on swap update with world polygon', async () => {
+        const insertPolygonPartsPayload = createInitPayloadRequest;
+        await requestSender.createPolygonParts(insertPolygonPartsPayload);
         await requestSender.updatePolygonParts(separatePolygonsRequest, false);
         const updatePayload = createInitPayloadRequest;
         const { parts, polygonParts } = getEntitiesNames(updatePayload);

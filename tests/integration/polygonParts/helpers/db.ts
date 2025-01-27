@@ -5,6 +5,7 @@ import { randexp } from 'randexp';
 import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
 import { DatabaseCreateContext, createDatabase, dropDatabase } from 'typeorm-extension';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
+import type { DeepPartial } from './types';
 
 export const createDB = async (options: Partial<DatabaseCreateContext>): Promise<void> => {
   await createDatabase({ ...options, synchronize: false, ifNotExist: false });
@@ -56,17 +57,36 @@ export const createPolygonPart = (): PolygonPart => {
   };
 };
 
-export const createPolygonPartsPayload = (partsCount = 1): PolygonPartsPayload => {
-  const partsData = Array.from({ length: partsCount }, createPolygonPart);
-
-  return {
+// TODO: merge with generateRequest() in requestsMocks.ts
+export function createPolygonPartsPayload(partsCount: number): PolygonPartsPayload;
+export function createPolygonPartsPayload(template: DeepPartial<PolygonPartsPayload>): PolygonPartsPayload;
+export function createPolygonPartsPayload(input: number | DeepPartial<PolygonPartsPayload>): PolygonPartsPayload {
+  const layerMetadata = {
     catalogId: faker.string.uuid(),
-    partsData: partsData,
     productId: randexp(VALIDATIONS.productId.pattern),
     productType: faker.helpers.arrayElement(RASTER_PRODUCT_TYPES),
     productVersion: randexp(VALIDATIONS.productVersion.pattern),
   };
-};
+
+  if (typeof input === 'number') {
+    const partsCount = input;
+    return {
+      ...layerMetadata,
+      partsData: Array.from({ length: partsCount }, createPolygonPart),
+    };
+  }
+
+  const { partsData: templatePartsData, ...templateLayerMetadata } = input;
+
+  return {
+    ...layerMetadata,
+    ...templateLayerMetadata,
+    partsData: Array.from({ length: templatePartsData?.length ?? 1 }, createPolygonPart).map((partData, index) => {
+      const templatePartsDataValues = templatePartsData?.[index];
+      return templatePartsDataValues ? { ...partData, ...templatePartsDataValues } : partData;
+    }),
+  };
+}
 
 export class HelperDB {
   private readonly appDataSource: DataSource;

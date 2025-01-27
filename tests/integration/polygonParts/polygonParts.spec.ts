@@ -1891,7 +1891,6 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if a product type is invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, productType: 'bad value' };
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = {
           message: `request/body/productType must be equal to one of the allowed values: Orthophoto, OrthophotoHistory, OrthophotoBest, RasterMap, RasterMapBest, RasterAid, RasterAidBest, RasterVector, RasterVectorBest`,
         };
@@ -1907,7 +1906,6 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if a catalog id is invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, catalogId: 'bad value' };
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/catalogId must match format "uuid"` };
 
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, false);
@@ -1921,7 +1919,6 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if a product id is invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, productId: 'bad value' };
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/productId must match pattern "^[A-Za-z]{1}[A-Za-z0-9_]{0,37}$"` };
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
 
@@ -1934,7 +1931,6 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if a product version is invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, productVersion: 'bad value' };
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/productVersion must match pattern "^[1-9]\\d*(\\.(0|[1-9]\\d?))?$"` };
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
 
@@ -1948,7 +1944,6 @@ describe('polygonParts', () => {
       it('should return 400 status code if a countries is invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], countries: [123] } as unknown as PolygonPartType];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/partsData/0/countries/0 must be string` };
 
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
@@ -1963,7 +1958,6 @@ describe('polygonParts', () => {
       it('should return 400 status code if a cities is invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], cities: [123] } as unknown as PolygonPartType];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/partsData/0/cities/0 must be string` };
 
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
@@ -1978,7 +1972,6 @@ describe('polygonParts', () => {
       it('should return 400 status code if a sensors is invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sensors: 123 } as unknown as PolygonPartType];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/partsData/0/sensors must be array` };
 
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
@@ -1993,7 +1986,6 @@ describe('polygonParts', () => {
       it('should return 400 status code if a source name is invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sourceName: 123 } as unknown as PolygonPartType];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/partsData/0/sourceName must be string` };
 
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
@@ -2008,7 +2000,6 @@ describe('polygonParts', () => {
       it('should return 400 status code if a resolution degree is invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], resolutionDegree: 123 } as unknown as PolygonPartType];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/partsData/0/resolutionDegree must be <= 0.703125` };
 
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
@@ -2023,7 +2014,6 @@ describe('polygonParts', () => {
       it('should return 400 status code if a resolution meter is invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], resolutionMeter: 0 } as unknown as PolygonPartType];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/partsData/0/resolutionMeter must be >= 0.0185` };
 
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
@@ -2038,7 +2028,6 @@ describe('polygonParts', () => {
       it('should return 400 status code if a source resolution meter is invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sourceResolutionMeter: 0 } as unknown as PolygonPartType];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/partsData/0/sourceResolutionMeter must be >= 0.0185` };
 
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
@@ -2055,7 +2044,6 @@ describe('polygonParts', () => {
         updatePolygonPartsPayload.partsData = [
           { ...updatePolygonPartsPayload.partsData[0], horizontalAccuracyCE90: 5000 } as unknown as PolygonPartType,
         ];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/partsData/0/horizontalAccuracyCE90 must be <= 4000` };
 
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
@@ -2072,7 +2060,6 @@ describe('polygonParts', () => {
         updatePolygonPartsPayload.partsData = [
           { ...updatePolygonPartsPayload.partsData[0], imagingTimeBeginUTC: 'bad value' } as unknown as PolygonPartType,
         ];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/partsData/0/imagingTimeBeginUTC must match format "date-time"` };
 
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
@@ -2089,7 +2076,6 @@ describe('polygonParts', () => {
         updatePolygonPartsPayload.partsData = [
           { ...updatePolygonPartsPayload.partsData[0], imagingTimeEndUTC: 'bad value' } as unknown as PolygonPartType,
         ];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/partsData/0/imagingTimeEndUTC must match format "date-time"` };
 
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
@@ -2106,7 +2092,6 @@ describe('polygonParts', () => {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const { coordinates, ...badFootprint } = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/partsData/0/footprint must have required property 'coordinates'` };
 
         const response = await requestSender.createPolygonParts(updatePolygonPartsPayload);
@@ -2124,7 +2109,6 @@ describe('polygonParts', () => {
         const badFootprint = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
         badFootprint.coordinates[0] = badFootprint.coordinates[0].filter((_, index) => (index === 1 ? false : true));
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint }];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/partsData/0/footprint/coordinates/0 must NOT have fewer than 4 items` };
 
         const response = await requestSender.createPolygonParts(updatePolygonPartsPayload);
@@ -2142,7 +2126,6 @@ describe('polygonParts', () => {
         const badFootprint = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
         badFootprint.coordinates[0][0][1] = 181;
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint }];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/partsData/0/footprint/coordinates/0/0/1 must be <= 180` };
 
         const response = await requestSender.createPolygonParts(updatePolygonPartsPayload);
@@ -2159,7 +2142,6 @@ describe('polygonParts', () => {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const { type, ...badFootprint } = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/partsData/0/footprint must have required property 'type'` };
 
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, false);
@@ -2176,7 +2158,6 @@ describe('polygonParts', () => {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const badFootprint = { ...randomPolygon(1, { num_vertices: 3 }).features[0].geometry, type: 'Point' };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/partsData/0/footprint/type must be equal to one of the allowed values: Polygon` };
 
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
@@ -2191,7 +2172,6 @@ describe('polygonParts', () => {
       it('should return 400 status code if a source id is invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sourceId: 123 } as unknown as PolygonPartType];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/partsData/0/sourceId must be string` };
 
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
@@ -2206,7 +2186,6 @@ describe('polygonParts', () => {
       it('should return 400 status code if a description is invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], description: 123 } as unknown as PolygonPartType];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: `request/body/partsData/0/description must be string` };
 
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
@@ -2225,7 +2204,6 @@ describe('polygonParts', () => {
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         expect(response.body).toMatchObject({ message: `request/body/partsData must NOT have fewer than 1 items` });
         expect(response).toSatisfyApiSpec();
 
@@ -2609,13 +2587,11 @@ describe('polygonParts', () => {
         expect(existsPolygonParts).toBeTrue();
 
         expect.assertions(6);
-        // eslint-disable-next-line @typescript-eslint/unbound-method
       });
 
       it('should return 500 status code for a database error - calculate polygon parts error on swap update', async () => {
         await requestSender.createPolygonParts(createInitPayloadRequest);
         const updatePayload = separatePolygonsRequest;
-        // eslint-disable-next-line @typescript-eslint/unbound-method
         const { parts, polygonParts } = getEntitiesNames(updatePayload);
         // eslint-disable-next-line @typescript-eslint/unbound-method
         const originalQuery = EntityManager.prototype.query;
@@ -2639,7 +2615,6 @@ describe('polygonParts', () => {
         expect(existsPolygonParts).toBeTrue();
 
         expect.assertions(6);
-        // eslint-disable-next-line @typescript-eslint/unbound-method
       });
     });
   });

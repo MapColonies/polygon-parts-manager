@@ -21,17 +21,17 @@ export class ModifyPolygonPartsCalculationStoredProcedure1737277749392 implement
                     t1."part_id",
                     st_difference(t1."footprint", st_union(t2."footprint")) diff
                 from (
-                    select pp."id", pp."part_id", pp."catalog_id", pp."footprint", pp."insertion_order"
+                    select pp."id", pp."part_id", pp."footprint", pp."insertion_order"
                     from ' || polygon_parts || ' pp
                     join unprocessed
-                    on st_intersects(pp."footprint", unprocessed."footprint") and pp."catalog_id" = unprocessed."catalog_id"
+                    on st_intersects(pp."footprint", unprocessed."footprint")
                     union all
-                    select NULL, "id", "catalog_id", "footprint", "insertion_order"
+                    select NULL, "id", "footprint", "insertion_order"
                     from unprocessed
                 ) t1
                 inner join unprocessed t2
-                on st_intersects(t1."footprint", t2."footprint") and t1."insertion_order" < t2."insertion_order" and t1."catalog_id" = t2."catalog_id"
-                group by t1."id", t1."part_id", t1."catalog_id", t1."footprint";';
+                on st_intersects(t1."footprint", t2."footprint") and t1."insertion_order" < t2."insertion_order"
+                group by t1."id", t1."part_id", t1."footprint";';
 
                 execute 'delete from ' || polygon_parts || ' as pp
                 using tbl

@@ -1402,8 +1402,6 @@ describe('polygonParts', () => {
         expect(
           booleanEqual(partRecords[1].footprint, updatePolygonPartsPayload.partsData[0].footprint, { precision: INTERNAL_DB_GEOM_PRECISION })
         ).toBeTrue();
-        console.log('polygonPartRecords', JSON.stringify(polygonPartRecords));
-        console.log('expectedPolygonPartRecords', JSON.stringify(expectedPolygonPartRecords));
         expect(polygonPartRecords).toMatchObject(expectedPolygonPartRecords);
         expect(booleanEqual(polygonPartRecords[0].footprint, expectedPolygonPartFootprints[0], { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
         expect(booleanEqual(polygonPartRecords[1].footprint, expectedPolygonPartFootprints[1], { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();

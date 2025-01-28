@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.4.1](https://github.com/MapColonies/polygon-parts-manager/compare/v1.4.0...v1.4.1) (2025-01-28)
+
+
+### Bug Fixes
+
+* aggregation causes connection termination ([#32](https://github.com/MapColonies/polygon-parts-manager/issues/32)) ([48f91db](https://github.com/MapColonies/polygon-parts-manager/commit/48f91dbaaed8bc06b1c5de2847b40854a84c67db))
+* calculate polygon parts stored procedure (MAPCO-6442) ([#33](https://github.com/MapColonies/polygon-parts-manager/issues/33)) ([110768a](https://github.com/MapColonies/polygon-parts-manager/commit/110768a54df7b878bd6f31c82ad59e4d7ce338eb))
+
 ## [1.4.0](https://github.com/MapColonies/polygon-parts-manager/compare/v1.3.6...v1.4.0) (2024-12-25)
 
 

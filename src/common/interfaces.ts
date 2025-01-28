@@ -1,4 +1,4 @@
-import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import type { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
 export interface ApplicationConfig {
   chunkSize: number;
@@ -13,6 +13,7 @@ export interface ApplicationConfig {
     polygonParts: {
       namePrefix: string;
       nameSuffix: string;
+      minAreaSquareDeg: number;
     };
   };
   aggregation: {
@@ -24,10 +25,10 @@ export interface ApplicationConfig {
   };
 }
 
-export type DbConfig = PostgresConnectionOptions & {
+export interface DbConfig extends PostgresConnectionOptions {
   enableSslAuth: boolean;
   sslPaths: { ca: string; cert: string; key: string };
-};
+}
 
 export interface IConfig {
   get: <T>(setting: string) => T;

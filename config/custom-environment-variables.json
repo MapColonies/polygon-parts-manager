@@ -54,7 +54,11 @@
       },
       "polygonParts": {
         "namePrefix": "ENTITY_POLYGON_PARTS_NAME_PREFIX",
-        "nameSuffix": "ENTITY_POLYGON_PARTS_NAME_SUFFIX"
+        "nameSuffix": "ENTITY_POLYGON_PARTS_NAME_SUFFIX",
+        "minAreaSquareDeg": {
+          "__name": "ENTITY_POLYGON_PARTS_MIN_AREA_SQUARE_DEG",
+          "__format": "number"
+        }
       }
     },
     "aggregation": {

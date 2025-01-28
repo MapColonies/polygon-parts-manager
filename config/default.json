@@ -37,7 +37,8 @@
       },
       "polygonParts": {
         "namePrefix": "",
-        "nameSuffix": ""
+        "nameSuffix": "",
+        "minAreaSquareDeg": 1e-15
       }
     },
     "aggregation": {
@@ -67,6 +68,7 @@
     "logging": false,
     "entities": ["**/DAL/*.js"],
     "migrations": ["db/migrations/*.js"],
-    "applicationName": "polygon_parts"
+    "applicationName": "polygon_parts",
+    "logNotifications": true
   }
 }

@@ -3,7 +3,6 @@ global:
   tracing: {}
   metrics: {}
   environment: {}
-  serviceUrls: {}
   db: {}
   ca:
     secretName: ''
@@ -61,6 +60,7 @@ env:
       polygonParts:
         namePrefix: ''
         nameSuffix: ''
+        minAreaSquareDeg: 1e-15
     aggregation:
       maxDecimalDigits: 12
       fixGeometry:

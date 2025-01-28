@@ -1,11 +1,7 @@
 import { validate, version } from 'uuid';
 import { payloadToInsertPartsData } from '../../../../src/polygonParts/DAL/utils';
-import { InsertPartData, PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type NullableRecordValues<T extends Record<PropertyKey, any>> = {
-  [K in keyof T]-?: T[K] extends NonNullable<T[K]> ? T[K] : Exclude<T[K] | null, undefined>;
-};
+import type { InsertPartData, PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
+import type { NullableRecordValues } from './types';
 
 export function toExpectedPostgresResponse(polygonPartsPayload: PolygonPartsPayload): NullableRecordValues<InsertPartData>[] {
   const expectedPostgresResponse = payloadToInsertPartsData(polygonPartsPayload).map((record) => {

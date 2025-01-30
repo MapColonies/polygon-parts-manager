@@ -65,28 +65,45 @@ export class AggregationManager {
     const polygonPart = entityManager.getRepository(PolygonPart);
     polygonPart.metadata.tablePath = polygonPartsEntityName; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
 
-    const footprintUnionQuery = 'st_union("polygon_part".footprint)';
     const footprintUnionCTE = entityManager
       .createQueryBuilder()
-      .select(
-        this.fixGeometry.enabled
-          ? `st_buffer(st_buffer(${footprintUnionQuery}, ${this.fixGeometry.bufferSizeDeg}), -${this.fixGeometry.bufferSizeDeg})`
-          : footprintUnionQuery,
-        'footprint_union'
-      )
+      .select('st_union("polygon_part".footprint)', 'footprint_union')
       .from(polygonPartsEntityName, 'polygon_part');
+
+    const footprintSmoothCTE = this.fixGeometry.enabled
+      ? entityManager
+          .createQueryBuilder()
+          .select(
+            `st_buffer(st_buffer("footprint_union".footprint_union, ${this.fixGeometry.bufferSizeDeg}), -${this.fixGeometry.bufferSizeDeg})`,
+            'footprint_buffer'
+          )
+          .addSelect('"footprint_union".footprint_union', 'footprint_union')
+          .from('footprint_union', 'footprint_union')
+      : entityManager
+          .createQueryBuilder()
+          .select(`'POLYGON EMPTY'::geometry`, 'footprint_buffer')
+          .addSelect('"footprint_union".footprint_union', 'footprint_union')
+          .from('footprint_union', 'footprint_union');
+
+    const footprintFixEmptyCTE = entityManager
+      .createQueryBuilder()
+      .select(
+        `case when st_isempty("footprint_smooth".footprint_buffer) then "footprint_smooth".footprint_union else "footprint_smooth".footprint_buffer end`,
+        'footprint'
+      )
+      .from('footprint_smooth', 'footprint_smooth');
 
     const footprintAggregationCTE = entityManager
       .createQueryBuilder()
       .select(
-        `st_asgeojson(st_geometryn(st_collect("footprint_union".footprint_union), 1), maxdecimaldigits => ${this.maxDecimalDigits}, options => 1)::json`,
+        `st_asgeojson(st_geometryn(st_collect("footprint_fix_empty".footprint), 1), maxdecimaldigits => ${this.maxDecimalDigits}, options => 1)::json`,
         'footprint'
       )
       .addSelect(
-        `trim(both '[]' from (st_asgeojson(st_geometryn(st_collect("footprint_union".footprint_union), 1), maxdecimaldigits => ${this.maxDecimalDigits}, options => 1)::json ->> 'bbox'))`,
+        `trim(both '[]' from (st_asgeojson(st_geometryn(st_collect("footprint_fix_empty".footprint), 1), maxdecimaldigits => ${this.maxDecimalDigits}, options => 1)::json ->> 'bbox'))`,
         'productBoundingBox'
       )
-      .from('footprint_union', 'footprint_union');
+      .from('footprint_fix_empty', 'footprint_fix_empty');
 
     const metadataAggregationCTE = polygonPart
       .createQueryBuilder('polygon_part')
@@ -111,6 +128,8 @@ export class AggregationManager {
     const aggregationQueryBuilder = entityManager
       .createQueryBuilder()
       .addCommonTableExpression(footprintUnionCTE, 'footprint_union')
+      .addCommonTableExpression(footprintSmoothCTE, 'footprint_smooth')
+      .addCommonTableExpression(footprintFixEmptyCTE, 'footprint_fix_empty')
       .addCommonTableExpression(footprintAggregationCTE, 'footprint_aggregation')
       .addCommonTableExpression(metadataAggregationCTE, 'metadata_aggregation')
       .select('metadata_aggregation.*')

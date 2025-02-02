@@ -70,20 +70,16 @@ export class AggregationManager {
       .select('st_union("polygon_part".footprint)', 'footprint_union')
       .from(polygonPartsEntityName, 'polygon_part');
 
-    const footprintSmoothCTE = this.fixGeometry.enabled
-      ? entityManager
-          .createQueryBuilder()
-          .select(
-            `st_buffer(st_buffer("footprint_union".footprint_union, ${this.fixGeometry.bufferSizeDeg}), -${this.fixGeometry.bufferSizeDeg})`,
-            'footprint_buffer'
-          )
-          .addSelect('"footprint_union".footprint_union', 'footprint_union')
-          .from('footprint_union', 'footprint_union')
-      : entityManager
-          .createQueryBuilder()
-          .select(`'POLYGON EMPTY'::geometry`, 'footprint_buffer')
-          .addSelect('"footprint_union".footprint_union', 'footprint_union')
-          .from('footprint_union', 'footprint_union');
+    const footprintSmoothCTE = entityManager
+      .createQueryBuilder()
+      .select(
+        this.fixGeometry.enabled
+          ? `st_buffer(st_buffer("footprint_union".footprint_union, ${this.fixGeometry.bufferSizeDeg}), -${this.fixGeometry.bufferSizeDeg})`
+          : `'POLYGON EMPTY'::geometry`,
+        'footprint_buffer'
+      )
+      .addSelect('"footprint_union".footprint_union', 'footprint_union')
+      .from('footprint_union', 'footprint_union');
 
     const footprintFixEmptyCTE = entityManager
       .createQueryBuilder()

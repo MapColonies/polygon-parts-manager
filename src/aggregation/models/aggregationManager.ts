@@ -12,8 +12,8 @@ import type { AggregationParams } from './interfaces';
 
 @injectable()
 export class AggregationManager {
-  private readonly arraySeparator: string;
-  private readonly maxDecimalDigits: number;
+  private readonly arraySeparator: ApplicationConfig['arraySeparator'];
+  private readonly maxDecimalDigits: ApplicationConfig['aggregation']['maxDecimalDigits'];
   private readonly fixGeometry: ApplicationConfig['aggregation']['fixGeometry'];
 
   public constructor(

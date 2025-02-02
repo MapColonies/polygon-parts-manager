@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.4.2](https://github.com/MapColonies/polygon-parts-manager/compare/v1.4.1...v1.4.2) (2025-02-02)
+
+
+### Bug Fixes
+
+* handle empty geometries of small footprints ([#34](https://github.com/MapColonies/polygon-parts-manager/issues/34)) ([2f1228f](https://github.com/MapColonies/polygon-parts-manager/commit/2f1228f55b792d29e3b4ceb8a0fc21a6f2236f26))
+
 ### [1.4.1](https://github.com/MapColonies/polygon-parts-manager/compare/v1.4.0...v1.4.1) (2025-01-28)
 
 

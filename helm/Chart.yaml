@@ -2,5 +2,5 @@ apiVersion: v2
 name: polygon-parts-manager
 description: A Helm chart for polygon-parts-manager service
 type: application
-version: 1.5.1
-appVersion: 1.5.1
+version: 1.5.2
+appVersion: 1.5.2

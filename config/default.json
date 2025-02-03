@@ -46,7 +46,7 @@
       "fixGeometry": {
         "enabled": true,
         "bufferSizeDeg": 0.000006,
-        "bufferStyleParameters": ""
+        "bufferStyleParameters": "''"
       },
       "simplifyGeometry": {
         "enabled": true,

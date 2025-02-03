@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.5.0](https://github.com/MapColonies/polygon-parts-manager/compare/v1.4.2...v1.5.0) (2025-02-03)
+
+
+### Features
+
+* aggregation buffer style ([#36](https://github.com/MapColonies/polygon-parts-manager/issues/36)) ([7fbe2c8](https://github.com/MapColonies/polygon-parts-manager/commit/7fbe2c876a2b6cc11a628ff93cf9f2f267933222))
+* aggregation simplification (MAPCO-6591) ([#35](https://github.com/MapColonies/polygon-parts-manager/issues/35)) ([db1099e](https://github.com/MapColonies/polygon-parts-manager/commit/db1099ed70348954fe38e9ae9b3febf6d0ae79e6))
+
 ### [1.4.2](https://github.com/MapColonies/polygon-parts-manager/compare/v1.4.1...v1.4.2) (2025-02-02)
 
 

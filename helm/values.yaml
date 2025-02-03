@@ -66,6 +66,7 @@ env:
       fixGeometry:
         enabled: true
         bufferSizeDeg: 0.000006
+        bufferStyleParameters: ''
 
 # external
 db:

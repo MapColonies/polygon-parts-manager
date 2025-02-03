@@ -20,6 +20,7 @@ export interface ApplicationConfig {
     fixGeometry: {
       enabled: boolean;
       bufferSizeDeg: number;
+      bufferStyleParameters: string;
     };
     maxDecimalDigits: number;
   };

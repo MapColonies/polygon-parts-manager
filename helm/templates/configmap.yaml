@@ -24,6 +24,9 @@ data:
   AGGREGATION_FIX_GEOMETRY_BUFFER_SIZE_DEG: {{ .Values.env.application.aggregation.fixGeometry.bufferSizeDeg | quote }}
   AGGREGATION_FIX_GEOMETRY_BUFFER_STYLE_PARAMETERS: {{ .Values.env.application.aggregation.fixGeometry.bufferStyleParameters | quote }}
   {{- end }}
+  {{- if .Values.env.application.aggregation.simplifyGeometry.enabled }}
+  AGGREGATION_SIMPLIFY_GEOMETRY_TOLERANCE_DEG: {{ .Values.env.application.aggregation.simplifyGeometry.toleranceDeg | quote }}
+  {{- end }}
   DB_HOST: {{ $db.host | quote }}
   DB_PORT: {{ $db.port | quote }}
   DB_NAME: {{ $db.name | quote }}

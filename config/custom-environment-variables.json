@@ -76,6 +76,16 @@
           "__format": "number"
         },
         "bufferStyleParameters": "AGGREGATION_FIX_GEOMETRY_BUFFER_STYLE_PARAMETERS"
+      },
+      "simplifyGeometry": {
+        "enabled": {
+          "__name": "AGGREGATION_SIMPLIFY_GEOMETRY_ENABLED",
+          "__format": "boolean"
+        },
+        "toleranceDeg": {
+          "__name": "AGGREGATION_SIMPLIFY_GEOMETRY_TOLERANCE_DEG",
+          "__format": "number"
+        }
       }
     }
   },

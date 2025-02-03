@@ -12,9 +12,10 @@ import type { AggregationParams } from './interfaces';
 
 @injectable()
 export class AggregationManager {
-  private readonly arraySeparator: string;
-  private readonly maxDecimalDigits: number;
+  private readonly arraySeparator: ApplicationConfig['arraySeparator'];
+  private readonly maxDecimalDigits: ApplicationConfig['aggregation']['maxDecimalDigits'];
   private readonly fixGeometry: ApplicationConfig['aggregation']['fixGeometry'];
+  private readonly simplifyGeometry: ApplicationConfig['aggregation']['simplifyGeometry'];
 
   public constructor(
     @inject(SERVICES.CONFIG) private readonly config: IConfig,
@@ -24,6 +25,7 @@ export class AggregationManager {
     this.arraySeparator = this.config.get<ApplicationConfig['arraySeparator']>('application.arraySeparator');
     this.maxDecimalDigits = this.config.get<ApplicationConfig['aggregation']['maxDecimalDigits']>('application.aggregation.maxDecimalDigits');
     this.fixGeometry = this.config.get<ApplicationConfig['aggregation']['fixGeometry']>('application.aggregation.fixGeometry');
+    this.simplifyGeometry = this.config.get<ApplicationConfig['aggregation']['simplifyGeometry']>('application.aggregation.simplifyGeometry');
   }
 
   public async getAggregationLayerMetadata(aggregationParams: AggregationParams): Promise<AggregationLayerMetadata> {
@@ -89,17 +91,27 @@ export class AggregationManager {
       )
       .from('footprint_smooth', 'footprint_smooth');
 
+    const footprintSimplifyCTE = entityManager
+      .createQueryBuilder()
+      .select(
+        this.simplifyGeometry.enabled
+          ? `st_union(st_simplifypreservetopology("footprint_fix_empty".footprint, ${this.simplifyGeometry.toleranceDeg}))`
+          : '"footprint_fix_empty".footprint',
+        'footprint'
+      )
+      .from('footprint_fix_empty', 'footprint_fix_empty');
+
     const footprintAggregationCTE = entityManager
       .createQueryBuilder()
       .select(
-        `st_asgeojson(st_geometryn(st_collect("footprint_fix_empty".footprint), 1), maxdecimaldigits => ${this.maxDecimalDigits}, options => 1)::json`,
+        `st_asgeojson(st_geometryn(st_collect("footprint_simplify".footprint), 1), maxdecimaldigits => ${this.maxDecimalDigits}, options => 1)::json`,
         'footprint'
       )
       .addSelect(
-        `trim(both '[]' from (st_asgeojson(st_geometryn(st_collect("footprint_fix_empty".footprint), 1), maxdecimaldigits => ${this.maxDecimalDigits}, options => 1)::json ->> 'bbox'))`,
+        `trim(both '[]' from (st_asgeojson(st_geometryn(st_collect("footprint_simplify".footprint), 1), maxdecimaldigits => ${this.maxDecimalDigits}, options => 1)::json ->> 'bbox'))`,
         'productBoundingBox'
       )
-      .from('footprint_fix_empty', 'footprint_fix_empty');
+      .from('footprint_simplify', 'footprint_simplify');
 
     const metadataAggregationCTE = polygonPart
       .createQueryBuilder('polygon_part')
@@ -126,6 +138,7 @@ export class AggregationManager {
       .addCommonTableExpression(footprintUnionCTE, 'footprint_union')
       .addCommonTableExpression(footprintSmoothCTE, 'footprint_smooth')
       .addCommonTableExpression(footprintFixEmptyCTE, 'footprint_fix_empty')
+      .addCommonTableExpression(footprintSimplifyCTE, 'footprint_simplify')
       .addCommonTableExpression(footprintAggregationCTE, 'footprint_aggregation')
       .addCommonTableExpression(metadataAggregationCTE, 'metadata_aggregation')
       .select('metadata_aggregation.*')

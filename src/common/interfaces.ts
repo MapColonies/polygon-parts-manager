@@ -22,6 +22,10 @@ export interface ApplicationConfig {
       bufferSizeDeg: number;
       bufferStyleParameters: string;
     };
+    simplifyGeometry: {
+      enabled: boolean;
+      toleranceDeg: number;
+    };
     maxDecimalDigits: number;
   };
 }

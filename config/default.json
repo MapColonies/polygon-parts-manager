@@ -46,6 +46,10 @@
       "fixGeometry": {
         "enabled": true,
         "bufferSizeDeg": 0.000006
+      },
+      "simplifyGeometry": {
+        "enabled": true,
+        "toleranceDeg": 0.000006
       }
     }
   },

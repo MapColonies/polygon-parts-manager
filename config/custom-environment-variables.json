@@ -75,6 +75,16 @@
           "__name": "AGGREGATION_FIX_GEOMETRY_BUFFER_SIZE_DEG",
           "__format": "number"
         }
+      },
+      "simplifyGeometry": {
+        "enabled": {
+          "__name": "AGGREGATION_SIMPLIFY_GEOMETRY_ENABLED",
+          "__format": "boolean"
+        },
+        "toleranceDeg": {
+          "__name": "AGGREGATION_SIMPLIFY_GEOMETRY_TOLERANCE_DEG",
+          "__format": "number"
+        }
       }
     }
   },

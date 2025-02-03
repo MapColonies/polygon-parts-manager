@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.5.1](https://github.com/MapColonies/polygon-parts-manager/compare/v1.5.0...v1.5.1) (2025-02-03)
+
+
+### Bug Fixes
+
+* correct bufferStyleParameters format in configuration files ([#37](https://github.com/MapColonies/polygon-parts-manager/issues/37)) ([c40812f](https://github.com/MapColonies/polygon-parts-manager/commit/c40812f74fedc79ec9bab89d90fe7c62bd2d9046))
+
 ## [1.5.0](https://github.com/MapColonies/polygon-parts-manager/compare/v1.4.2...v1.5.0) (2025-02-03)
 
 

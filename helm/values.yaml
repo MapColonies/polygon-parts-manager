@@ -66,6 +66,7 @@ env:
       fixGeometry:
         enabled: true
         bufferSizeDeg: 0.000006
+        bufferStyleParameters: '' # for valid values see https://postgis.net/docs/ST_Buffer.html
       simplifyGeometry:
         enabled: true
         toleranceDeg: 0.000006

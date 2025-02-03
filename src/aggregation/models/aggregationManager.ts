@@ -76,7 +76,7 @@ export class AggregationManager {
       .createQueryBuilder()
       .select(
         this.fixGeometry.enabled
-          ? `st_buffer(st_buffer("footprint_union".footprint_union, ${this.fixGeometry.bufferSizeDeg}), -${this.fixGeometry.bufferSizeDeg})`
+          ? `st_buffer(st_buffer("footprint_union".footprint_union, ${this.fixGeometry.bufferSizeDeg}, ${this.fixGeometry.bufferStyleParameters}), -${this.fixGeometry.bufferSizeDeg}, ${this.fixGeometry.bufferStyleParameters})`
           : `'POLYGON EMPTY'::geometry`,
         'footprint_buffer'
       )

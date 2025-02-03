@@ -45,7 +45,8 @@
       "maxDecimalDigits": 12,
       "fixGeometry": {
         "enabled": true,
-        "bufferSizeDeg": 0.000006
+        "bufferSizeDeg": 0.000006,
+        "bufferStyleParameters": ""
       },
       "simplifyGeometry": {
         "enabled": true,

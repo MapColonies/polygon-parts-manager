@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Polygon-Parts Manager
   description: CRUD operations to manage polygon-parts
-  version: 1.5.0
+  version: 1.5.1
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -50,6 +50,51 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
   /polygonParts:
+    get:
+      tags:
+        - polygon-parts
+      summary: Get polygon-parts
+      description: Get polygon-parts
+      operationId: getPolygonParts
+      parameters:
+        - in: query
+          name: polygonPartsEntityName
+          description: polygon-parts entity name
+          schema:
+            $ref: '#/components/schemas/PolygonPartsEntityName'
+          required: true
+        - in: query
+          name: polygonROI
+          description: polygon ROI
+          schema:
+            $ref: ./Schema/geojson.yaml#/components/schemas/Polygon
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
     post:
       tags:
         - polygon-parts

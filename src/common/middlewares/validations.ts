@@ -38,7 +38,7 @@ export const validateGetAggregationLayerMetadata: GetAggregationLayerMetadataHan
     next();
   } catch (error) {
     if (error instanceof ZodError) {
-      throw new BadRequestError(`Input request parameters could not qualify for a valid entity identifiers: ${error.message}`);
+      throw new BadRequestError(`Request parameters could not qualify for a valid entity identifiers: ${error.message}`);
     }
     next(error);
   }
@@ -51,7 +51,7 @@ export const parseCreatePolygonParts: CreatePolygonPartsHandler = (req, res, nex
     next();
   } catch (error) {
     if (error instanceof ZodError) {
-      throw new BadRequestError(`Input request parameters could not qualify for a valid entity identifiers: ${error.message}`);
+      throw new BadRequestError(`Request parameters could not qualify for a valid entity identifiers: ${error.message}`);
     }
     next(error);
   }
@@ -64,7 +64,7 @@ export const parseUpdatePolygonParts: UpdatePolygonPartsHandler = (req, res, nex
     next();
   } catch (error) {
     if (error instanceof ZodError) {
-      throw new BadRequestError(`Update request parameters could not qualify for a valid entity identifiers: ${error.message}`);
+      throw new BadRequestError(`Request parameters could not qualify for a valid entity identifiers: ${error.message}`);
     }
     next(error);
   }

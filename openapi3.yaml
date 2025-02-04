@@ -69,7 +69,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolygonPartsResponse'
+                $ref: '#/components/schemas/PolygonPartsEntityResponse'
         '400':
           description: Bad Request
           content:
@@ -114,7 +114,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolygonPartsResponse'
+                $ref: '#/components/schemas/PolygonPartsEntityResponse'
         '400':
           description: Bad Request
           content:
@@ -143,7 +143,7 @@ components:
     PolygonPartsPayload:
       $ref: >-
         ./Schema/polygonPartsManager/payload.yaml#/components/schemas/PolygonPartsPayload
-    PolygonPartsResponse:
+    PolygonPartsEntityResponse:
       additionalProperties: false
       type: object
       required:

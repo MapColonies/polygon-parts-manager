@@ -47,7 +47,7 @@ export class AggregationManager {
           return aggregationMetadataLayer;
         } catch (error) {
           const errorMessage = `Could not aggregate polygon parts`;
-          this.logger.error({ msg: errorMessage, error });
+          logger.error({ msg: errorMessage, error });
           throw error;
         }
       });

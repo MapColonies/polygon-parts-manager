@@ -1,4 +1,4 @@
-import { ConflictError, NotFoundError } from '@map-colonies/error-types';
+import { BadRequestError, ConflictError, NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
 import type { Geometry } from 'geojson';
 import { inject, injectable } from 'tsyringe';
@@ -6,7 +6,7 @@ import type { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
-import type { PickPropertiesOfType } from '../../common/types';
+import type { NonNullableProperties, PickPropertiesOfType } from '../../common/types';
 import { Part } from '../DAL/part';
 import { PolygonPart } from '../DAL/polygonPart';
 import { getMappedColumnName, payloadToInsertPartsData } from '../DAL/utils';
@@ -82,6 +82,13 @@ export class PolygonPartsManager {
         const exists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName.entityName);
         if (!exists) {
           throw new NotFoundError(`Table with the name '${polygonPartsEntityName.entityName}' doesn't exists`);
+        }
+
+        if (footprint) {
+          const isValidFootprint = await this.buildValidateGeometryQuery({ footprint: { footprint }, entityManager }).getRawOne<boolean>();
+          if (!(isValidFootprint ?? false)) {
+            throw new BadRequestError(`Invalid request body parameter 'footprint' - invalid geometry`);
+          }
         }
         const findPolygonPartsQuery = this.buildFindPolygonPartsQuery({ clip, entityManager, polygonPartsEntityName, footprint });
 
@@ -187,6 +194,14 @@ export class PolygonPartsManager {
           clipFootprint: JSON.stringify(footprint),
         })
       : findQuery;
+  }
+
+  private buildValidateGeometryQuery(
+    context: { footprint: NonNullableProperties<Pick<FindPolygonPartsOptions, 'footprint'>>; entityManager: EntityManager }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): SelectQueryBuilder<any> {
+    const { entityManager, footprint } = context;
+    return entityManager.createQueryBuilder().select('select st_isvalid(st_geomfromgeojson(:footprint)) as isValid').setParameters({ footprint: JSON.stringify(footprint) });
   }
 
   private async calculatePolygonParts(context: { entitiesMetadata: EntitiesMetadata; entityManager: EntityManager; logger: Logger }): Promise<void> {

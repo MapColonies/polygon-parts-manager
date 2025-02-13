@@ -83,7 +83,7 @@ export class PolygonPartsManager {
         if (!exists) {
           throw new NotFoundError(`Table with the name '${polygonPartsEntityName.entityName}' doesn't exists`);
         }
-        const findPolygonPartsQuery = this.buildFindPolygonPartsQuery({ clip, polygonPartsEntityName, footprint });
+        const findPolygonPartsQuery = this.buildFindPolygonPartsQuery({ clip, entityManager, polygonPartsEntityName, footprint });
 
         try {
           const polygonParts = await findPolygonPartsQuery.getRawMany<FindPolygonPartsResponseItem>();
@@ -169,7 +169,8 @@ export class PolygonPartsManager {
     clip,
     polygonPartsEntityName,
     footprint,
-  }: FindPolygonPartsOptions): SelectQueryBuilder<FindPolygonPartsResponseItem> {
+    entityManager,
+  }: FindPolygonPartsOptions & { entityManager: EntityManager }): SelectQueryBuilder<FindPolygonPartsResponseItem> {
     const canClip = !!footprint && clip;
     const geometryField: PickPropertiesOfType<PolygonPartRecord, Geometry> = 'footprint';
     const findPolygonPartsGeometryColumn = canClip
@@ -177,7 +178,7 @@ export class PolygonPartsManager {
       : [`st_asgeojson(${geometryField}, 15)::json as ${geometryField}`];
     const findPolygonPartsColumns = [...this.findPolygonPartsColumns, ...findPolygonPartsGeometryColumn];
 
-    const polygonPart = this.connectionManager.getDataSource().getRepository(PolygonPart);
+    const polygonPart = entityManager.getRepository(PolygonPart);
     polygonPart.metadata.tablePath = polygonPartsEntityName.databaseObjectQualifiedName; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
 
     const findQuery = polygonPart.createQueryBuilder('polygon_part').select(findPolygonPartsColumns);

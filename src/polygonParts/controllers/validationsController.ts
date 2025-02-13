@@ -1,5 +1,12 @@
 import { BadRequestError } from '@map-colonies/error-types';
-import { multiPolygonSchema, partSchema, polygonPartsEntityNameSchema, polygonSchema, rasterProductTypeSchema, resourceIdSchema } from '@map-colonies/raster-shared';
+import {
+  multiPolygonSchema,
+  partSchema,
+  polygonPartsEntityNameSchema,
+  polygonSchema,
+  rasterProductTypeSchema,
+  resourceIdSchema,
+} from '@map-colonies/raster-shared';
 import { singleton } from 'tsyringe';
 import { ZodError, ZodType, z } from 'zod';
 import type {
@@ -98,6 +105,7 @@ export class ValidationsController {
           throw new BadRequestError(`Invalid request body: ${error.message}`);
         }
       }
+      next();
     } catch (error) {
       next(error);
     }

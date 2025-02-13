@@ -85,8 +85,10 @@ export class PolygonPartsManager {
         }
 
         if (footprint) {
-          const isValidFootprint = await this.buildValidateGeometryQuery({ footprint: { footprint }, entityManager }).getRawOne<boolean>();
-          if (!(isValidFootprint ?? false)) {
+          const isValidFootprint = await entityManager.query<boolean>('select st_isvalid(st_geomfromgeojson($1)) as isValid', [
+            JSON.stringify(footprint),
+          ]);
+          if (!isValidFootprint) {
             throw new BadRequestError(`Invalid request body parameter 'footprint' - invalid geometry`);
           }
         }
@@ -194,14 +196,6 @@ export class PolygonPartsManager {
           clipFootprint: JSON.stringify(footprint),
         })
       : findQuery;
-  }
-
-  private buildValidateGeometryQuery(
-    context: { footprint: NonNullableProperties<Pick<FindPolygonPartsOptions, 'footprint'>>; entityManager: EntityManager }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ): SelectQueryBuilder<any> {
-    const { entityManager, footprint } = context;
-    return entityManager.createQueryBuilder().select('select st_isvalid(st_geomfromgeojson(:footprint)) as isValid').setParameters({ footprint: JSON.stringify(footprint) });
   }
 
   private async calculatePolygonParts(context: { entitiesMetadata: EntitiesMetadata; entityManager: EntityManager; logger: Logger }): Promise<void> {

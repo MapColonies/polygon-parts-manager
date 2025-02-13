@@ -1,5 +1,5 @@
 import { BadRequestError } from '@map-colonies/error-types';
-import { multiPolygonSchema, partSchema, polygonPartsEntityNameSchema, polygonSchema, rasterProductTypeSchema } from '@map-colonies/raster-shared';
+import { multiPolygonSchema, partSchema, polygonPartsEntityNameSchema, polygonSchema, rasterProductTypeSchema, resourceIdSchema } from '@map-colonies/raster-shared';
 import { singleton } from 'tsyringe';
 import { ZodError, ZodType, z } from 'zod';
 import type {
@@ -23,9 +23,9 @@ const findPolygonPartsRequestBodySchema: ZodType<FindPolygonPartsRequestBody> = 
 
 const polygonPartsRequestBodySchema: ZodType<PolygonPartsPayload> = z.object({
   productType: rasterProductTypeSchema,
-  productId: z.string(),
-  catalogId: z.string(),
-  productVersion: z.string(),
+  productId: resourceIdSchema,
+  catalogId: z.string().uuid(),
+  productVersion: z.string(), // TODO: import from raster-shared
   partsData: partSchema.array(),
 });
 

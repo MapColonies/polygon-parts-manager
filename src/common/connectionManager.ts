@@ -4,13 +4,12 @@ import { types } from 'pg';
 import { inject, singleton } from 'tsyringe';
 import { DataSource, type DataSourceOptions, type EntityManager } from 'typeorm';
 import type { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
-import { DEFAULT_SCHEMA, SERVICES } from '../common/constants';
+import { SERVICES } from '../common/constants';
 import { DBConnectionError } from '../common/errors';
 import type { DbConfig, IConfig } from '../common/interfaces';
 import { Part } from '../polygonParts/DAL/part';
 import { PolygonPart } from '../polygonParts/DAL/polygonPart';
 import { namingStrategy } from '../polygonParts/DAL/utils';
-import type { DBSchema } from '../polygonParts/models/interfaces';
 
 // postgresql - parse NUMERIC and BIGINT as numbers instead of strings
 types.setTypeParser(types.builtins.NUMERIC, (value) => parseFloat(value));
@@ -21,11 +20,11 @@ types.setTypeParser(types.builtins.FLOAT4, (value) => parseFloat(value));
 export class ConnectionManager {
   private readonly dataSource: DataSource;
   private readonly dataSourceOptions: DataSourceOptions;
-  private readonly schema: NonNullable<DBSchema>;
+  private readonly schema: DbConfig['schema'];
 
   public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, @inject(SERVICES.CONFIG) private readonly config: IConfig) {
     const connectionConfig = this.config.get<DbConfig>('db');
-    this.schema = connectionConfig.schema ?? DEFAULT_SCHEMA;
+    this.schema = connectionConfig.schema;
     this.dataSourceOptions = ConnectionManager.createConnectionOptions(connectionConfig);
     this.dataSource = new DataSource(this.dataSourceOptions);
   }

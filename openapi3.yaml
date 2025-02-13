@@ -1,26 +1,28 @@
 openapi: 3.0.3
 info:
   title: Polygon-Parts Manager
-  description: CRUD operations to manage polygon-parts
+  description: CRUD operations to manage polygon parts
   version: 1.5.2
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
 tags:
+  - name: aggregation
+    description: Summary of polygon parts data
   - name: polygon-parts
-    description: CRUD operations to manage polygon-parts
+    description: CRUD operations to manage polygon parts
 paths:
   /aggregation/{polygonPartsEntityName}:
     get:
       tags:
         - aggregation
-      summary: Get aggregated polygon-parts data by polygon parts entity name
-      description: Get aggregated polygon-parts data by polygon parts entity name
+      summary: Get aggregated polygon parts data by polygon parts entity name
+      description: Get aggregated polygon parts data by polygon parts entity name
       operationId: getAggregationLayerMetadata
       parameters:
         - in: path
           name: polygonPartsEntityName
-          description: polygon-parts entity name
+          description: Polygon parts entity name
           schema:
             $ref: '#/components/schemas/PolygonPartsEntityName'
           required: true
@@ -53,11 +55,11 @@ paths:
     post:
       tags:
         - polygon-parts
-      summary: Create new polygon-parts
-      description: Create new polygon-parts
+      summary: Create new polygon parts
+      description: Create new polygon parts
       operationId: createPolygonParts
       requestBody:
-        description: polygon-parts payload
+        description: Polygon parts metadata payload
         content:
           application/json:
             schema:
@@ -97,12 +99,12 @@ paths:
           schema:
             type: boolean
             default: false
-          description: defines if operation is a swap update
-      summary: Update an existing polygon-parts
-      description: Update an existing polygon-parts
+          description: Defines if operation is a swap update
+      summary: Update an existing polygon parts
+      description: Update an existing polygon parts
       operationId: updatePolygonParts
       requestBody:
-        description: polygon-parts metadata payload
+        description: Polygon parts metadata payload
         content:
           application/json:
             schema:
@@ -133,97 +135,397 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
+  /polygonParts/{polygonPartsEntityName}/find:
+    post:
+      tags:
+        - polygon-parts
+      summary: Find polygon parts
+      description: Find polygon parts
+      operationId: FindPolygonParts
+      parameters:
+        - in: path
+          name: polygonPartsEntityName
+          description: Polygon parts entity name
+          schema:
+            $ref: '#/components/schemas/PolygonPartsEntityName'
+          required: true
+        - in: query
+          name: clip
+          description: Clip the result to the footprint (results are not clipped if footprint is not provided)
+          schema:
+            type: boolean
+            default: true
+      requestBody:
+        description: Polygon parts find filter
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolygonPartsFindPayload'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolygonPartsFindResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
 components:
   schemas:
+    AggregationLayerMetadata:
+      type: object
+      additionalProperties: false
+      required:
+        - footprint
+        - imagingTimeBeginUTC
+        - imagingTimeEndUTC
+        - maxHorizontalAccuracyCE90
+        - maxResolutionDeg
+        - maxResolutionMeter
+        - minHorizontalAccuracyCE90
+        - minResolutionDeg
+        - minResolutionMeter
+        - productBoundingBox
+        - sensors
+      allOf:
+        - $ref: '#/components/schemas/FootprintObject'
+        - $ref: '#/components/schemas/ImagingTimeBeginUTCObject'
+        - $ref: '#/components/schemas/ImagingTimeEndUTCObject'
+        - $ref: '#/components/schemas/SensorsObject'
+      properties:
+        maxResolutionDeg:
+          allOf:
+            - $ref: '#/components/schemas/ResolutionDegree'
+            - description: Maximal resolution of layer in degrees/pixel
+        minResolutionDeg:
+          allOf:
+            - $ref: '#/components/schemas/ResolutionDegree'
+            - description: Minimal resolution of layer in degrees/pixel
+        maxResolutionMeter:
+          allOf:
+            - $ref: '#/components/schemas/ResolutionMeter'
+            - description: Maximal resolution of layer in meters
+        minResolutionMeter:
+          allOf:
+            - $ref: '#/components/schemas/ResolutionMeter'
+            - description: Minimal resolution of layer in meters
+        maxHorizontalAccuracyCE90:
+          allOf:
+            - $ref: '#/components/schemas/HorizontalAccuracyCE90'
+            - description: Maximal horizontal accuracy
+        minHorizontalAccuracyCE90:
+          allOf:
+            - $ref: '#/components/schemas/HorizontalAccuracyCE90'
+            - description: Minimal horizontal accuracy
+        productBoundingBox:
+          $ref: '#/components/schemas/BoundingBox'
+    BoundingBox:
+      type: string
+      pattern: "^-?(0|[1-9]\\d*)(\\.\\d*)?,-?(0|[1-9]\\d*)(\\.\\d*)?,-?(0|[1-9]\\d*)(\\.\\d*)?,-?(0|[1-9]\\d*)(\\.\\d*)?$"
+    CatalogId:
+      type: string
+      format: uuid
+      description: Layer's identifier
+      example: c52d8189-7e07-456a-8c6b-53859523c3e9
+    CatalogIdObject:
+      type: object
+      required:
+        - catalogId
+      additionalProperties: false
+      properties:
+        catalogId:
+          $ref: '#/components/schemas/CatalogId'
+    Cities:
+      type: array
+      items:
+        type: string
+      description: Cities included in the part
+    CitiesObject:
+      type: object
+      required:
+        - cities
+      additionalProperties: false
+      properties:
+        cities:
+          $ref: '#/components/schemas/Cities'
+    Countries:
+      type: array
+      items:
+        type: string
+      description: Countries included in the part
+    CountriesObject:
+      type: object
+      required:
+        - countries
+      additionalProperties: false
+      properties:
+        countries:
+          $ref: '#/components/schemas/Countries'
+    Description:
+      type: string
+    DescriptionObject:
+      type: object
+      required:
+        - description
+      additionalProperties: false
+      properties:
+        description:
+          $ref: '#/components/schemas/Description'
+    FootprintObject:
+      type: object
+      required:
+        - footprint
+      properties:
+        footprint:
+          oneOf:
+            - $ref: ./Schema/geojson.yaml#/components/schemas/Polygon
+            - $ref: ./Schema/geojson.yaml#/components/schemas/MultiPolygon
+    HorizontalAccuracyCE90:
+      type: number
+      minimum: 0.01
+      maximum: 4000
+      format: double
+      description: Horizontal accuracy
+    HorizontalAccuracyCE90Object:
+      type: object
+      required:
+        - horizontalAccuracyCE90
+      additionalProperties: false
+      properties:
+        horizontalAccuracyCE90:
+          $ref: '#/components/schemas/HorizontalAccuracyCE90'
+    ImagingTimeBeginUTC:
+      type: string
+      description: Oldest imaging date (UTC)
+      format: date-time
+    ImagingTimeBeginUTCObject:
+      type: object
+      required:
+        - imagingTimeBeginUTC
+      additionalProperties: false
+      properties:
+        imagingTimeBeginUTC:
+          $ref: '#/components/schemas/ImagingTimeBeginUTC'
+    ImagingTimeEndUTC:
+      type: string
+      description: Latest imaging date (UTC)
+      format: date-time
+    ImagingTimeEndUTCObject:
+      type: object
+      required:
+        - imagingTimeEndUTC
+      additionalProperties: false
+      properties:
+        imagingTimeEndUTC:
+          $ref: '#/components/schemas/ImagingTimeEndUTC'
+    IngestionDateUTC:
+      type: string
+      description: Ingestion date (UTC)
+      format: date-time
+    IngestionDateUTCObject:
+      type: object
+      required:
+        - ingestionDateUTC
+      properties:
+        ingestionDateUTC:
+          $ref: '#/components/schemas/IngestionDateUTC'
     PolygonPartsEntityName:
       type: string
-      description: polygon-parts entity name
+      description: Polygon parts entity name
       pattern: ^[a-z][a-z0-9_]{0,61}[a-z0-9]$
       example: world_orthophoto
-    PolygonPartsPayload:
-      $ref: >-
-        ./Schema/polygonPartsManager/payload.yaml#/components/schemas/PolygonPartsPayload
     PolygonPartsEntityResponse:
-      additionalProperties: false
       type: object
+      description: Polygon parts entity response
+      additionalProperties: false
       required:
         - polygonPartsEntityName
       properties:
         polygonPartsEntityName:
           $ref: '#/components/schemas/PolygonPartsEntityName'
-    AggregationLayerMetadata:
-      additionalProperties: false
+    PolygonPartsFindPayload:
       type: object
+      description: Find polygon parts payload
+      additionalProperties: false
       properties:
-        imagingTimeBeginUTC:
-          type: string
-          description: Oldest imaging date (UTC)
-          format: date-time
-        imagingTimeEndUTC:
-          type: string
-          description: Latest imaging date (UTC)
-          format: date-time
-        maxResolutionDeg:
-          type: number
-          minimum: 1.67638e-7
-          maximum: 0.703125
-          format: double
-          description: Maximal resolution of layer in degrees/pixel
-        minResolutionDeg:
-          type: number
-          minimum: 1.67638e-7
-          maximum: 0.703125
-          format: double
-          description: Minimal resolution of layer in degrees/pixel
-        maxResolutionMeter:
-          type: number
-          minimum: 0.0185
-          maximum: 78271.52
-          format: double
-          description: Maximal resolution of layer in meters
-        minResolutionMeter:
-          type: number
-          minimum: 0.0185
-          maximum: 78271.52
-          format: double
-          description: Minimal resolution of layer in meters
-        maxHorizontalAccuracyCE90:
-          type: number
-          minimum: 0.01
-          maximum: 4000
-          format: double
-          description: Maximal horizontal accuracy
-        minHorizontalAccuracyCE90:
-          type: number
-          minimum: 0.01
-          maximum: 4000
-          format: double
-          description: Minimal horizontal accuracy
-        productBoundingBox:
-          type: string
-        sensors:
-          type: array
-          items:
-            type: string
-            pattern: ^(?!\s).+(?<!\s)$
-          minItems: 1
-          description: Layer sensors list
         footprint:
           oneOf:
             - $ref: ./Schema/geojson.yaml#/components/schemas/Polygon
             - $ref: ./Schema/geojson.yaml#/components/schemas/MultiPolygon
+    PolygonPartsFindResponse:
+      type: object
+      description: Find polygon parts response
+      additionalProperties: false
       required:
+        - catalogId
+        - cities
+        - countries
+        - description
+        - footprint
+        - horizontalAccuracyCE90
         - imagingTimeBeginUTC
         - imagingTimeEndUTC
-        - maxResolutionDeg
-        - minResolutionDeg
-        - maxResolutionMeter
-        - minResolutionMeter
-        - maxHorizontalAccuracyCE90
-        - minHorizontalAccuracyCE90
-        - productBoundingBox
+        - ingestionDateUTC
+        - productId
+        - productType
+        - productVersion
+        - resolutionDegree
+        - resolutionMeter
         - sensors
-        - footprint
+        - sourceId
+        - sourceName
+        - sourceResolutionMeter
+      allOf:
+        - $ref: '#/components/schemas/CatalogIdObject'
+        - $ref: '#/components/schemas/CitiesObject'
+        - $ref: '#/components/schemas/CountriesObject'
+        - $ref: '#/components/schemas/DescriptionObject'
+        - $ref: '#/components/schemas/FootprintObject'
+        - $ref: '#/components/schemas/HorizontalAccuracyCE90Object'
+        - $ref: '#/components/schemas/ImagingTimeBeginUTCObject'
+        - $ref: '#/components/schemas/ImagingTimeEndUTCObject'
+        - $ref: '#/components/schemas/IngestionDateUTCObject'
+        - $ref: '#/components/schemas/ProductIdObject'
+        - $ref: '#/components/schemas/ProductTypeObject'
+        - $ref: '#/components/schemas/ProductVersionObject'
+        - $ref: '#/components/schemas/ResolutionDegreeObject'
+        - $ref: '#/components/schemas/ResolutionMeterObject'
+        - $ref: '#/components/schemas/SensorsObject'
+        - $ref: '#/components/schemas/SourceIdObject'
+        - $ref: '#/components/schemas/SourceNameObject'
+        - $ref: '#/components/schemas/SourceResolutionMeterObject'
+    PolygonPartsPayload:
+      $ref: ./Schema/polygonPartsManager/payload.yaml#/components/schemas/PolygonPartsPayload
+    ProductId:
+      type: string
+      description: Layer's external identifier
+      pattern: ^[A-Za-z]{1}[A-Za-z0-9_]{0,37}$
+      example: BLUE_MARBLE
+    ProductIdObject:
+      type: object
+      required:
+        - productId
+      additionalProperties: false
+      properties:
+        productId:
+          $ref: '#/components/schemas/ProductId'
+    ProductTypeObject:
+      type: object
+      required:
+        - productType
+      additionalProperties: false
+      properties:
+        productType:
+          $ref: ./Schema/ingestionTrigger/metadata/rasterLayerMetadata.yaml#/components/schemas/productType
+    ProductVersion:
+      type: string
+      pattern: ^[1-9]\d*(\.(0|[1-9]\d?))?$
+      description: Layer's version
+      example: 1.23
+    ProductVersionObject:
+      type: object
+      required:
+        - productVersion
+      additionalProperties: false
+      properties:
+        productVersion:
+          $ref: '#/components/schemas/ProductVersion'
+    ResolutionDegree:
+      type: number
+      minimum: 1.67638e-7
+      maximum: 0.703125
+      format: double
+      description: Resolution of layer in degrees/pixel
+    ResolutionDegreeObject:
+      type: object
+      required:
+        - resolutionDegree
+      additionalProperties: false
+      properties:
+        resolutionDegree:
+          $ref: '#/components/schemas/ResolutionDegree'
+    ResolutionMeter:
+      type: number
+      minimum: 0.0185
+      maximum: 78271.52
+      format: double
+      description: Resolution of layer in meters
+    ResolutionMeterObject:
+      type: object
+      required:
+        - resolutionMeter
+      additionalProperties: false
+      properties:
+        resolutionMeter:
+          $ref: '#/components/schemas/ResolutionMeter'
+    Sensors:
+      type: array
+      items:
+        type: string
+        pattern: ^(?!\s).+(?<!\s)$
+      minItems: 1
+      description: Layer's sensors list
+    SensorsObject:
+      type: object
+      required:
+        - sensors
+      additionalProperties: false
+      properties:
+        sensors:
+          $ref: '#/components/schemas/Sensors'
+    SourceId:
+      type: string
+      description: Layer's external identifier
+    SourceIdObject:
+      type: object
+      required:
+        - sourceId
+      additionalProperties: false
+      properties:
+        sourceId:
+          $ref: '#/components/schemas/SourceId'
+    SourceName:
+      type: string
+      description: Layer's external name
+    SourceNameObject:
+      type: object
+      required:
+        - sourceName
+      additionalProperties: false
+      properties:
+        sourceName:
+          $ref: '#/components/schemas/SourceName'
+    SourceResolutionMeter:
+      type: number
+      minimum: 0.0185
+      maximum: 78271.52
+      format: double
+      description: Resolution of layer in meters
+    SourceResolutionMeterObject:
+      type: object
+      required:
+        - sourceResolutionMeter
+      additionalProperties: false
+      properties:
+        sourceResolutionMeter:
+          $ref: '#/components/schemas/SourceResolutionMeter'
     ErrorMessage:
       type: object
       properties:

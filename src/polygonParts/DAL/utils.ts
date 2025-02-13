@@ -1,9 +1,7 @@
-import config from 'config';
 import { DefaultNamingStrategy, type Table } from 'typeorm';
-import { DEFAULT_SCHEMA } from '../../common/constants';
-import type { ApplicationConfig } from '../../common/interfaces';
 import { camelCaseToSnakeCase } from '../../common/utils';
-import type { DBSchema, EntityNames, InsertPartData, PolygonPartsPayload } from '../models/interfaces';
+import { InsertPartData, PolygonPartsPayload } from '../models/interfaces';
+import { ApplicationConfig } from '../../common/interfaces';
 
 const customNamingStrategy = new DefaultNamingStrategy();
 customNamingStrategy.indexName = (tableOrName: Table | string, columnNames: string[], where?: string): string => {
@@ -16,18 +14,21 @@ customNamingStrategy.uniqueConstraintName = (tableOrName: Table | string, column
 };
 // TODO: add logic if a column name already defined
 customNamingStrategy.columnName = (propertyName: string): string => {
-  return camelCaseToSnakeCase(propertyName);
+  return getMappedColumnName(propertyName);
 };
 customNamingStrategy.primaryKeyName = (tableOrName: Table | string): string => {
   /* istanbul ignore next */
   return `${typeof tableOrName === 'string' ? tableOrName : tableOrName.name}_pkey`;
 };
 
-const arraySeparator = config.get<ApplicationConfig['arraySeparator']>('application.arraySeparator');
-const applicationConfig = config.get<ApplicationConfig>('application');
-const schema = config.get<DBSchema>('db.schema') ?? DEFAULT_SCHEMA;
+export const getMappedColumnName = (propertyName: string): string => {
+  return camelCaseToSnakeCase(propertyName);
+};
 
-export function payloadToInsertPartsData(polygonPartsPayload: PolygonPartsPayload): InsertPartData[] {
+export const payloadToInsertPartsData = (
+  polygonPartsPayload: PolygonPartsPayload,
+  arraySeparator: ApplicationConfig['arraySeparator']
+): InsertPartData[] => {
   const { partsData, ...layerMetadata } = polygonPartsPayload;
 
   return partsData.map((partData) => {
@@ -39,22 +40,6 @@ export function payloadToInsertPartsData(polygonPartsPayload: PolygonPartsPayloa
       cities: partData.cities?.join(arraySeparator),
     };
   });
-}
-
-export const getDatabaseObjectQualifiedName = (value: string): string => {
-  return `${schema}.${value}`;
-};
-
-export const getEntitiesNames = (polygonPartsPayload: PolygonPartsPayload): EntityNames => {
-  const { productId, productType } = polygonPartsPayload;
-  const baseName = [productId, productType].join('_').toLowerCase();
-  const partsEntityName = `${applicationConfig.entities.parts.namePrefix}${baseName}${applicationConfig.entities.parts.nameSuffix}`;
-  const polygonPartsEntityName = `${applicationConfig.entities.polygonParts.namePrefix}${baseName}${applicationConfig.entities.polygonParts.nameSuffix}`;
-
-  return {
-    parts: { entityName: partsEntityName, databaseObjectQualifiedName: getDatabaseObjectQualifiedName(partsEntityName) },
-    polygonParts: { entityName: polygonPartsEntityName, databaseObjectQualifiedName: getDatabaseObjectQualifiedName(polygonPartsEntityName) },
-  };
 };
 
 export const namingStrategy = customNamingStrategy;

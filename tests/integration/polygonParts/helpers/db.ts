@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { PolygonPart, RASTER_PRODUCT_TYPES, VALIDATIONS } from '@map-colonies/mc-model-types';
+import { INGESTION_VALIDATIONS, RASTER_PRODUCT_TYPE_LIST, type PolygonPart } from '@map-colonies/raster-shared';
 import { randomPolygon } from '@turf/random';
 import { randexp } from 'randexp';
 import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
@@ -22,11 +22,11 @@ export const generatePolygonPart = (): PolygonPart => {
   return {
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers, @typescript-eslint/naming-convention
     footprint: randomPolygon(1, { bbox: [-170, -80, 170, 80], max_radial_length: 10 }).features[0].geometry, // polygon maximum extent cannot exceed [-180,-90,180,90]
-    horizontalAccuracyCE90: faker.number.float(VALIDATIONS.horizontalAccuracyCE90),
+    horizontalAccuracyCE90: faker.number.float(INGESTION_VALIDATIONS.horizontalAccuracyCE90),
     imagingTimeBeginUTC: dateOlder,
     imagingTimeEndUTC: dateRecent,
-    resolutionDegree: faker.number.float(VALIDATIONS.resolutionDeg),
-    resolutionMeter: faker.number.float(VALIDATIONS.resolutionMeter),
+    resolutionDegree: faker.number.float(INGESTION_VALIDATIONS.resolutionDeg),
+    resolutionMeter: faker.number.float(INGESTION_VALIDATIONS.resolutionMeter),
     sensors: faker.helpers.multiple(
       () => {
         return faker.word.words();
@@ -34,7 +34,7 @@ export const generatePolygonPart = (): PolygonPart => {
       { count: { min: 1, max: 3 } }
     ),
     sourceName: faker.word.words().replace(' ', '_'),
-    sourceResolutionMeter: faker.number.float(VALIDATIONS.resolutionMeter),
+    sourceResolutionMeter: faker.number.float(INGESTION_VALIDATIONS.resolutionMeter),
     cities: faker.helpers.maybe(() => {
       return faker.helpers.multiple(
         () => {
@@ -63,9 +63,9 @@ export function generatePolygonPartsPayload(template: DeepPartial<PolygonPartsPa
 export function generatePolygonPartsPayload(input: number | DeepPartial<PolygonPartsPayload>): PolygonPartsPayload {
   const layerMetadata = {
     catalogId: faker.string.uuid(),
-    productId: randexp(VALIDATIONS.productId.pattern),
-    productType: faker.helpers.arrayElement(RASTER_PRODUCT_TYPES),
-    productVersion: randexp(VALIDATIONS.productVersion.pattern),
+    productId: randexp(INGESTION_VALIDATIONS.productId.pattern),
+    productType: faker.helpers.arrayElement(RASTER_PRODUCT_TYPE_LIST),
+    productVersion: randexp(INGESTION_VALIDATIONS.productVersion.pattern),
   };
 
   if (typeof input === 'number') {

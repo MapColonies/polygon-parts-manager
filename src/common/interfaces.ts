@@ -7,12 +7,12 @@ export interface ApplicationConfig {
   updatePolygonPartsTablesStoredProcedure: string;
   entities: {
     parts: {
-      namePrefix: string;
-      nameSuffix: string;
+      namePrefix: Lowercase<string>;
+      nameSuffix: Lowercase<string>;
     };
     polygonParts: {
-      namePrefix: string;
-      nameSuffix: string;
+      namePrefix: Lowercase<string>;
+      nameSuffix: Lowercase<string>;
       minAreaSquareDeg: number;
     };
   };
@@ -33,6 +33,7 @@ export interface ApplicationConfig {
 export interface DbConfig extends PostgresConnectionOptions {
   enableSslAuth: boolean;
   sslPaths: { ca: string; cert: string; key: string };
+  schema: Lowercase<NonNullable<PostgresConnectionOptions['schema']>>;
 }
 
 export interface IConfig {

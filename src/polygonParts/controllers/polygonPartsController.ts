@@ -1,11 +1,7 @@
-import type { RequestHandler } from 'express';
 import httpStatus from 'http-status-codes';
 import { inject, injectable } from 'tsyringe';
-import type { EntityNames, IsSwapQueryParams, PolygonPartsPayload, PolygonPartsResponse } from '../models/interfaces';
 import { PolygonPartsManager } from '../models/polygonPartsManager';
-
-export type CreatePolygonPartsHandler = RequestHandler<undefined, PolygonPartsResponse, PolygonPartsPayload, undefined, EntityNames>;
-export type UpdatePolygonPartsHandler = RequestHandler<undefined, PolygonPartsResponse, PolygonPartsPayload, IsSwapQueryParams, EntityNames>;
+import type { CreatePolygonPartsHandler, FindPolygonPartsHandler, UpdatePolygonPartsHandler } from './interfaces';
 
 @injectable()
 export class PolygonPartsController {
@@ -15,6 +11,19 @@ export class PolygonPartsController {
     try {
       const response = await this.polygonPartsManager.createPolygonParts(req.body, res.locals);
       return res.status(httpStatus.CREATED).send(response);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public findPolygonParts: FindPolygonPartsHandler = async (req, res, next) => {
+    try {
+      const response = await this.polygonPartsManager.findPolygonParts({
+        clip: req.query.clip,
+        footprint: req.body.footprint,
+        polygonPartsEntityName: res.locals.entitiesNames.polygonParts,
+      });
+      return res.status(httpStatus.OK).send(response);
     } catch (error) {
       next(error);
     }

@@ -1,14 +1,13 @@
 import { NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
-import { aggregationMetadataSchema, type AggregationLayerMetadata, type PolygonPartsEntityName } from '@map-colonies/mc-model-types';
+import { aggregationMetadataSchema, type AggregationLayerMetadata } from '@map-colonies/raster-shared';
 import { inject, injectable } from 'tsyringe';
 import { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import type { ApplicationConfig, IConfig } from '../../common/interfaces';
 import { PolygonPart } from '../../polygonParts/DAL/polygonPart';
-import { getDatabaseObjectQualifiedName } from '../../polygonParts/DAL/utils';
-import type { AggregationParams } from './interfaces';
+import type { GetAggregationLayerMetadataOptions, GetAggregationLayerMetadataResponse } from './interfaces';
 
 @injectable()
 export class AggregationManager {
@@ -28,21 +27,22 @@ export class AggregationManager {
     this.simplifyGeometry = this.config.get<ApplicationConfig['aggregation']['simplifyGeometry']>('application.aggregation.simplifyGeometry');
   }
 
-  public async getAggregationLayerMetadata(aggregationParams: AggregationParams): Promise<AggregationLayerMetadata> {
-    const { polygonPartsEntityName } = aggregationParams;
-    const logger = this.logger.child({ polygonPartsEntityName: polygonPartsEntityName });
+  public async getAggregationLayerMetadata({
+    polygonPartsEntityName,
+  }: GetAggregationLayerMetadataOptions): Promise<GetAggregationLayerMetadataResponse> {
+    const logger = this.logger.child({ polygonPartsEntityName });
     logger.info({ msg: 'Metadata aggregation request' });
 
     try {
       const response = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
-        const exists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName);
+        const exists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName.entityName);
         if (!exists) {
-          throw new NotFoundError(`Table with the name '${polygonPartsEntityName}' doesn't exists`);
+          throw new NotFoundError(`Table with the name '${polygonPartsEntityName.entityName}' doesn't exists`);
         }
-        const aggregationQuery = this.buildAggregationQuery(entityManager, getDatabaseObjectQualifiedName(polygonPartsEntityName));
+        const aggregationLayerMetadataQuery = this.buildAggregationLayerMetadataQuery(entityManager, polygonPartsEntityName);
 
         try {
-          const aggregationResult = await aggregationQuery.getRawOne<AggregationLayerMetadata>();
+          const aggregationResult = await aggregationLayerMetadataQuery.getRawOne<AggregationLayerMetadata>();
           const aggregationMetadataLayer = aggregationMetadataSchema.parse(aggregationResult);
           return aggregationMetadataLayer;
         } catch (error) {
@@ -60,17 +60,17 @@ export class AggregationManager {
     }
   }
 
-  private buildAggregationQuery(
+  private buildAggregationLayerMetadataQuery(
     entityManager: EntityManager,
-    polygonPartsEntityName: PolygonPartsEntityName['polygonPartsEntityName']
+    polygonPartsEntityName: GetAggregationLayerMetadataOptions['polygonPartsEntityName']
   ): SelectQueryBuilder<AggregationLayerMetadata> {
     const polygonPart = entityManager.getRepository(PolygonPart);
-    polygonPart.metadata.tablePath = polygonPartsEntityName; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
+    polygonPart.metadata.tablePath = polygonPartsEntityName.databaseObjectQualifiedName; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
 
     const footprintUnionCTE = entityManager
       .createQueryBuilder()
       .select('st_union("polygon_part".footprint)', 'footprint_union')
-      .from(polygonPartsEntityName, 'polygon_part');
+      .from(polygonPartsEntityName.databaseObjectQualifiedName, 'polygon_part');
 
     const footprintSmoothCTE = entityManager
       .createQueryBuilder()
@@ -128,7 +128,7 @@ export class AggregationManager {
           return innerSubQuery
             .select(`unnest(string_to_array("polygon_part".sensors, '${this.arraySeparator}'))`, 'sensors_records')
             .distinct(true)
-            .from(polygonPartsEntityName, 'polygon_part')
+            .from(polygonPartsEntityName.databaseObjectQualifiedName, 'polygon_part')
             .orderBy('sensors_records', 'ASC');
         }, 'sensors_sub_query');
       }, 'sensors');

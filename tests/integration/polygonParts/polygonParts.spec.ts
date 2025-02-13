@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import jsLogger from '@map-colonies/js-logger';
-import { PolygonPart as PolygonPartType, PolygonPartsEntityName, VALIDATIONS } from '@map-colonies/mc-model-types';
+import { INGESTION_VALIDATIONS, PolygonPart as PolygonPartType } from '@map-colonies/raster-shared';
 import { trace } from '@opentelemetry/api';
 import { booleanEqual } from '@turf/boolean-equal';
 import { randomPolygon } from '@turf/random';
@@ -14,10 +14,10 @@ import { getApp } from '../../../src/app';
 import { ConnectionManager } from '../../../src/common/connectionManager';
 import { SERVICES } from '../../../src/common/constants';
 import type { ApplicationConfig, DbConfig } from '../../../src/common/interfaces';
+import { Transformer } from '../../../src/common/middlewares/transformer';
 import { Part } from '../../../src/polygonParts/DAL/part';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
-import { getEntitiesNames } from '../../../src/polygonParts/DAL/utils';
-import type { PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
+import type { EntitiesMetadata, EntityIdentifierObject, PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import {
   createInitPayloadRequest,
   franceFootprint,
@@ -47,6 +47,9 @@ const { schema } = dbConfig;
 describe('polygonParts', () => {
   let requestSender: PolygonPartsRequestSender;
   let helperDB: HelperDB;
+  let getEntitiesMetadata: (
+    entityIdentifierOptions: EntityIdentifierObject | Pick<PolygonPartsPayload, 'productId' | 'productType'>
+  ) => EntitiesMetadata;
 
   beforeAll(async () => {
     testDataSourceOptions = ConnectionManager.createConnectionOptions(dbConfig);
@@ -75,6 +78,7 @@ describe('polygonParts', () => {
       ],
       useChild: true,
     });
+    getEntitiesMetadata = container.resolve(Transformer).getEntitiesMetadata;
     requestSender = new PolygonPartsRequestSender(app);
   });
 
@@ -89,7 +93,10 @@ describe('polygonParts', () => {
       // TODO: check for tracing is sent side effect
       it('should return 201 status code and create the resources for a single part', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
@@ -99,7 +106,7 @@ describe('polygonParts', () => {
         // TODO: once openapi type generator is utilized consider using it's status definition
         // TODO: consider adding a custom matcher - extending jest
         expect(response.status).toBe(httpStatusCodes.CREATED);
-        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords).toMatchObject(expectedPartRecord);
@@ -121,7 +128,10 @@ describe('polygonParts', () => {
 
       it('should return 201 status code and create the resources for a single part with a hole', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const partDataHole = polygonPartsPayload.partsData[0];
         polygonPartsPayload.partsData = [{ ...partDataHole, ...{ footprint: (polygonHole as FeatureCollection).features[0].geometry as Polygon } }];
         const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
@@ -131,7 +141,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
-        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords).toMatchObject(expectedPartRecord);
@@ -158,7 +168,10 @@ describe('polygonParts', () => {
       ])('should return 201 status code and create the resources for multiple parts (between $min - $max parts)', async ({ min, max }) => {
         const partsCount = faker.number.int({ min, max });
         const polygonPartsPayload = generatePolygonPartsPayload(partsCount);
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const expectedPartRecords = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
@@ -166,7 +179,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
-        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
@@ -195,7 +208,10 @@ describe('polygonParts', () => {
 
       it('should return 201 status code and create the resources for multiple parts, where one with hole and a second that splitting it', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(2);
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const partDataHole = polygonPartsPayload.partsData[0];
         const partDataSpliting = polygonPartsPayload.partsData[1];
         polygonPartsPayload.partsData = [
@@ -214,7 +230,7 @@ describe('polygonParts', () => {
         const [polygonPart1, polygonPart2, polygonPart3] = polygonPartRecords;
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
-        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords).toMatchObject([expectedPolygonHole, expectedPolygonSplitter]);
@@ -267,7 +283,10 @@ describe('polygonParts', () => {
 
       it('should return 201 status code and create the resources for multiple parts, where the second covers the first', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(2);
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const partData = polygonPartsPayload.partsData[0];
         const partDataCover = polygonPartsPayload.partsData[1];
         polygonPartsPayload.partsData = [
@@ -282,7 +301,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
-        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
@@ -311,7 +330,10 @@ describe('polygonParts', () => {
 
       it('should return 201 status code and create the resources for multiple parts, where the second is completely within the first (creating a hole)', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(2);
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const partData = polygonPartsPayload.partsData[0];
         const partDataHoleCreator = polygonPartsPayload.partsData[1];
         polygonPartsPayload.partsData = [
@@ -329,7 +351,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
-        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
@@ -410,7 +432,10 @@ describe('polygonParts', () => {
             return { ...partData, footprint: partFootprints[index] };
           }),
         };
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const expectedPolygonPartFootprints = [
           {
             type: 'Polygon',
@@ -448,7 +473,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
-        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
@@ -518,7 +543,10 @@ describe('polygonParts', () => {
             return { ...partData, footprint: partFootprints[index] };
           }),
         };
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const expectedPolygonPartFootprint = {
           type: 'Polygon',
           coordinates: [
@@ -542,7 +570,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
-        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
@@ -611,7 +639,10 @@ describe('polygonParts', () => {
             return { ...partData, footprint: partFootprints[index] };
           }),
         };
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const expectedPolygonPartFootprints = [
           {
             type: 'Polygon',
@@ -649,7 +680,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.CREATED);
-        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
@@ -686,8 +717,10 @@ describe('polygonParts', () => {
 
       it('should return 201 status code if resolution degree is right on the lower border (0.000000167638063430786)', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: VALIDATIONS.resolutionDeg.min as number }];
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: INGESTION_VALIDATIONS.resolutionDeg.min }];
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
@@ -706,8 +739,10 @@ describe('polygonParts', () => {
 
       it('should return 201 status code if resolution degree is right on the upper border (0.703125)', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: VALIDATIONS.resolutionDeg.max as number }];
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: INGESTION_VALIDATIONS.resolutionDeg.max }];
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
@@ -726,8 +761,10 @@ describe('polygonParts', () => {
 
       it('should return 201 status code if resolution meter is right on the lower border (0.0185)', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionMeter: VALIDATIONS.resolutionMeter.min as number }];
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionMeter: INGESTION_VALIDATIONS.resolutionMeter.min }];
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
@@ -746,8 +783,10 @@ describe('polygonParts', () => {
 
       it('should return 201 status code if resolution meter is right on the upper border (78271.52)', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionMeter: VALIDATIONS.resolutionMeter.max as number }];
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionMeter: INGESTION_VALIDATIONS.resolutionMeter.max }];
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
@@ -766,8 +805,10 @@ describe('polygonParts', () => {
 
       it('should return 201 status code if source resolution meter is right on the lower border (0.0185)', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceResolutionMeter: VALIDATIONS.resolutionMeter.min as number }];
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceResolutionMeter: INGESTION_VALIDATIONS.resolutionMeter.min }];
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
@@ -786,8 +827,10 @@ describe('polygonParts', () => {
 
       it('should return 201 status code if source resolution meter is right on the upper border (78271.52)', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceResolutionMeter: VALIDATIONS.resolutionMeter.max as number }];
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceResolutionMeter: INGESTION_VALIDATIONS.resolutionMeter.max }];
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
@@ -806,8 +849,12 @@ describe('polygonParts', () => {
 
       it('should return 201 status code if horizontal accuracy ce90 is right on the lower border (0.01)', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], horizontalAccuracyCE90: VALIDATIONS.horizontalAccuracyCE90.min }];
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        polygonPartsPayload.partsData = [
+          { ...polygonPartsPayload.partsData[0], horizontalAccuracyCE90: INGESTION_VALIDATIONS.horizontalAccuracyCE90.min },
+        ];
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
@@ -826,8 +873,12 @@ describe('polygonParts', () => {
 
       it('should return 201 status code if horizontal accuracy ce90 is right on the upper border (4000)', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], horizontalAccuracyCE90: VALIDATIONS.horizontalAccuracyCE90.max }];
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        polygonPartsPayload.partsData = [
+          { ...polygonPartsPayload.partsData[0], horizontalAccuracyCE90: INGESTION_VALIDATIONS.horizontalAccuracyCE90.max },
+        ];
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
@@ -852,14 +903,17 @@ describe('polygonParts', () => {
         const insertPolygonPartsPayload = createInitPayloadRequest;
         await requestSender.createPolygonParts(insertPolygonPartsPayload);
         const updatePayload = separatePolygonsRequest;
-        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
 
         const response = await requestSender.updatePolygonParts(updatePayload, false);
         const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.OK);
-        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
         expect(response).toSatisfyApiSpec();
 
         expect(polygonPartRecords).toHaveLength(4);
@@ -885,14 +939,17 @@ describe('polygonParts', () => {
         const insertPolygonPartsPayload = createInitPayloadRequest;
         await requestSender.createPolygonParts(insertPolygonPartsPayload);
         const updatePayload = intersectionWithItalyRequest;
-        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
 
         const response = await requestSender.updatePolygonParts(updatePayload, false);
         const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.OK);
-        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
         expect(response).toSatisfyApiSpec();
 
         expect(polygonPartRecords).toHaveLength(3);
@@ -915,15 +972,17 @@ describe('polygonParts', () => {
         await requestSender.createPolygonParts(insertPolygonPartsPayload);
         await requestSender.updatePolygonParts(separatePolygonsRequest, false);
         const updatePayload = createInitPayloadRequest;
-        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
 
         const response = await requestSender.updatePolygonParts(updatePayload, true);
-
         const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.OK);
-        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
         expect(response).toSatisfyApiSpec();
 
         expect(polygonPartRecords).toHaveLength(1);
@@ -975,7 +1034,10 @@ describe('polygonParts', () => {
             },
           ],
         });
-        const { parts, polygonParts } = getEntitiesNames(insertPolygonPartsPayload);
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(insertPolygonPartsPayload);
         const expectedPartRecords = [
           ...toExpectedPostgresResponse(insertPolygonPartsPayload),
           ...toExpectedPostgresResponse(updatePolygonPartsPayload),
@@ -990,7 +1052,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.OK);
-        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
@@ -1067,7 +1129,10 @@ describe('polygonParts', () => {
             },
           ],
         });
-        const { parts, polygonParts } = getEntitiesNames(insertPolygonPartsPayload);
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(insertPolygonPartsPayload);
         const expectedPartRecords = [
           ...toExpectedPostgresResponse(insertPolygonPartsPayload),
           ...toExpectedPostgresResponse(updatePolygonPartsPayload),
@@ -1082,7 +1147,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.OK);
-        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
@@ -1162,7 +1227,10 @@ describe('polygonParts', () => {
             },
           ],
         });
-        const { parts, polygonParts } = getEntitiesNames(insertPolygonPartsPayload);
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(insertPolygonPartsPayload);
         const expectedPartRecords = [
           ...toExpectedPostgresResponse(insertPolygonPartsPayload),
           ...toExpectedPostgresResponse(updatePolygonPartsPayload),
@@ -1177,7 +1245,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.OK);
-        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
@@ -1254,7 +1322,10 @@ describe('polygonParts', () => {
             },
           ],
         });
-        const { parts, polygonParts } = getEntitiesNames(insertPolygonPartsPayload);
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(insertPolygonPartsPayload);
         const expectedPartRecords = [
           ...toExpectedPostgresResponse(insertPolygonPartsPayload),
           ...toExpectedPostgresResponse(updatePolygonPartsPayload),
@@ -1269,7 +1340,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.OK);
-        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
@@ -1349,7 +1420,10 @@ describe('polygonParts', () => {
             },
           ],
         });
-        const { parts, polygonParts } = getEntitiesNames(insertPolygonPartsPayload);
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(insertPolygonPartsPayload);
         const expectedPolygonPartFootprints = [
           {
             type: 'Polygon',
@@ -1392,7 +1466,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.OK);
-        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
@@ -1468,7 +1542,10 @@ describe('polygonParts', () => {
             },
           ],
         });
-        const { parts, polygonParts } = getEntitiesNames(insertPolygonPartsPayload);
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(insertPolygonPartsPayload);
         const expectedPartRecords = [
           ...toExpectedPostgresResponse(insertPolygonPartsPayload),
           ...toExpectedPostgresResponse(updatePolygonPartsPayload),
@@ -1483,7 +1560,7 @@ describe('polygonParts', () => {
         const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
         expect(response.status).toBe(httpStatusCodes.OK);
-        expect(response.body).toStrictEqual<PolygonPartsEntityName>({ polygonPartsEntityName: polygonParts.entityName });
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
         expect(response).toSatisfyApiSpec();
 
         expect(partRecords.sort((a, b) => a.insertionOrder - b.insertionOrder)).toMatchObject(expectedPartRecords);
@@ -1526,7 +1603,7 @@ describe('polygonParts', () => {
 
   describe('Bad Path', () => {
     describe('POST /polygonParts', () => {
-      it('should return 400 status code if a product type is invalid value', async () => {
+      it('should return 400 status code if product type is an invalid value', async () => {
         const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productType: 'bad value' };
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: expect.any(String) };
@@ -1540,7 +1617,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a catalog id is invalid value', async () => {
+      it('should return 400 status code if catalog id is an invalid value', async () => {
         const polygonPartsPayload = { ...generatePolygonPartsPayload(1), catalogId: 'bad value' };
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: expect.any(String) };
@@ -1554,7 +1631,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a product id is invalid value', async () => {
+      it('should return 400 status code if product id is an invalid value', async () => {
         const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productId: 'bad value' };
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: expect.any(String) };
@@ -1567,7 +1644,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a product id has more than 38 characters', async () => {
+      it('should return 400 status code if product id has more than 38 characters', async () => {
         const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productId: 'a123456789b123456789c123456789d12345678' };
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: expect.any(String) };
@@ -1580,7 +1657,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a product version is invalid value', async () => {
+      it('should return 400 status code if product version is an invalid value', async () => {
         const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productVersion: 'bad value' };
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const expectedErrorMessage = { message: expect.any(String) };
@@ -1594,7 +1671,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a countries is invalid value', async () => {
+      it('should return 400 status code if countries is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], countries: [123] } as unknown as PolygonPartType];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -1609,7 +1686,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a cities is invalid value', async () => {
+      it('should return 400 status code if cities is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], cities: [123] } as unknown as PolygonPartType];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -1624,7 +1701,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a sensors is invalid value', async () => {
+      it('should return 400 status code if sensors is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sensors: 123 } as unknown as PolygonPartType];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -1639,7 +1716,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a source name is invalid value', async () => {
+      it('should return 400 status code if source name is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceName: 123 } as unknown as PolygonPartType];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -1654,7 +1731,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a resolution degree is invalid value', async () => {
+      it('should return 400 status code if resolution degree is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: 0 }];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -1669,7 +1746,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a resolution meter is invalid value', async () => {
+      it('should return 400 status code if resolution meter is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionMeter: 0 }];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -1684,7 +1761,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a source resolution meter is invalid value', async () => {
+      it('should return 400 status code if source resolution meter is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceResolutionMeter: 0 }];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -1699,7 +1776,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a horizontal accuracy ce90 is invalid value', async () => {
+      it('should return 400 status code if horizontal accuracy ce90 is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], horizontalAccuracyCE90: 0 }];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -1714,7 +1791,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a imaging time begin utc is invalid value', async () => {
+      it('should return 400 status code if imaging time begin utc is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], imagingTimeBeginUTC: 'bad value' } as unknown as PolygonPartType];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -1729,7 +1806,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a imaging time end utc is invalid value', async () => {
+      it('should return 400 status code if imaging time end utc is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], imagingTimeEndUTC: 'bad value' } as unknown as PolygonPartType];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -1744,12 +1821,12 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it.todo('should return 400 status code if a imaging time begin utc is later than current datetime');
-      it.todo('should return 400 status code if a imaging time end utc is later than current datetime');
-      it.todo('should return 400 status code if a imaging time begin utc is later than imaging time end utc');
-      it.todo('should return 400 status code if a footprint is invalid value - first and last vertices are not equal');
+      it.todo('should return 400 status code if imaging time begin utc is later than current datetime');
+      it.todo('should return 400 status code if imaging time end utc is later than current datetime');
+      it.todo('should return 400 status code if imaging time begin utc is later than imaging time end utc');
+      it.todo('should return 400 status code if footprint is an invalid value - first and last vertices are not equal');
 
-      it('should return 400 status code if a footprint is invalid value - polygon must have coordinates property', async () => {
+      it('should return 400 status code if footprint is an invalid value - polygon must have coordinates property', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const { coordinates, ...badFootprint } = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
@@ -1766,7 +1843,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a footprint is invalid value - polygon must have at least 3 vertices', async () => {
+      it('should return 400 status code if footprint is an invalid value - polygon must have at least 3 vertices', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const badFootprint = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
@@ -1784,7 +1861,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a footprint is invalid value - polygon must have coordinates values in (-180,180) range', async () => {
+      it('should return 400 status code if footprint is an invalid value - polygon must have coordinates values in (-180,180) range', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const badFootprint = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
@@ -1802,7 +1879,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a footprint is invalid value - polygon must have type property', async () => {
+      it('should return 400 status code if footprint is an invalid value - polygon must have type property', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const { type, ...badFootprint } = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
@@ -1819,7 +1896,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a footprint is invalid value - polygon must have type property set to Polygon', async () => {
+      it('should return 400 status code if footprint is an invalid value - polygon must have type property set to Polygon', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const badFootprint = { ...randomPolygon(1, { num_vertices: 3 }).features[0].geometry, type: 'Point' };
@@ -1836,7 +1913,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a source id is invalid value', async () => {
+      it('should return 400 status code if source id is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceId: 123 } as unknown as PolygonPartType];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -1851,7 +1928,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a description is invalid value', async () => {
+      it('should return 400 status code if description is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], description: 123 } as unknown as PolygonPartType];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -1866,7 +1943,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a partsData has no items', async () => {
+      it('should return 400 status code if partsData has no items', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [];
 
@@ -1887,7 +1964,7 @@ describe('polygonParts', () => {
         await requestSender.createPolygonParts(insertPolygonPartsPayload);
       });
 
-      it('should return 400 status code if a product type is invalid value', async () => {
+      it('should return 400 status code if product type is an invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, productType: 'bad value' };
         const expectedErrorMessage = {
           message: `request/body/productType must be equal to one of the allowed values: Orthophoto, OrthophotoHistory, OrthophotoBest, RasterMap, RasterMapBest, RasterAid, RasterAidBest, RasterVector, RasterVectorBest`,
@@ -1902,7 +1979,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a catalog id is invalid value', async () => {
+      it('should return 400 status code if catalog id is an invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, catalogId: 'bad value' };
         const expectedErrorMessage = { message: `request/body/catalogId must match format "uuid"` };
 
@@ -1915,7 +1992,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a product id is invalid value', async () => {
+      it('should return 400 status code if product id is an invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, productId: 'bad value' };
         const expectedErrorMessage = { message: `request/body/productId must match pattern "^[A-Za-z]{1}[A-Za-z0-9_]{0,37}$"` };
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
@@ -1927,7 +2004,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a product version is invalid value', async () => {
+      it('should return 400 status code if product version is an invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, productVersion: 'bad value' };
         const expectedErrorMessage = { message: `request/body/productVersion must match pattern "^[1-9]\\d*(\\.(0|[1-9]\\d?))?$"` };
         const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
@@ -1939,7 +2016,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a countries is invalid value', async () => {
+      it('should return 400 status code if countries is an invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], countries: [123] } as unknown as PolygonPartType];
         const expectedErrorMessage = { message: `request/body/partsData/0/countries/0 must be string` };
@@ -1953,7 +2030,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a cities is invalid value', async () => {
+      it('should return 400 status code if cities is an invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], cities: [123] } as unknown as PolygonPartType];
         const expectedErrorMessage = { message: `request/body/partsData/0/cities/0 must be string` };
@@ -1967,7 +2044,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a sensors is invalid value', async () => {
+      it('should return 400 status code if sensors is an invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sensors: 123 } as unknown as PolygonPartType];
         const expectedErrorMessage = { message: `request/body/partsData/0/sensors must be array` };
@@ -1981,7 +2058,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a source name is invalid value', async () => {
+      it('should return 400 status code if source name is an invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sourceName: 123 } as unknown as PolygonPartType];
         const expectedErrorMessage = { message: `request/body/partsData/0/sourceName must be string` };
@@ -1995,7 +2072,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a resolution degree is invalid value', async () => {
+      it('should return 400 status code if resolution degree is an invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], resolutionDegree: 123 } as unknown as PolygonPartType];
         const expectedErrorMessage = { message: `request/body/partsData/0/resolutionDegree must be <= 0.703125` };
@@ -2009,7 +2086,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a resolution meter is invalid value', async () => {
+      it('should return 400 status code if resolution meter is an invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], resolutionMeter: 0 } as unknown as PolygonPartType];
         const expectedErrorMessage = { message: `request/body/partsData/0/resolutionMeter must be >= 0.0185` };
@@ -2023,7 +2100,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a source resolution meter is invalid value', async () => {
+      it('should return 400 status code if source resolution meter is an invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sourceResolutionMeter: 0 } as unknown as PolygonPartType];
         const expectedErrorMessage = { message: `request/body/partsData/0/sourceResolutionMeter must be >= 0.0185` };
@@ -2037,7 +2114,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a horizontal accuracy ce90 is invalid value', async () => {
+      it('should return 400 status code if horizontal accuracy ce90 is an invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [
           { ...updatePolygonPartsPayload.partsData[0], horizontalAccuracyCE90: 5000 } as unknown as PolygonPartType,
@@ -2053,7 +2130,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a imaging time begin utc is invalid value', async () => {
+      it('should return 400 status code if imaging time begin utc is an invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [
           { ...updatePolygonPartsPayload.partsData[0], imagingTimeBeginUTC: 'bad value' } as unknown as PolygonPartType,
@@ -2069,7 +2146,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a imaging time end utc is invalid value', async () => {
+      it('should return 400 status code if imaging time end utc is an invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [
           { ...updatePolygonPartsPayload.partsData[0], imagingTimeEndUTC: 'bad value' } as unknown as PolygonPartType,
@@ -2085,7 +2162,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a footprint is invalid value - polygon must have coordinates property', async () => {
+      it('should return 400 status code if footprint is an invalid value - polygon must have coordinates property', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const { coordinates, ...badFootprint } = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
@@ -2101,7 +2178,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a footprint is invalid value - polygon must have at least 3 vertices', async () => {
+      it('should return 400 status code if footprint is an invalid value - polygon must have at least 3 vertices', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const badFootprint = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
@@ -2118,7 +2195,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a footprint is invalid value - polygon must have coordinates values in (-180,180) range', async () => {
+      it('should return 400 status code if footprint is an invalid value - polygon must have coordinates values in (-180,180) range', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const badFootprint = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
@@ -2135,7 +2212,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a footprint is invalid value - polygon must have type property', async () => {
+      it('should return 400 status code if footprint is an invalid value - polygon must have type property', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const { type, ...badFootprint } = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
@@ -2151,7 +2228,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a footprint is invalid value - polygon must have type property set to Polygon', async () => {
+      it('should return 400 status code if footprint is an invalid value - polygon must have type property set to Polygon', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const badFootprint = { ...randomPolygon(1, { num_vertices: 3 }).features[0].geometry, type: 'Point' };
@@ -2167,7 +2244,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a source id is invalid value', async () => {
+      it('should return 400 status code if source id is an invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sourceId: 123 } as unknown as PolygonPartType];
         const expectedErrorMessage = { message: `request/body/partsData/0/sourceId must be string` };
@@ -2181,7 +2258,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a description is invalid value', async () => {
+      it('should return 400 status code if description is an invalid value', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], description: 123 } as unknown as PolygonPartType];
         const expectedErrorMessage = { message: `request/body/partsData/0/description must be string` };
@@ -2195,7 +2272,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if a partsData has no items', async () => {
+      it('should return 400 status code if partsData has no items', async () => {
         const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
         updatePolygonPartsPayload.partsData = [];
 
@@ -2214,7 +2291,9 @@ describe('polygonParts', () => {
     describe('POST /polygonParts', () => {
       it('should return 409 status code if a part resource already exists', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        const { parts } = getEntitiesNames(polygonPartsPayload);
+        const {
+          entitiesNames: { parts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         await helperDB.createTable(parts.entityName, schema);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
@@ -2228,7 +2307,9 @@ describe('polygonParts', () => {
 
       it('should return 409 status code if a polygon part resource already exists', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        const { polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const {
+          entitiesNames: { polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         await helperDB.createTable(polygonParts.entityName, schema);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
@@ -2242,7 +2323,9 @@ describe('polygonParts', () => {
 
       it('should return 500 status code for a database error - set search_path error', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const expectedErrorMessage = 'search_path error';
         const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error(expectedErrorMessage));
 
@@ -2263,7 +2346,9 @@ describe('polygonParts', () => {
 
       it('should return 500 status code for a database error - verify available tables (first table) error', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const expectedErrorMessage = 'exists error';
         const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValueOnce(new Error(expectedErrorMessage));
 
@@ -2286,7 +2371,9 @@ describe('polygonParts', () => {
 
       it('should return 500 status code for a database error - verify available tables (second table) error', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const expectedErrorMessage = 'exists error';
         const spyGetExists = jest
           .spyOn(SelectQueryBuilder.prototype, 'getExists')
@@ -2312,7 +2399,9 @@ describe('polygonParts', () => {
 
       it('should return 500 status code for a database error - create tables error', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         // eslint-disable-next-line @typescript-eslint/unbound-method
         const originalQuery = EntityManager.prototype.query;
         const expectedErrorMessage = 'query error';
@@ -2338,7 +2427,9 @@ describe('polygonParts', () => {
 
       it('should return 500 status code for a database error - save error', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         const expectedErrorMessage = 'save error';
         const spySave = jest.spyOn(Repository.prototype, 'save').mockRejectedValueOnce(new Error(expectedErrorMessage));
 
@@ -2359,7 +2450,9 @@ describe('polygonParts', () => {
 
       it('should return 500 status code for a database error - calculate polygon parts error', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        const { parts, polygonParts } = getEntitiesNames(polygonPartsPayload);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
         // eslint-disable-next-line @typescript-eslint/unbound-method
         const originalQuery = EntityManager.prototype.query;
         const expectedErrorMessage = 'query error';
@@ -2394,7 +2487,9 @@ describe('polygonParts', () => {
       });
       it("should return 404 status code if a part resource doesn't exist", async () => {
         const updatePayload = separatePolygonsRequest;
-        const { parts } = getEntitiesNames(updatePayload);
+        const {
+          entitiesNames: { parts },
+        } = getEntitiesMetadata(updatePayload);
 
         const response = await requestSender.updatePolygonParts(updatePayload, false);
 
@@ -2407,7 +2502,9 @@ describe('polygonParts', () => {
 
       it("should return 404 status code if a polygon part resource doesn't exist", async () => {
         const updatePayload = separatePolygonsRequest;
-        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
         await helperDB.createTable(parts.entityName, schema);
 
         const response = await requestSender.updatePolygonParts(updatePayload, false);
@@ -2422,7 +2519,9 @@ describe('polygonParts', () => {
       it('should return 500 status code for a database error - set search_path error', async () => {
         await requestSender.createPolygonParts(createInitPayloadRequest);
         const updatePayload = separatePolygonsRequest;
-        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
         const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error('Transaction failed'));
 
         const response = await requestSender.updatePolygonParts(updatePayload, true);
@@ -2443,7 +2542,9 @@ describe('polygonParts', () => {
       it('should return 500 status code if when truncate parts fails', async () => {
         await requestSender.createPolygonParts(createInitPayloadRequest);
         const updatePayload = separatePolygonsRequest;
-        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
         // eslint-disable-next-line @typescript-eslint/unbound-method
         const originalQuery = EntityManager.prototype.query;
         const spyQuery = jest
@@ -2470,7 +2571,9 @@ describe('polygonParts', () => {
       it('should return 500 status code if when truncate polygon parts fails', async () => {
         await requestSender.createPolygonParts(createInitPayloadRequest);
         const updatePayload = separatePolygonsRequest;
-        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
         // eslint-disable-next-line @typescript-eslint/unbound-method
         const originalQuery = EntityManager.prototype.query;
         const spyQuery = jest
@@ -2497,7 +2600,9 @@ describe('polygonParts', () => {
       it('should return 500 status code for a database error - verify tables exists (first table) error', async () => {
         await requestSender.createPolygonParts(createInitPayloadRequest);
         const updatePayload = separatePolygonsRequest;
-        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
         const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValueOnce(new Error('Failed to execute query'));
 
         const response = await requestSender.updatePolygonParts(updatePayload, true);
@@ -2518,7 +2623,9 @@ describe('polygonParts', () => {
       it('should return 500 status code for a database error - verify tables exists(second table) error', async () => {
         await requestSender.createPolygonParts(createInitPayloadRequest);
         const updatePayload = separatePolygonsRequest;
-        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
         const spyGetExists = jest
           .spyOn(SelectQueryBuilder.prototype, 'getExists')
           .mockResolvedValueOnce(true)
@@ -2542,7 +2649,9 @@ describe('polygonParts', () => {
       it('should return 500 status code for a database error - save error', async () => {
         await requestSender.createPolygonParts(createInitPayloadRequest);
         const updatePayload = separatePolygonsRequest;
-        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
         const expectedErrorMessage = `Failed to save to ${parts.entityName}`;
         const spySave = jest.spyOn(Repository.prototype, 'save').mockRejectedValueOnce(new Error(expectedErrorMessage));
 
@@ -2564,7 +2673,9 @@ describe('polygonParts', () => {
       it('should return 500 status code for a database error - calculate polygon parts error on regular update', async () => {
         await requestSender.createPolygonParts(createInitPayloadRequest);
         const updatePayload = separatePolygonsRequest;
-        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
         // eslint-disable-next-line @typescript-eslint/unbound-method
         const originalQuery = EntityManager.prototype.query;
         const spyQuery = jest
@@ -2590,7 +2701,9 @@ describe('polygonParts', () => {
       it('should return 500 status code for a database error - calculate polygon parts error on swap update', async () => {
         await requestSender.createPolygonParts(createInitPayloadRequest);
         const updatePayload = separatePolygonsRequest;
-        const { parts, polygonParts } = getEntitiesNames(updatePayload);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
         // eslint-disable-next-line @typescript-eslint/unbound-method
         const originalQuery = EntityManager.prototype.query;
         const spyQuery = jest

@@ -4,12 +4,13 @@ import type { PolygonPartRecord } from './interfaces';
 /**
  * Fields to select in find polygon parts query
  */
-export const FIND_OUTPUT_FIELDS: MapValues<Required<Omit<PolygonPartRecord, 'footprint' | 'id' | 'partId' | 'insertionOrder'>>, boolean> = {
+export const FIND_OUTPUT_FIELDS: MapValues<Required<Omit<PolygonPartRecord, 'footprint' | 'partId' | 'insertionOrder'>>, boolean> = {
   catalogId: true,
   cities: true,
   countries: true,
   description: true,
   horizontalAccuracyCE90: true,
+  id: true,
   imagingTimeBeginUTC: true,
   imagingTimeEndUTC: true,
   ingestionDateUTC: true,

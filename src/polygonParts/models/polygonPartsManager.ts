@@ -6,7 +6,7 @@ import type { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
-import type { NonNullableProperties, PickPropertiesOfType } from '../../common/types';
+import type { PickPropertiesOfType } from '../../common/types';
 import { Part } from '../DAL/part';
 import { PolygonPart } from '../DAL/polygonPart';
 import { getMappedColumnName, payloadToInsertPartsData } from '../DAL/utils';

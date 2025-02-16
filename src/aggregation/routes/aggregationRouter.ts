@@ -10,7 +10,12 @@ const aggregationRouterFactory: FactoryFunction<Router> = (dependencyContainer) 
   const validations = dependencyContainer.resolve(ValidationsController);
   const transformer = dependencyContainer.resolve(TransformerController);
 
-  router.get('/:polygonPartsEntityName', validations.validateGetAggregationLayerMetadata, transformer.parseGetAggregationLayerMetadata, controller.getAggregationLayerMetadata);
+  router.get(
+    '/:polygonPartsEntityName',
+    validations.validateGetAggregationLayerMetadata,
+    transformer.parseGetAggregationLayerMetadata,
+    controller.getAggregationLayerMetadata
+  );
 
   return router;
 };

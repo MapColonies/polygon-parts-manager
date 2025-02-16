@@ -2,7 +2,13 @@ import { BadRequestError } from '@map-colonies/error-types';
 import { polygonPartsEntityPatternSchema } from '@map-colonies/raster-shared';
 import { inject, singleton } from 'tsyringe';
 import { ZodError, z } from 'zod';
-import type { EntitiesMetadata, EntityIdentifier, EntityIdentifierObject, EntityNames, PolygonPartsPayload } from '../../polygonParts/models/interfaces';
+import type {
+  EntitiesMetadata,
+  EntityIdentifier,
+  EntityIdentifierObject,
+  EntityNames,
+  PolygonPartsPayload,
+} from '../../polygonParts/models/interfaces';
 import { SERVICES } from '../constants';
 import type { ApplicationConfig, DbConfig, IConfig } from '../interfaces';
 

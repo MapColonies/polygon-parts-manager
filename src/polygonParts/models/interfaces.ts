@@ -1,10 +1,7 @@
-import type {
-  PolygonPart,
-  PolygonPartsEntityName,
-  PolygonPartsPayload as PolygonPartsPayloadType,
-  RasterProductTypes,
-} from '@map-colonies/mc-model-types';
-import type { DbConfig } from '../../common/interfaces';
+import type { PolygonPartsPayload as PolygonPartsPayloadType } from '@map-colonies/mc-model-types';
+import type { PolygonPart, PolygonPartsEntityName, PolygonPartsEntityNameObject, RasterProductTypes } from '@map-colonies/raster-shared';
+import type { MultiPolygon, Polygon } from 'geojson';
+import type { NullableRecordValues } from '../../common/types';
 
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
 
@@ -18,6 +15,31 @@ export interface InsertPartData extends Readonly<Omit<CommonPayload, 'countries'
 }
 
 /**
+ * Find polygon parts options
+ */
+export interface FindPolygonPartsOptions {
+  readonly clip: boolean;
+  readonly polygonPartsEntityName: EntityNames;
+  readonly footprint?: MultiPolygon | Polygon;
+}
+
+/**
+ * Find polygon parts response
+ */
+export type FindPolygonPartsResponse = NullableRecordValues<
+  Omit<FindPolygonPartsResponseItem, 'countries' | 'cities' | 'sensors'> & {
+    readonly countries?: string[];
+    readonly cities?: string[];
+    readonly sensors: string[];
+  }
+>[];
+
+/**
+ * Find polygon parts response item
+ */
+export interface FindPolygonPartsResponseItem extends CommonRecord {}
+
+/**
  * Polygon parts ingestion payload
  */
 export interface PolygonPartsPayload extends Omit<PolygonPartsPayloadType, 'productType'> {
@@ -27,7 +49,7 @@ export interface PolygonPartsPayload extends Omit<PolygonPartsPayloadType, 'prod
 /**
  * Polygon parts response
  */
-export interface PolygonPartsResponse extends PolygonPartsEntityName {}
+export interface PolygonPartsResponse extends EntityIdentifierObject {}
 
 /**
  * Common record properties of part and polygon part
@@ -54,25 +76,38 @@ export interface PolygonPartRecord extends CommonRecord {
 }
 
 /**
+ * Entity identifier
+ */
+export type EntityIdentifier = PolygonPartsEntityName;
+
+/**
+ * Entity identifier
+ */
+export type EntityIdentifierObject = PolygonPartsEntityNameObject;
+
+/**
  * Properties describing a name of an entity
  */
-export interface EntityName {
-  entityName: string;
-  databaseObjectQualifiedName: string;
+export type EntityName = `${Lowercase<string>}${EntityIdentifier}${Lowercase<string>}`;
+
+/**
+ * Properties describing names of an entity
+ */
+export interface EntityNames {
+  entityName: EntityName;
+  databaseObjectQualifiedName: `${Lowercase<string>}.${EntityName}`;
 }
 
 /**
  * Properties describing parts & polygon parts entities names
  */
-export interface EntityNames {
-  parts: EntityName;
-  polygonParts: EntityName;
+export interface EntitiesMetadata {
+  entityIdentifier: EntityIdentifier;
+  entitiesNames: {
+    parts: EntityNames;
+    polygonParts: EntityNames;
+  };
 }
-
-/**
- * DB schema type
- */
-export type DBSchema = DbConfig['schema'];
 
 export interface IsSwapQueryParams {
   isSwap: boolean;

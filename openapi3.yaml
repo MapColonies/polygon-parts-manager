@@ -257,6 +257,7 @@ components:
       items:
         type: string
       description: Cities included in the part
+      nullable: true
     CitiesObject:
       type: object
       required:
@@ -270,6 +271,7 @@ components:
       items:
         type: string
       description: Countries included in the part
+      nullable: true
     CountriesObject:
       type: object
       required:
@@ -280,6 +282,7 @@ components:
           $ref: '#/components/schemas/Countries'
     Description:
       type: string
+      nullable: true
     DescriptionObject:
       type: object
       required:
@@ -508,6 +511,7 @@ components:
     SourceId:
       type: string
       description: Layer's external identifier
+      nullable: true
     SourceIdObject:
       type: object
       required:

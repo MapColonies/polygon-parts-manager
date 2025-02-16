@@ -1,16 +1,15 @@
 import config from 'config';
 import { validate, version } from 'uuid';
 import type { ApplicationConfig } from '../../../../src/common/interfaces';
+import type { NullableRecordValues } from '../../../../src/common/types';
 import { payloadToInsertPartsData } from '../../../../src/polygonParts/DAL/utils';
 import type { InsertPartData, PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
-import type { NullableRecordValues } from './types';
 
 const applicationConfig = config.get<ApplicationConfig>('application');
 
 export function toExpectedPostgresResponse(polygonPartsPayload: PolygonPartsPayload): NullableRecordValues<InsertPartData>[] {
   const expectedPostgresResponse = payloadToInsertPartsData(polygonPartsPayload, applicationConfig.arraySeparator).map((record) => {
     const { cities = null, countries = null, description = null, sourceId = null, ...props } = record;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-magic-numbers
     return { cities, countries, description, sourceId, ...props };
   });
 

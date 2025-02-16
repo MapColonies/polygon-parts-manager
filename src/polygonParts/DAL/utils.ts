@@ -1,7 +1,7 @@
 import { DefaultNamingStrategy, type Table } from 'typeorm';
+import type { ApplicationConfig } from '../../common/interfaces';
 import { camelCaseToSnakeCase } from '../../common/utils';
-import { InsertPartData, PolygonPartsPayload } from '../models/interfaces';
-import { ApplicationConfig } from '../../common/interfaces';
+import type { FindPolygonPartsResponse, FindPolygonPartsResponseItem, InsertPartData, PolygonPartsPayload } from '../models/interfaces';
 
 const customNamingStrategy = new DefaultNamingStrategy();
 customNamingStrategy.indexName = (tableOrName: Table | string, columnNames: string[], where?: string): string => {
@@ -38,6 +38,24 @@ export const payloadToInsertPartsData = (
       sensors: partData.sensors.join(arraySeparator),
       countries: partData.countries?.join(arraySeparator),
       cities: partData.cities?.join(arraySeparator),
+    };
+  });
+};
+
+export const polygonPartsDataToPayload = (
+  polygonPartsData: FindPolygonPartsResponseItem[],
+  arraySeparator: ApplicationConfig['arraySeparator']
+): FindPolygonPartsResponse => {
+  return polygonPartsData.map((polygonPartData) => {
+    const { cities, countries, description = null, sensors, sourceId = null, ...polygonPartsData } = polygonPartData;
+
+    return {
+      ...polygonPartsData,
+      cities: cities?.split(arraySeparator) ?? null,
+      countries: countries?.split(arraySeparator) ?? null,
+      description,
+      sourceId,
+      sensors: sensors.split(arraySeparator),
     };
   });
 };

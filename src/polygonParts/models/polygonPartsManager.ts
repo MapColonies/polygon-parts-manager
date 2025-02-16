@@ -9,7 +9,7 @@ import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfac
 import type { PickPropertiesOfType } from '../../common/types';
 import { Part } from '../DAL/part';
 import { PolygonPart } from '../DAL/polygonPart';
-import { getMappedColumnName, payloadToInsertPartsData } from '../DAL/utils';
+import { getMappedColumnName, payloadToInsertPartsData, polygonPartsDataToPayload } from '../DAL/utils';
 import { FIND_OUTPUT_FIELDS } from './constants';
 import type {
   EntitiesMetadata,
@@ -96,7 +96,7 @@ export class PolygonPartsManager {
 
         try {
           const polygonParts = await findPolygonPartsQuery.getRawMany<FindPolygonPartsResponseItem>();
-          return polygonParts;
+          return polygonPartsDataToPayload(polygonParts, this.applicationConfig.arraySeparator);
         } catch (error) {
           const errorMessage = `Could not complete find '${polygonPartsEntityName.entityName}'`;
           logger.error({ msg: errorMessage, error });

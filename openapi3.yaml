@@ -297,6 +297,19 @@ components:
           oneOf:
             - $ref: ./Schema/geojson.yaml#/components/schemas/Polygon
             - $ref: ./Schema/geojson.yaml#/components/schemas/MultiPolygon
+    Id:
+      type: string
+      format: uuid
+      description: Polygon part's identifier
+      example: d56b406d-e5f2-4818-a525-bd996cae60b5
+    IdObject:
+      type: object
+      required:
+        - id
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
     HorizontalAccuracyCE90:
       type: number
       minimum: 0.01
@@ -380,6 +393,7 @@ components:
         - description
         - footprint
         - horizontalAccuracyCE90
+        - id
         - imagingTimeBeginUTC
         - imagingTimeEndUTC
         - ingestionDateUTC
@@ -399,6 +413,7 @@ components:
         - $ref: '#/components/schemas/DescriptionObject'
         - $ref: '#/components/schemas/FootprintObject'
         - $ref: '#/components/schemas/HorizontalAccuracyCE90Object'
+        - $ref: '#/components/schemas/IdObject'
         - $ref: '#/components/schemas/ImagingTimeBeginUTCObject'
         - $ref: '#/components/schemas/ImagingTimeEndUTCObject'
         - $ref: '#/components/schemas/IngestionDateUTCObject'

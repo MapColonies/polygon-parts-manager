@@ -39,6 +39,8 @@ export class ConnectionManager {
   }
 
   public async init(): Promise<void> {
+    let schemaExists = false;
+
     try {
       if (!this.isConnected()) {
         this.logger.info({
@@ -51,6 +53,22 @@ export class ConnectionManager {
     } catch (error) {
       const errString = JSON.stringify(error, Object.getOwnPropertyNames(error));
       this.logger.error({ msg: `failed to connect to database: ${errString}` });
+      throw new DBConnectionError();
+    }
+
+    try {
+      this.logger.info({
+        msg: `checking if schema ${this.schema} exists on database`,
+      });
+      schemaExists = await this.schemaExists();
+    } catch (error) {
+      const errString = JSON.stringify(error, Object.getOwnPropertyNames(error));
+      this.logger.error({ msg: `failed to verify if schema exists: ${errString}` });
+      throw new DBConnectionError();
+    }
+
+    if (!schemaExists) {
+      this.logger.error({ msg: `schema '${this.schema}' does not exists` });
       throw new DBConnectionError();
     }
   }
@@ -83,6 +101,16 @@ export class ConnectionManager {
       .from('information_schema.tables', 'information_schema.tables')
       .where(`table_schema = '${this.schema}'`)
       .andWhere(`table_name = '${entityName}'`)
+      .getExists();
+    return exists;
+  }
+
+  private async schemaExists(): Promise<boolean> {
+    const exists = await this.dataSource
+      .createQueryBuilder()
+      .select('n.nspname')
+      .from('pg_namespace', 'n')
+      .where('n.nspname = :schemaName', { schemaName: this.schema })
       .getExists();
     return exists;
   }

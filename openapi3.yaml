@@ -150,7 +150,7 @@ paths:
             $ref: '#/components/schemas/PolygonPartsEntityName'
           required: true
         - in: query
-          name: clip
+          name: shouldClip
           description: Clip the result to the footprint (results are not clipped if footprint is not provided)
           schema:
             type: boolean

@@ -19,7 +19,7 @@ import type {
 import type { IsSwapQueryParams, PolygonPartsPayload } from '../../polygonParts/models/interfaces';
 
 const findPolygonPartsQueryParamsSchema: ZodType<FindPolygonPartsQueryParams> = z.object({
-  clip: z.boolean(),
+  shouldClip: z.boolean(),
 });
 
 const findPolygonPartsRequestBodySchema: ZodType<FindPolygonPartsRequestBody> = z

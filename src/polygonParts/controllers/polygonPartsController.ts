@@ -19,7 +19,7 @@ export class PolygonPartsController {
   public findPolygonParts: FindPolygonPartsHandler = async (req, res, next) => {
     try {
       const response = await this.polygonPartsManager.findPolygonParts({
-        clip: req.query.clip,
+        shouldClip: req.query.shouldClip,
         footprint: req.body.footprint,
         polygonPartsEntityName: res.locals.entitiesNames.polygonParts,
       });

@@ -73,7 +73,7 @@ export class PolygonPartsManager {
     }
   }
 
-  public async findPolygonParts({ clip, polygonPartsEntityName, footprint }: FindPolygonPartsOptions): Promise<FindPolygonPartsResponse> {
+  public async findPolygonParts({ shouldClip, polygonPartsEntityName, footprint }: FindPolygonPartsOptions): Promise<FindPolygonPartsResponse> {
     const logger = this.logger.child({ polygonPartsEntityName: polygonPartsEntityName.entityName });
     logger.info({ msg: 'Finding polygon parts' });
 
@@ -92,7 +92,7 @@ export class PolygonPartsManager {
             throw new BadRequestError(`Invalid request body parameter 'footprint' - invalid geometry`);
           }
         }
-        const findPolygonPartsQuery = this.buildFindPolygonPartsQuery({ clip, entityManager, polygonPartsEntityName, footprint });
+        const findPolygonPartsQuery = this.buildFindPolygonPartsQuery({ shouldClip, entityManager, polygonPartsEntityName, footprint });
 
         try {
           const polygonParts = await findPolygonPartsQuery.getRawMany<FindPolygonPartsResponseItem>();
@@ -175,12 +175,12 @@ export class PolygonPartsManager {
   }
 
   private buildFindPolygonPartsQuery({
-    clip,
+    shouldClip,
     polygonPartsEntityName,
     footprint,
     entityManager,
   }: FindPolygonPartsOptions & { entityManager: EntityManager }): SelectQueryBuilder<FindPolygonPartsResponseItem> {
-    const canClip = !!footprint && clip;
+    const canClip = !!footprint && shouldClip;
     const geometryField: PickPropertiesOfType<PolygonPartRecord, Geometry> = 'footprint';
     const findPolygonPartsGeometryColumn = canClip
       ? [`st_asgeojson((st_dump(st_intersection(${geometryField}, st_geomfromgeojson(:clipFootprint)))).geom, 15)::json as ${geometryField}`]

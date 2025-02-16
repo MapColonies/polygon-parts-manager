@@ -48,7 +48,7 @@ export interface FindPolygonPartsHandler
 /**
  * Find polygon parts query params
  */
-export interface FindPolygonPartsQueryParams extends Readonly<Pick<FindPolygonPartsOptions, 'clip'>> {}
+export interface FindPolygonPartsQueryParams extends Readonly<Pick<FindPolygonPartsOptions, 'shouldClip'>> {}
 
 /**
  * Find polygon parts request body

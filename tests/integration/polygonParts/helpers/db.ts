@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { INGESTION_VALIDATIONS, RASTER_PRODUCT_TYPE_LIST, type PolygonPart } from '@map-colonies/raster-shared';
+import { CORE_VALIDATIONS, INGESTION_VALIDATIONS, RASTER_PRODUCT_TYPE_LIST, type PolygonPart } from '@map-colonies/raster-shared';
 import { randomPolygon } from '@turf/random';
 import { randexp } from 'randexp';
 import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
@@ -25,7 +25,7 @@ export const generatePolygonPart = (): PolygonPart => {
     horizontalAccuracyCE90: faker.number.float(INGESTION_VALIDATIONS.horizontalAccuracyCE90),
     imagingTimeBeginUTC: dateOlder,
     imagingTimeEndUTC: dateRecent,
-    resolutionDegree: faker.number.float(INGESTION_VALIDATIONS.resolutionDeg),
+    resolutionDegree: faker.number.float(CORE_VALIDATIONS.resolutionDeg),
     resolutionMeter: faker.number.float(INGESTION_VALIDATIONS.resolutionMeter),
     sensors: faker.helpers.multiple(
       () => {

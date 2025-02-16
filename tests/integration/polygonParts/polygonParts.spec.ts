@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import jsLogger from '@map-colonies/js-logger';
-import { INGESTION_VALIDATIONS, PolygonPart as PolygonPartType } from '@map-colonies/raster-shared';
+import { CORE_VALIDATIONS, INGESTION_VALIDATIONS, PolygonPart as PolygonPartType } from '@map-colonies/raster-shared';
 import { trace } from '@opentelemetry/api';
 import { booleanEqual } from '@turf/boolean-equal';
 import { randomPolygon } from '@turf/random';
@@ -717,7 +717,7 @@ describe('polygonParts', () => {
 
       it('should return 201 status code if resolution degree is right on the lower border (0.000000167638063430786)', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: INGESTION_VALIDATIONS.resolutionDeg.min }];
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: CORE_VALIDATIONS.resolutionDeg.min }];
         const {
           entitiesNames: { parts, polygonParts },
         } = getEntitiesMetadata(polygonPartsPayload);
@@ -739,7 +739,7 @@ describe('polygonParts', () => {
 
       it('should return 201 status code if resolution degree is right on the upper border (0.703125)', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
-        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: INGESTION_VALIDATIONS.resolutionDeg.max }];
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: CORE_VALIDATIONS.resolutionDeg.max }];
         const {
           entitiesNames: { parts, polygonParts },
         } = getEntitiesMetadata(polygonPartsPayload);

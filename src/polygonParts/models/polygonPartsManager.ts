@@ -39,7 +39,7 @@ export class PolygonPartsManager {
 
     this.findPolygonPartsColumns = Object.entries(FIND_OUTPUT_FIELDS)
       .filter(([, value]) => value)
-      .map(([key]) => `${getMappedColumnName(key)} as "${key}"`); // TODO: perhaps turn to find API??
+      .map(([key]) => `${getMappedColumnName(key)} as "${key}"`);
   }
 
   public async createPolygonParts(polygonPartsPayload: PolygonPartsPayload, entitiesMetadata: EntitiesMetadata): Promise<PolygonPartsResponse> {

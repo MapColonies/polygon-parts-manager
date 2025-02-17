@@ -95,3 +95,12 @@ export const getEntitiesMetadataSchemaFactory = ({
     })
     .strict();
 };
+
+export const schemaParser = <T>(options: { schema: ZodType<T, ZodTypeDef, T>; value: unknown; errorMessagePrefix: string }): T => {
+  const { schema, value, errorMessagePrefix } = options;
+  return schema.parse(value, {
+    errorMap: (issue, ctx) => {
+      return { message: `${errorMessagePrefix}: ${issue.message ?? ctx.defaultError}` };
+    },
+  });
+};

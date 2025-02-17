@@ -9,6 +9,7 @@ import {
   findPolygonPartsQueryParamsSchema,
   findPolygonPartsRequestBodySchema,
   polygonPartsRequestBodySchema,
+  schemaParser,
   updatePolygonPartsQueryParamsSchema,
 } from '../schemas';
 
@@ -31,85 +32,40 @@ type UpdatePolygonPartsValidationHandler = RequestHandler<undefined, PolygonPart
 export class ValidationsController {
   public readonly validateCreatePolygonParts: CreatePolygonPartsValidationHandler = (req, _, next) => {
     try {
-      try {
-        polygonPartsRequestBodySchema.parse(req.body);
-      } catch (error) {
-        if (error instanceof ZodError) {
-          throw new BadRequestError(`Invalid request body: ${error.message}`);
-        }
-      }
-      next();
+      schemaParser({ schema: polygonPartsRequestBodySchema, value: req.body, errorMessagePrefix: 'Invalid request body' });
     } catch (error) {
+      if (error instanceof ZodError) {
+        throw new BadRequestError(error.message);
+      }
       next(error);
     }
+    next();
   };
 
   public readonly validateUpdatePolygonParts: UpdatePolygonPartsValidationHandler = (req, _, next) => {
     try {
-      try {
-        polygonPartsRequestBodySchema.parse(req.body);
-      } catch (error) {
-        if (error instanceof ZodError) {
-          throw new BadRequestError(`Invalid request body: ${error.message}`);
-        }
-      }
-
-      try {
-        updatePolygonPartsQueryParamsSchema.parse(req.query);
-      } catch (error) {
-        if (error instanceof ZodError) {
-          throw new BadRequestError(`Invalid query params: ${error.message}`);
-        }
-      }
-      next();
+      schemaParser({ schema: polygonPartsRequestBodySchema, value: req.body, errorMessagePrefix: 'Invalid request body' });
+      schemaParser({ schema: updatePolygonPartsQueryParamsSchema, value: req.query, errorMessagePrefix: 'Invalid query params' });
     } catch (error) {
+      if (error instanceof ZodError) {
+        throw new BadRequestError(error.message);
+      }
       next(error);
     }
+    next();
   };
 
   public readonly validateFindPolygonParts: FindPolygonPartsValidationHandler = (req, _, next) => {
     try {
-      try {
-        polygonPartsEntityNameSchema.parse(req.params);
-      } catch (error) {
-        if (error instanceof ZodError) {
-          throw new BadRequestError(`Invalid request params: ${error.message}`);
-        }
-      }
-
-      try {
-        findPolygonPartsQueryParamsSchema.parse(req.query);
-      } catch (error) {
-        if (error instanceof ZodError) {
-          throw new BadRequestError(`Invalid query params: ${error.message}`);
-        }
-      }
-
-      try {
-        findPolygonPartsRequestBodySchema.parse(req.body, {
-          errorMap: (issue, ctx) => {
-            return { message: `${issue.message ?? ''}` };
-          },
-        });
-      } catch (error) {
-        if (error instanceof ZodError) {
-          throw new BadRequestError(`Invalid request body: ${error.message}`);
-        }
-      }
-      // try {
-      //   findPolygonPartsRequestBodySchema.parse(req.body, {
-      //     errorMap: (issue, ctx) => {
-      //       return { message: 'blat' };
-      //     },
-      //   });
-      // } catch (error) {
-      //   if (error instanceof ZodError) {
-      //     throw new BadRequestError(`Invalid request body: ${error.message}`);
-      //   }
-      // }
-      next();
+      schemaParser({ schema: polygonPartsEntityNameSchema, value: req.params, errorMessagePrefix: 'Invalid request params' });
+      schemaParser({ schema: findPolygonPartsQueryParamsSchema, value: req.query, errorMessagePrefix: 'Invalid query params' });
+      schemaParser({ schema: findPolygonPartsRequestBodySchema, value: req.body, errorMessagePrefix: 'Invalid request body' });
     } catch (error) {
+      if (error instanceof ZodError) {
+        throw new BadRequestError(error.message);
+      }
       next(error);
     }
+    next();
   };
 }

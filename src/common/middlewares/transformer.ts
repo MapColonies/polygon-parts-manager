@@ -1,7 +1,6 @@
 import { BadRequestError } from '@map-colonies/error-types';
-import { polygonPartsEntityPatternSchema } from '@map-colonies/raster-shared';
 import { inject, singleton } from 'tsyringe';
-import { ZodError, z } from 'zod';
+import { ZodError } from 'zod';
 import type {
   EntitiesMetadata,
   EntityIdentifier,
@@ -9,6 +8,7 @@ import type {
   EntityNames,
   PolygonPartsPayload,
 } from '../../polygonParts/models/interfaces';
+import { getEntitiesMetadataSchemaFactory } from '../../polygonParts/schemas';
 import { SERVICES } from '../constants';
 import type { ApplicationConfig, DbConfig, IConfig } from '../interfaces';
 
@@ -22,73 +22,11 @@ export class Transformer {
     this.applicationConfig = this.config.get<ApplicationConfig>('application');
     this.schema = this.config.get<DbConfig['schema']>('db.schema');
 
-    const partsDBEntityNameSchema = z.object({
-      entityName: z
-        .string()
-        .transform((val) =>
-          val.replaceAll(
-            new RegExp(`(^${this.applicationConfig.entities.parts.namePrefix})|(${this.applicationConfig.entities.parts.nameSuffix}$)`, 'g'),
-            ''
-          )
-        )
-        .pipe(polygonPartsEntityPatternSchema)
-        .transform((val) => this.getEntitiesMetadata({ polygonPartsEntityName: val }).entitiesNames.parts.entityName),
-      databaseObjectQualifiedName: z
-        .string()
-        .transform((val) =>
-          val.replaceAll(
-            new RegExp(
-              `(^${this.schema}.${this.applicationConfig.entities.parts.namePrefix})|(${this.applicationConfig.entities.parts.nameSuffix}$)`,
-              'g'
-            ),
-            ''
-          )
-        )
-        .pipe(polygonPartsEntityPatternSchema)
-        .transform((val) => this.getEntitiesMetadata({ polygonPartsEntityName: val }).entitiesNames.parts.databaseObjectQualifiedName),
+    const entitiesMetadataSchema = getEntitiesMetadataSchemaFactory({
+      getEntitiesMetadata: this.getEntitiesMetadata,
+      ...{ schema: this.schema },
+      ...{ entities: this.applicationConfig.entities },
     });
-
-    const polygonPartsDBEntityNameSchema = z.object({
-      entityName: z
-        .string()
-        .transform((val) =>
-          val.replaceAll(
-            new RegExp(
-              `(^${this.applicationConfig.entities.polygonParts.namePrefix})|(${this.applicationConfig.entities.polygonParts.nameSuffix}$)`,
-              'g'
-            ),
-            ''
-          )
-        )
-        .pipe(polygonPartsEntityPatternSchema)
-        .transform((val) => this.getEntitiesMetadata({ polygonPartsEntityName: val }).entitiesNames.polygonParts.entityName),
-      databaseObjectQualifiedName: z
-        .string()
-        .transform((val) =>
-          val.replaceAll(
-            new RegExp(
-              `(^${this.schema}.${this.applicationConfig.entities.polygonParts.namePrefix})|(${this.applicationConfig.entities.polygonParts.nameSuffix}$)`,
-              'g'
-            ),
-            ''
-          )
-        )
-        .pipe(polygonPartsEntityPatternSchema)
-        .transform((val) => this.getEntitiesMetadata({ polygonPartsEntityName: val }).entitiesNames.polygonParts.databaseObjectQualifiedName),
-    });
-
-    const entitiesMetadataSchema = z
-      .object({
-        entityIdentifier: polygonPartsEntityPatternSchema,
-        entitiesNames: z
-          .object({
-            parts: partsDBEntityNameSchema,
-            polygonParts: polygonPartsDBEntityNameSchema,
-          })
-          .strict(),
-      })
-      .strict();
-
     this.entitiesMetadataParser = (entitiesMetadata: unknown): EntitiesMetadata => {
       return entitiesMetadataSchema.parse(entitiesMetadata);
     };

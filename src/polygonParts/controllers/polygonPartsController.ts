@@ -1,7 +1,30 @@
+import type { RequestHandler } from 'express';
 import httpStatus from 'http-status-codes';
 import { inject, injectable } from 'tsyringe';
+import type { EntitiesMetadata, IsSwapQueryParams, PolygonPartsPayload, PolygonPartsResponse } from '../models/interfaces';
 import { PolygonPartsManager } from '../models/polygonPartsManager';
-import type { CreatePolygonPartsHandler, FindPolygonPartsHandler, UpdatePolygonPartsHandler } from './interfaces';
+import type { FindPolygonPartsParams, FindPolygonPartsQueryParams, FindPolygonPartsRequestBody, FindPolygonPartsResponseBody } from './interfaces';
+
+/**
+ * Create polygon parts handler
+ */
+export type CreatePolygonPartsHandler = RequestHandler<undefined, PolygonPartsResponse, PolygonPartsPayload, undefined, EntitiesMetadata>;
+
+/**
+ * Find polygon parts handler
+ */
+export type FindPolygonPartsHandler = RequestHandler<
+  FindPolygonPartsParams,
+  FindPolygonPartsResponseBody,
+  FindPolygonPartsRequestBody,
+  FindPolygonPartsQueryParams,
+  EntitiesMetadata
+>;
+
+/**
+ * Update polygon parts handler
+ */
+export type UpdatePolygonPartsHandler = RequestHandler<undefined, PolygonPartsResponse, PolygonPartsPayload, IsSwapQueryParams, EntitiesMetadata>;
 
 @injectable()
 export class PolygonPartsController {

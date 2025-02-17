@@ -1,44 +1,31 @@
 import { BadRequestError } from '@map-colonies/error-types';
-import {
-  multiPolygonSchema,
-  partSchema,
-  polygonPartsEntityNameSchema,
-  polygonSchema,
-  rasterProductTypeSchema,
-  resourceIdSchema,
-} from '@map-colonies/raster-shared';
+import { polygonPartsEntityNameSchema } from '@map-colonies/raster-shared';
+import type { RequestHandler } from 'express';
 import { singleton } from 'tsyringe';
-import { ZodError, ZodType, z } from 'zod';
-import type {
-  CreatePolygonPartsValidationHandler,
-  FindPolygonPartsQueryParams,
-  FindPolygonPartsRequestBody,
-  FindPolygonPartsValidationHandler,
-  UpdatePolygonPartsValidationHandler,
-} from '../../polygonParts/controllers/interfaces';
-import type { IsSwapQueryParams, PolygonPartsPayload } from '../../polygonParts/models/interfaces';
+import { ZodError } from 'zod';
+import type { FindPolygonPartsParams, FindPolygonPartsResponseBody } from '../../polygonParts/controllers/interfaces';
+import type { PolygonPartsResponse } from '../models/interfaces';
+import {
+  findPolygonPartsQueryParamsSchema,
+  findPolygonPartsRequestBodySchema,
+  polygonPartsRequestBodySchema,
+  updatePolygonPartsQueryParamsSchema,
+} from '../schemas';
 
-const findPolygonPartsQueryParamsSchema: ZodType<FindPolygonPartsQueryParams> = z.object({
-  shouldClip: z.boolean(),
-});
+/**
+ * Create polygon parts validation handler
+ */
+type CreatePolygonPartsValidationHandler = RequestHandler<undefined, PolygonPartsResponse, unknown, undefined>;
 
-const findPolygonPartsRequestBodySchema: ZodType<FindPolygonPartsRequestBody> = z
-  .object({
-    footprint: polygonSchema.or(multiPolygonSchema),
-  })
-  .partial();
+/**
+ * Find polygon parts validation handler
+ */
+type FindPolygonPartsValidationHandler = RequestHandler<FindPolygonPartsParams, FindPolygonPartsResponseBody, unknown, unknown>;
 
-const polygonPartsRequestBodySchema: ZodType<PolygonPartsPayload> = z.object({
-  productType: rasterProductTypeSchema,
-  productId: resourceIdSchema,
-  catalogId: z.string().uuid(),
-  productVersion: z.string(), // TODO: import from raster-shared
-  partsData: partSchema.array(),
-});
-
-const updatePolygonPartsQueryParamsSchema: ZodType<IsSwapQueryParams> = z.object({
-  isSwap: z.boolean(),
-});
+/**
+ * Update polygon parts validation handler
+ */
+type UpdatePolygonPartsValidationHandler = RequestHandler<undefined, PolygonPartsResponse, unknown, unknown>;
 
 @singleton()
 export class ValidationsController {
@@ -99,12 +86,27 @@ export class ValidationsController {
       }
 
       try {
-        findPolygonPartsRequestBodySchema.parse(req.body);
+        findPolygonPartsRequestBodySchema.parse(req.body, {
+          errorMap: (issue, ctx) => {
+            return { message: `${issue.message ?? ''}` };
+          },
+        });
       } catch (error) {
         if (error instanceof ZodError) {
           throw new BadRequestError(`Invalid request body: ${error.message}`);
         }
       }
+      // try {
+      //   findPolygonPartsRequestBodySchema.parse(req.body, {
+      //     errorMap: (issue, ctx) => {
+      //       return { message: 'blat' };
+      //     },
+      //   });
+      // } catch (error) {
+      //   if (error instanceof ZodError) {
+      //     throw new BadRequestError(`Invalid request body: ${error.message}`);
+      //   }
+      // }
       next();
     } catch (error) {
       next(error);

@@ -1,3 +1,7 @@
+export type DeepMapValues<T extends object, V> = {
+  [K in keyof T]: T[K] extends object ? DeepMapValues<T[K], V> : V;
+};
+
 export type MapValues<T, V> = {
   [K in keyof T]: V;
 };

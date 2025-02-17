@@ -1,6 +1,6 @@
 import { inject, singleton } from 'tsyringe';
 import { Transformer } from '../../common/middlewares/transformer';
-import type { CreatePolygonPartsHandler, FindPolygonPartsHandler, UpdatePolygonPartsHandler } from './interfaces';
+import type { CreatePolygonPartsHandler, FindPolygonPartsHandler, UpdatePolygonPartsHandler } from './polygonPartsController';
 
 @singleton()
 export class TransformerController {
@@ -16,9 +16,9 @@ export class TransformerController {
     }
   };
 
-  public readonly parseUpdatePolygonParts: UpdatePolygonPartsHandler = (req, res, next) => {
+  public readonly parseFindPolygonParts: FindPolygonPartsHandler = (req, res, next) => {
     try {
-      const entitiesMetadata = this.transformer.parseEntitiesMetadata(req.body);
+      const entitiesMetadata = this.transformer.parseEntitiesMetadata(req.params);
       res.locals = entitiesMetadata;
       next();
     } catch (error) {
@@ -26,9 +26,9 @@ export class TransformerController {
     }
   };
 
-  public readonly parseFindPolygonParts: FindPolygonPartsHandler = (req, res, next) => {
+  public readonly parseUpdatePolygonParts: UpdatePolygonPartsHandler = (req, res, next) => {
     try {
-      const entitiesMetadata = this.transformer.parseEntitiesMetadata(req.params);
+      const entitiesMetadata = this.transformer.parseEntitiesMetadata(req.body);
       res.locals = entitiesMetadata;
       next();
     } catch (error) {

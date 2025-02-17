@@ -27,9 +27,8 @@ export class AggregationManager {
     this.simplifyGeometry = this.config.get<ApplicationConfig['aggregation']['simplifyGeometry']>('application.aggregation.simplifyGeometry');
   }
 
-  public async getAggregationLayerMetadata({
-    polygonPartsEntityName,
-  }: GetAggregationLayerMetadataOptions): Promise<GetAggregationLayerMetadataResponse> {
+  public async getAggregationLayerMetadata(options: GetAggregationLayerMetadataOptions): Promise<GetAggregationLayerMetadataResponse> {
+    const { polygonPartsEntityName } = options;
     const logger = this.logger.child({ polygonPartsEntityName });
     logger.info({ msg: 'Metadata aggregation request' });
 
@@ -39,7 +38,7 @@ export class AggregationManager {
         if (!exists) {
           throw new NotFoundError(`Table with the name '${polygonPartsEntityName.entityName}' doesn't exists`);
         }
-        const aggregationLayerMetadataQuery = this.buildAggregationLayerMetadataQuery(entityManager, polygonPartsEntityName);
+        const aggregationLayerMetadataQuery = this.buildAggregationLayerMetadataQuery({ entityManager, options });
 
         try {
           const aggregationResult = await aggregationLayerMetadataQuery.getRawOne<AggregationLayerMetadata>();
@@ -60,10 +59,14 @@ export class AggregationManager {
     }
   }
 
-  private buildAggregationLayerMetadataQuery(
-    entityManager: EntityManager,
-    polygonPartsEntityName: GetAggregationLayerMetadataOptions['polygonPartsEntityName']
-  ): SelectQueryBuilder<AggregationLayerMetadata> {
+  private buildAggregationLayerMetadataQuery(context: {
+    entityManager: EntityManager;
+    options: GetAggregationLayerMetadataOptions;
+  }): SelectQueryBuilder<AggregationLayerMetadata> {
+    const {
+      entityManager,
+      options: { polygonPartsEntityName },
+    } = context;
     const polygonPart = entityManager.getRepository(PolygonPart);
     polygonPart.metadata.tablePath = polygonPartsEntityName.databaseObjectQualifiedName; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
 

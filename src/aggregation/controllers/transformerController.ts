@@ -1,6 +1,6 @@
 import { inject, singleton } from 'tsyringe';
 import { Transformer } from '../../common/middlewares/transformer';
-import type { GetAggregationLayerMetadataHandler } from './interfaces';
+import type { GetAggregationLayerMetadataHandler } from './aggregationController';
 
 @singleton()
 export class TransformerController {

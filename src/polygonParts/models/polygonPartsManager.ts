@@ -174,12 +174,10 @@ export class PolygonPartsManager {
     );
   }
 
-  private buildFindPolygonPartsQuery({
-    shouldClip,
-    polygonPartsEntityName,
-    footprint,
-    entityManager,
-  }: FindPolygonPartsOptions & { entityManager: EntityManager }): SelectQueryBuilder<FindPolygonPartsResponseItem> {
+  private buildFindPolygonPartsQuery(
+    context: FindPolygonPartsOptions & { entityManager: EntityManager }
+  ): SelectQueryBuilder<FindPolygonPartsResponseItem> {
+    const { shouldClip, polygonPartsEntityName, footprint, entityManager } = context;
     const canClip = !!footprint && shouldClip;
     const geometryField: PickPropertiesOfType<PolygonPartRecord, Geometry> = 'footprint';
     const findPolygonPartsGeometryColumn = canClip

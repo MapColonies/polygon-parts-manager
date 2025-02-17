@@ -1,7 +1,14 @@
+import type { RequestHandler } from 'express';
 import httpStatus from 'http-status-codes';
 import { inject, injectable } from 'tsyringe';
+import type { EntitiesMetadata } from '../../polygonParts/models/interfaces';
 import { AggregationManager } from '../models/aggregationManager';
-import type { GetAggregationLayerMetadataHandler } from './interfaces';
+import type { GetAggregationLayerMetadataParams, GetAggregationLayerMetadataResponseBody } from './interfaces';
+
+/**
+ * Get aggregation layer metadata handler
+ */
+export type GetAggregationLayerMetadataHandler = RequestHandler<GetAggregationLayerMetadataParams, GetAggregationLayerMetadataResponseBody, undefined, undefined, EntitiesMetadata>;
 
 @injectable()
 export class AggregationController {

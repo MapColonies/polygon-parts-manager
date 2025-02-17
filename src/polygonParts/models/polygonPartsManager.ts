@@ -297,8 +297,8 @@ export class PolygonPartsManager {
     }
   }
 
-  private async truncateEntities(updateContext: { entityManager: EntityManager; logger: Logger; entitiesMetadata: EntitiesMetadata }): Promise<void> {
-    const { entityManager, logger, entitiesMetadata } = updateContext;
+  private async truncateEntities(context: { entityManager: EntityManager; logger: Logger; entitiesMetadata: EntitiesMetadata }): Promise<void> {
+    const { entityManager, logger, entitiesMetadata } = context;
     const { entitiesNames } = entitiesMetadata;
     logger.debug({ msg: `Truncating entities` });
 

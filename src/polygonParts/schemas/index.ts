@@ -5,6 +5,7 @@ import {
   polygonSchema,
   rasterProductTypeSchema,
   resourceIdSchema,
+  versionSchema,
 } from '@map-colonies/raster-shared';
 import { ZodType, z, type ZodTypeDef } from 'zod';
 import type { ApplicationConfig, DbConfig } from '../../common/interfaces';
@@ -27,7 +28,7 @@ export const polygonPartsRequestBodySchema: ZodType<PolygonPartsPayload> = z.obj
   productType: rasterProductTypeSchema,
   productId: resourceIdSchema,
   catalogId: z.string().uuid(),
-  productVersion: z.string(),
+  productVersion: versionSchema,
   partsData: partSchema.array(),
 });
 

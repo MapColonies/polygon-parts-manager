@@ -298,8 +298,8 @@ components:
       properties:
         footprint:
           oneOf:
-            - $ref: ./Schema/geojson.yaml#/components/schemas/Polygon
-            - $ref: ./Schema/geojson.yaml#/components/schemas/MultiPolygon
+            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
+            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
     Id:
       type: string
       format: uuid
@@ -383,11 +383,23 @@ components:
       properties:
         footprint:
           oneOf:
-            - $ref: ./Schema/geojson.yaml#/components/schemas/Polygon
-            - $ref: ./Schema/geojson.yaml#/components/schemas/MultiPolygon
+            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
+            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
     PolygonPartsFindResponse:
-      type: object
       description: Find polygon parts response
+      allOf:
+        - $ref: './SchemaRaster/core/geojson.yaml#/components/schemas/FeatureCollection'
+        - type: object
+          properties:
+            features:
+              type: array
+              items:
+                type: object
+                properties:
+                  properties:
+                    $ref: '#/components/schemas/PolygonPartsFindFeatureProperties'
+    PolygonPartsFindFeatureProperties:
+      type: object
       additionalProperties: false
       required:
         - catalogId

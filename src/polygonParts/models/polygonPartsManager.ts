@@ -1,4 +1,4 @@
-import { BadRequestError, ConflictError, NotFoundError } from '@map-colonies/error-types';
+import { BadRequestError, ConflictError, InternalServerError, NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
 import type { Geometry } from 'geojson';
 import { inject, injectable } from 'tsyringe';
@@ -9,25 +9,31 @@ import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfac
 import type { PickPropertiesOfType } from '../../common/types';
 import { Part } from '../DAL/part';
 import { PolygonPart } from '../DAL/polygonPart';
-import { getMappedColumnName, payloadToInsertPartsData, polygonPartsDataToPayload } from '../DAL/utils';
-import { FIND_OUTPUT_FIELDS } from './constants';
+import { getMappedColumnName, payloadToInsertPartsData } from '../DAL/utils';
+import { FIND_OUTPUT_PROPERTIES } from './constants';
 import type {
   EntitiesMetadata,
   EntityName,
   EntityNames,
   FindPolygonPartsOptions,
   FindPolygonPartsResponse,
-  FindPolygonPartsResponseItem,
   PolygonPartRecord,
   PolygonPartsPayload,
   PolygonPartsResponse,
 } from './interfaces';
 
+interface FindPolygonPartsQueryResponse {
+  readonly geojson: FindPolygonPartsResponse;
+}
+
+export const findSelectOutputColumns = Object.entries(FIND_OUTPUT_PROPERTIES)
+  .filter(([, value]) => value)
+  .map(([key, value]) => `${typeof value === 'boolean' ? `"${getMappedColumnName(key)}"` : value(getMappedColumnName(key))} as "${key}"`);
+
 @injectable()
 export class PolygonPartsManager {
   private readonly applicationConfig: ApplicationConfig;
   private readonly schema: DbConfig['schema'];
-  private readonly findPolygonPartsColumns: string[];
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
@@ -36,10 +42,6 @@ export class PolygonPartsManager {
   ) {
     this.applicationConfig = this.config.get<ApplicationConfig>('application');
     this.schema = config.get<DbConfig['schema']>('db.schema');
-
-    this.findPolygonPartsColumns = Object.entries(FIND_OUTPUT_FIELDS)
-      .filter(([, value]) => value)
-      .map(([key]) => `${getMappedColumnName(key)} as "${key}"`);
   }
 
   public async createPolygonParts(polygonPartsPayload: PolygonPartsPayload, entitiesMetadata: EntitiesMetadata): Promise<PolygonPartsResponse> {
@@ -95,8 +97,8 @@ export class PolygonPartsManager {
         const findPolygonPartsQuery = this.buildFindPolygonPartsQuery({ shouldClip, entityManager, polygonPartsEntityName, footprint });
 
         try {
-          const polygonParts = await findPolygonPartsQuery.getRawMany<FindPolygonPartsResponseItem>();
-          return polygonPartsDataToPayload(polygonParts, this.applicationConfig.arraySeparator);
+          const polygonParts = await findPolygonPartsQuery.getRawOne<FindPolygonPartsQueryResponse>();
+          return polygonParts;
         } catch (error) {
           const errorMessage = `Could not complete find '${polygonPartsEntityName.entityName}'`;
           logger.error({ msg: errorMessage, error });
@@ -104,7 +106,11 @@ export class PolygonPartsManager {
         }
       });
 
-      return response;
+      if (!response) {
+        throw new InternalServerError('Could not generate response');
+      }
+
+      return response.geojson;
     } catch (error) {
       const errorMessage = 'Find polygon parts transaction failed';
       logger.error({ msg: errorMessage, error });
@@ -176,24 +182,48 @@ export class PolygonPartsManager {
 
   private buildFindPolygonPartsQuery(
     context: FindPolygonPartsOptions & { entityManager: EntityManager }
-  ): SelectQueryBuilder<FindPolygonPartsResponseItem> {
+  ): SelectQueryBuilder<FindPolygonPartsQueryResponse> {
     const { shouldClip, polygonPartsEntityName, footprint, entityManager } = context;
     const canClip = !!footprint && shouldClip;
-    const geometryField: PickPropertiesOfType<PolygonPartRecord, Geometry> = 'footprint';
-    const findPolygonPartsGeometryColumn = canClip
-      ? [`st_asgeojson((st_dump(st_intersection(${geometryField}, st_geomfromgeojson(:clipFootprint)))).geom, 15)::json as ${geometryField}`]
-      : [`st_asgeojson(${geometryField}, 15)::json as ${geometryField}`];
-    const findPolygonPartsColumns = [...this.findPolygonPartsColumns, ...findPolygonPartsGeometryColumn];
+    const geometryColumn = getMappedColumnName('footprint' satisfies PickPropertiesOfType<PolygonPartRecord, Geometry>);
 
     const polygonPart = entityManager.getRepository(PolygonPart);
     polygonPart.metadata.tablePath = polygonPartsEntityName.databaseObjectQualifiedName; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
 
-    const findQuery = polygonPart.createQueryBuilder('polygon_part').select(findPolygonPartsColumns);
-    return footprint
-      ? findQuery.where('st_intersects(footprint, st_geomfromgeojson(:clipFootprint))').setParameters({
-          clipFootprint: JSON.stringify(footprint),
-        })
-      : findQuery;
+    const clipCTE = polygonPart
+      .createQueryBuilder()
+      .select(
+        canClip
+          ? `st_asgeojson((st_dump(st_intersection(${geometryColumn}, st_geomfromgeojson(:clipFootprint)))).geom, 15)::jsonb`
+          : `st_asgeojson(${geometryColumn}, 15)::jsonb`,
+        geometryColumn
+      )
+      .addSelect(findSelectOutputColumns);
+
+    const findPolygonPartsQuery = entityManager
+      .createQueryBuilder()
+      .select(
+        `jsonb_build_object(
+          'type', 'FeatureCollection',
+          'features', jsonb_agg(
+            jsonb_build_object(
+              'type', 'Feature',
+              'geometry', "${geometryColumn}"::jsonb,
+              'properties', to_jsonb(clip) - '${geometryColumn}'
+            )
+          )
+        ) AS ${'geojson' satisfies keyof FindPolygonPartsQueryResponse}`
+      )
+      .addCommonTableExpression(
+        footprint
+          ? clipCTE.where(`st_intersects(${geometryColumn}, st_geomfromgeojson(:clipFootprint))`).setParameters({
+              clipFootprint: JSON.stringify(footprint),
+            })
+          : clipCTE,
+        'clip'
+      )
+      .from<FindPolygonPartsQueryResponse>('clip', 'clip');
+    return findPolygonPartsQuery;
   }
 
   private async calculatePolygonParts(context: { entitiesMetadata: EntitiesMetadata; entityManager: EntityManager; logger: Logger }): Promise<void> {

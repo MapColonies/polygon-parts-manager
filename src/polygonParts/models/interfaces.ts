@@ -33,7 +33,7 @@ export interface FindPolygonPartsOptions {
 export type FindPolygonPartsResponse = FeatureCollection<
   Polygon,
   NullableRecordValues<
-    Omit<CommonRecord, 'countries' | 'cities' | 'sensors'> & {
+    Omit<CommonRecord, 'countries' | 'cities' | 'footprint' | 'sensors'> & {
       readonly countries?: string[];
       readonly cities?: string[];
       readonly sensors: string[];

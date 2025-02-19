@@ -1,18 +1,14 @@
 import {
   multiPolygonSchema,
-  partSchema,
   polygonPartsEntityPatternSchema,
-  polygonSchema,
-  rasterProductTypeSchema,
-  resourceIdSchema,
-  versionSchema,
+  polygonSchema
 } from '@map-colonies/raster-shared';
 import { ZodType, z, type ZodTypeDef } from 'zod';
 import type { ApplicationConfig, DbConfig } from '../../common/interfaces';
 import { Transformer } from '../../common/middlewares/transformer';
 import type { DeepMapValues } from '../../common/types';
 import type { FindPolygonPartsQueryParams, FindPolygonPartsRequestBody } from '../controllers/interfaces';
-import type { EntitiesMetadata, EntityNames, IsSwapQueryParams, PolygonPartsPayload } from '../models/interfaces';
+import type { EntitiesMetadata, EntityNames, IsSwapQueryParams } from '../models/interfaces';
 
 export const findPolygonPartsQueryParamsSchema: ZodType<FindPolygonPartsQueryParams> = z.object({
   shouldClip: z.boolean(),
@@ -23,14 +19,6 @@ export const findPolygonPartsRequestBodySchema: ZodType<FindPolygonPartsRequestB
     footprint: polygonSchema.or(multiPolygonSchema),
   })
   .partial();
-
-export const polygonPartsRequestBodySchema: ZodType<PolygonPartsPayload> = z.object({
-  productType: rasterProductTypeSchema,
-  productId: resourceIdSchema,
-  catalogId: z.string().uuid(),
-  productVersion: versionSchema,
-  partsData: partSchema.array(),
-});
 
 export const updatePolygonPartsQueryParamsSchema: ZodType<IsSwapQueryParams> = z.object({
   isSwap: z.boolean(),

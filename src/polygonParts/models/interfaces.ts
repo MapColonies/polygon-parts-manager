@@ -1,5 +1,9 @@
-import type { PolygonPartsPayload as PolygonPartsPayloadType } from '@map-colonies/mc-model-types';
-import type { PolygonPart, PolygonPartsEntityName, PolygonPartsEntityNameObject, RasterProductTypes } from '@map-colonies/raster-shared';
+import type {
+  PolygonPart,
+  PolygonPartsEntityName,
+  PolygonPartsEntityNameObject,
+  PolygonPartsPayload as PolygonPartsPayloadType,
+} from '@map-colonies/raster-shared';
 import type { FeatureCollection, MultiPolygon, Polygon } from 'geojson';
 import type { NullableRecordValues } from '../../common/types';
 
@@ -40,9 +44,7 @@ export type FindPolygonPartsResponse = FeatureCollection<
 /**
  * Polygon parts ingestion payload
  */
-export interface PolygonPartsPayload extends Omit<PolygonPartsPayloadType, 'productType'> {
-  readonly productType: RasterProductTypes;
-}
+export interface PolygonPartsPayload extends PolygonPartsPayloadType {}
 
 /**
  * Polygon parts response

@@ -1,8 +1,4 @@
-import {
-  multiPolygonSchema,
-  polygonPartsEntityPatternSchema,
-  polygonSchema
-} from '@map-colonies/raster-shared';
+import { multiPolygonSchema, polygonPartsEntityPatternSchema, polygonSchema } from '@map-colonies/raster-shared';
 import { ZodType, z, type ZodTypeDef } from 'zod';
 import type { ApplicationConfig, DbConfig } from '../../common/interfaces';
 import { Transformer } from '../../common/middlewares/transformer';

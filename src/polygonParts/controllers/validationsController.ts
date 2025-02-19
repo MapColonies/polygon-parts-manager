@@ -5,12 +5,7 @@ import { singleton } from 'tsyringe';
 import { ZodError } from 'zod';
 import type { FindPolygonPartsParams, FindPolygonPartsResponseBody } from '../../polygonParts/controllers/interfaces';
 import type { PolygonPartsResponse } from '../models/interfaces';
-import {
-  findPolygonPartsQueryParamsSchema,
-  findPolygonPartsRequestBodySchema,
-  schemaParser,
-  updatePolygonPartsQueryParamsSchema
-} from '../schemas';
+import { findPolygonPartsQueryParamsSchema, findPolygonPartsRequestBodySchema, schemaParser, updatePolygonPartsQueryParamsSchema } from '../schemas';
 
 /**
  * Create polygon parts validation handler

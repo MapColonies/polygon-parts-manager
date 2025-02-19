@@ -1,8 +1,4 @@
-import type {
-  EntityIdentifier,
-  FindPolygonPartsOptions,
-  FindPolygonPartsResponse
-} from '../models/interfaces';
+import type { EntityIdentifier, FindPolygonPartsOptions, FindPolygonPartsResponse } from '../models/interfaces';
 
 /**
  * Find polygon parts params

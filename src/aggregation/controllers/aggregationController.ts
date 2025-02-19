@@ -8,7 +8,13 @@ import type { GetAggregationLayerMetadataParams, GetAggregationLayerMetadataResp
 /**
  * Get aggregation layer metadata handler
  */
-export type GetAggregationLayerMetadataHandler = RequestHandler<GetAggregationLayerMetadataParams, GetAggregationLayerMetadataResponseBody, undefined, undefined, EntitiesMetadata>;
+export type GetAggregationLayerMetadataHandler = RequestHandler<
+  GetAggregationLayerMetadataParams,
+  GetAggregationLayerMetadataResponseBody,
+  undefined,
+  undefined,
+  EntitiesMetadata
+>;
 
 @injectable()
 export class AggregationController {

@@ -405,7 +405,6 @@ components:
         - cities
         - countries
         - description
-        - footprint
         - horizontalAccuracyCE90
         - id
         - imagingTimeBeginUTC
@@ -425,7 +424,6 @@ components:
         - $ref: '#/components/schemas/CitiesObject'
         - $ref: '#/components/schemas/CountriesObject'
         - $ref: '#/components/schemas/DescriptionObject'
-        - $ref: '#/components/schemas/FootprintObject'
         - $ref: '#/components/schemas/HorizontalAccuracyCE90Object'
         - $ref: '#/components/schemas/IdObject'
         - $ref: '#/components/schemas/ImagingTimeBeginUTCObject'

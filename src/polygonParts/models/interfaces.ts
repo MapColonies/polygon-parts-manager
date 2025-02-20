@@ -5,7 +5,7 @@ import type {
   PolygonPartsPayload as PolygonPartsPayloadType,
 } from '@map-colonies/raster-shared';
 import type { FeatureCollection, MultiPolygon, Polygon } from 'geojson';
-import type { NullableRecordValues } from '../../common/types';
+import type { NullableRecordValues, ReplaceValuesOfType } from '../../common/types';
 
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
 
@@ -32,12 +32,16 @@ export interface FindPolygonPartsOptions {
  */
 export type FindPolygonPartsResponse = FeatureCollection<
   Polygon,
-  NullableRecordValues<
-    Omit<CommonRecord, 'countries' | 'cities' | 'footprint' | 'sensors'> & {
-      readonly countries?: string[];
-      readonly cities?: string[];
-      readonly sensors: string[];
-    }
+  ReplaceValuesOfType<
+    NullableRecordValues<
+      Omit<CommonRecord, 'countries' | 'cities' | 'footprint' | 'sensors'> & {
+        readonly countries?: string[];
+        readonly cities?: string[];
+        readonly sensors: string[];
+      }
+    >,
+    Date,
+    string
   >
 >;
 

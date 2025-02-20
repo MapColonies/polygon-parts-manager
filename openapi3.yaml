@@ -370,7 +370,6 @@ components:
     PolygonPartsEntityResponse:
       type: object
       description: Polygon parts entity response
-      additionalProperties: false
       required:
         - polygonPartsEntityName
       properties:

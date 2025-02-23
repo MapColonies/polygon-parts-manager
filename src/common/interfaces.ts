@@ -11,6 +11,9 @@ export interface ApplicationConfig {
       nameSuffix: Lowercase<string>;
     };
     polygonParts: {
+      find: {
+        maxDecimalDigits: number;
+      };
       namePrefix: Lowercase<string>;
       nameSuffix: Lowercase<string>;
       minAreaSquareDeg: number;

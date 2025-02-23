@@ -1,6 +1,6 @@
 import { BadRequestError } from '@map-colonies/error-types';
 import { inject, singleton } from 'tsyringe';
-import { ZodError } from 'zod';
+import { ZodError, ZodType, type ZodTypeDef } from 'zod';
 import type {
   EntitiesMetadata,
   EntityIdentifier,
@@ -8,28 +8,25 @@ import type {
   EntityNames,
   PolygonPartsPayload,
 } from '../../polygonParts/models/interfaces';
-import { getEntitiesMetadataSchemaFactory } from '../../polygonParts/schemas';
+import { getEntitiesMetadataSchemaFactory, schemaParser } from '../../polygonParts/schemas';
 import { SERVICES } from '../constants';
 import type { ApplicationConfig, DbConfig, IConfig } from '../interfaces';
+import type { DeepMapValues } from '../types';
 
 @singleton()
 export class Transformer {
-  public readonly entitiesMetadataParser: (entitiesMetadata: unknown) => EntitiesMetadata;
   private readonly applicationConfig: ApplicationConfig;
   private readonly schema: DbConfig['schema'];
+  private readonly entitiesMetadataSchema: ZodType<EntitiesMetadata, ZodTypeDef, DeepMapValues<EntitiesMetadata, string>>;
 
   public constructor(@inject(SERVICES.CONFIG) private readonly config: IConfig) {
     this.applicationConfig = this.config.get<ApplicationConfig>('application');
     this.schema = this.config.get<DbConfig['schema']>('db.schema');
-
-    const entitiesMetadataSchema = getEntitiesMetadataSchemaFactory({
+    this.entitiesMetadataSchema = getEntitiesMetadataSchemaFactory({
       getEntitiesMetadata: this.getEntitiesMetadata,
       ...{ schema: this.schema },
       ...{ entities: this.applicationConfig.entities },
     });
-    this.entitiesMetadataParser = (entitiesMetadata: unknown): EntitiesMetadata => {
-      return entitiesMetadataSchema.parse(entitiesMetadata);
-    };
   }
 
   public readonly getDatabaseObjectQualifiedName = (
@@ -70,7 +67,7 @@ export class Transformer {
   public readonly parseEntitiesMetadata = (input: EntityIdentifierObject | PolygonPartsPayload): EntitiesMetadata => {
     try {
       const entitiesMetadata = this.getEntitiesMetadata(input);
-      return this.entitiesMetadataParser(entitiesMetadata);
+      return schemaParser({ schema: this.entitiesMetadataSchema, value: entitiesMetadata });
     } catch (error) {
       if (error instanceof ZodError) {
         throw new BadRequestError(`Invalid request parameter resource identifier: ${error.message}`);

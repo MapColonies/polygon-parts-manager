@@ -7,6 +7,7 @@ import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import type { ApplicationConfig, IConfig } from '../../common/interfaces';
 import { PolygonPart } from '../../polygonParts/DAL/polygonPart';
+import { schemaParser } from '../../polygonParts/schemas';
 import type { GetAggregationLayerMetadataOptions, GetAggregationLayerMetadataResponse } from './interfaces';
 
 @injectable()
@@ -42,7 +43,7 @@ export class AggregationManager {
 
         try {
           const aggregationResult = await aggregationLayerMetadataQuery.getRawOne<AggregationLayerMetadata>();
-          const aggregationMetadataLayer = aggregationMetadataSchema.parse(aggregationResult);
+          const aggregationMetadataLayer = schemaParser({ schema: aggregationMetadataSchema, value: aggregationResult });
           return aggregationMetadataLayer;
         } catch (error) {
           const errorMessage = `Could not aggregate polygon parts`;

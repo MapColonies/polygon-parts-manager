@@ -81,11 +81,15 @@ export const getEntitiesMetadataSchemaFactory = ({
     .strict();
 };
 
-export const schemaParser = <T>(options: { schema: ZodType<T, ZodTypeDef, T>; value: unknown; errorMessagePrefix: string }): T => {
+export const schemaParser = <Ouput, Def extends ZodTypeDef = ZodTypeDef, Input = Ouput>(options: {
+  schema: ZodType<Ouput, Def, Input>;
+  value: unknown;
+  errorMessagePrefix?: string;
+}): Ouput => {
   const { schema, value, errorMessagePrefix } = options;
   return schema.parse(value, {
     errorMap: (issue, ctx) => {
-      return { message: `${errorMessagePrefix}: ${issue.message ?? ctx.defaultError}` };
+      return { message: `${errorMessagePrefix !== undefined ? `${errorMessagePrefix}: ` : ''}${issue.message ?? ctx.defaultError}` };
     },
   });
 };

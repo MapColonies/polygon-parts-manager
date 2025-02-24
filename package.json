@@ -1,6 +1,6 @@
 {
   "name": "polygon-parts-manager",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "service responsible for polygon parts managment",
   "main": "./src/index.ts",
   "scripts": {

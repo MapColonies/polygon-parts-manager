@@ -2,8 +2,8 @@ import { BadRequestError } from '@map-colonies/error-types';
 import { polygonPartsEntityNameSchema } from '@map-colonies/raster-shared';
 import type { RequestHandler } from 'express';
 import { singleton } from 'tsyringe';
-import { ZodError } from 'zod';
 import type { GetAggregationLayerMetadataParams, GetAggregationLayerMetadataResponseBody } from '../../aggregation/controllers/interfaces';
+import { ValidationError } from '../../common/errors';
 import { schemaParser } from '../../polygonParts/schemas';
 
 /**
@@ -22,7 +22,7 @@ export class ValidationsController {
     try {
       schemaParser({ schema: polygonPartsEntityNameSchema, value: req.params, errorMessagePrefix: 'Invalid request params' });
     } catch (error) {
-      if (error instanceof ZodError) {
+      if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }
       next(error);

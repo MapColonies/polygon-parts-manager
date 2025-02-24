@@ -1,10 +1,11 @@
-import { NotFoundError } from '@map-colonies/error-types';
+import { InternalServerError, NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
 import { aggregationMetadataSchema, type AggregationLayerMetadata } from '@map-colonies/raster-shared';
 import { inject, injectable } from 'tsyringe';
 import { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
+import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, IConfig } from '../../common/interfaces';
 import { PolygonPart } from '../../polygonParts/DAL/polygonPart';
 import { schemaParser } from '../../polygonParts/schemas';
@@ -46,7 +47,12 @@ export class AggregationManager {
           const aggregationMetadataLayer = schemaParser({ schema: aggregationMetadataSchema, value: aggregationResult });
           return aggregationMetadataLayer;
         } catch (error) {
-          const errorMessage = `Could not aggregate polygon parts`;
+          if (error instanceof ValidationError) {
+            const errorMessage = 'Invalid aggregation metadata response';
+            logger.error({ msg: errorMessage, error });
+            throw new InternalServerError(errorMessage);
+          }
+          const errorMessage = 'Could not aggregate polygon parts';
           logger.error({ msg: errorMessage, error });
           throw error;
         }

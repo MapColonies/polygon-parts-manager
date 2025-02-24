@@ -1,5 +1,6 @@
 import { multiPolygonSchema, polygonPartsEntityPatternSchema, polygonSchema } from '@map-colonies/raster-shared';
 import { ZodType, z, type ZodTypeDef } from 'zod';
+import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig } from '../../common/interfaces';
 import { Transformer } from '../../common/middlewares/transformer';
 import type { DeepMapValues } from '../../common/types';
@@ -87,9 +88,12 @@ export const schemaParser = <Ouput, Def extends ZodTypeDef = ZodTypeDef, Input =
   errorMessagePrefix?: string;
 }): Ouput => {
   const { schema, value, errorMessagePrefix } = options;
-  return schema.parse(value, {
-    errorMap: (issue, ctx) => {
-      return { message: `${errorMessagePrefix !== undefined ? `${errorMessagePrefix}: ` : ''}${issue.message ?? ctx.defaultError}` };
-    },
-  });
+  try {
+    return schema.parse(value);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new ValidationError({ issues: error.issues, errorMessagePrefix });
+    }
+    throw error;
+  }
 };

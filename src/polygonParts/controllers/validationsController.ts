@@ -2,10 +2,10 @@ import { BadRequestError } from '@map-colonies/error-types';
 import { polygonPartsEntityNameSchema, polygonPartsPayloadSchema } from '@map-colonies/raster-shared';
 import type { RequestHandler } from 'express';
 import { singleton } from 'tsyringe';
-import { ZodError } from 'zod';
 import type { FindPolygonPartsParams, FindPolygonPartsResponseBody } from '../../polygonParts/controllers/interfaces';
 import type { PolygonPartsResponse } from '../models/interfaces';
 import { findPolygonPartsQueryParamsSchema, findPolygonPartsRequestBodySchema, schemaParser, updatePolygonPartsQueryParamsSchema } from '../schemas';
+import { ValidationError } from '../../common/errors';
 
 /**
  * Create polygon parts validation handler
@@ -28,7 +28,7 @@ export class ValidationsController {
     try {
       schemaParser({ schema: polygonPartsPayloadSchema, value: req.body, errorMessagePrefix: 'Invalid request body' });
     } catch (error) {
-      if (error instanceof ZodError) {
+      if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }
       next(error);
@@ -41,7 +41,7 @@ export class ValidationsController {
       schemaParser({ schema: polygonPartsPayloadSchema, value: req.body, errorMessagePrefix: 'Invalid request body' });
       schemaParser({ schema: updatePolygonPartsQueryParamsSchema, value: req.query, errorMessagePrefix: 'Invalid query params' });
     } catch (error) {
-      if (error instanceof ZodError) {
+      if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }
       next(error);
@@ -55,7 +55,7 @@ export class ValidationsController {
       schemaParser({ schema: findPolygonPartsQueryParamsSchema, value: req.query, errorMessagePrefix: 'Invalid query params' });
       schemaParser({ schema: findPolygonPartsRequestBodySchema, value: req.body, errorMessagePrefix: 'Invalid request body' });
     } catch (error) {
-      if (error instanceof ZodError) {
+      if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }
       next(error);

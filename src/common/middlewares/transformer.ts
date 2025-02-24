@@ -1,6 +1,6 @@
 import { BadRequestError } from '@map-colonies/error-types';
 import { inject, singleton } from 'tsyringe';
-import { ZodError, ZodType, type ZodTypeDef } from 'zod';
+import { ZodType, type ZodTypeDef } from 'zod';
 import type {
   EntitiesMetadata,
   EntityIdentifier,
@@ -12,6 +12,7 @@ import { getEntitiesMetadataSchemaFactory, schemaParser } from '../../polygonPar
 import { SERVICES } from '../constants';
 import type { ApplicationConfig, DbConfig, IConfig } from '../interfaces';
 import type { DeepMapValues } from '../types';
+import { ValidationError } from '../errors';
 
 @singleton()
 export class Transformer {
@@ -67,10 +68,14 @@ export class Transformer {
   public readonly parseEntitiesMetadata = (input: EntityIdentifierObject | PolygonPartsPayload): EntitiesMetadata => {
     try {
       const entitiesMetadata = this.getEntitiesMetadata(input);
-      return schemaParser({ schema: this.entitiesMetadataSchema, value: entitiesMetadata });
+      return schemaParser({
+        schema: this.entitiesMetadataSchema,
+        value: entitiesMetadata,
+        errorMessagePrefix: 'Invalid request parameter resource identifier',
+      });
     } catch (error) {
-      if (error instanceof ZodError) {
-        throw new BadRequestError(`Invalid request parameter resource identifier: ${error.message}`);
+      if (error instanceof ValidationError) {
+        throw new BadRequestError(error.message);
       }
       throw error;
     }

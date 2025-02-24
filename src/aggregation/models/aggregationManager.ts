@@ -1,4 +1,4 @@
-import { InternalServerError, NotFoundError } from '@map-colonies/error-types';
+import { NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
 import { aggregationMetadataSchema, type AggregationLayerMetadata } from '@map-colonies/raster-shared';
 import { inject, injectable } from 'tsyringe';
@@ -50,10 +50,10 @@ export class AggregationManager {
           if (error instanceof ValidationError) {
             const errorMessage = 'Invalid aggregation metadata response';
             logger.error({ msg: errorMessage, error });
-            throw new InternalServerError(errorMessage);
+          } else {
+            const errorMessage = 'Could not aggregate polygon parts';
+            logger.error({ msg: errorMessage, error });
           }
-          const errorMessage = 'Could not aggregate polygon parts';
-          logger.error({ msg: errorMessage, error });
           throw error;
         }
       });

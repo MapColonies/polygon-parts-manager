@@ -205,13 +205,13 @@ export class PolygonPartsManager {
       .select(
         `jsonb_build_object(
           'type', 'FeatureCollection',
-          'features', jsonb_agg(
+          'features', coalesce(jsonb_agg(
             jsonb_build_object(
               'type', 'Feature',
               'geometry', "${geometryColumn}"::jsonb,
               'properties', to_jsonb(clip) - '${geometryColumn}'
             )
-          )
+          ), '[]')
         ) AS ${'geojson' satisfies keyof FindPolygonPartsQueryResponse}`
       )
       .addCommonTableExpression(

@@ -216,7 +216,7 @@ export class PolygonPartsManager {
       )
       .addCommonTableExpression(
         footprint
-          ? clipCTE.where(`st_intersects(${geometryColumn}, st_geomfromgeojson(:clipFootprint))`).setParameters({
+          ? clipCTE.where(`st_relate(${geometryColumn}, st_geomfromgeojson(:clipFootprint), 'T********')`).andWhere(`st_geomfromgeojson(:clipFootprint) && ${geometryColumn}`).setParameters({
               clipFootprint: JSON.stringify(footprint),
             })
           : clipCTE,

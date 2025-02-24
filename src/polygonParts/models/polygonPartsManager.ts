@@ -192,12 +192,7 @@ export class PolygonPartsManager {
 
     const clipCTE = polygonPart
       .createQueryBuilder()
-      .select(
-        canClip
-          ? `st_asgeojson((st_dump(st_intersection(${geometryColumn}, st_geomfromgeojson(:clipFootprint)))).geom, 15)::jsonb`
-          : `st_asgeojson(${geometryColumn}, 15)::jsonb`,
-        geometryColumn
-      )
+      .select(canClip ? `(st_dump(st_intersection(${geometryColumn}, st_geomfromgeojson(:clipFootprint)))).geom` : geometryColumn, geometryColumn)
       .addSelect(findSelectOutputColumns);
 
     const findPolygonPartsQuery = entityManager
@@ -208,7 +203,7 @@ export class PolygonPartsManager {
           'features', coalesce(jsonb_agg(
             jsonb_build_object(
               'type', 'Feature',
-              'geometry', "${geometryColumn}"::jsonb,
+              'geometry', st_asgeojson(${geometryColumn}, 15)::jsonb,
               'properties', to_jsonb(clip) - '${geometryColumn}'
             )
           ), '[]')
@@ -216,13 +211,14 @@ export class PolygonPartsManager {
       )
       .addCommonTableExpression(
         footprint
-          ? clipCTE.where(`st_relate(${geometryColumn}, st_geomfromgeojson(:clipFootprint), 'T********')`).andWhere(`st_geomfromgeojson(:clipFootprint) && ${geometryColumn}`).setParameters({
-              clipFootprint: JSON.stringify(footprint),
-            })
+          ? clipCTE
+              .where(`st_relate(${geometryColumn}, st_geomfromgeojson(:clipFootprint), 'T********')`)
+              .andWhere(`st_geomfromgeojson(:clipFootprint) && ${geometryColumn}`, { clipFootprint: JSON.stringify(footprint) })
           : clipCTE,
         'clip'
       )
-      .from<FindPolygonPartsQueryResponse>('clip', 'clip');
+      .from<FindPolygonPartsQueryResponse>('clip', 'clip')
+      .where(`st_geometrytype(${geometryColumn}) = :geometryType`, { geometryType: 'ST_Polygon' });
     return findPolygonPartsQuery;
   }
 

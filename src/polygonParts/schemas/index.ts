@@ -1,4 +1,4 @@
-import { multiPolygonSchema, polygonPartsEntityPatternSchema, polygonSchema } from '@map-colonies/raster-shared';
+import { INGESTION_VALIDATIONS, multiPolygonSchema, polygonPartsEntityPatternSchema, polygonSchema } from '@map-colonies/raster-shared';
 import { ZodType, z, type ZodTypeDef } from 'zod';
 import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig } from '../../common/interfaces';
@@ -6,6 +6,8 @@ import { Transformer } from '../../common/middlewares/transformer';
 import type { DeepMapValues } from '../../common/types';
 import type { FindPolygonPartsQueryParams, FindPolygonPartsRequestBody } from '../controllers/interfaces';
 import type { EntitiesMetadata, EntityNames, IsSwapQueryParams } from '../models/interfaces';
+
+const polygonPartsEntityNamePatternSchema = z.string().regex(new RegExp(INGESTION_VALIDATIONS.polygonPartsEntityName.pattern));
 
 export const findPolygonPartsQueryParamsSchema: ZodType<FindPolygonPartsQueryParams> = z.object({
   shouldClip: z.boolean(),
@@ -33,14 +35,15 @@ export const getDBEntityNameSchemaFactory = <T extends keyof ApplicationConfig['
   DeepMapValues<EntityNames, string>
 > => {
   return z.object({
-    entityName: z
-      .string()
+    entityName: polygonPartsEntityNamePatternSchema
       .transform((val) => val.replaceAll(new RegExp(`(^${namePrefix})|(${nameSuffix}$)`, 'g'), ''))
       .pipe(polygonPartsEntityPatternSchema)
       .transform((val) => getEntitiesMetadata({ polygonPartsEntityName: val }).entitiesNames[entity].entityName),
     databaseObjectQualifiedName: z
       .string()
-      .transform((val) => val.replaceAll(new RegExp(`(^${schema}.${namePrefix})|(${nameSuffix}$)`, 'g'), ''))
+      .transform((val) => val.replaceAll(new RegExp(`(^${schema}\\.)`, 'g'), ''))
+      .pipe(polygonPartsEntityNamePatternSchema)
+      .transform((val) => val.replaceAll(new RegExp(`(^${namePrefix})|(${nameSuffix}$)`, 'g'), ''))
       .pipe(polygonPartsEntityPatternSchema)
       .transform((val) => getEntitiesMetadata({ polygonPartsEntityName: val }).entitiesNames[entity].databaseObjectQualifiedName),
   });

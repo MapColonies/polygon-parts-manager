@@ -287,6 +287,85 @@ components:
       properties:
         description:
           $ref: '#/components/schemas/Description'
+    FeatureFindResponse:
+      required:
+        - type
+        - properties
+        - geometry
+      properties:
+        type:
+          type: string
+          enum:
+            - Feature
+        id:
+          oneOf:
+            - type: number
+            - type: string
+        properties:
+          $ref: '#/components/schemas/PolygonPartsFindResponseFeatureProperties'
+        geometry:
+          $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
+        bbox:
+          $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
+    FeatureCollectionFindResponse:
+      type: object
+      description: GeoJSON Feature collection
+      required:
+        - type
+        - features
+      properties:
+        type:
+          type: string
+          enum:
+            - FeatureCollection
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureFindResponse'
+        bbox:
+          $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
+    FeatureFindPayload:
+      required:
+        - type
+        - properties
+        - geometry
+      properties:
+        type:
+          type: string
+          enum:
+            - Feature
+        id:
+          oneOf:
+            - type: number
+            - type: string
+        properties:
+          type: object
+          nullable: true
+        geometry:
+          type: object
+          nullable: true
+          oneOf:
+            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
+            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
+        bbox:
+          $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
+    FeatureCollectionFindPayload:
+      type: object
+      description: GeoJSON Feature collection
+      required:
+        - type
+        - features
+      properties:
+        type:
+          type: string
+          enum:
+            - FeatureCollection
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureFindPayload'
+        bbox:
+          $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
     FootprintObject:
       type: object
       required:
@@ -368,28 +447,12 @@ components:
         polygonPartsEntityName:
           $ref: '#/components/schemas/PolygonPartsEntityName'
     PolygonPartsFindPayload:
-      type: object
       description: Find polygon parts payload
-      additionalProperties: false
-      properties:
-        footprint:
-          oneOf:
-            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
-            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
+      $ref: '#/components/schemas/FeatureCollectionFindPayload'
     PolygonPartsFindResponse:
       description: Find polygon parts response
-      allOf:
-        - $ref: './SchemaRaster/core/geojson.yaml#/components/schemas/FeatureCollection'
-        - type: object
-          properties:
-            features:
-              type: array
-              items:
-                type: object
-                properties:
-                  properties:
-                    $ref: '#/components/schemas/PolygonPartsFindFeatureProperties'
-    PolygonPartsFindFeatureProperties:
+      $ref: '#/components/schemas/FeatureCollectionFindResponse'
+    PolygonPartsFindResponseFeatureProperties:
       type: object
       required:
         - catalogId

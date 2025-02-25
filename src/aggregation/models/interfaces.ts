@@ -1,6 +1,14 @@
-import type { PolygonPartsEntityName } from '@map-colonies/mc-model-types';
+import type { AggregationLayerMetadata } from '@map-colonies/raster-shared';
+import type { EntityNames } from '../../polygonParts/models/interfaces';
 
 /**
- * Aggregation params
+ * Get aggregation layer metadata options
  */
-export interface AggregationParams extends Readonly<PolygonPartsEntityName> {}
+export interface GetAggregationLayerMetadataOptions {
+  readonly polygonPartsEntityName: EntityNames;
+}
+
+/**
+ * Get aggregation layer metadata response
+ */
+export interface GetAggregationLayerMetadataResponse extends AggregationLayerMetadata {}

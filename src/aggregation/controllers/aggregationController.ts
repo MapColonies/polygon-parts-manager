@@ -1,20 +1,31 @@
-import type { AggregationLayerMetadata } from '@map-colonies/mc-model-types';
 import type { RequestHandler } from 'express';
 import httpStatus from 'http-status-codes';
 import { inject, injectable } from 'tsyringe';
+import type { EntitiesMetadata } from '../../polygonParts/models/interfaces';
 import { AggregationManager } from '../models/aggregationManager';
-import type { AggregationParams } from '../models/interfaces';
+import type { GetAggregationLayerMetadataParams, GetAggregationLayerMetadataResponseBody } from './interfaces';
 
-export type GetAggregationLayerMetadataHandler = RequestHandler<AggregationParams, AggregationLayerMetadata, undefined>;
+/**
+ * Get aggregation layer metadata handler
+ */
+export type GetAggregationLayerMetadataHandler = RequestHandler<
+  GetAggregationLayerMetadataParams,
+  GetAggregationLayerMetadataResponseBody,
+  undefined,
+  undefined,
+  EntitiesMetadata
+>;
 
 @injectable()
 export class AggregationController {
   public constructor(@inject(AggregationManager) private readonly aggregationManager: AggregationManager) {}
 
-  public getAggregationLayerMetadata: GetAggregationLayerMetadataHandler = async (req, res, next) => {
+  public getAggregationLayerMetadata: GetAggregationLayerMetadataHandler = async (_, res, next) => {
     try {
-      const aggregationMetadata = await this.aggregationManager.getAggregationLayerMetadata(req.params);
-      return res.status(httpStatus.OK).json(aggregationMetadata);
+      const response = await this.aggregationManager.getAggregationLayerMetadata({
+        polygonPartsEntityName: res.locals.entitiesNames.polygonParts,
+      });
+      return res.status(httpStatus.OK).json(response);
     } catch (error) {
       next(error);
     }

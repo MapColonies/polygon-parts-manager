@@ -66,6 +66,7 @@
     "@opentelemetry/api-metrics": "0.23.0",
     "@opentelemetry/instrumentation-express": "0.32.1",
     "@opentelemetry/instrumentation-http": "0.35.1",
+    "@turf/helpers": "^7.2.0",
     "change-case-all": "^2.1.0",
     "compression": "^1.7.4",
     "config": "^3.3.9",

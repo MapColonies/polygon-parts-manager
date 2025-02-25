@@ -447,11 +447,13 @@ components:
         polygonPartsEntityName:
           $ref: '#/components/schemas/PolygonPartsEntityName'
     PolygonPartsFindPayload:
-      description: Find polygon parts payload
-      $ref: '#/components/schemas/FeatureCollectionFindPayload'
+      allOf:
+        - $ref: '#/components/schemas/FeatureCollectionFindPayload'
+        - description: Find polygon parts payload
     PolygonPartsFindResponse:
-      description: Find polygon parts response
-      $ref: '#/components/schemas/FeatureCollectionFindResponse'
+      allOf:
+        - $ref: '#/components/schemas/FeatureCollectionFindResponse'
+        - description: Find polygon parts response
     PolygonPartsFindResponseFeatureProperties:
       type: object
       required:

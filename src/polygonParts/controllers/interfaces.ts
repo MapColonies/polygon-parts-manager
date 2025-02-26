@@ -15,7 +15,7 @@ export interface FindPolygonPartsQueryParams extends Readonly<Pick<FindPolygonPa
 /**
  * Find polygon parts request body
  */
-export interface FindPolygonPartsRequestBody extends Readonly<Pick<FindPolygonPartsOptions, 'footprint'>> {}
+export interface FindPolygonPartsRequestBody extends Readonly<FindPolygonPartsOptions['filter']> {}
 
 /**
  * Find polygon parts response body

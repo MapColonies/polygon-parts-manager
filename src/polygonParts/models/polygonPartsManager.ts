@@ -1,6 +1,8 @@
 import { BadRequestError, ConflictError, InternalServerError, NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
-import type { Geometry } from 'geojson';
+import { featureCollection } from '@turf/helpers';
+import { union } from '@turf/union';
+import type { Feature, Geometry, MultiPolygon, Polygon } from 'geojson';
 import { inject, injectable } from 'tsyringe';
 import type { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
@@ -75,7 +77,7 @@ export class PolygonPartsManager {
     }
   }
 
-  public async findPolygonParts({ shouldClip, polygonPartsEntityName, footprint }: FindPolygonPartsOptions): Promise<FindPolygonPartsResponse> {
+  public async findPolygonParts({ shouldClip, polygonPartsEntityName, filter }: FindPolygonPartsOptions): Promise<FindPolygonPartsResponse> {
     const logger = this.logger.child({ polygonPartsEntityName: polygonPartsEntityName.entityName });
     logger.info({ msg: 'Finding polygon parts' });
 
@@ -86,15 +88,26 @@ export class PolygonPartsManager {
           throw new NotFoundError(`Table with the name '${polygonPartsEntityName.entityName}' doesn't exists`);
         }
 
-        if (footprint) {
+        const filterGeometry = filter.features.filter<Feature<Polygon | MultiPolygon>>(
+          (feature): feature is Feature<Polygon | MultiPolygon> => !!feature.geometry
+        );
+        const unionFeature = filterGeometry.length > 1 ? union(featureCollection(filterGeometry)) : filterGeometry[0];
+
+        if (unionFeature) {
           const isValidFootprint = await entityManager.query<boolean>('select st_isvalid(st_geomfromgeojson($1)) as isValid', [
-            JSON.stringify(footprint),
+            JSON.stringify(unionFeature.geometry),
           ]);
           if (!isValidFootprint) {
             throw new BadRequestError(`Invalid request body parameter 'footprint' - invalid geometry`);
           }
         }
-        const findPolygonPartsQuery = this.buildFindPolygonPartsQuery({ shouldClip, entityManager, polygonPartsEntityName, footprint });
+
+        const findPolygonPartsQuery = this.buildFindPolygonPartsQuery({
+          shouldClip,
+          entityManager,
+          polygonPartsEntityName,
+          filter: unionFeature,
+        });
 
         try {
           const polygonParts = await findPolygonPartsQuery.getRawOne<FindPolygonPartsQueryResponse>();
@@ -181,10 +194,12 @@ export class PolygonPartsManager {
   }
 
   private buildFindPolygonPartsQuery(
-    context: FindPolygonPartsOptions & { entityManager: EntityManager }
+    context: Pick<FindPolygonPartsOptions, 'polygonPartsEntityName' | 'shouldClip'> & { filter: Feature<Polygon | MultiPolygon> | null } & {
+      entityManager: EntityManager;
+    }
   ): SelectQueryBuilder<FindPolygonPartsQueryResponse> {
-    const { shouldClip, polygonPartsEntityName, footprint, entityManager } = context;
-    const canClip = !!footprint && shouldClip;
+    const { shouldClip, polygonPartsEntityName, filter, entityManager } = context;
+    const canClip = !!filter?.geometry && shouldClip;
     const geometryColumn = getMappedColumnName('footprint' satisfies PickPropertiesOfType<PolygonPartRecord, Geometry>);
 
     const polygonPart = entityManager.getRepository(PolygonPart);
@@ -210,10 +225,10 @@ export class PolygonPartsManager {
         ) AS ${'geojson' satisfies keyof FindPolygonPartsQueryResponse}`
       )
       .addCommonTableExpression(
-        footprint
+        filter?.geometry
           ? clipCTE
               .where(`st_relate(${geometryColumn}, st_geomfromgeojson(:clipFootprint), 'T********')`)
-              .andWhere(`st_geomfromgeojson(:clipFootprint) && ${geometryColumn}`, { clipFootprint: JSON.stringify(footprint) })
+              .andWhere(`st_geomfromgeojson(:clipFootprint) && ${geometryColumn}`, { clipFootprint: JSON.stringify(filter.geometry) })
           : clipCTE,
         'clip'
       )

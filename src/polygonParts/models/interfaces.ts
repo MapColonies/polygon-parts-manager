@@ -24,7 +24,7 @@ export interface InsertPartData extends Readonly<Omit<CommonPayload, 'countries'
 export interface FindPolygonPartsOptions {
   readonly shouldClip: boolean;
   readonly polygonPartsEntityName: EntityNames;
-  readonly footprint?: MultiPolygon | Polygon;
+  readonly filter: FeatureCollection<Polygon | MultiPolygon | null>;
 }
 
 /**

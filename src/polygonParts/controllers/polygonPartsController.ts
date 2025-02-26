@@ -43,7 +43,7 @@ export class PolygonPartsController {
     try {
       const response = await this.polygonPartsManager.findPolygonParts({
         shouldClip: req.query.shouldClip,
-        footprint: req.body.footprint,
+        filter: req.body,
         polygonPartsEntityName: res.locals.entitiesNames.polygonParts,
       });
       return res.status(httpStatus.OK).send(response);

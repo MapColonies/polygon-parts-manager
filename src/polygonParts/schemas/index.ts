@@ -1,4 +1,9 @@
-import { INGESTION_VALIDATIONS, multiPolygonSchema, polygonPartsEntityPatternSchema, polygonSchema } from '@map-colonies/raster-shared';
+import {
+  INGESTION_VALIDATIONS,
+  multiPolygonSchema,
+  polygonPartsEntityPatternSchema,
+  polygonSchema,
+} from '@map-colonies/raster-shared';
 import { ZodType, z, type ZodTypeDef } from 'zod';
 import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig } from '../../common/interfaces';
@@ -9,15 +14,22 @@ import type { EntitiesMetadata, EntityNames, IsSwapQueryParams } from '../models
 
 const polygonPartsEntityNamePatternSchema = z.string().regex(new RegExp(INGESTION_VALIDATIONS.polygonPartsEntityName.pattern));
 
+const findPolygonPartsFeatureSchema = z.object({
+  type: z.literal('Feature'),
+  geometry: polygonSchema.or(multiPolygonSchema).nullable(),
+  properties: z.object({}).passthrough().nullable(),
+});
+
+const findPolygonPartsFeatureCollectionSchema = z.object({
+  type: z.literal('FeatureCollection'),
+  features: z.array(findPolygonPartsFeatureSchema),
+});
+
 export const findPolygonPartsQueryParamsSchema: ZodType<FindPolygonPartsQueryParams> = z.object({
   shouldClip: z.boolean(),
 });
 
-export const findPolygonPartsRequestBodySchema: ZodType<FindPolygonPartsRequestBody> = z
-  .object({
-    footprint: polygonSchema.or(multiPolygonSchema),
-  })
-  .partial();
+export const findPolygonPartsRequestBodySchema: ZodType<FindPolygonPartsRequestBody> = findPolygonPartsFeatureCollectionSchema;
 
 export const updatePolygonPartsQueryParamsSchema: ZodType<IsSwapQueryParams> = z.object({
   isSwap: z.boolean(),

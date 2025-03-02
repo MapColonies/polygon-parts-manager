@@ -2156,7 +2156,7 @@ describe('polygonParts', () => {
           entitiesNames: { parts, polygonParts },
         } = getEntitiesMetadata(polygonPartsPayload);
         const partDataHole = polygonPartsPayload.partsData[0];
-        polygonPartsPayload.partsData = [{ ...partDataHole, ...{ footprint: (polygonHole as FeatureCollection).features[0].geometry as Polygon } }];
+        polygonPartsPayload.partsData = [{ ...partDataHole, ...{ footprint: (polygonHole as FeatureCollection<Polygon>).features[0].geometry } }];
         const expectedPartRecord = toExpectedPostgresResponse(polygonPartsPayload);
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
@@ -2238,8 +2238,8 @@ describe('polygonParts', () => {
         const partDataHole = polygonPartsPayload.partsData[0];
         const partDataSpliting = polygonPartsPayload.partsData[1];
         polygonPartsPayload.partsData = [
-          { ...partDataHole, ...{ footprint: (polygonHole as FeatureCollection).features[0].geometry as Polygon } },
-          { ...partDataSpliting, ...{ footprint: (polygonHoleSplitter as FeatureCollection).features[0].geometry as Polygon } },
+          { ...partDataHole, ...{ footprint: (polygonHole as FeatureCollection<Polygon>).features[0].geometry } },
+          { ...partDataSpliting, ...{ footprint: (polygonHoleSplitter as FeatureCollection<Polygon>).features[0].geometry } },
         ];
         const [expectedPolygonHole, expectedPolygonSplitter] = toExpectedPostgresResponse(polygonPartsPayload);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -2313,8 +2313,8 @@ describe('polygonParts', () => {
         const partData = polygonPartsPayload.partsData[0];
         const partDataCover = polygonPartsPayload.partsData[1];
         polygonPartsPayload.partsData = [
-          { ...partData, ...{ footprint: (polygonHole as FeatureCollection).features[0].geometry as Polygon } },
-          { ...partDataCover, ...{ footprint: (polygonEarth as FeatureCollection).features[0].geometry as Polygon } },
+          { ...partData, ...{ footprint: (polygonHole as FeatureCollection<Polygon>).features[0].geometry } },
+          { ...partDataCover, ...{ footprint: (polygonEarth as FeatureCollection<Polygon>).features[0].geometry } },
         ];
         const expectedPartRecords = toExpectedPostgresResponse(polygonPartsPayload);
         const expectedPolygonCover = expectedPartRecords[1];
@@ -2360,8 +2360,8 @@ describe('polygonParts', () => {
         const partData = polygonPartsPayload.partsData[0];
         const partDataHoleCreator = polygonPartsPayload.partsData[1];
         polygonPartsPayload.partsData = [
-          { ...partData, ...{ footprint: (polygonEarth as FeatureCollection).features[0].geometry as Polygon } },
-          { ...partDataHoleCreator, ...{ footprint: (polygonHoleSplitter as FeatureCollection).features[0].geometry as Polygon } },
+          { ...partData, ...{ footprint: (polygonEarth as FeatureCollection<Polygon>).features[0].geometry } },
+          { ...partDataHoleCreator, ...{ footprint: (polygonHoleSplitter as FeatureCollection<Polygon>).features[0].geometry } },
         ];
         const expectedPartRecords = toExpectedPostgresResponse(polygonPartsPayload);
         const expectedPolygonPartRecords = expectedPartRecords.map(({ footprint, ...expectedPartRecord }) => {

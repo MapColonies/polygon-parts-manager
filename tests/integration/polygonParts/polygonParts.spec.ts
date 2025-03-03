@@ -97,6 +97,31 @@ describe('polygonParts', () => {
       describe('clip result enabled (shouldClip)', () => {
         const shouldClip = true;
 
+        it('should return 200 status code and return all polygon parts when request feature collection does not contain features (clip by default)', async () => {
+          const polygonPartsPayload = generatePolygonPartsPayload(1);
+          await requestSender.createPolygonParts(polygonPartsPayload);
+          const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+          const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+          const expectedGeometry = structuredClone(polygonPartsPayload.partsData[0].footprint);
+          expectedResponse.features.forEach((feature) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+            feature.geometry.coordinates = expect.any(Array<Number[][]>);
+          });
+          const response = await requestSender.findPolygonParts({
+            params: { polygonPartsEntityName: entityIdentifier },
+            body: featureCollection<Polygon | MultiPolygon>([]),
+          });
+
+          const responseBody = response.body as FindPolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+          expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+          expect(responseBody.features[0].properties.ingestionDateUTC).toBeDateString();
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(5);
+        });
+
         it('should return 200 status code and return all polygon parts when request feature collection does not contain features', async () => {
           const polygonPartsPayload = generatePolygonPartsPayload(1);
           await requestSender.createPolygonParts(polygonPartsPayload);

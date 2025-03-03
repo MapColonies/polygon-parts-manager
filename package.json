@@ -27,13 +27,13 @@
     "start": "npm run build && cd dist && node ./index.js",
     "start:dev": "npm run build && cd dist && node --enable-source-maps ./index.js",
     "assets:copy": "copyfiles -f ./config/* ./dist/config && copyfiles -f ./bundledApi.yaml ./dist/ && copyfiles ./package.json dist",
-    "copySchema": "copyfiles -u 5 \"./node_modules/@map-colonies/mc-model-types/Schema/yaml/**/*\" ./Schema",
+    "copySchema": "copyfiles -u 5 \"./node_modules/@map-colonies/mc-model-types/Schema/yaml/**/*\" ./Schema && copyfiles -u 5 \"./node_modules/@map-colonies/raster-shared/dist/openapi/**/*\" ./SchemaRaster",
     "clean": "rimraf dist",
     "install": "npx husky install",
     "postinstall": "command -v ./node_modules/.bin/copyfiles > /dev/null && command -v ./node_modules/.bin/openapi > /dev/null && command -v ./node_modules/.bin/rimraf > /dev/null && npm run bundleOpenApi || echo 'skipping postinstall since openapi is not available'",
     "prebundleOpenApi": "npm run copySchema",
     "bundleOpenApi": "openapi bundle --output ./bundledApi.yaml --ext yaml ./openapi3.yaml",
-    "postbundleOpenApi": "rimraf Schema"
+    "postbundleOpenApi": "rimraf Schema SchemaRaster"
   },
   "directories": {
     "test": "tests"
@@ -59,12 +59,15 @@
     "@map-colonies/js-logger": "^1.1.0",
     "@map-colonies/mc-model-types": "^17.13.4",
     "@map-colonies/openapi-express-viewer": "^3.0.0",
+    "@map-colonies/raster-shared": "^1.4.1",
     "@map-colonies/read-pkg": "0.0.1",
     "@map-colonies/telemetry": "^6.0.0",
     "@opentelemetry/api": "^1.7.0",
     "@opentelemetry/api-metrics": "0.23.0",
     "@opentelemetry/instrumentation-express": "0.32.1",
     "@opentelemetry/instrumentation-http": "0.35.1",
+    "@turf/helpers": "^7.2.0",
+    "@turf/union": "^7.2.0",
     "change-case-all": "^2.1.0",
     "compression": "^1.7.4",
     "config": "^3.3.9",

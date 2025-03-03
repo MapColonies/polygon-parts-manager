@@ -10,7 +10,7 @@ import type {
 interface FindPolygonParts {
   params: FindPolygonPartsParams;
   body: FindPolygonPartsRequestBody;
-  query: FindPolygonPartsQueryParams;
+  query?: FindPolygonPartsQueryParams;
 }
 
 export class PolygonPartsRequestSender {
@@ -24,7 +24,7 @@ export class PolygonPartsRequestSender {
     return supertest
       .agent(this.app)
       .post(`/polygonParts/${params.polygonPartsEntityName}/find`)
-      .query(query)
+      .query(query ?? {})
       .set('Content-Type', 'application/json')
       .send(body);
   }

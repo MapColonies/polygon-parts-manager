@@ -94,13 +94,16 @@ export class PolygonPartsManager {
         const unionFeature = filterGeometry.length > 1 ? union(featureCollection(filterGeometry)) : filterGeometry[0];
 
         if (unionFeature) {
-          const isValidFootprint = (
-            await entityManager.query<{ isValid: boolean }[]>('select st_isvalid(st_geomfromgeojson($1)) as "isValid"', [
-              JSON.stringify(unionFeature.geometry),
-            ])
+          const isValidFilterGeometry = (
+            await entityManager.query<{ valid: boolean; reason: string; location: Geometry }[]>(
+              'select valid, reason, st_asgeojson(location) as location from st_isvaliddetail(st_geomfromgeojson($1))',
+              [JSON.stringify(unionFeature.geometry)]
+            )
           )[0];
-          if (!isValidFootprint.isValid) {
-            throw new BadRequestError(`Invalid request body parameter 'footprint' - invalid geometry`);
+          if (!isValidFilterGeometry.valid) {
+            throw new BadRequestError(
+              `Invalid geometry filter: ${isValidFilterGeometry.reason}. Location: ${JSON.stringify(isValidFilterGeometry.location)}`
+            );
           }
         }
 

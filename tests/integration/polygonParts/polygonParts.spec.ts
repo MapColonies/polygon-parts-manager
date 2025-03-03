@@ -1766,7 +1766,6 @@ describe('polygonParts', () => {
                 ],
               ]),
             ].map((expectedGeometry) => expectedGeometry.geometry);
-            // TODO: consider adding the following to each test
             expectedResponse.features.forEach((feature) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
               feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -1863,7 +1862,6 @@ describe('polygonParts', () => {
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
-              // body: featureCollection([multiPolygon(expectedGeometries.map((expectedGeometry) => expectedGeometry.coordinates))]),
               body: featureCollection([multiPolygon(expectedGeometries.map((expectedGeometry) => expectedGeometry.coordinates))]),
               query: { shouldClip },
             });

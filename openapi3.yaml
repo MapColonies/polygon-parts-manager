@@ -346,9 +346,9 @@ components:
           nullable: true
           allOf:
             - oneOf:
-              - $ref: '#/components/schemas/NullTypeRef'
-              - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
-              - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
+                - $ref: '#/components/schemas/NullTypeRef'
+                - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
+                - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
         bbox:
           $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
     FeatureCollectionFindPayload:
@@ -613,6 +613,6 @@ components:
       required:
         - message
     NullTypeRef:
-      description: "Null type for adding nullability to a ref"
+      description: Null type for adding nullability to a ref
       enum:
         - null

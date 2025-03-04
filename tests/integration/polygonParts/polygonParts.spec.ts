@@ -153,6 +153,11 @@ describe('polygonParts', () => {
           await requestSender.createPolygonParts(polygonPartsPayload);
           const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
           const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+          const expectedGeometry = structuredClone(polygonPartsPayload.partsData[0].footprint);
+          expectedResponse.features.forEach((feature) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+            feature.geometry.coordinates = expect.any(Array<Number[][]>);
+          });
 
           const response = await requestSender.findPolygonParts({
             params: { polygonPartsEntityName: entityIdentifier },
@@ -163,10 +168,11 @@ describe('polygonParts', () => {
           const responseBody = response.body as FindPolygonPartsResponseBody;
           expect(response.status).toBe(httpStatusCodes.OK);
           expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+          expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
           expect(responseBody.features[0].properties.ingestionDateUTC).toBeDateString();
           expect(response).toSatisfyApiSpec();
 
-          expect.assertions(4);
+          expect.assertions(5);
         });
 
         describe('input features are polygon geometries', () => {
@@ -2170,6 +2176,11 @@ describe('polygonParts', () => {
           await requestSender.createPolygonParts(polygonPartsPayload);
           const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
           const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+          const expectedGeometry = structuredClone(polygonPartsPayload.partsData[0].footprint);
+          expectedResponse.features.forEach((feature) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+            feature.geometry.coordinates = expect.any(Array<Number[][]>);
+          });
 
           const response = await requestSender.findPolygonParts({
             params: { polygonPartsEntityName: entityIdentifier },
@@ -2180,10 +2191,11 @@ describe('polygonParts', () => {
           const responseBody = response.body as FindPolygonPartsResponseBody;
           expect(response.status).toBe(httpStatusCodes.OK);
           expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+          expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
           expect(responseBody.features[0].properties.ingestionDateUTC).toBeDateString();
           expect(response).toSatisfyApiSpec();
 
-          expect.assertions(4);
+          expect.assertions(5);
         });
 
         describe('input features are polygon geometries', () => {

@@ -1,9 +1,4 @@
-import {
-  INGESTION_VALIDATIONS,
-  multiPolygonSchema,
-  polygonPartsEntityPatternSchema,
-  polygonSchema,
-} from '@map-colonies/raster-shared';
+import { INGESTION_VALIDATIONS, multiPolygonSchema, polygonPartsEntityPatternSchema, polygonSchema } from '@map-colonies/raster-shared';
 import { ZodType, z, type ZodTypeDef } from 'zod';
 import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig } from '../../common/interfaces';

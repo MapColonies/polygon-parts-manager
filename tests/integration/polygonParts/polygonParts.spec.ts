@@ -5,7 +5,7 @@ import { trace } from '@opentelemetry/api';
 import { booleanEqual } from '@turf/boolean-equal';
 import { feature, featureCollection, multiPolygon, polygon, polygons } from '@turf/helpers';
 import { randomPolygon } from '@turf/random';
-import config from 'config';
+import config, { type IConfig } from 'config';
 import type { FeatureCollection, MultiPolygon, Polygon } from 'geojson';
 import { StatusCodes as httpStatusCodes } from 'http-status-codes';
 import { xor } from 'martinez-polygon-clipping';
@@ -4259,6 +4259,53 @@ describe('polygonParts', () => {
       it('should return 400 status code if polygonPartsEntityName is an invalid value - must end with raster product type', async () => {
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'invalid_name' as EntityIdentifier },
+          body: featureCollection<Polygon | MultiPolygon>([]),
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if polygonPartsEntityName is an invalid value - must resolve to a valid resource identifier (no longer than 63 chars)', async () => {
+        const customConfig: IConfig = {
+          get: <T>(setting: string): T => {
+            if (setting === 'application') {
+              const defaultApplicationConfig = config.get<ApplicationConfig>(setting);
+              return {
+                ...defaultApplicationConfig,
+                entities: {
+                  ...defaultApplicationConfig.entities,
+                  parts: {
+                    namePrefix: 'very_long_prefix_',
+                    nameSuffix: '_very_long_suffix',
+                  },
+                },
+              } as unknown as T;
+            }
+            return config.get(setting);
+          },
+          // eslint-disable-next-line @typescript-eslint/unbound-method
+          has: config.has,
+          util: config.util,
+        };
+        const connectionManager = container.resolve<ConnectionManager>(ConnectionManager);
+        await connectionManager.destroy();
+        container.clearInstances();
+        const app = await getApp({
+          override: [
+            { token: SERVICES.CONFIG, provider: { useValue: customConfig } },
+            { token: SERVICES.LOGGER, provider: { useValue: jsLogger({ enabled: false }) } },
+            { token: SERVICES.TRACER, provider: { useValue: trace.getTracer('testTracer') } },
+          ],
+          useChild: true,
+        });
+        requestSender = new PolygonPartsRequestSender(app);
+
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'very_long_valid_name_orthophoto' as EntityIdentifier },
           body: featureCollection<Polygon | MultiPolygon>([]),
         });
 

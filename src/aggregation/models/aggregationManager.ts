@@ -47,13 +47,13 @@ export class AggregationManager {
           const aggregationMetadataLayer = schemaParser({ schema: aggregationMetadataSchema, value: aggregationResult });
           return aggregationMetadataLayer;
         } catch (error) {
+          let errorMessage: string;
           if (error instanceof ValidationError) {
-            const errorMessage = 'Invalid aggregation metadata response';
-            logger.error({ msg: errorMessage, error });
+            errorMessage = 'Invalid aggregation metadata response';
           } else {
-            const errorMessage = 'Could not aggregate polygon parts';
-            logger.error({ msg: errorMessage, error });
+            errorMessage = 'Could not aggregate polygon parts';
           }
+          logger.error({ msg: errorMessage, error });
           throw error;
         }
       });

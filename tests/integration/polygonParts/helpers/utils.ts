@@ -1,11 +1,9 @@
 import { feature, featureCollection } from '@turf/helpers';
 import config from 'config';
-import { validate, version } from 'uuid';
 import type { ApplicationConfig } from '../../../../src/common/interfaces';
 import { payloadToInsertPartsData } from '../../../../src/polygonParts/DAL/utils';
 import type { FindPolygonPartsResponseBody } from '../../../../src/polygonParts/controllers/interfaces';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
-import { REGEX_UUID_V4 } from './constants';
 import type { ExpectedPostgresResponse } from './types';
 
 const applicationConfig = config.get<ApplicationConfig>('application');
@@ -39,7 +37,7 @@ export function toExpectedFindPolygonPartsResponse(polygonPartsPayload: PolygonP
           ...layerMetadata,
           ...props,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          id: expect.stringMatching(REGEX_UUID_V4),
+          id: expect.toBeUuidV4(),
           imagingTimeBeginUTC: imagingTimeBeginUTC.toISOString(),
           imagingTimeEndUTC: imagingTimeEndUTC.toISOString(),
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -55,10 +53,4 @@ export function toExpectedFindPolygonPartsResponse(polygonPartsPayload: PolygonP
 
   const expectedPostgresResponse = featureCollection(expectedFeatures);
   return expectedPostgresResponse;
-}
-
-// TODO: extend jest instead => update matchers in tests
-export function isValidUUIDv4(uuidV4: string): boolean {
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  return validate(uuidV4) && version(uuidV4) === 4;
 }

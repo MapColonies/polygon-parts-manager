@@ -40,7 +40,7 @@ import polygonWesternHemisphere from './data/polygonWesternHemisphere.json';
 import { INITIAL_DB } from './helpers/constants';
 import { HelperDB, createDB, generatePolygon, generatePolygonPartsPayload } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
-import { isValidUUIDv4, toExpectedFindPolygonPartsResponse, toExpectedPostgresResponse } from './helpers/utils';
+import { toExpectedFindPolygonPartsResponse, toExpectedPostgresResponse } from './helpers/utils';
 
 const INTERNAL_DB_GEOM_PRECISION = 12; // TODO: adjust precision to the capability of underlying DB precision query response
 let testDataSourceOptions: DataSourceOptions;
@@ -2697,14 +2697,14 @@ describe('polygonParts', () => {
         expect(partRecords[0].footprint).toBePolygonGeometry();
         expect(partRecords[0].isProcessedPart).toBeTrue();
         expect(partRecords[0].insertionOrder).toBe(1);
-        expect(isValidUUIDv4(partRecords[0].id)).toBeTrue();
+        expect(partRecords[0].id).toBeUuidV4();
 
         expect(polygonPartRecords).toMatchObject(expectedPartRecord);
         expect(polygonPartRecords[0].ingestionDateUTC).toStrictEqual(partRecords[0].ingestionDateUTC);
         expect(polygonPartRecords[0].footprint).toStrictEqual(partRecords[0].footprint);
         expect(polygonPartRecords[0].partId).toStrictEqual(partRecords[0].id);
         expect(polygonPartRecords[0].insertionOrder).toStrictEqual(partRecords[0].insertionOrder);
-        expect(isValidUUIDv4(polygonPartRecords[0].id)).toBeTrue();
+        expect(polygonPartRecords[0].id).toBeUuidV4();
 
         expect.assertions(15);
       });
@@ -2732,14 +2732,14 @@ describe('polygonParts', () => {
         expect(partRecords[0].footprint).toBePolygonGeometry();
         expect(partRecords[0].isProcessedPart).toBeTrue();
         expect(partRecords[0].insertionOrder).toBe(1);
-        expect(isValidUUIDv4(partRecords[0].id)).toBeTrue();
+        expect(partRecords[0].id).toBeUuidV4();
 
         expect(polygonPartRecords).toMatchObject(expectedPartRecord);
         expect(polygonPartRecords[0].ingestionDateUTC).toStrictEqual(partRecords[0].ingestionDateUTC);
         expect(polygonPartRecords[0].footprint).toStrictEqual(partRecords[0].footprint);
         expect(polygonPartRecords[0].partId).toStrictEqual(partRecords[0].id);
         expect(polygonPartRecords[0].insertionOrder).toStrictEqual(partRecords[0].insertionOrder);
-        expect(isValidUUIDv4(polygonPartRecords[0].id)).toBeTrue();
+        expect(polygonPartRecords[0].id).toBeUuidV4();
 
         expect.assertions(15);
       });
@@ -2772,7 +2772,7 @@ describe('polygonParts', () => {
           expect(partRecord.footprint).toBePolygonGeometry();
           expect(partRecord.isProcessedPart).toBeTrue();
           expect(partRecord.insertionOrder).toBe(index + 1);
-          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+          expect(partRecord.id).toBeUuidV4();
 
           const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
 
@@ -2784,7 +2784,7 @@ describe('polygonParts', () => {
             expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
             expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
             expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
-            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+            expect(relatedPolygonPartRecord.id).toBeUuidV4();
           }
         });
       });
@@ -2848,7 +2848,7 @@ describe('polygonParts', () => {
           expect(partRecord.footprint).toBePolygonGeometry();
           expect(partRecord.isProcessedPart).toBeTrue();
           expect(partRecord.insertionOrder).toBe(index + 1);
-          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+          expect(partRecord.id).toBeUuidV4();
 
           const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
 
@@ -2857,7 +2857,7 @@ describe('polygonParts', () => {
             expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
             expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
             expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
-            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+            expect(relatedPolygonPartRecord.id).toBeUuidV4();
           }
         });
 
@@ -2895,7 +2895,7 @@ describe('polygonParts', () => {
           expect(partRecord.footprint).toBePolygonGeometry();
           expect(partRecord.isProcessedPart).toBeTrue();
           expect(partRecord.insertionOrder).toBe(index + 1);
-          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+          expect(partRecord.id).toBeUuidV4();
 
           const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
 
@@ -2904,7 +2904,7 @@ describe('polygonParts', () => {
             expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
             expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
             expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
-            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+            expect(relatedPolygonPartRecord.id).toBeUuidV4();
           }
         });
 
@@ -2964,7 +2964,7 @@ describe('polygonParts', () => {
           expect(partRecord.footprint).toBePolygonGeometry();
           expect(partRecord.isProcessedPart).toBeTrue();
           expect(partRecord.insertionOrder).toBe(index + 1);
-          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+          expect(partRecord.id).toBeUuidV4();
 
           const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
 
@@ -2973,7 +2973,7 @@ describe('polygonParts', () => {
             expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
             expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
             expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
-            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+            expect(relatedPolygonPartRecord.id).toBeUuidV4();
           }
         });
 
@@ -3075,7 +3075,7 @@ describe('polygonParts', () => {
           expect(partRecord.footprint).toBePolygonGeometry();
           expect(partRecord.isProcessedPart).toBeTrue();
           expect(partRecord.insertionOrder).toBe(index + 1);
-          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+          expect(partRecord.id).toBeUuidV4();
 
           const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
 
@@ -3084,7 +3084,7 @@ describe('polygonParts', () => {
             expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
             expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
             expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
-            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+            expect(relatedPolygonPartRecord.id).toBeUuidV4();
           }
         });
 
@@ -3171,7 +3171,7 @@ describe('polygonParts', () => {
           expect(partRecord.footprint).toBePolygonGeometry();
           expect(partRecord.isProcessedPart).toBeTrue();
           expect(partRecord.insertionOrder).toBe(index + 1);
-          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+          expect(partRecord.id).toBeUuidV4();
 
           const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
 
@@ -3180,7 +3180,7 @@ describe('polygonParts', () => {
             expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
             expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
             expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
-            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+            expect(relatedPolygonPartRecord.id).toBeUuidV4();
           }
         });
 
@@ -3282,7 +3282,7 @@ describe('polygonParts', () => {
           expect(partRecord.footprint).toBePolygonGeometry();
           expect(partRecord.isProcessedPart).toBeTrue();
           expect(partRecord.insertionOrder).toBe(index + 1);
-          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+          expect(partRecord.id).toBeUuidV4();
 
           const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
 
@@ -3291,7 +3291,7 @@ describe('polygonParts', () => {
             expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
             expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
             expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
-            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+            expect(relatedPolygonPartRecord.id).toBeUuidV4();
           }
         });
 
@@ -3655,7 +3655,7 @@ describe('polygonParts', () => {
           expect(partRecord.footprint).toBePolygonGeometry();
           expect(partRecord.isProcessedPart).toBeTrue();
           expect(partRecord.insertionOrder).toBe(index + 1);
-          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+          expect(partRecord.id).toBeUuidV4();
 
           const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
 
@@ -3664,7 +3664,7 @@ describe('polygonParts', () => {
             expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
             expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
             expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
-            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+            expect(relatedPolygonPartRecord.id).toBeUuidV4();
           }
         });
 
@@ -3753,7 +3753,7 @@ describe('polygonParts', () => {
           expect(partRecord.footprint).toBePolygonGeometry();
           expect(partRecord.isProcessedPart).toBeTrue();
           expect(partRecord.insertionOrder).toBe(index + 1);
-          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+          expect(partRecord.id).toBeUuidV4();
 
           const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
 
@@ -3762,7 +3762,7 @@ describe('polygonParts', () => {
             expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
             expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
             expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
-            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+            expect(relatedPolygonPartRecord.id).toBeUuidV4();
           }
         });
 
@@ -3848,7 +3848,7 @@ describe('polygonParts', () => {
           expect(partRecord.footprint).toBePolygonGeometry();
           expect(partRecord.isProcessedPart).toBeTrue();
           expect(partRecord.insertionOrder).toBe(index + 1);
-          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+          expect(partRecord.id).toBeUuidV4();
 
           const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
 
@@ -3857,7 +3857,7 @@ describe('polygonParts', () => {
             expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
             expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
             expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
-            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+            expect(relatedPolygonPartRecord.id).toBeUuidV4();
           }
         });
 
@@ -3946,7 +3946,7 @@ describe('polygonParts', () => {
           expect(partRecord.footprint).toBePolygonGeometry();
           expect(partRecord.isProcessedPart).toBeTrue();
           expect(partRecord.insertionOrder).toBe(index + 1);
-          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+          expect(partRecord.id).toBeUuidV4();
 
           const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
 
@@ -3955,7 +3955,7 @@ describe('polygonParts', () => {
             expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
             expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
             expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
-            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+            expect(relatedPolygonPartRecord.id).toBeUuidV4();
           }
         });
 
@@ -4068,7 +4068,7 @@ describe('polygonParts', () => {
           expect(partRecord.footprint).toBePolygonGeometry();
           expect(partRecord.isProcessedPart).toBeTrue();
           expect(partRecord.insertionOrder).toBe(index + 1);
-          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+          expect(partRecord.id).toBeUuidV4();
 
           const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
 
@@ -4077,7 +4077,7 @@ describe('polygonParts', () => {
             expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
             expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
             expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
-            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+            expect(relatedPolygonPartRecord.id).toBeUuidV4();
           }
         });
 
@@ -4166,7 +4166,7 @@ describe('polygonParts', () => {
           expect(partRecord.footprint).toBePolygonGeometry();
           expect(partRecord.isProcessedPart).toBeTrue();
           expect(partRecord.insertionOrder).toBe(index + 1);
-          expect(isValidUUIDv4(partRecord.id)).toBeTrue();
+          expect(partRecord.id).toBeUuidV4();
 
           const relatedPolygonPartRecords = polygonPartRecords.filter((polygonPartRecord) => polygonPartRecord.partId === partRecord.id);
 
@@ -4175,7 +4175,7 @@ describe('polygonParts', () => {
             expect(relatedPolygonPartRecord.footprint).toBePolygonGeometry();
             expect(relatedPolygonPartRecord.insertionOrder).toStrictEqual(partRecord.insertionOrder);
             expect(relatedPolygonPartRecord.partId).toStrictEqual(partRecord.id);
-            expect(isValidUUIDv4(relatedPolygonPartRecord.id)).toBeTrue();
+            expect(relatedPolygonPartRecord.id).toBeUuidV4();
           }
         });
 

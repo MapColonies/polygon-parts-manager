@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.6.0](https://github.com/MapColonies/polygon-parts-manager/compare/v1.5.2...v1.6.0) (2025-03-10)
+
+
+### Features
+
+* find polygon parts (MAPCO-6251) ([#39](https://github.com/MapColonies/polygon-parts-manager/issues/39)) ([5aae7c4](https://github.com/MapColonies/polygon-parts-manager/commit/5aae7c430b04d0ebeb196c2225ba49b58e8e8776)), closes [#41](https://github.com/MapColonies/polygon-parts-manager/issues/41)
+
+
+### Bug Fixes
+
+* removing max_old_space_size from Dockerfile ([#40](https://github.com/MapColonies/polygon-parts-manager/issues/40)) ([69b8435](https://github.com/MapColonies/polygon-parts-manager/commit/69b8435d6cd84f771546cc0b7fcf99c72affb57a))
+
 ### [1.5.2](https://github.com/MapColonies/polygon-parts-manager/compare/v1.5.1...v1.5.2) (2025-02-03)
 
 

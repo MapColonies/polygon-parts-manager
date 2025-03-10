@@ -4,13 +4,12 @@ import { types } from 'pg';
 import { inject, singleton } from 'tsyringe';
 import { DataSource, type DataSourceOptions, type EntityManager } from 'typeorm';
 import type { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
-import { DEFAULT_SCHEMA, SERVICES } from '../common/constants';
+import { SERVICES } from '../common/constants';
 import { DBConnectionError } from '../common/errors';
 import type { DbConfig, IConfig } from '../common/interfaces';
 import { Part } from '../polygonParts/DAL/part';
 import { PolygonPart } from '../polygonParts/DAL/polygonPart';
 import { namingStrategy } from '../polygonParts/DAL/utils';
-import type { DBSchema } from '../polygonParts/models/interfaces';
 
 // postgresql - parse NUMERIC and BIGINT as numbers instead of strings
 types.setTypeParser(types.builtins.NUMERIC, (value) => parseFloat(value));
@@ -21,11 +20,11 @@ types.setTypeParser(types.builtins.FLOAT4, (value) => parseFloat(value));
 export class ConnectionManager {
   private readonly dataSource: DataSource;
   private readonly dataSourceOptions: DataSourceOptions;
-  private readonly schema: NonNullable<DBSchema>;
+  private readonly schema: DbConfig['schema'];
 
   public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, @inject(SERVICES.CONFIG) private readonly config: IConfig) {
     const connectionConfig = this.config.get<DbConfig>('db');
-    this.schema = connectionConfig.schema ?? DEFAULT_SCHEMA;
+    this.schema = connectionConfig.schema;
     this.dataSourceOptions = ConnectionManager.createConnectionOptions(connectionConfig);
     this.dataSource = new DataSource(this.dataSourceOptions);
   }
@@ -40,6 +39,8 @@ export class ConnectionManager {
   }
 
   public async init(): Promise<void> {
+    let schemaExists = false;
+
     try {
       if (!this.isConnected()) {
         this.logger.info({
@@ -52,6 +53,22 @@ export class ConnectionManager {
     } catch (error) {
       const errString = JSON.stringify(error, Object.getOwnPropertyNames(error));
       this.logger.error({ msg: `failed to connect to database: ${errString}` });
+      throw new DBConnectionError();
+    }
+
+    try {
+      this.logger.info({
+        msg: `checking if schema ${this.schema} exists on database`,
+      });
+      schemaExists = await this.schemaExists();
+    } catch (error) {
+      const errString = JSON.stringify(error, Object.getOwnPropertyNames(error));
+      this.logger.error({ msg: `failed to verify if schema exists: ${errString}` });
+      throw new DBConnectionError();
+    }
+
+    if (!schemaExists) {
+      this.logger.error({ msg: `schema '${this.schema}' does not exists` });
       throw new DBConnectionError();
     }
   }
@@ -84,6 +101,16 @@ export class ConnectionManager {
       .from('information_schema.tables', 'information_schema.tables')
       .where(`table_schema = '${this.schema}'`)
       .andWhere(`table_name = '${entityName}'`)
+      .getExists();
+    return exists;
+  }
+
+  private async schemaExists(): Promise<boolean> {
+    const exists = await this.dataSource
+      .createQueryBuilder()
+      .select('n.nspname')
+      .from('pg_namespace', 'n')
+      .where('n.nspname = :schemaName', { schemaName: this.schema })
       .getExists();
     return exists;
   }

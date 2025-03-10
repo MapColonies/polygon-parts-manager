@@ -1,9 +1,22 @@
 import { InternalServerError } from '@map-colonies/error-types';
 import httpStatusCodes from 'http-status-codes';
+import { ZodError, ZodIssue } from 'zod';
 
 export class DBConnectionError extends InternalServerError {
   public constructor(message?: string) {
     super(message ?? httpStatusCodes.getStatusText(httpStatusCodes.INTERNAL_SERVER_ERROR));
-    Object.setPrototypeOf(this, InternalServerError.prototype);
+  }
+}
+
+export class ValidationError extends ZodError {
+  private readonly errorMessagePrefix: string | undefined;
+
+  public constructor(options: { issues: ZodIssue[]; readonly errorMessagePrefix?: string }) {
+    super(options.issues);
+    this.errorMessagePrefix = options.errorMessagePrefix;
+  }
+
+  public get message(): string {
+    return `${this.errorMessagePrefix !== undefined ? `${this.errorMessagePrefix}: ` : ''}${super.message}`;
   }
 }

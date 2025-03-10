@@ -1,4 +1,4 @@
-import { RASTER_PRODUCT_TYPES, type RasterProductTypes } from '@map-colonies/mc-model-types';
+import { RASTER_PRODUCT_TYPE_LIST, type RasterProductTypes } from '@map-colonies/raster-shared';
 import { Check, Column, CreateDateColumn, Index, PrimaryGeneratedColumn, type Polygon } from 'typeorm';
 import type { CommonRecord } from '../models/interfaces';
 
@@ -14,7 +14,7 @@ export class Common implements CommonRecord {
   @Column({
     type: 'enum',
     enumName: 'product_type_enum',
-    enum: RASTER_PRODUCT_TYPES,
+    enum: RASTER_PRODUCT_TYPE_LIST,
   })
   @Index()
   public productType!: RasterProductTypes;

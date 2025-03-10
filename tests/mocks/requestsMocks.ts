@@ -1,14 +1,14 @@
 /* eslint-disable  @typescript-eslint/no-magic-numbers */
-import { PolygonPart } from '@map-colonies/mc-model-types';
+import { RasterProductTypes, type PolygonPart } from '@map-colonies/raster-shared';
 import type { Polygon } from 'geojson';
-import { PolygonPartsPayload } from '../../src/polygonParts/models/interfaces';
+import type { PolygonPartsPayload } from '../../src/polygonParts/models/interfaces';
 import { generatePolygonPart } from '../integration/polygonParts/helpers/db';
 
 type LayerMetadata = Pick<PolygonPartsPayload, 'catalogId' | 'productId' | 'productType' | 'productVersion'>;
 
 const createLayerMetadata: LayerMetadata = {
   productId: 'BLUE_MARBLE',
-  productType: 'Orthophoto',
+  productType: RasterProductTypes.ORTHOPHOTO,
   catalogId: 'c52d8189-7e07-456a-8c6b-53859523c3e9',
   productVersion: '1.0',
 };

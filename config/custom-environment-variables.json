@@ -58,6 +58,12 @@
         "minAreaSquareDeg": {
           "__name": "ENTITY_POLYGON_PARTS_MIN_AREA_SQUARE_DEG",
           "__format": "number"
+        },
+        "find": {
+          "maxDecimalDigits": {
+            "__name": "ENTITY_POLYGON_PARTS_FIND_MAX_DECIMAL_DIGITS",
+            "__format": "number"
+          }
         }
       }
     },

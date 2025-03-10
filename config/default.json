@@ -36,6 +36,9 @@
         "nameSuffix": "_parts"
       },
       "polygonParts": {
+        "find": {
+          "maxDecimalDigits": 15
+        },
         "namePrefix": "",
         "nameSuffix": "",
         "minAreaSquareDeg": 1e-15

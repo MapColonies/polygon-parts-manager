@@ -1,12 +1,26 @@
+/* eslint-disable @typescript-eslint/no-magic-numbers */
 import { faker } from '@faker-js/faker';
-import { PolygonPart, RASTER_PRODUCT_TYPES, VALIDATIONS } from '@map-colonies/mc-model-types';
+import { CORE_VALIDATIONS, INGESTION_VALIDATIONS, RASTER_PRODUCT_TYPE_LIST, RasterProductTypes, type PolygonPart } from '@map-colonies/raster-shared';
 import { randomPolygon } from '@turf/random';
+import type { Polygon } from 'geojson';
 import { randexp } from 'randexp';
 import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
 import { DatabaseCreateContext, createDatabase, dropDatabase } from 'typeorm-extension';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 import type { DeepPartial } from './types';
 
+const generateProductId = (): string => randexp(INGESTION_VALIDATIONS.productId.pattern);
+const generateProductType = (): RasterProductTypes => faker.helpers.arrayElement(RASTER_PRODUCT_TYPE_LIST);
+
+export const generatePolygon = (
+  options: Parameters<typeof randomPolygon>[1] = {
+    bbox: [-170, -80, 170, 80],
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    max_radial_length: faker.number.float({ min: Number.EPSILON, max: 10 }),
+  } // polygon maximum extent cannot exceed [-180,-90,180,90]
+): Polygon => {
+  return randomPolygon(1, options).features[0].geometry;
+};
 export const createDB = async (options: Partial<DatabaseCreateContext>): Promise<void> => {
   await createDatabase({ ...options, synchronize: false, ifNotExist: false });
 };
@@ -20,13 +34,12 @@ export const generatePolygonPart = (): PolygonPart => {
   const date2 = faker.date.past();
   const [dateOlder, dateRecent] = date1 < date2 ? [date1, date2] : [date2, date1];
   return {
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers, @typescript-eslint/naming-convention
-    footprint: randomPolygon(1, { bbox: [-170, -80, 170, 80], max_radial_length: 10 }).features[0].geometry, // polygon maximum extent cannot exceed [-180,-90,180,90]
-    horizontalAccuracyCE90: faker.number.float(VALIDATIONS.horizontalAccuracyCE90),
+    footprint: generatePolygon(),
+    horizontalAccuracyCE90: faker.number.float(INGESTION_VALIDATIONS.horizontalAccuracyCE90),
     imagingTimeBeginUTC: dateOlder,
     imagingTimeEndUTC: dateRecent,
-    resolutionDegree: faker.number.float(VALIDATIONS.resolutionDeg),
-    resolutionMeter: faker.number.float(VALIDATIONS.resolutionMeter),
+    resolutionDegree: faker.number.float(CORE_VALIDATIONS.resolutionDeg),
+    resolutionMeter: faker.number.float(INGESTION_VALIDATIONS.resolutionMeter),
     sensors: faker.helpers.multiple(
       () => {
         return faker.word.words();
@@ -34,13 +47,13 @@ export const generatePolygonPart = (): PolygonPart => {
       { count: { min: 1, max: 3 } }
     ),
     sourceName: faker.word.words().replace(' ', '_'),
-    sourceResolutionMeter: faker.number.float(VALIDATIONS.resolutionMeter),
+    sourceResolutionMeter: faker.number.float(INGESTION_VALIDATIONS.resolutionMeter),
     cities: faker.helpers.maybe(() => {
       return faker.helpers.multiple(
         () => {
           return faker.word.words();
         },
-        { count: { min: 0, max: 3 } }
+        { count: { min: 1, max: 3 } }
       );
     }),
     countries: faker.helpers.maybe(() => {
@@ -48,7 +61,7 @@ export const generatePolygonPart = (): PolygonPart => {
         () => {
           return faker.word.words();
         },
-        { count: { min: 0, max: 3 } }
+        { count: { min: 1, max: 3 } }
       );
     }),
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
@@ -63,10 +76,10 @@ export function generatePolygonPartsPayload(template: DeepPartial<PolygonPartsPa
 export function generatePolygonPartsPayload(input: number | DeepPartial<PolygonPartsPayload>): PolygonPartsPayload {
   const layerMetadata = {
     catalogId: faker.string.uuid(),
-    productId: randexp(VALIDATIONS.productId.pattern),
-    productType: faker.helpers.arrayElement(RASTER_PRODUCT_TYPES),
-    productVersion: randexp(VALIDATIONS.productVersion.pattern),
-  };
+    productId: generateProductId(),
+    productType: generateProductType(),
+    productVersion: randexp(INGESTION_VALIDATIONS.productVersion.pattern),
+  } satisfies Omit<PolygonPartsPayload, 'partsData'>;
 
   if (typeof input === 'number') {
     const partsCount = input;
@@ -76,7 +89,7 @@ export function generatePolygonPartsPayload(input: number | DeepPartial<PolygonP
     };
   }
 
-  const { partsData: templatePartsData, ...templateLayerMetadata } = input;
+  const { partsData: templatePartsData, ...templateLayerMetadata } = structuredClone(input);
 
   return {
     ...layerMetadata,

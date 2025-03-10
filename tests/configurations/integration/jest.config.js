@@ -17,6 +17,7 @@ module.exports = {
     '<rootDir>/tests/configurations/initJestOpenapi.setup.ts',
     '<rootDir>/tests/configurations/initJestGeoJson.setup.ts',
     '<rootDir>/tests/configurations/initJestExtended.setup.ts',
+    '<rootDir>/tests/configurations/initCustomMatchers.setup.ts',
   ],
   reporters: [
     'default',

@@ -440,6 +440,7 @@ describe('polygonParts', () => {
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
             const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
             const expectedGeometry = generatePolygon();
+            const requestGeometry = expectedGeometry;
             expectedResponse.features.forEach((feature) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
               feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -447,7 +448,7 @@ describe('polygonParts', () => {
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
-              body: polygons([expectedGeometry.coordinates]),
+              body: polygons([requestGeometry.coordinates]),
               query: { shouldClip },
             });
 
@@ -1259,6 +1260,7 @@ describe('polygonParts', () => {
                 ],
               ]),
             ].map((expectedGeometry) => expectedGeometry.geometry);
+            const requestedGeometries = expectedGeometries;
             expectedResponse.features.forEach((feature) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
               feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -1266,7 +1268,7 @@ describe('polygonParts', () => {
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
-              body: featureCollection([multiPolygon(expectedGeometries.map((expectedGeometry) => expectedGeometry.coordinates))]),
+              body: featureCollection([multiPolygon(requestedGeometries.map((requestedGeometry) => requestedGeometry.coordinates))]),
               query: { shouldClip },
             });
 
@@ -1618,6 +1620,7 @@ describe('polygonParts', () => {
                 ],
               ]),
             ].map((expectedGeometry) => expectedGeometry.geometry);
+            const requestedGeometries = expectedGeometries;
             expectedResponse.features.forEach((feature) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
               feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -1625,7 +1628,7 @@ describe('polygonParts', () => {
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
-              body: featureCollection([multiPolygon(expectedGeometries.map((expectedGeometry) => expectedGeometry.coordinates))]),
+              body: featureCollection([multiPolygon(requestedGeometries.map((requestedGeometry) => requestedGeometry.coordinates))]),
               query: { shouldClip },
             });
 
@@ -1867,6 +1870,7 @@ describe('polygonParts', () => {
                 ],
               ]),
             ].map((expectedGeometry) => expectedGeometry.geometry);
+            const requestedGeometries = expectedGeometries;
             expectedResponse.features.forEach((feature) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
               feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -1874,7 +1878,7 @@ describe('polygonParts', () => {
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
-              body: featureCollection([multiPolygon(expectedGeometries.map((expectedGeometry) => expectedGeometry.coordinates))]),
+              body: featureCollection([multiPolygon(requestedGeometries.map((requestedGeometry) => requestedGeometry.coordinates))]),
               query: { shouldClip },
             });
 
@@ -2086,6 +2090,7 @@ describe('polygonParts', () => {
             generatePolygon({ bbox: [-100, -70, 100, 70] }),
             generatePolygon({ bbox: [120, -70, 170, 70] }),
           ];
+          const requestedGeometries = expectedGeometries;
           expectedResponse.features.forEach((feature) => {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
             feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -2094,8 +2099,8 @@ describe('polygonParts', () => {
           const response = await requestSender.findPolygonParts({
             params: { polygonPartsEntityName: entityIdentifier },
             body: featureCollection(
-              [expectedGeometries[1], multiPolygon([expectedGeometries[0].coordinates, expectedGeometries[2].coordinates]).geometry].map(
-                (expectedGeometry) => feature(expectedGeometry)
+              [requestedGeometries[1], multiPolygon([requestedGeometries[0].coordinates, requestedGeometries[2].coordinates]).geometry].map(
+                (requestedGeometry) => feature(requestedGeometry)
               )
             ),
             query: { shouldClip },
@@ -2464,6 +2469,7 @@ describe('polygonParts', () => {
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
             const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
             const expectedGeometry = structuredClone(polygonPartsPayload.partsData[0].footprint);
+            const requsetedGeometry = expectedGeometry;
             expectedResponse.features.forEach((feature) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
               feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -2471,7 +2477,7 @@ describe('polygonParts', () => {
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
-              body: featureCollection([multiPolygon([expectedGeometry.coordinates])]),
+              body: featureCollection([multiPolygon([requsetedGeometry.coordinates])]),
               query: { shouldClip },
             });
 
@@ -2507,6 +2513,7 @@ describe('polygonParts', () => {
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
             const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
             const expectedGeometry = structuredClone(polygonPartsPayload.partsData[0].footprint);
+            const requsetedGeometry = expectedGeometry;
             expectedResponse.features.forEach((feature) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
               feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -2514,7 +2521,7 @@ describe('polygonParts', () => {
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
-              body: featureCollection([multiPolygon([expectedGeometry.coordinates])]),
+              body: featureCollection([multiPolygon([requsetedGeometry.coordinates])]),
               query: { shouldClip },
             });
 

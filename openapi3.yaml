@@ -204,12 +204,15 @@ components:
         - minResolutionMeter
         - productBoundingBox
         - sensors
-      allOf:
-        - $ref: '#/components/schemas/FootprintObject'
-        - $ref: '#/components/schemas/ImagingTimeBeginUTCObject'
-        - $ref: '#/components/schemas/ImagingTimeEndUTCObject'
-        - $ref: '#/components/schemas/SensorsObject'
       properties:
+        footprint:
+          oneOf:
+            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
+            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
+        imagingTimeBeginUTC:
+          $ref: '#/components/schemas/ImagingTimeBeginUTC'
+        imagingTimeEndUTC:
+          $ref: '#/components/schemas/ImagingTimeEndUTC'
         maxResolutionDeg:
           allOf:
             - $ref: '#/components/schemas/ResolutionDegree'
@@ -236,6 +239,8 @@ components:
             - description: Minimal horizontal accuracy
         productBoundingBox:
           $ref: '#/components/schemas/BoundingBox'
+        sensors:
+          $ref: '#/components/schemas/Sensors'
     BoundingBox:
       type: string
       pattern: "^-?(0|[1-9]\\d*)(\\.\\d*)?,-?(0|[1-9]\\d*)(\\.\\d*)?,-?(0|[1-9]\\d*)(\\.\\d*)?,-?(0|[1-9]\\d*)(\\.\\d*)?$"
@@ -244,49 +249,21 @@ components:
       format: uuid
       description: Layer's identifier
       example: c52d8189-7e07-456a-8c6b-53859523c3e9
-    CatalogIdObject:
-      type: object
-      required:
-        - catalogId
-      properties:
-        catalogId:
-          $ref: '#/components/schemas/CatalogId'
     Cities:
       type: array
       items:
         type: string
       description: Cities included in the part
       nullable: true
-    CitiesObject:
-      type: object
-      required:
-        - cities
-      properties:
-        cities:
-          $ref: '#/components/schemas/Cities'
     Countries:
       type: array
       items:
         type: string
       description: Countries included in the part
       nullable: true
-    CountriesObject:
-      type: object
-      required:
-        - countries
-      properties:
-        countries:
-          $ref: '#/components/schemas/Countries'
     Description:
       type: string
       nullable: true
-    DescriptionObject:
-      type: object
-      required:
-        - description
-      properties:
-        description:
-          $ref: '#/components/schemas/Description'
     FeatureFindResponse:
       required:
         - type
@@ -346,9 +323,9 @@ components:
           nullable: true
           allOf:
             - oneOf:
-                - $ref: '#/components/schemas/NullTypeRef'
                 - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
                 - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
+                - $ref: '#/components/schemas/NullTypeRef'
         bbox:
           $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
     FeatureCollectionFindPayload:
@@ -368,73 +345,29 @@ components:
             $ref: '#/components/schemas/FeatureFindPayload'
         bbox:
           $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
-    FootprintObject:
-      type: object
-      required:
-        - footprint
-      properties:
-        footprint:
-          oneOf:
-            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
-            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
     Id:
       type: string
       format: uuid
       description: Polygon part's identifier
       example: d56b406d-e5f2-4818-a525-bd996cae60b5
-    IdObject:
-      type: object
-      required:
-        - id
-      properties:
-        id:
-          $ref: '#/components/schemas/Id'
     HorizontalAccuracyCE90:
       type: number
       minimum: 0.01
       maximum: 4000
       format: double
       description: Horizontal accuracy
-    HorizontalAccuracyCE90Object:
-      type: object
-      required:
-        - horizontalAccuracyCE90
-      properties:
-        horizontalAccuracyCE90:
-          $ref: '#/components/schemas/HorizontalAccuracyCE90'
     ImagingTimeBeginUTC:
       type: string
       description: Oldest imaging date (UTC)
       format: date-time
-    ImagingTimeBeginUTCObject:
-      type: object
-      required:
-        - imagingTimeBeginUTC
-      properties:
-        imagingTimeBeginUTC:
-          $ref: '#/components/schemas/ImagingTimeBeginUTC'
     ImagingTimeEndUTC:
       type: string
       description: Latest imaging date (UTC)
       format: date-time
-    ImagingTimeEndUTCObject:
-      type: object
-      required:
-        - imagingTimeEndUTC
-      properties:
-        imagingTimeEndUTC:
-          $ref: '#/components/schemas/ImagingTimeEndUTC'
     IngestionDateUTC:
       type: string
       description: Ingestion date (UTC)
       format: date-time
-    IngestionDateUTCObject:
-      type: object
-      required:
-        - ingestionDateUTC
-      properties:
-        ingestionDateUTC:
-          $ref: '#/components/schemas/IngestionDateUTC'
     PolygonPartsEntityName:
       type: string
       description: Polygon parts entity name
@@ -477,25 +410,43 @@ components:
         - sourceId
         - sourceName
         - sourceResolutionMeter
-      allOf:
-        - $ref: '#/components/schemas/CatalogIdObject'
-        - $ref: '#/components/schemas/CitiesObject'
-        - $ref: '#/components/schemas/CountriesObject'
-        - $ref: '#/components/schemas/DescriptionObject'
-        - $ref: '#/components/schemas/HorizontalAccuracyCE90Object'
-        - $ref: '#/components/schemas/IdObject'
-        - $ref: '#/components/schemas/ImagingTimeBeginUTCObject'
-        - $ref: '#/components/schemas/ImagingTimeEndUTCObject'
-        - $ref: '#/components/schemas/IngestionDateUTCObject'
-        - $ref: '#/components/schemas/ProductIdObject'
-        - $ref: '#/components/schemas/ProductTypeObject'
-        - $ref: '#/components/schemas/ProductVersionObject'
-        - $ref: '#/components/schemas/ResolutionDegreeObject'
-        - $ref: '#/components/schemas/ResolutionMeterObject'
-        - $ref: '#/components/schemas/SensorsObject'
-        - $ref: '#/components/schemas/SourceIdObject'
-        - $ref: '#/components/schemas/SourceNameObject'
-        - $ref: '#/components/schemas/SourceResolutionMeterObject'
+      properties:
+        catalogId:
+          $ref: '#/components/schemas/CatalogId'
+        cities:
+          $ref: '#/components/schemas/Cities'
+        countries:
+          $ref: '#/components/schemas/Countries'
+        description:
+          $ref: '#/components/schemas/Description'
+        horizontalAccuracyCE90:
+          $ref: '#/components/schemas/HorizontalAccuracyCE90'
+        id:
+          $ref: '#/components/schemas/Id'
+        imagingTimeBeginUTC:
+          $ref: '#/components/schemas/ImagingTimeBeginUTC'
+        imagingTimeEndUTC:
+          $ref: '#/components/schemas/ImagingTimeEndUTC'
+        ingestionDateUTC:
+          $ref: '#/components/schemas/IngestionDateUTC'
+        productId:
+          $ref: '#/components/schemas/ProductId'
+        productType:
+          $ref: ./Schema/ingestionTrigger/metadata/rasterLayerMetadata.yaml#/components/schemas/productType
+        productVersion:
+          $ref: '#/components/schemas/ProductVersion'
+        resolutionDegree:
+          $ref: '#/components/schemas/ResolutionDegree'
+        resolutionMeter:
+          $ref: '#/components/schemas/ResolutionMeter'
+        sensors:
+          $ref: '#/components/schemas/Sensors'
+        sourceId:
+          $ref: '#/components/schemas/SourceId'
+        sourceName:
+          $ref: '#/components/schemas/SourceName'
+        sourceResolutionMeter:
+          $ref: '#/components/schemas/SourceResolutionMeter'
     PolygonPartsPayload:
       $ref: ./Schema/polygonPartsManager/payload.yaml#/components/schemas/PolygonPartsPayload
     ProductId:
@@ -503,58 +454,23 @@ components:
       description: Layer's external identifier
       pattern: ^[A-Za-z]{1}[A-Za-z0-9_]{0,37}$
       example: BLUE_MARBLE
-    ProductIdObject:
-      type: object
-      required:
-        - productId
-      properties:
-        productId:
-          $ref: '#/components/schemas/ProductId'
-    ProductTypeObject:
-      type: object
-      required:
-        - productType
-      properties:
-        productType:
-          $ref: ./Schema/ingestionTrigger/metadata/rasterLayerMetadata.yaml#/components/schemas/productType
     ProductVersion:
       type: string
       pattern: ^[1-9]\d*(\.(0|[1-9]\d?))?$
       description: Layer's version
       example: 1.23
-    ProductVersionObject:
-      type: object
-      required:
-        - productVersion
-      properties:
-        productVersion:
-          $ref: '#/components/schemas/ProductVersion'
     ResolutionDegree:
       type: number
       minimum: 1.67638e-7
       maximum: 0.703125
       format: double
       description: Resolution of layer in degrees/pixel
-    ResolutionDegreeObject:
-      type: object
-      required:
-        - resolutionDegree
-      properties:
-        resolutionDegree:
-          $ref: '#/components/schemas/ResolutionDegree'
     ResolutionMeter:
       type: number
       minimum: 0.0185
       maximum: 78271.52
       format: double
       description: Resolution of layer in meters
-    ResolutionMeterObject:
-      type: object
-      required:
-        - resolutionMeter
-      properties:
-        resolutionMeter:
-          $ref: '#/components/schemas/ResolutionMeter'
     Sensors:
       type: array
       items:
@@ -562,47 +478,19 @@ components:
         pattern: ^(?!\s).+(?<!\s)$
       minItems: 1
       description: Layer's sensors list
-    SensorsObject:
-      type: object
-      required:
-        - sensors
-      properties:
-        sensors:
-          $ref: '#/components/schemas/Sensors'
     SourceId:
       type: string
       description: Layer's external identifier
       nullable: true
-    SourceIdObject:
-      type: object
-      required:
-        - sourceId
-      properties:
-        sourceId:
-          $ref: '#/components/schemas/SourceId'
     SourceName:
       type: string
       description: Layer's external name
-    SourceNameObject:
-      type: object
-      required:
-        - sourceName
-      properties:
-        sourceName:
-          $ref: '#/components/schemas/SourceName'
     SourceResolutionMeter:
       type: number
       minimum: 0.0185
       maximum: 78271.52
       format: double
       description: Resolution of layer in meters
-    SourceResolutionMeterObject:
-      type: object
-      required:
-        - sourceResolutionMeter
-      properties:
-        sourceResolutionMeter:
-          $ref: '#/components/schemas/SourceResolutionMeter'
     ErrorMessage:
       type: object
       properties:

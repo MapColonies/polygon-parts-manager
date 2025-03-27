@@ -1,4 +1,10 @@
-import { INGESTION_VALIDATIONS, multiPolygonSchema, polygonPartsEntityPatternSchema, polygonSchema } from '@map-colonies/raster-shared';
+import {
+  INGESTION_VALIDATIONS,
+  multiPolygonSchema,
+  polygonPartsEntityPatternSchema,
+  polygonSchema,
+  roiPropertiesSchema,
+} from '@map-colonies/raster-shared';
 import { ZodType, z, type ZodTypeDef } from 'zod';
 import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig } from '../../common/interfaces';
@@ -10,9 +16,10 @@ import type { EntitiesMetadata, EntityNames, IsSwapQueryParams } from '../models
 const polygonPartsEntityNamePatternSchema = z.string().regex(new RegExp(INGESTION_VALIDATIONS.polygonPartsEntityName.pattern));
 
 const findPolygonPartsFeatureSchema = z.object({
+  id: z.string().or(z.number()).optional(),
   type: z.literal('Feature'),
   geometry: polygonSchema.or(multiPolygonSchema).nullable(),
-  properties: z.object({}).passthrough().nullable(),
+  properties: z.union([z.object({}).passthrough(), roiPropertiesSchema.passthrough()]).nullable(),
 });
 
 const findPolygonPartsFeatureCollectionSchema = z.object({

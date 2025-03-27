@@ -3,8 +3,9 @@ import type {
   PolygonPartsEntityName,
   PolygonPartsEntityNameObject,
   PolygonPartsPayload as PolygonPartsPayloadType,
+  RoiProperties,
 } from '@map-colonies/raster-shared';
-import type { FeatureCollection, MultiPolygon, Polygon } from 'geojson';
+import type { Feature, FeatureCollection, GeoJsonProperties, MultiPolygon, Polygon } from 'geojson';
 import type { NullableRecordValues, ReplaceValuesOfType } from '../../common/types';
 
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
@@ -21,28 +22,30 @@ export interface InsertPartData extends Readonly<Omit<CommonPayload, 'countries'
 /**
  * Find polygon parts options
  */
-export interface FindPolygonPartsOptions {
-  readonly shouldClip: boolean;
+export interface FindPolygonPartsOptions<ShouldClip extends boolean = boolean> {
+  readonly shouldClip: ShouldClip;
   readonly polygonPartsEntityName: EntityNames;
-  readonly filter: FeatureCollection<Polygon | MultiPolygon | null>;
+  readonly filter: FeatureCollection<Polygon | MultiPolygon | null, (GeoJsonProperties & Partial<RoiProperties>) | null>;
 }
 
 /**
  * Find polygon parts response
  */
-export type FindPolygonPartsResponse = FeatureCollection<
+export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = FeatureCollection<
   Polygon,
   ReplaceValuesOfType<
     NullableRecordValues<
       Omit<CommonRecord, 'countries' | 'cities' | 'footprint' | 'sensors'> & {
-        readonly countries?: string[];
-        readonly cities?: string[];
-        readonly sensors: string[];
+        countries?: string[];
+        cities?: string[];
+        sensors: string[];
       }
     >,
     Date,
     string
-  >
+  > & {
+    requestFeatureId?: ShouldClip extends true ? NonNullable<Feature['id']> : NonNullable<Feature['id']>[];
+  }
 >;
 
 /**

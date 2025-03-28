@@ -230,15 +230,15 @@ export class PolygonPartsManager {
       .from('filter_extract_geometries', 'filter_extract_geometries')
       .where('filter_geometry is not null');
 
-    const counterNonNullGeometriesCTE = entityManager
+    const filterNonNullGeometriesCounterCTE = entityManager
       .createQueryBuilder()
       .select('count(1)', 'count')
       .from('filter_non_null_geometries', 'filter_non_null_geometries');
 
     const filterNullGeometriesCTE = `select filter_extract_geometries.filter_feature, st_makeenvelope(-180, -90, 180, 90, 4326) as filter_geometry
-      from filter_extract_geometries, counter_non_null_geometries
+      from filter_extract_geometries, filter_non_null_geometries_counter
       where filter_extract_geometries.filter_geometry is null
-      and counter_non_null_geometries.count = 0
+      and filter_non_null_geometries_counter.count = 0
       union all
       select '{"type": "Feature", "geometry": null, "properties": null}'::jsonb, st_makeenvelope(-180, -90, 180, 90, 4326)
       where not exists (
@@ -307,7 +307,7 @@ export class PolygonPartsManager {
     const findPolygonPartsQuery = findPolygonPartsSelect
       .addCommonTableExpression(filterExtractGeometriesCTE, 'filter_extract_geometries')
       .addCommonTableExpression(filterNonNullGeometriesCTE, 'filter_non_null_geometries')
-      .addCommonTableExpression(counterNonNullGeometriesCTE, 'counter_non_null_geometries')
+      .addCommonTableExpression(filterNonNullGeometriesCounterCTE, 'filter_non_null_geometries_counter')
       .addCommonTableExpression(filterNullGeometriesCTE, 'filter_null_geometries')
       .addCommonTableExpression(filterGeometriesCTE, 'filter_geometries')
       .addCommonTableExpression(intersectionsCTE, 'intersections')

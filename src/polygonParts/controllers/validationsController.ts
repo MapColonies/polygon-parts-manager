@@ -60,19 +60,31 @@ export class ValidationsController {
       schemaParser({ schema: polygonPartsEntityNameSchema, value: req.params, errorMessagePrefix: 'Invalid request params' });
       schemaParser({ schema: findPolygonPartsQueryParamsSchema, value: req.query, errorMessagePrefix: 'Invalid query params' });
       schemaParser({
-        schema: findPolygonPartsRequestBodySchema.refine((findPolygonPartsRequestBody) => {
-          const nonEmptyGeometryFeatures = {
-            ...findPolygonPartsRequestBody,
-            features: findPolygonPartsRequestBody.features.filter((feature): feature is Feature<Polygon | MultiPolygon> => feature.geometry !== null),
-          };
-          try {
-            const inputGeometriesSelfIntersect = !(nonEmptyGeometryFeatures.features.length > 1 && intersect(nonEmptyGeometryFeatures));
-            return inputGeometriesSelfIntersect;
-          } catch (error) {
-            this.logger.error(error);
-            return false;
-          }
-        }, 'Input features should not intersect'),
+        schema: findPolygonPartsRequestBodySchema
+          .refine((findPolygonPartsRequestBody) => {
+            const nonEmptyGeometryFeatures = {
+              ...findPolygonPartsRequestBody,
+              features: findPolygonPartsRequestBody.features.filter(
+                (feature): feature is Feature<Polygon | MultiPolygon> => feature.geometry !== null
+              ),
+            };
+            try {
+              const inputGeometriesSelfIntersect = !(nonEmptyGeometryFeatures.features.length > 1 && intersect(nonEmptyGeometryFeatures));
+              return inputGeometriesSelfIntersect;
+            } catch (error) {
+              this.logger.error(error);
+              return false;
+            }
+          }, 'Input features should not intersect')
+          .transform((featureCollection) =>
+            featureCollection.features
+              .map((feature) => feature.id)
+              .filter<NonNullable<Feature['id']>>((featureId): featureId is NonNullable<Feature['id']> => featureId !== undefined)
+          )
+          .refine((featureIds) => {
+            const uniqueFeatureIds = new Set(featureIds);
+            return uniqueFeatureIds.size === featureIds.length
+          }, 'Input features should have unique ids'),
         value: req.body,
         errorMessagePrefix: 'Invalid request body',
       });

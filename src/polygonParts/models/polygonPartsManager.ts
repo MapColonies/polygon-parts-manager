@@ -235,14 +235,15 @@ export class PolygonPartsManager {
       .select('count(1)', 'count')
       .from('filter_non_null_geometries', 'filter_non_null_geometries');
 
-    const filterNullGeometriesCTE = entityManager
-      .createQueryBuilder()
-      .select('filter_extract_geometries.filter_feature')
-      .addSelect('st_makeenvelope(-180, -90, 180, 90, 4326) as filter_geometry')
-      .from('filter_extract_geometries', 'filter_extract_geometries')
-      .addFrom('counter_non_null_geometries', 'counter_non_null_geometries')
-      .where('filter_extract_geometries.filter_geometry is null')
-      .andWhere('counter_non_null_geometries.count = 0');
+    const filterNullGeometriesCTE = `select filter_extract_geometries.filter_feature, st_makeenvelope(-180, -90, 180, 90, 4326) as filter_geometry
+      from filter_extract_geometries, counter_non_null_geometries
+      where filter_extract_geometries.filter_geometry is null
+      and counter_non_null_geometries.count = 0
+      union all
+      select '{"type": "Feature", "geometry": null, "properties": null}'::jsonb, st_makeenvelope(-180, -90, 180, 90, 4326)
+      where not exists (
+        select 1 from filter_extract_geometries
+	    )`;
 
     const filterGeometriesCTE = `select filter_feature, filter_geometry from filter_non_null_geometries
         union all

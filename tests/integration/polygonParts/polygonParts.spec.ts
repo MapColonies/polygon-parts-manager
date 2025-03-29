@@ -877,16 +877,26 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
-            const expectedGeometry = polygon([
-              [
-                [-20, -20],
-                [20, -40],
-                [-20, -40],
-                [-20, -20],
-              ],
-            ]).geometry;
-            expectedResponse.features.push(expectedResponse.features[0]);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload, 2);
+            const expectedGeometries = [
+              polygon([
+                [
+                  [-20, 20],
+                  [20, 20],
+                  [20, 40],
+                  [-20, 40],
+                  [-20, 20],
+                ],
+              ]),
+              polygon([
+                [
+                  [-20, -20],
+                  [20, -40],
+                  [-20, -40],
+                  [-20, -20],
+                ],
+              ]),
+            ].map((expectedGeometry) => expectedGeometry.geometry);
             expectedResponse.features.forEach((feature) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
               feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -918,10 +928,13 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+            expect(responseBody.features).toHaveLength(expectedGeometries.length);
+            responseBody.features.forEach((feature, index) => {
+              expect(booleanEqual(feature.geometry, expectedGeometries[index], { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+            });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(4);
+            expect.assertions(6);
           });
 
           it('should return 200 status code and return empty array when feature collection features (single feature) with a hole and polygon parts are inside the hole', async () => {

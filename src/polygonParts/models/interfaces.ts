@@ -44,7 +44,7 @@ export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = Fea
     Date,
     string
   > & {
-    requestFeatureId?: ShouldClip extends true ? NonNullable<Feature['id']> : NonNullable<Feature['id']>[];
+    requestFeatureId?: NonNullable<Feature['id']> | (ShouldClip extends true ? never : NonNullable<Feature['id']>[]);
   }
 >;
 

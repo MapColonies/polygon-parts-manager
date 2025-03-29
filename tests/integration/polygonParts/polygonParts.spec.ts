@@ -368,16 +368,27 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
-            const expectedGeometry = polygon([
-              [
-                [-1, 0],
-                [1, 0],
-                [1, 1],
-                [-1, 1],
-                [-1, 0],
-              ],
-            ]).geometry;
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload, 2);
+            const expectedGeometries = [
+              polygon([
+                [
+                  [-1, 0],
+                  [0, 0],
+                  [0, 1],
+                  [-1, 1],
+                  [-1, 0],
+                ],
+              ]),
+              polygon([
+                [
+                  [0, 0],
+                  [1, 0],
+                  [1, 1],
+                  [0, 1],
+                  [0, 0],
+                ],
+              ]),
+            ].map((expectedGeometry) => expectedGeometry.geometry);
             expectedResponse.features.forEach((feature) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
               feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -388,11 +399,11 @@ describe('polygonParts', () => {
               body: polygons([
                 [
                   [
+                    [0, 0],
                     [180, 0],
                     [180, 90],
                     [0, 90],
                     [0, 0],
-                    [180, 0],
                   ],
                 ],
                 [
@@ -411,10 +422,13 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+            expect(responseBody.features).toHaveLength(expectedGeometries.length);
+            responseBody.features.forEach((feature, index) => {
+              expect(booleanEqual(feature.geometry, expectedGeometries[index], { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+            });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(4);
+            expect.assertions(6);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (single feature) are within polygon parts', async () => {
@@ -482,16 +496,27 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
-            const expectedGeometry = polygon([
-              [
-                [-40, -40],
-                [40, -40],
-                [40, 40],
-                [-40, 40],
-                [-40, -40],
-              ],
-            ]).geometry;
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload, 2);
+            const expectedGeometries = [
+              polygon([
+                [
+                  [-40, -40],
+                  [0, -40],
+                  [0, 40],
+                  [-40, 40],
+                  [-40, -40],
+                ],
+              ]),
+              polygon([
+                [
+                  [0, -40],
+                  [40, -40],
+                  [40, 40],
+                  [0, 40],
+                  [0, -40],
+                ],
+              ]),
+            ].map((expectedGeometry) => expectedGeometry.geometry);
             expectedResponse.features.forEach((feature) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
               feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -525,10 +550,13 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+            expect(responseBody.features).toHaveLength(expectedGeometries.length);
+            responseBody.features.forEach((feature, index) => {
+              expect(booleanEqual(feature.geometry, expectedGeometries[index], { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+            });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(4);
+            expect.assertions(6);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (single feature) intersect polygon parts, generating multiple polygon parts as a result of clipping', async () => {
@@ -556,7 +584,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload, 2);
             const expectedGeometries = [
               polygon([
                 [
@@ -577,7 +605,6 @@ describe('polygonParts', () => {
                 ],
               ]),
             ].map((expectedGeometry) => expectedGeometry.geometry);
-            expectedResponse.features.push(expectedResponse.features[0]);
             expectedResponse.features.forEach((feature) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
               feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -636,7 +663,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload, 2);
             const expectedGeometries = [
               polygon([
                 [
@@ -657,7 +684,6 @@ describe('polygonParts', () => {
                 ],
               ]),
             ].map((expectedGeometry) => expectedGeometry.geometry);
-            expectedResponse.features.push(expectedResponse.features[0]);
             expectedResponse.features.forEach((feature) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
               feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -706,17 +732,8 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload, 2);
             const expectedGeometries = [
-              polygon([
-                [
-                  [-20, -40],
-                  [20, -40],
-                  [20, -20],
-                  [-20, -20],
-                  [-20, -40],
-                ],
-              ]),
               polygon([
                 [
                   [-20, 20],
@@ -726,8 +743,16 @@ describe('polygonParts', () => {
                   [-20, 20],
                 ],
               ]),
+              polygon([
+                [
+                  [-20, -40],
+                  [20, -40],
+                  [20, -20],
+                  [-20, -20],
+                  [-20, -40],
+                ],
+              ]),
             ].map((expectedGeometry) => expectedGeometry.geometry);
-            expectedResponse.features.push(expectedResponse.features[0]);
             expectedResponse.features.forEach((feature) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
               feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -757,28 +782,45 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload, 4);
             const expectedGeometries = [
               polygon([
                 [
-                  [-20, -40],
-                  [20, -40],
-                  [20, -20],
-                  [-20, -20],
-                  [-20, -40],
-                ],
-              ]),
-              polygon([
-                [
                   [-20, 20],
-                  [20, 20],
-                  [20, 40],
+                  [0, 20],
+                  [0, 40],
                   [-20, 40],
                   [-20, 20],
                 ],
               ]),
+              polygon([
+                [
+                  [0, 20],
+                  [20, 20],
+                  [20, 40],
+                  [0, 40],
+                  [0, 20],
+                ],
+              ]),
+              polygon([
+                [
+                  [0, -40],
+                  [20, -40],
+                  [20, -20],
+                  [0, -20],
+                  [0, -40],
+                ],
+              ]),
+              polygon([
+                [
+                  [-20, -40],
+                  [0, -40],
+                  [0, -20],
+                  [-20, -20],
+                  [-20, -40],
+                ],
+              ]),
             ].map((expectedGeometry) => expectedGeometry.geometry);
-            expectedResponse.features.push(expectedResponse.features[0]);
             expectedResponse.features.forEach((feature) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
               feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -826,7 +868,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(6);
+            expect.assertions(8);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (single feature) with a hole (boundary rings touch at a point) intersect polygon parts', async () => {
@@ -1165,16 +1207,27 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
-            const expectedGeometry = polygon([
-              [
-                [-1, -1],
-                [1, -1],
-                [1, 1],
-                [-1, 1],
-                [-1, -1],
-              ],
-            ]).geometry;
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload, 2);
+            const expectedGeometries = [
+              polygon([
+                [
+                  [-1, 0],
+                  [1, 0],
+                  [1, 1],
+                  [-1, 1],
+                  [-1, 0],
+                ],
+              ]),
+              polygon([
+                [
+                  [-1, -1],
+                  [1, -1],
+                  [1, 0],
+                  [-1, 0],
+                  [-1, -1],
+                ],
+              ]),
+            ].map((expectedGeometry) => expectedGeometry.geometry);
             expectedResponse.features.forEach((feature) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
               feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -1212,10 +1265,13 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+            expect(responseBody.features).toHaveLength(expectedGeometries.length);
+            responseBody.features.forEach((feature, index) => {
+              expect(booleanEqual(feature.geometry, expectedGeometries[index], { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+            });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(4);
+            expect.assertions(6);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (non-continuous multi-polygon) partially intersect the same polygon parts', async () => {
@@ -1243,20 +1299,20 @@ describe('polygonParts', () => {
             const expectedGeometries = [
               polygon([
                 [
-                  [-1, -1],
-                  [1, -1],
-                  [1, -0.5],
-                  [-1, -0.5],
-                  [-1, -1],
-                ],
-              ]),
-              polygon([
-                [
                   [-1, 0.5],
                   [1, 0.5],
                   [1, 1],
                   [-1, 1],
                   [-1, 0.5],
+                ],
+              ]),
+              polygon([
+                [
+                  [-1, -1],
+                  [1, -1],
+                  [1, -0.5],
+                  [-1, -0.5],
+                  [-1, -1],
                 ],
               ]),
             ].map((expectedGeometry) => expectedGeometry.geometry);
@@ -1319,24 +1375,42 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload, 2);
             const expectedGeometries = [
               polygon([
                 [
-                  [-1, -1],
-                  [0, -1],
-                  [0, 1],
                   [-1, 1],
-                  [-1, -1],
+                  [0, 1],
+                  [0, 0],
+                  [-1, 0],
+                  [-1, 1],
                 ],
               ]),
               polygon([
                 [
+                  [-1, 0],
+                  [0, 0],
                   [0, -1],
-                  [1, -1],
-                  [1, 1],
+                  [-1, -1],
+                  [-1, 0],
+                ],
+              ]),
+              polygon([
+                [
                   [0, 1],
+                  [1, 1],
+                  [1, 0],
+                  [0, 0],
+                  [0, 1],
+                ],
+              ]),
+              polygon([
+                [
+                  [0, 0],
+                  [1, 0],
+                  [1, -1],
                   [0, -1],
+                  [0, 0],
                 ],
               ]),
             ].map((expectedGeometry) => expectedGeometry.geometry);
@@ -1383,7 +1457,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(6);
+            expect.assertions(8);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (non-continuous multi-polygon) partially intersect different polygon parts', async () => {
@@ -1425,15 +1499,6 @@ describe('polygonParts', () => {
             const expectedGeometries = [
               polygon([
                 [
-                  [-1, -1],
-                  [0, -1],
-                  [0, -0.5],
-                  [-1, -0.5],
-                  [-1, -1],
-                ],
-              ]),
-              polygon([
-                [
                   [-1, 0.5],
                   [0, 0.5],
                   [0, 1],
@@ -1443,11 +1508,11 @@ describe('polygonParts', () => {
               ]),
               polygon([
                 [
+                  [-1, -1],
                   [0, -1],
-                  [1, -1],
-                  [1, -0.5],
                   [0, -0.5],
-                  [0, -1],
+                  [-1, -0.5],
+                  [-1, -1],
                 ],
               ]),
               polygon([
@@ -1457,6 +1522,15 @@ describe('polygonParts', () => {
                   [1, 1],
                   [0, 1],
                   [0, 0.5],
+                ],
+              ]),
+              polygon([
+                [
+                  [0, -1],
+                  [1, -1],
+                  [1, -0.5],
+                  [0, -0.5],
+                  [0, -1],
                 ],
               ]),
             ].map((expectedGeometry) => expectedGeometry.geometry);
@@ -1525,16 +1599,27 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
-            const expectedGeometry = polygon([
-              [
-                [-1, -1],
-                [1, -1],
-                [1, 1],
-                [-1, 1],
-                [-1, -1],
-              ],
-            ]).geometry;
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload, 2);
+            const expectedGeometries = [
+              polygon([
+                [
+                  [-1, -1],
+                  [0, -1],
+                  [0, 1],
+                  [-1, 1],
+                  [-1, -1],
+                ],
+              ]),
+              polygon([
+                [
+                  [0, -1],
+                  [1, -1],
+                  [1, 1],
+                  [0, 1],
+                  [0, -1],
+                ],
+              ]),
+            ].map((expectedGeometry) => expectedGeometry.geometry);
             expectedResponse.features.forEach((feature) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
               feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -1572,10 +1657,13 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+            expect(responseBody.features).toHaveLength(expectedGeometries.length);
+            responseBody.features.forEach((feature, index) => {
+              expect(booleanEqual(feature.geometry, expectedGeometries[index], { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+            });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(4);
+            expect.assertions(6);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (non-continuous multi-polygon) are within the same polygon parts', async () => {
@@ -1603,20 +1691,20 @@ describe('polygonParts', () => {
             const expectedGeometries = [
               polygon([
                 [
-                  [-1, -1],
-                  [1, -1],
-                  [1, -0.5],
-                  [-1, -0.5],
-                  [-1, -1],
-                ],
-              ]),
-              polygon([
-                [
                   [-1, 0.5],
                   [1, 0.5],
                   [1, 1],
                   [-1, 1],
                   [-1, 0.5],
+                ],
+              ]),
+              polygon([
+                [
+                  [-1, -1],
+                  [1, -1],
+                  [1, -0.5],
+                  [-1, -0.5],
+                  [-1, -1],
                 ],
               ]),
             ].map((expectedGeometry) => expectedGeometry.geometry);
@@ -1851,22 +1939,22 @@ describe('polygonParts', () => {
             const expectedGeometries = [
               polygon([
                 [
-                  [-1, -1],
-                  [1, -1],
-                  [1, -0.5],
-                  [0, -0.75],
-                  [-1, -0.5],
-                  [-1, -1],
-                ],
-              ]),
-              polygon([
-                [
                   [-1, 0.5],
                   [0, 0.75],
                   [1, 0.5],
                   [1, 1],
                   [-1, 1],
                   [-1, 0.5],
+                ],
+              ]),
+              polygon([
+                [
+                  [-1, -1],
+                  [1, -1],
+                  [1, -0.5],
+                  [0, -0.75],
+                  [-1, -0.5],
+                  [-1, -1],
                 ],
               ]),
             ].map((expectedGeometry) => expectedGeometry.geometry);
@@ -1904,20 +1992,20 @@ describe('polygonParts', () => {
             const expectedGeometries = [
               polygon([
                 [
-                  [-20, -40],
-                  [20, -40],
-                  [20, -20],
-                  [-20, -20],
-                  [-20, -40],
-                ],
-              ]),
-              polygon([
-                [
                   [-20, 20],
                   [20, 20],
                   [20, 40],
                   [-20, 40],
                   [-20, 20],
+                ],
+              ]),
+              polygon([
+                [
+                  [-20, -40],
+                  [20, -40],
+                  [20, -20],
+                  [-20, -20],
+                  [-20, -40],
                 ],
               ]),
             ].map((expectedGeometry) => expectedGeometry.geometry);

@@ -320,6 +320,59 @@ describe('polygonParts', () => {
             expect.assertions(3);
           });
 
+          it('should return 200 status code and return clipped polygon parts when request feature collection has some features with null geometry', async () => {
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [180, -90],
+                        [180, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const requestGeometry = generatePolygon();
+            const expectedGeometry = requestGeometry;
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [
+                  { type: 'Feature', geometry: requestGeometry, properties: {} },
+                  { type: 'Feature', geometry: null, properties: {} },
+                ],
+              },
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(responseBody.features).toHaveLength(1);
+            expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(5);
+          });
+
+          // TODO: responseBody.features[0].geometry replace all to satisfyAll and add length check
+
           it('should return 200 status code and return clipped polygon parts when feature collection features (single feature) contain polygon parts', async () => {
             const polygonPartsPayload = generatePolygonPartsPayload(1);
             await requestSender.createPolygonParts(polygonPartsPayload);
@@ -1226,6 +1279,67 @@ describe('polygonParts', () => {
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
+          });
+
+          it('should return 200 status code and return clipped polygon parts when request feature collection has some features with null geometry', async () => {
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [180, -90],
+                        [180, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload, 2);
+            const polygonPart1 = generatePolygon({ bbox: [-170, -80, -10, 80] });
+            const polygonPart2 = generatePolygon({ bbox: [10, -80, 170, 80] });
+            const requestGeometry = {
+              type: 'MultiPolygon',
+              coordinates: [polygonPart1.coordinates, polygonPart2.coordinates],
+            } satisfies MultiPolygon;
+            const expectedGeometries = [polygonPart1, polygonPart2];
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [
+                  { type: 'Feature', geometry: requestGeometry, properties: {} },
+                  { type: 'Feature', geometry: null, properties: {} },
+                ],
+              },
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(responseBody.features).toHaveLength(expectedGeometries.length);
+            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
+              const index = expectedGeometries.findIndex((expectedGeometry) =>
+                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
+              );
+              return expectedGeometries.splice(index, 1).length === 1;
+            });
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(5);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (2 continuous features) contain polygon parts', async () => {
@@ -2388,6 +2502,57 @@ describe('polygonParts', () => {
             expect.assertions(3);
           });
 
+          it('should return 200 status code and return polygon parts when request feature collection has some features with null geometry', async () => {
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [180, -90],
+                        [180, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const requestGeometry = generatePolygon();
+            const expectedGeometry = structuredClone(expectedResponse.features[0].geometry);
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [
+                  { type: 'Feature', geometry: requestGeometry, properties: {} },
+                  { type: 'Feature', geometry: null, properties: {} },
+                ],
+              },
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(responseBody.features).toHaveLength(1);
+            expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(5);
+          });
+
           it('should return 200 status code and return polygon parts when feature collection features (single feature) partially intersect polygon parts', async () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
@@ -2599,6 +2764,60 @@ describe('polygonParts', () => {
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
+          });
+
+          it('should return 200 status code and return polygon parts when request feature collection has some features with null geometry', async () => {
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [180, -90],
+                        [180, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const requestGeometry = {
+              type: 'MultiPolygon',
+              coordinates: [generatePolygon({ bbox: [-170, -80, -10, 80] }).coordinates, generatePolygon({ bbox: [10, -80, 170, 80] }).coordinates],
+            } satisfies MultiPolygon;
+            const expectedGeometry = structuredClone(expectedResponse.features[0].geometry);
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [
+                  { type: 'Feature', geometry: requestGeometry, properties: {} },
+                  { type: 'Feature', geometry: null, properties: {} },
+                ],
+              },
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(responseBody.features).toHaveLength(1);
+            expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(5);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (non-continuous multi-polygon) partially intersect the same polygon parts', async () => {

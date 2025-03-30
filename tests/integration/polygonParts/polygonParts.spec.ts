@@ -364,14 +364,11 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(1);
             expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
-
-          // TODO: responseBody.features[0].geometry replace all to satisfyAll and add length check
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (single feature) contain polygon parts', async () => {
             const polygonPartsPayload = generatePolygonPartsPayload(1);
@@ -564,7 +561,6 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(expectedGeometries.length);
             expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -573,7 +569,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (single feature) are within polygon parts', async () => {
@@ -695,7 +691,6 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(expectedGeometries.length);
             expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -704,7 +699,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (single feature) intersect polygon parts, generating multiple polygon parts as a result of clipping', async () => {
@@ -777,7 +772,6 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(expectedGeometries.length);
             expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -786,7 +780,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (2 continuous features) intersect polygon parts, generating multiple polygon parts as a result of clipping', async () => {
@@ -868,7 +862,6 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(expectedGeometries.length);
             expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -877,7 +870,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (single feature) with a hole intersect polygon parts, generating multiple polygon parts as a result of clipping', async () => {
@@ -921,7 +914,6 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(expectedGeometries.length);
             expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -930,7 +922,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (2 continuous features) forming a hole together, intersect polygon parts, generating multiple polygon parts as a result of clipping', async () => {
@@ -1019,7 +1011,6 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(expectedGeometries.length);
             expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -1028,7 +1019,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (single feature) with a hole (boundary rings touch at a point) intersect polygon parts', async () => {
@@ -1088,7 +1079,6 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(expectedGeometries.length);
             expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -1097,7 +1087,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
         });
 
@@ -1330,7 +1320,6 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(expectedGeometries.length);
             expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -1339,7 +1328,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (2 continuous features) contain polygon parts', async () => {
@@ -1523,7 +1512,6 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(expectedGeometries.length);
             expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -1532,7 +1520,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (non-continuous multi-polygon) partially intersect the same polygon parts', async () => {
@@ -1592,7 +1580,6 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(expectedGeometries.length);
             expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -1601,7 +1588,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (2 continuous features) partially intersect different polygon parts', async () => {
@@ -1715,7 +1702,6 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(expectedGeometries.length);
             expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -1724,7 +1710,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (non-continuous multi-polygon) partially intersect different polygon parts', async () => {
@@ -1836,7 +1822,6 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(expectedGeometries.length);
             expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -1845,7 +1830,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (2 continuous features) are within the same polygon parts', async () => {
@@ -1927,7 +1912,6 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(expectedGeometries.length);
             expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -1936,7 +1920,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (non-continuous multi-polygon) are within the same polygon parts', async () => {
@@ -1996,7 +1980,6 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(expectedGeometries.length);
             expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -2005,7 +1988,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (2 continuous features) intersect the same polygon parts, generating multiple polygon parts as a result of clipping', async () => {
@@ -2091,7 +2074,6 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(expectedGeometries.length);
             expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -2100,7 +2082,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (non-continuous multi-polygon) intersect the same polygon parts, generating multiple polygon parts as a result of clipping', async () => {
@@ -2184,7 +2166,6 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(expectedGeometries.length);
             expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -2193,7 +2174,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (multi-polygon with parts touching at points) partially intersect the same polygon parts', async () => {
@@ -2255,7 +2236,6 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(expectedGeometries.length);
             expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -2264,7 +2244,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (single feature) with a hole intersect polygon parts, generating multiple polygon parts as a result of clipping', async () => {
@@ -2327,7 +2307,6 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(expectedGeometries.length);
             expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -2336,7 +2315,7 @@ describe('polygonParts', () => {
             });
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
         });
 
@@ -2375,7 +2354,6 @@ describe('polygonParts', () => {
           const responseBody = response.body as FindPolygonPartsResponseBody;
           expect(response.status).toBe(httpStatusCodes.OK);
           expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-          expect(responseBody.features).toHaveLength(expectedGeometries.length);
           expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
             const index = expectedGeometries.findIndex((expectedGeometry) =>
               booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
@@ -2384,7 +2362,7 @@ describe('polygonParts', () => {
           });
           expect(response).toSatisfyApiSpec();
 
-          expect.assertions(5);
+          expect.assertions(4);
         });
       });
 
@@ -2546,11 +2524,10 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(1);
             expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
 
           it('should return 200 status code and return polygon parts when feature collection features (single feature) partially intersect polygon parts', async () => {
@@ -2813,11 +2790,10 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toHaveLength(1);
             expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
             expect(response).toSatisfyApiSpec();
 
-            expect.assertions(5);
+            expect.assertions(4);
           });
 
           it('should return 200 status code and return clipped polygon parts when feature collection features (non-continuous multi-polygon) partially intersect the same polygon parts', async () => {

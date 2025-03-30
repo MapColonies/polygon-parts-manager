@@ -231,6 +231,95 @@ describe('polygonParts', () => {
             expect.assertions(3);
           });
 
+          it('should return 200 status code and return empty array when feature collection features (single feature) with a hole and polygon parts are inside the hole', async () => {
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, 0],
+                        [1, 0],
+                        [1, 1],
+                        [0, 1],
+                        [0, 0],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: polygonHole as FeatureCollection<Polygon>,
+              query: { shouldClip },
+            });
+
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(3);
+          });
+
+          it('should return 200 status code and return empty array when feature collection features (single feature) are inside a hole in polygon parts', async () => {
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-40, -40],
+                        [40, -40],
+                        [40, 40],
+                        [-40, 40],
+                        [-40, -40],
+                      ],
+                      [
+                        [-20, -20],
+                        [20, -20],
+                        [20, 20],
+                        [-20, 20],
+                        [-20, -20],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: polygons([
+                [
+                  [
+                    [-20, -20],
+                    [20, -20],
+                    [20, 20],
+                    [-20, 20],
+                    [-20, -20],
+                  ],
+                ],
+              ]),
+              query: { shouldClip },
+            });
+
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(3);
+          });
+
           it('should return 200 status code and return clipped polygon parts when feature collection features (single feature) contain polygon parts', async () => {
             const polygonPartsPayload = generatePolygonPartsPayload(1);
             await requestSender.createPolygonParts(polygonPartsPayload);
@@ -957,95 +1046,6 @@ describe('polygonParts', () => {
 
             expect.assertions(5);
           });
-
-          it('should return 200 status code and return empty array when feature collection features (single feature) with a hole and polygon parts are inside the hole', async () => {
-            const polygonPartsPayload = generatePolygonPartsPayload({
-              partsData: [
-                {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [0, 0],
-                        [1, 0],
-                        [1, 1],
-                        [0, 1],
-                        [0, 0],
-                      ],
-                    ],
-                  },
-                },
-              ],
-            });
-            await requestSender.createPolygonParts(polygonPartsPayload);
-            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
-
-            const response = await requestSender.findPolygonParts({
-              params: { polygonPartsEntityName: entityIdentifier },
-              body: polygonHole as FeatureCollection<Polygon>,
-              query: { shouldClip },
-            });
-
-            expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(response).toSatisfyApiSpec();
-
-            expect.assertions(3);
-          });
-
-          it('should return 200 status code and return empty array when feature collection features (single feature) are inside a hole in polygon parts', async () => {
-            const polygonPartsPayload = generatePolygonPartsPayload({
-              partsData: [
-                {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-40, -40],
-                        [40, -40],
-                        [40, 40],
-                        [-40, 40],
-                        [-40, -40],
-                      ],
-                      [
-                        [-20, -20],
-                        [20, -20],
-                        [20, 20],
-                        [-20, 20],
-                        [-20, -20],
-                      ],
-                    ],
-                  },
-                },
-              ],
-            });
-            await requestSender.createPolygonParts(polygonPartsPayload);
-            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
-
-            const response = await requestSender.findPolygonParts({
-              params: { polygonPartsEntityName: entityIdentifier },
-              body: polygons([
-                [
-                  [
-                    [-20, -20],
-                    [20, -20],
-                    [20, 20],
-                    [-20, 20],
-                    [-20, -20],
-                  ],
-                ],
-              ]),
-              query: { shouldClip },
-            });
-
-            expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(response).toSatisfyApiSpec();
-
-            expect.assertions(3);
-          });
         });
 
         describe('input features are multi-polygon geometries', () => {
@@ -1104,6 +1104,116 @@ describe('polygonParts', () => {
                       [2, 0],
                       [1, 1],
                       [1, 0],
+                    ],
+                  ],
+                ]),
+              ]),
+              query: { shouldClip },
+            });
+
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(3);
+          });
+
+          it('should return 200 status code and return empty array when feature collection features (single feature) with a hole and polygon parts are inside the hole', async () => {
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-20, -20],
+                        [20, -20],
+                        [20, 20],
+                        [-20, 20],
+                        [-20, -20],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: featureCollection([
+                multiPolygon([
+                  [
+                    [
+                      [-40, -40],
+                      [40, -40],
+                      [40, 40],
+                      [-40, 40],
+                      [-40, -40],
+                    ],
+                    [
+                      [-20, -20],
+                      [20, -20],
+                      [20, 20],
+                      [-20, 20],
+                      [-20, -20],
+                    ],
+                  ],
+                ]),
+              ]),
+              query: { shouldClip },
+            });
+
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(3);
+          });
+
+          it('should return 200 status code and return empty array when feature collection features (single feature) are inside a hole in polygon parts', async () => {
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-40, -40],
+                        [40, -40],
+                        [40, 40],
+                        [-40, 40],
+                        [-40, -40],
+                      ],
+                      [
+                        [-20, -20],
+                        [20, -20],
+                        [20, 20],
+                        [-20, 20],
+                        [-20, -20],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: featureCollection([
+                multiPolygon([
+                  [
+                    [
+                      [-20, -20],
+                      [20, -20],
+                      [20, 20],
+                      [-20, 20],
+                      [-20, -20],
                     ],
                   ],
                 ]),
@@ -2113,116 +2223,6 @@ describe('polygonParts', () => {
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(5);
-          });
-
-          it('should return 200 status code and return empty array when feature collection features (single feature) with a hole and polygon parts are inside the hole', async () => {
-            const polygonPartsPayload = generatePolygonPartsPayload({
-              partsData: [
-                {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-20, -20],
-                        [20, -20],
-                        [20, 20],
-                        [-20, 20],
-                        [-20, -20],
-                      ],
-                    ],
-                  },
-                },
-              ],
-            });
-            await requestSender.createPolygonParts(polygonPartsPayload);
-            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
-
-            const response = await requestSender.findPolygonParts({
-              params: { polygonPartsEntityName: entityIdentifier },
-              body: featureCollection([
-                multiPolygon([
-                  [
-                    [
-                      [-40, -40],
-                      [40, -40],
-                      [40, 40],
-                      [-40, 40],
-                      [-40, -40],
-                    ],
-                    [
-                      [-20, -20],
-                      [20, -20],
-                      [20, 20],
-                      [-20, 20],
-                      [-20, -20],
-                    ],
-                  ],
-                ]),
-              ]),
-              query: { shouldClip },
-            });
-
-            expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(response).toSatisfyApiSpec();
-
-            expect.assertions(3);
-          });
-
-          it('should return 200 status code and return empty array when feature collection features (single feature) are inside a hole in polygon parts', async () => {
-            const polygonPartsPayload = generatePolygonPartsPayload({
-              partsData: [
-                {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-40, -40],
-                        [40, -40],
-                        [40, 40],
-                        [-40, 40],
-                        [-40, -40],
-                      ],
-                      [
-                        [-20, -20],
-                        [20, -20],
-                        [20, 20],
-                        [-20, 20],
-                        [-20, -20],
-                      ],
-                    ],
-                  },
-                },
-              ],
-            });
-            await requestSender.createPolygonParts(polygonPartsPayload);
-            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
-
-            const response = await requestSender.findPolygonParts({
-              params: { polygonPartsEntityName: entityIdentifier },
-              body: featureCollection([
-                multiPolygon([
-                  [
-                    [
-                      [-20, -20],
-                      [20, -20],
-                      [20, 20],
-                      [-20, 20],
-                      [-20, -20],
-                    ],
-                  ],
-                ]),
-              ]),
-              query: { shouldClip },
-            });
-
-            expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(response).toSatisfyApiSpec();
-
-            expect.assertions(3);
           });
         });
 

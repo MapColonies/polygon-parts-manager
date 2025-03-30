@@ -61,21 +61,6 @@ export class ValidationsController {
       schemaParser({ schema: findPolygonPartsQueryParamsSchema, value: req.query, errorMessagePrefix: 'Invalid query params' });
       schemaParser({
         schema: findPolygonPartsRequestBodySchema
-          .refine((findPolygonPartsRequestBody) => {
-            const nonEmptyGeometryFeatures = {
-              ...findPolygonPartsRequestBody,
-              features: findPolygonPartsRequestBody.features.filter(
-                (feature): feature is Feature<Polygon | MultiPolygon> => feature.geometry !== null
-              ),
-            };
-            try {
-              const inputGeometriesSelfIntersect = !(nonEmptyGeometryFeatures.features.length > 1 && intersect(nonEmptyGeometryFeatures));
-              return inputGeometriesSelfIntersect;
-            } catch (error) {
-              this.logger.error(error);
-              return false;
-            }
-          }, 'Input features should not intersect')
           .transform((featureCollection) =>
             featureCollection.features
               .map((feature) => feature.id)

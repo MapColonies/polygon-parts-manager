@@ -346,7 +346,7 @@ export class PolygonPartsManager {
       .createQueryBuilder()
       .select('polygon_part_id', 'polygon_part_id')
       .addSelect(geometryColumn, geometryColumn)
-      .addSelect(`array_remove(array_agg(filter_feature ->> 'id'), NULL)`, 'filter_feature_ids')
+      .addSelect(`array_remove(array_agg(filter_feature -> 'id'), NULL)`, 'filter_feature_ids')
       .from('intersections', 'intersections')
       .groupBy('polygon_part_id')
       .addGroupBy(geometryColumn);

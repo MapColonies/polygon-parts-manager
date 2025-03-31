@@ -447,6 +447,7 @@ components:
         productVersion:
           $ref: '#/components/schemas/ProductVersion'
         requestFeatureId:
+          description: If shouldClip is set to true, only a single FeatureId is returned per Feature. Otherwise, it can return either a single FeatureId or an array of FeatureIds per Feature
           oneOf:
             - $ref: '#/components/schemas/FeatureId'
             - type: array

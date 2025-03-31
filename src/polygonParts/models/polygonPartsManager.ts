@@ -4,7 +4,7 @@ import { CORE_VALIDATIONS } from '@map-colonies/raster-shared';
 import { geometryCollection } from '@turf/helpers';
 import type { Feature, Geometry, MultiPolygon, Polygon } from 'geojson';
 import { inject, injectable } from 'tsyringe';
-import type { EntityManager, SelectQueryBuilder } from 'typeorm';
+import type { EntityManager, ObjectLiteral, SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
@@ -119,6 +119,7 @@ export class PolygonPartsManager {
           entityManager,
           polygonPartsEntityName,
           filter,
+          findSelectOutputColumns,
         });
 
         try {
@@ -206,11 +207,86 @@ export class PolygonPartsManager {
   }
 
   private buildFindPolygonPartsQuery<ShouldClip extends boolean = boolean>(
-    context: Pick<FindPolygonPartsOptions, 'polygonPartsEntityName' | 'shouldClip'> & { filter: FindPolygonPartsOptions['filter'] } & {
+    context: Pick<FindPolygonPartsOptions, 'polygonPartsEntityName' | 'shouldClip'> & {
       entityManager: EntityManager;
+      filter: FindPolygonPartsOptions['filter'];
+      findSelectOutputColumns: string[];
     }
   ): SelectQueryBuilder<FindPolygonPartsQueryResponse<ShouldClip>> {
-    const { shouldClip, polygonPartsEntityName, filter, entityManager } = context;
+    const { entityManager, filter, findSelectOutputColumns } = context;
+    const hasAnyGeometries = filter.features.some((feature) => feature.geometry);
+    const geometryColumn = getMappedColumnName('footprint' satisfies PickPropertiesOfType<PolygonPartRecord, Geometry>);
+    const filterQuery = { filterQueryAlias: 'output_properties', filterRequestFeatureIds: 'request_feature_ids', findSelectOutputColumns };
+
+    const featureCollectionSelect = this.buildFindFeatureCollectionSelect({
+      entityManager,
+      filterQuery,
+      geometryColumn,
+      hasAnyGeometries,
+    })
+      .from<FindPolygonPartsQueryResponse<ShouldClip>>(filterQuery.filterQueryAlias, filterQuery.filterQueryAlias)
+      .where(`st_geometrytype(${geometryColumn}) = :geometryType`, { geometryType: 'ST_Polygon' });
+
+    const findPolygonPartsQuery = this.buildPolygonPartsQueryWithFilter({
+      ...context,
+      filterQuery,
+      select: featureCollectionSelect,
+    });
+    return findPolygonPartsQuery;
+  }
+
+  private buildFindFeatureCollectionSelect(context: {
+    entityManager: EntityManager;
+    filterQuery: { filterQueryAlias: string; filterRequestFeatureIds: string };
+    geometryColumn: string;
+    hasAnyGeometries: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  }): SelectQueryBuilder<any> {
+    const {
+      entityManager,
+      filterQuery: { filterQueryAlias, filterRequestFeatureIds },
+      geometryColumn,
+      hasAnyGeometries,
+    } = context;
+    const requestFeatureIds = hasAnyGeometries
+      ? ` || jsonb_strip_nulls(
+      case
+        when array_length(${filterRequestFeatureIds}, 1) = 1 then jsonb_build_object('requestFeatureId', ${filterRequestFeatureIds}[1])
+        else jsonb_build_object('requestFeatureId', ${filterRequestFeatureIds})
+      end
+    )`
+      : '';
+
+    const findPolygonPartsSelect = entityManager.createQueryBuilder().select(
+      `jsonb_build_object(
+          'type', 'FeatureCollection',
+          'features', coalesce(jsonb_agg(
+            jsonb_build_object(
+              'type', 'Feature',
+              'geometry', st_asgeojson(${geometryColumn}, 15)::jsonb,
+              'properties', to_jsonb(${filterQueryAlias}) - '{${geometryColumn},${filterRequestFeatureIds}}'::text[] ${requestFeatureIds}
+            )
+          ), '[]')
+        ) AS ${'geojson' satisfies keyof FindPolygonPartsQueryResponse}`
+    );
+    return findPolygonPartsSelect;
+  }
+
+  private buildPolygonPartsQueryWithFilter<T extends ObjectLiteral, ShouldClip extends boolean = boolean>(
+    context: FindPolygonPartsOptions<ShouldClip> & {
+      entityManager: EntityManager;
+      select: SelectQueryBuilder<T>;
+      filterQuery: { filterQueryAlias: string; filterRequestFeatureIds: string; findSelectOutputColumns: string[] };
+    }
+  ): SelectQueryBuilder<T> {
+    const {
+      entityManager,
+      filter,
+      filterQuery: { filterQueryAlias, filterRequestFeatureIds, findSelectOutputColumns },
+      polygonPartsEntityName,
+      select,
+      shouldClip,
+    } = context;
     const hasAnyGeometries = filter.features.some((feature) => feature.geometry);
     const canClip = hasAnyGeometries && shouldClip;
     const geometryColumn = getMappedColumnName('footprint' satisfies PickPropertiesOfType<PolygonPartRecord, Geometry>);
@@ -279,32 +355,10 @@ export class PolygonPartsManager {
       .createQueryBuilder('polygon_part')
       .select(`filtered_polygon_parts.${geometryColumn}`, geometryColumn)
       .addSelect(findSelectOutputColumns)
-      .addSelect('filter_feature_ids', 'request_feature_ids')
+      .addSelect('filter_feature_ids', filterRequestFeatureIds)
       .innerJoin('filtered_polygon_parts', 'filtered_polygon_parts', 'id = polygon_part_id');
 
-    const findPolygonPartsSelect = entityManager.createQueryBuilder().select(
-      `jsonb_build_object(
-          'type', 'FeatureCollection',
-          'features', coalesce(jsonb_agg(
-            jsonb_build_object(
-              'type', 'Feature',
-              'geometry', st_asgeojson(${geometryColumn}, 15)::jsonb,
-              'properties', to_jsonb(output_properties) - '{${geometryColumn},request_feature_ids}'::text[] ${
-        hasAnyGeometries
-          ? ` || jsonb_strip_nulls(
-          case
-            when array_length(request_feature_ids, 1) = 1 then jsonb_build_object('requestFeatureId', request_feature_ids[1])
-            else jsonb_build_object('requestFeatureId', request_feature_ids)
-          end
-        )`
-          : ''
-      }
-            )
-          ), '[]')
-        ) AS ${'geojson' satisfies keyof FindPolygonPartsQueryResponse}`
-    );
-
-    const findPolygonPartsQuery = findPolygonPartsSelect
+    const filterPolygonPartsQuery = select
       .addCommonTableExpression(filterExtractGeometriesCTE, 'filter_extract_geometries')
       .addCommonTableExpression(filterNonNullGeometriesCTE, 'filter_non_null_geometries')
       .addCommonTableExpression(filterNonNullGeometriesCounterCTE, 'filter_non_null_geometries_counter')
@@ -312,10 +366,9 @@ export class PolygonPartsManager {
       .addCommonTableExpression(filterGeometriesCTE, 'filter_geometries')
       .addCommonTableExpression(intersectionsCTE, 'intersections')
       .addCommonTableExpression(filteredPolygonPartsCTE, 'filtered_polygon_parts')
-      .addCommonTableExpression(outputPropertiesCTE, 'output_properties')
-      .from<FindPolygonPartsQueryResponse>('output_properties', 'output_properties')
-      .where(`st_geometrytype(${geometryColumn}) = :geometryType`, { geometryType: 'ST_Polygon' });
-    return findPolygonPartsQuery;
+      .addCommonTableExpression(outputPropertiesCTE, filterQueryAlias);
+
+    return filterPolygonPartsQuery;
   }
 
   private async calculatePolygonParts(context: { entitiesMetadata: EntitiesMetadata; entityManager: EntityManager; logger: Logger }): Promise<void> {

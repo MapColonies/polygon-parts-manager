@@ -20,4 +20,4 @@ export interface FindPolygonPartsRequestBody extends Readonly<FindPolygonPartsOp
 /**
  * Find polygon parts response body
  */
-export interface FindPolygonPartsResponseBody extends FindPolygonPartsResponse {}
+export interface FindPolygonPartsResponseBody<ShouldClip extends boolean = boolean> extends FindPolygonPartsResponse<ShouldClip> {}

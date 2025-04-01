@@ -356,6 +356,7 @@ export class PolygonPartsManager {
       .select(`filtered_polygon_parts.${geometryColumn}`, geometryColumn)
       .addSelect(findSelectOutputColumns)
       .addSelect('filter_feature_ids', filterRequestFeatureIds)
+      .orderBy('insertion_order')
       .innerJoin('filtered_polygon_parts', 'filtered_polygon_parts', 'id = polygon_part_id');
 
     const filterPolygonPartsQuery = select

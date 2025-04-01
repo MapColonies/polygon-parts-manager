@@ -68,7 +68,7 @@ export class ValidationsController {
           )
           .refine((featureIds) => {
             const uniqueFeatureIds = new Set(featureIds);
-            return uniqueFeatureIds.size === featureIds.length
+            return uniqueFeatureIds.size === featureIds.length;
           }, 'Input features should have unique ids'),
         value: req.body,
         errorMessagePrefix: 'Invalid request body',

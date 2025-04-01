@@ -4931,6 +4931,36 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
+      it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "id" value must be unique', async () => {
+        const featureId = generateFeatureId();
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          body: {
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                id: featureId,
+                properties: {},
+                geometry: null,
+              },
+              {
+                type: 'Feature',
+                id: featureId,
+                properties: {},
+                geometry: null,
+              },
+            ],
+          },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "property" value must be an object or null', async () => {
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },

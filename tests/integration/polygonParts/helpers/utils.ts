@@ -36,7 +36,6 @@ export function toExpectedFindPolygonPartsResponse(polygonPartsPayload: PolygonP
         feature(footprint, {
           ...layerMetadata,
           ...props,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           id: expect.toBeUuidV4(),
           imagingTimeBeginUTC: imagingTimeBeginUTC.toISOString(),
           imagingTimeEndUTC: imagingTimeEndUTC.toISOString(),

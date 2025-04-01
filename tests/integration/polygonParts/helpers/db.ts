@@ -2,7 +2,7 @@
 import { faker } from '@faker-js/faker';
 import { CORE_VALIDATIONS, INGESTION_VALIDATIONS, RASTER_PRODUCT_TYPE_LIST, RasterProductTypes, type PolygonPart } from '@map-colonies/raster-shared';
 import { randomPolygon } from '@turf/random';
-import type { Polygon } from 'geojson';
+import type { Feature, Polygon } from 'geojson';
 import { randexp } from 'randexp';
 import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
 import { DatabaseCreateContext, createDatabase, dropDatabase } from 'typeorm-extension';
@@ -12,6 +12,18 @@ import type { DeepPartial } from './types';
 const generateProductId = (): string => randexp(INGESTION_VALIDATIONS.productId.pattern);
 const generateProductType = (): RasterProductTypes => faker.helpers.arrayElement(RASTER_PRODUCT_TYPE_LIST);
 
+export const createDB = async (options: Partial<DatabaseCreateContext>): Promise<void> => {
+  await createDatabase({ ...options, synchronize: false, ifNotExist: false });
+};
+
+export const deleteDB = async (options: DataSourceOptions): Promise<void> => {
+  await dropDatabase({ options });
+};
+
+export const generateFeatureId = (): NonNullable<Feature['id']> => {
+  return faker.helpers.arrayElement([faker.number.float({ max: Number.MAX_VALUE }), faker.string.uuid(), faker.string.alphanumeric({ length: 20 })]);
+};
+
 export const generatePolygon = (
   options: Parameters<typeof randomPolygon>[1] = {
     bbox: [-170, -80, 170, 80],
@@ -20,13 +32,6 @@ export const generatePolygon = (
   } // polygon maximum extent cannot exceed [-180,-90,180,90]
 ): Polygon => {
   return randomPolygon(1, options).features[0].geometry;
-};
-export const createDB = async (options: Partial<DatabaseCreateContext>): Promise<void> => {
-  await createDatabase({ ...options, synchronize: false, ifNotExist: false });
-};
-
-export const deleteDB = async (options: DataSourceOptions): Promise<void> => {
-  await dropDatabase({ options });
 };
 
 export const generatePolygonPart = (): PolygonPart => {

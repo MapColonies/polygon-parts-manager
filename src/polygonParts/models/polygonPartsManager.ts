@@ -1,6 +1,6 @@
 import { BadRequestError, ConflictError, InternalServerError, NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
-import { CORE_VALIDATIONS } from '@map-colonies/raster-shared';
+import { CORE_VALIDATIONS, type RoiProperties } from '@map-colonies/raster-shared';
 import { geometryCollection } from '@turf/helpers';
 import type { Feature, Geometry, MultiPolygon, Polygon } from 'geojson';
 import { inject, injectable } from 'tsyringe';
@@ -27,6 +27,12 @@ import type {
 interface FindPolygonPartsQueryResponse<ShouldClip extends boolean = boolean> {
   readonly geojson: FindPolygonPartsResponse<ShouldClip>;
 }
+
+const geometryColumn = getMappedColumnName('footprint' satisfies PickPropertiesOfType<PolygonPartRecord, Geometry>);
+const idColumn = getMappedColumnName('id' satisfies keyof Pick<PolygonPartRecord, 'id'>);
+const insertionOrderColumn = getMappedColumnName('insertionOrder' satisfies keyof Pick<PolygonPartRecord, 'insertionOrder'>);
+const minResolutionDeg = getMappedColumnName('minResolutionDeg' satisfies keyof Pick<RoiProperties, 'minResolutionDeg'>);
+const requestFeatureId = 'requestFeatureId' satisfies keyof Pick<FindPolygonPartsResponse['features'][number]['properties'], 'requestFeatureId'>;
 
 export const findSelectOutputColumns = Object.entries(FIND_OUTPUT_PROPERTIES)
   .filter(([, value]) => value)
@@ -215,7 +221,6 @@ export class PolygonPartsManager {
   ): SelectQueryBuilder<FindPolygonPartsQueryResponse<ShouldClip>> {
     const { entityManager, filter, findSelectOutputColumns } = context;
     const hasAnyGeometries = filter.features.some((feature) => feature.geometry);
-    const geometryColumn = getMappedColumnName('footprint' satisfies PickPropertiesOfType<PolygonPartRecord, Geometry>);
     const filterQuery = { filterQueryAlias: 'output_properties', filterRequestFeatureIds: 'request_feature_ids', findSelectOutputColumns };
 
     const featureCollectionSelect = this.buildFindFeatureCollectionSelect({
@@ -223,6 +228,7 @@ export class PolygonPartsManager {
       filterQuery,
       geometryColumn,
       hasAnyGeometries,
+      requestFeatureId,
     })
       .from<FindPolygonPartsQueryResponse<ShouldClip>>(filterQuery.filterQueryAlias, filterQuery.filterQueryAlias)
       .where(`st_geometrytype(${geometryColumn}) = :geometryType`, { geometryType: 'ST_Polygon' });
@@ -240,6 +246,7 @@ export class PolygonPartsManager {
     filterQuery: { filterQueryAlias: string; filterRequestFeatureIds: string };
     geometryColumn: string;
     hasAnyGeometries: boolean;
+    requestFeatureId: string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }): SelectQueryBuilder<any> {
     const {
@@ -247,12 +254,13 @@ export class PolygonPartsManager {
       filterQuery: { filterQueryAlias, filterRequestFeatureIds },
       geometryColumn,
       hasAnyGeometries,
+      requestFeatureId,
     } = context;
     const requestFeatureIds = hasAnyGeometries
       ? ` || jsonb_strip_nulls(
       case
-        when array_length(${filterRequestFeatureIds}, 1) = 1 then jsonb_build_object('requestFeatureId', ${filterRequestFeatureIds}[1])
-        else jsonb_build_object('requestFeatureId', ${filterRequestFeatureIds})
+        when array_length(${filterRequestFeatureIds}, 1) = 1 then jsonb_build_object('${requestFeatureId}', ${filterRequestFeatureIds}[1])
+        else jsonb_build_object('${requestFeatureId}', ${filterRequestFeatureIds})
       end
     )`
       : '';
@@ -289,7 +297,6 @@ export class PolygonPartsManager {
     } = context;
     const hasAnyGeometries = filter.features.some((feature) => feature.geometry);
     const canClip = hasAnyGeometries && shouldClip;
-    const geometryColumn = getMappedColumnName('footprint' satisfies PickPropertiesOfType<PolygonPartRecord, Geometry>);
 
     const polygonPart = entityManager.getRepository(PolygonPart);
     polygonPart.metadata.tablePath = polygonPartsEntityName.databaseObjectQualifiedName; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
@@ -328,7 +335,7 @@ export class PolygonPartsManager {
     const intersectionsCTE = polygonPart
       .createQueryBuilder('polygon_part')
       .select([
-        'polygon_part.id as polygon_part_id',
+        `polygon_part.${idColumn} as polygon_part_id`,
         `${canClip ? `(st_dump(st_intersection(${geometryColumn}, filter_geometry))).geom` : geometryColumn} as ${geometryColumn}`,
         'filter_feature',
       ])
@@ -339,7 +346,7 @@ export class PolygonPartsManager {
       )
       .where('filter_feature is not null')
       .andWhere(
-        `resolution_degree <= coalesce((filter_feature -> 'properties' ->> 'minResolutionDeg')::numeric, ${CORE_VALIDATIONS.resolutionDeg.max})`
+        `resolution_degree <= coalesce((filter_feature -> 'properties' ->> '${minResolutionDeg}')::numeric, ${CORE_VALIDATIONS.resolutionDeg.max})`
       );
 
     const filteredPolygonPartsCTE = entityManager
@@ -356,7 +363,7 @@ export class PolygonPartsManager {
       .select(`filtered_polygon_parts.${geometryColumn}`, geometryColumn)
       .addSelect(findSelectOutputColumns)
       .addSelect('filter_feature_ids', filterRequestFeatureIds)
-      .orderBy('insertion_order')
+      .orderBy(insertionOrderColumn)
       .innerJoin('filtered_polygon_parts', 'filtered_polygon_parts', 'id = polygon_part_id');
 
     const filterPolygonPartsQuery = select

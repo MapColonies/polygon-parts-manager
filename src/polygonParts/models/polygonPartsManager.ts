@@ -31,7 +31,7 @@ interface FindPolygonPartsQueryResponse<ShouldClip extends boolean = boolean> {
 const geometryColumn = getMappedColumnName('footprint' satisfies PickPropertiesOfType<PolygonPartRecord, Geometry>);
 const idColumn = getMappedColumnName('id' satisfies keyof Pick<PolygonPartRecord, 'id'>);
 const insertionOrderColumn = getMappedColumnName('insertionOrder' satisfies keyof Pick<PolygonPartRecord, 'insertionOrder'>);
-const minResolutionDeg = getMappedColumnName('minResolutionDeg' satisfies keyof Pick<RoiProperties, 'minResolutionDeg'>);
+const minResolutionDeg = 'minResolutionDeg' satisfies keyof Pick<RoiProperties, 'minResolutionDeg'>;
 const requestFeatureId = 'requestFeatureId' satisfies keyof Pick<FindPolygonPartsResponse['features'][number]['properties'], 'requestFeatureId'>;
 
 export const findSelectOutputColumns = Object.entries(FIND_OUTPUT_PROPERTIES)

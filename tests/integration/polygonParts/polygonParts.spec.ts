@@ -2374,9 +2374,9 @@ describe('polygonParts', () => {
           const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
           const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload, 3);
           const expectedGeometries = [
-            generatePolygon({ bbox: [-170, -70, -130, 70] }),
-            generatePolygon({ bbox: [-100, -70, 100, 70] }),
-            generatePolygon({ bbox: [120, -70, 170, 70] }),
+            generatePolygon({ bbox: [-170, -80, -130, 80] }),
+            generatePolygon({ bbox: [-110, -80, 110, 80] }),
+            generatePolygon({ bbox: [130, -80, 170, 80] }),
           ];
           const requestedGeometries = expectedGeometries;
           expectedResponse.features.forEach((feature) => {
@@ -2860,14 +2860,13 @@ describe('polygonParts', () => {
               },
               {
                 type: 'MultiPolygon',
-                coordinates: [generatePolygon({ bbox: [10, -80, 30, 80] }).coordinates, generatePolygon({ bbox: [40, -80, 80, 80] }).coordinates],
+                coordinates: [generatePolygon({ bbox: [10, -80, 35, 80] }).coordinates, generatePolygon({ bbox: [55, -80, 80, 80] }).coordinates],
               },
               {
                 type: 'MultiPolygon',
-                coordinates: [generatePolygon({ bbox: [10, 100, 80, 120] }).coordinates, generatePolygon({ bbox: [130, -80, 170, 80] }).coordinates],
+                coordinates: [generatePolygon({ bbox: [100, -80, 125, 80] }).coordinates, generatePolygon({ bbox: [145, -80, 170, 80] }).coordinates],
               },
             ] satisfies MultiPolygon[];
-
             const expectedGeometries = structuredClone(expectedResponse.features.map((feature) => feature.geometry));
             const expectedFeatureIds = Array.from({ length: 3 }, generateFeatureId);
             expectedResponse.features.forEach((feature) => {
@@ -3116,9 +3115,9 @@ describe('polygonParts', () => {
           const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
           const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload, 1);
           const requestedGeometries = [
-            generatePolygon({ bbox: [-170, -70, -130, 70] }),
-            generatePolygon({ bbox: [-100, -70, 100, 70] }),
-            generatePolygon({ bbox: [120, -70, 170, 70] }),
+            generatePolygon({ bbox: [-170, -80, -130, 80] }),
+            generatePolygon({ bbox: [-110, -80, 110, 80] }),
+            generatePolygon({ bbox: [130, -80, 170, 80] }),
           ];
 
           const response = await requestSender.findPolygonParts({

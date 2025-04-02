@@ -1,9 +1,8 @@
 import { BadRequestError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
 import { polygonPartsEntityNameSchema, polygonPartsPayloadSchema } from '@map-colonies/raster-shared';
-import { intersect } from '@turf/intersect';
 import type { RequestHandler } from 'express';
-import type { Feature, MultiPolygon, Polygon } from 'geojson';
+import type { Feature } from 'geojson';
 import { inject, singleton } from 'tsyringe';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';

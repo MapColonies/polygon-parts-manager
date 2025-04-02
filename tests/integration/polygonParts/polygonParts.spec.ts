@@ -215,18 +215,7 @@ describe('polygonParts', () => {
           const polygonPartsPayload = generatePolygonPartsPayload({
             partsData: [
               {
-                footprint: {
-                  type: 'Polygon',
-                  coordinates: [
-                    [
-                      [-180, -90],
-                      [0, -90],
-                      [0, 90],
-                      [-180, 90],
-                      [-180, -90],
-                    ],
-                  ],
-                },
+                footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                 resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
               },
               {
@@ -297,18 +286,7 @@ describe('polygonParts', () => {
           const polygonPartsPayload = generatePolygonPartsPayload({
             partsData: [
               {
-                footprint: {
-                  type: 'Polygon',
-                  coordinates: [
-                    [
-                      [-180, -90],
-                      [0, -90],
-                      [0, 90],
-                      [-180, 90],
-                      [-180, -90],
-                    ],
-                  ],
-                },
+                footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                 resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
               },
               {
@@ -516,18 +494,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [0, -90],
-                        [0, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                   resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
                 },
                 {
@@ -588,18 +555,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [0, -90],
-                        [0, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                   resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
                 },
                 {
@@ -676,18 +632,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [0, -90],
-                        [0, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                   resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
                 },
                 {
@@ -764,18 +709,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [180, -90],
-                        [180, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonEarth as FeatureCollection<Polygon>).features[0].geometry
                 },
               ],
             });
@@ -1013,18 +947,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [180, -90],
-                        [180, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonEarth as FeatureCollection<Polygon>).features[0].geometry
                 },
               ],
             });
@@ -1057,18 +980,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [180, -90],
-                        [180, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonEarth as FeatureCollection<Polygon>).features[0].geometry
                 },
               ],
             });
@@ -1683,18 +1595,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [0, -90],
-                        [0, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                   resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
                 },
                 {
@@ -1758,18 +1659,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [0, -90],
-                        [0, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                   resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
                 },
                 {
@@ -1844,18 +1734,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [0, -90],
-                        [0, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                   resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
                 },
                 {
@@ -1927,18 +1806,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [0, -90],
-                        [0, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                   resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
                 },
                 {
@@ -2012,18 +1880,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [180, -90],
-                        [180, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonEarth as FeatureCollection<Polygon>).features[0].geometry,
                 },
               ],
             });
@@ -3106,18 +2963,7 @@ describe('polygonParts', () => {
           const polygonPartsPayload = generatePolygonPartsPayload({
             partsData: [
               {
-                footprint: {
-                  type: 'Polygon',
-                  coordinates: [
-                    [
-                      [-180, -90],
-                      [0, -90],
-                      [0, 90],
-                      [-180, 90],
-                      [-180, -90],
-                    ],
-                  ],
-                },
+                footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                 resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
               },
               {
@@ -3181,18 +3027,7 @@ describe('polygonParts', () => {
           const polygonPartsPayload = generatePolygonPartsPayload({
             partsData: [
               {
-                footprint: {
-                  type: 'Polygon',
-                  coordinates: [
-                    [
-                      [-180, -90],
-                      [0, -90],
-                      [0, 90],
-                      [-180, 90],
-                      [-180, -90],
-                    ],
-                  ],
-                },
+                footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                 resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
               },
               {
@@ -3400,18 +3235,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [0, -90],
-                        [0, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                   resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
                 },
                 {
@@ -3472,18 +3296,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [0, -90],
-                        [0, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                   resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
                 },
                 {
@@ -3560,18 +3373,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [0, -90],
-                        [0, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                   resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
                 },
                 {
@@ -3648,18 +3450,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [0, -90],
-                        [0, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                 },
                 {
                   footprint: {
@@ -3956,18 +3747,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [0, -90],
-                        [0, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                   resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
                 },
                 {
@@ -4031,18 +3811,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [0, -90],
-                        [0, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                   resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
                 },
                 {
@@ -4115,18 +3884,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [0, -90],
-                        [0, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                   resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
                 },
                 {
@@ -4198,18 +3956,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [0, -90],
-                        [0, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                   resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
                 },
                 {
@@ -4283,18 +4030,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [0, -90],
-                        [0, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
+                  footprint: (polygonWesternHemisphere as FeatureCollection<Polygon>).features[0].geometry,
                 },
                 {
                   footprint: {

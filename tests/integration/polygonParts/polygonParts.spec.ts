@@ -1,5 +1,6 @@
 import { faker } from '@faker-js/faker';
 import jsLogger from '@map-colonies/js-logger';
+import { zoomLevelToResolutionDeg } from '@map-colonies/mc-utils';
 import { CORE_VALIDATIONS, INGESTION_VALIDATIONS, PolygonPart as PolygonPartType } from '@map-colonies/raster-shared';
 import { trace } from '@opentelemetry/api';
 import { booleanEqual } from '@turf/boolean-equal';
@@ -210,6 +211,164 @@ describe('polygonParts', () => {
           expect.assertions(5);
         });
 
+        it('should return 200 status code and return filtered polygon parts when feature collection features (multiple features) have null geometry and are filtered by resolution', async () => {
+          const zoomLevel = faker.number.int({ min: 1, max: 20 });
+          const polygonPartsPayload = generatePolygonPartsPayload({
+            partsData: [
+              {
+                footprint: {
+                  type: 'Polygon',
+                  coordinates: [
+                    [
+                      [-180, -90],
+                      [0, -90],
+                      [0, 90],
+                      [-180, 90],
+                      [-180, -90],
+                    ],
+                  ],
+                },
+                resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
+              },
+              {
+                footprint: {
+                  type: 'Polygon',
+                  coordinates: [
+                    [
+                      [0, -90],
+                      [90, -90],
+                      [90, 90],
+                      [0, 90],
+                      [0, -90],
+                    ],
+                  ],
+                },
+                resolutionDegree: zoomLevelToResolutionDeg(zoomLevel),
+              },
+              {
+                footprint: {
+                  type: 'Polygon',
+                  coordinates: [
+                    [
+                      [90, -90],
+                      [180, -90],
+                      [180, 90],
+                      [90, 90],
+                      [90, -90],
+                    ],
+                  ],
+                },
+                resolutionDegree: zoomLevelToResolutionDeg(zoomLevel + 1),
+              },
+            ],
+          });
+          await requestSender.createPolygonParts(polygonPartsPayload);
+          const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+          const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+          expectedResponse.features.splice(0, 2);
+          const expectedGeometries = structuredClone(expectedResponse.features.map((feature) => feature.geometry));
+          expectedResponse.features.forEach((feature) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+            feature.geometry.coordinates = expect.any(Array<Number[][]>);
+          });
+
+          const response = await requestSender.findPolygonParts({
+            params: { polygonPartsEntityName: entityIdentifier },
+            body: {
+              type: 'FeatureCollection',
+              features: [
+                { type: 'Feature', geometry: null, properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel + 1) } },
+                { type: 'Feature', geometry: null, properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel + 2) } },
+              ],
+            },
+            query: { shouldClip },
+          });
+
+          const responseBody = response.body as FindPolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+          expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
+            const index = expectedGeometries.findIndex((expectedGeometry) =>
+              booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
+            );
+            return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
+          });
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(4);
+        });
+
+        it('should return 200 status code and return empty array when feature collection features (single features) have null geometry and are filtered out by resolution', async () => {
+          const zoomLevel = faker.number.int({ min: 1, max: 20 });
+          const polygonPartsPayload = generatePolygonPartsPayload({
+            partsData: [
+              {
+                footprint: {
+                  type: 'Polygon',
+                  coordinates: [
+                    [
+                      [-180, -90],
+                      [0, -90],
+                      [0, 90],
+                      [-180, 90],
+                      [-180, -90],
+                    ],
+                  ],
+                },
+                resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
+              },
+              {
+                footprint: {
+                  type: 'Polygon',
+                  coordinates: [
+                    [
+                      [0, -90],
+                      [90, -90],
+                      [90, 90],
+                      [0, 90],
+                      [0, -90],
+                    ],
+                  ],
+                },
+                resolutionDegree: zoomLevelToResolutionDeg(zoomLevel),
+              },
+              {
+                footprint: {
+                  type: 'Polygon',
+                  coordinates: [
+                    [
+                      [90, -90],
+                      [180, -90],
+                      [180, 90],
+                      [90, 90],
+                      [90, -90],
+                    ],
+                  ],
+                },
+                resolutionDegree: zoomLevelToResolutionDeg(zoomLevel + 1),
+              },
+            ],
+          });
+          await requestSender.createPolygonParts(polygonPartsPayload);
+          const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+          const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+
+          const response = await requestSender.findPolygonParts({
+            params: { polygonPartsEntityName: entityIdentifier },
+            body: {
+              type: 'FeatureCollection',
+              features: [{ type: 'Feature', geometry: null, properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel + 2) } }],
+            },
+            query: { shouldClip },
+          });
+
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(3);
+        });
+
         describe('input features are polygon geometries', () => {
           it('should return 200 status code and return empty array when feature collection features (single feature) do not intersect existing polygon parts (do not share common interior)', async () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
@@ -358,7 +517,266 @@ describe('polygonParts', () => {
             expect.assertions(3);
           });
 
-          it('should return 200 status code and return clipped polygon parts when request feature collection has some features with null geometry', async () => {
+          it('should return 200 status code and return empty array when feature collection features (single features) are filtered out by resolution', async () => {
+            const zoomLevel = faker.number.int({ min: 1, max: 21 });
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [0, -90],
+                        [0, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, -90],
+                        [90, -90],
+                        [90, 90],
+                        [0, 90],
+                        [0, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [90, -90],
+                        [180, -90],
+                        [180, 90],
+                        [90, 90],
+                        [90, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel + 1),
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const requestGeometry = generatePolygon({ bbox: [10, -80, 80, 80] });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [{ type: 'Feature', geometry: requestGeometry, properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel + 1) } }],
+              },
+              query: { shouldClip },
+            });
+
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(3);
+          });
+
+          it('should return 200 status code and return clipped polygon parts when feature collection features (multiple features) are filtered by resolution', async () => {
+            const zoomLevel = faker.number.int({ min: 1, max: 21 });
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [0, -90],
+                        [0, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, -90],
+                        [90, -90],
+                        [90, 90],
+                        [0, 90],
+                        [0, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [90, -90],
+                        [180, -90],
+                        [180, 90],
+                        [90, 90],
+                        [90, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel + 1),
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const requestGeometries = [
+              generatePolygon({ bbox: [-170, -80, -10, 80] }),
+              generatePolygon({ bbox: [10, -80, 80, 80] }),
+              generatePolygon({ bbox: [100, -80, 170, 80] }),
+            ] satisfies Polygon[];
+            expectedResponse.features.splice(0, 1);
+            const expectedGeometries = structuredClone(requestGeometries);
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [
+                  { type: 'Feature', geometry: requestGeometries[0], properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel) } },
+                  { type: 'Feature', geometry: requestGeometries[1], properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel) } },
+                  { type: 'Feature', geometry: requestGeometries[2], properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel) } },
+                ],
+              },
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
+              const index = expectedGeometries.findIndex((expectedGeometry) =>
+                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
+              );
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
+            });
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(4);
+          });
+
+          it('should return 200 status code and return clipped polygon parts when feature collection features (multiple features) are filtered by resolution - null geometries ignored', async () => {
+            const zoomLevel = faker.number.int({ min: 1, max: 21 });
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [0, -90],
+                        [0, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, -90],
+                        [90, -90],
+                        [90, 90],
+                        [0, 90],
+                        [0, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [90, -90],
+                        [180, -90],
+                        [180, 90],
+                        [90, 90],
+                        [90, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel + 1),
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const requestGeometries = [
+              generatePolygon({ bbox: [-170, -80, -10, 80] }),
+              generatePolygon({ bbox: [10, -80, 80, 80] }),
+              generatePolygon({ bbox: [100, -80, 170, 80] }),
+            ] satisfies Polygon[];
+            expectedResponse.features.splice(0, 1);
+            const expectedGeometries = structuredClone(requestGeometries);
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [
+                  { type: 'Feature', geometry: requestGeometries[0], properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel) } },
+                  { type: 'Feature', geometry: requestGeometries[1], properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel) } },
+                  { type: 'Feature', geometry: requestGeometries[2], properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel) } },
+                  { type: 'Feature', geometry: null, properties: { minResolutionDeg: zoomLevelToResolutionDeg(CORE_VALIDATIONS.resolutionDeg.min) } },
+                ],
+              },
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
+              const index = expectedGeometries.findIndex((expectedGeometry) =>
+                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
+              );
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
+            });
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(4);
+          });
+
+          it('should return 200 status code and return clipped polygon parts when feature collection has some features with null geometry', async () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
@@ -605,7 +1023,7 @@ describe('polygonParts', () => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
               );
-              return expectedGeometries.splice(index, 1).length === 1;
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
             });
             expect(response).toSatisfyApiSpec();
 
@@ -735,7 +1153,7 @@ describe('polygonParts', () => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
               );
-              return expectedGeometries.splice(index, 1).length === 1;
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
             });
             expect(response).toSatisfyApiSpec();
 
@@ -816,7 +1234,7 @@ describe('polygonParts', () => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
               );
-              return expectedGeometries.splice(index, 1).length === 1;
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
             });
             expect(response).toSatisfyApiSpec();
 
@@ -906,7 +1324,7 @@ describe('polygonParts', () => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
               );
-              return expectedGeometries.splice(index, 1).length === 1;
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
             });
             expect(response).toSatisfyApiSpec();
 
@@ -958,7 +1376,7 @@ describe('polygonParts', () => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
               );
-              return expectedGeometries.splice(index, 1).length === 1;
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
             });
             expect(response).toSatisfyApiSpec();
 
@@ -1055,7 +1473,7 @@ describe('polygonParts', () => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
               );
-              return expectedGeometries.splice(index, 1).length === 1;
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
             });
             expect(response).toSatisfyApiSpec();
 
@@ -1123,7 +1541,7 @@ describe('polygonParts', () => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
               );
-              return expectedGeometries.splice(index, 1).length === 1;
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
             });
             expect(response).toSatisfyApiSpec();
 
@@ -1311,7 +1729,347 @@ describe('polygonParts', () => {
             expect.assertions(3);
           });
 
-          it('should return 200 status code and return clipped polygon parts when request feature collection has some features with null geometry', async () => {
+          it('should return 200 status code and return empty array when feature collection features (single features) are filtered out by resolution', async () => {
+            const zoomLevel = faker.number.int({ min: 1, max: 21 });
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [0, -90],
+                        [0, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, -90],
+                        [90, -90],
+                        [90, 90],
+                        [0, 90],
+                        [0, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [90, -90],
+                        [180, -90],
+                        [180, 90],
+                        [90, 90],
+                        [90, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel + 1),
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const requestGeometry = {
+              type: 'MultiPolygon',
+              coordinates: [generatePolygon({ bbox: [-170, -80, -10, 80] }).coordinates, generatePolygon({ bbox: [10, -80, 80, 80] }).coordinates],
+            } satisfies MultiPolygon;
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [{ type: 'Feature', geometry: requestGeometry, properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel + 1) } }],
+              },
+              query: { shouldClip },
+            });
+
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(3);
+          });
+
+          it('should return 200 status code and return clipped polygon parts when feature collection features (single features) are filtered by resolution - one part of feature multi-polygon filtered out', async () => {
+            const zoomLevel = faker.number.int({ min: 1, max: 21 });
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [0, -90],
+                        [0, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, -90],
+                        [90, -90],
+                        [90, 90],
+                        [0, 90],
+                        [0, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [90, -90],
+                        [180, -90],
+                        [180, 90],
+                        [90, 90],
+                        [90, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel + 1),
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const requestGeometryMultiPolygonPart1 = generatePolygon({ bbox: [-170, -80, -10, 80] });
+            const requestGeometryMultiPolygonPart2 = generatePolygon({ bbox: [10, -80, 80, 80] });
+            const requestGeometry = {
+              type: 'MultiPolygon',
+              coordinates: [requestGeometryMultiPolygonPart1.coordinates, requestGeometryMultiPolygonPart2.coordinates],
+            } satisfies MultiPolygon;
+            expectedResponse.features.splice(2, 1);
+            expectedResponse.features.splice(0, 1);
+            const expectedGeometry = structuredClone(polygon(requestGeometryMultiPolygonPart2.coordinates).geometry);
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [{ type: 'Feature', geometry: requestGeometry, properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel) } }],
+              },
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(4);
+          });
+
+          it('should return 200 status code and return clipped polygon parts when feature collection features (single features) are filtered by resolution', async () => {
+            const zoomLevel = faker.number.int({ min: 1, max: 21 });
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [0, -90],
+                        [0, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, -90],
+                        [90, -90],
+                        [90, 90],
+                        [0, 90],
+                        [0, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [90, -90],
+                        [180, -90],
+                        [180, 90],
+                        [90, 90],
+                        [90, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel + 1),
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const requestGeometry = {
+              type: 'MultiPolygon',
+              coordinates: [generatePolygon({ bbox: [-170, -80, -10, 80] }).coordinates, generatePolygon({ bbox: [10, -80, 80, 80] }).coordinates],
+            } satisfies MultiPolygon;
+            expectedResponse.features.splice(2, 1);
+            const expectedGeometries = structuredClone(requestGeometry.coordinates.map((part) => polygon(part).geometry));
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [{ type: 'Feature', geometry: requestGeometry, properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel - 1) } }],
+              },
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
+              const index = expectedGeometries.findIndex((expectedGeometry) =>
+                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
+              );
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
+            });
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(4);
+          });
+
+          it('should return 200 status code and return clipped polygon parts when feature collection features (multiple features) are filtered by resolution - null geometries ignored', async () => {
+            const zoomLevel = faker.number.int({ min: 1, max: 21 });
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [0, -90],
+                        [0, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, -90],
+                        [90, -90],
+                        [90, 90],
+                        [0, 90],
+                        [0, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [90, -90],
+                        [180, -90],
+                        [180, 90],
+                        [90, 90],
+                        [90, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel + 1),
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const requestGeometry = {
+              type: 'MultiPolygon',
+              coordinates: [generatePolygon({ bbox: [10, -80, 80, 80] }).coordinates, generatePolygon({ bbox: [100, -80, 170, 80] }).coordinates],
+            } satisfies MultiPolygon;
+            expectedResponse.features.splice(0, 1);
+            const expectedGeometries = structuredClone(requestGeometry.coordinates.map((part) => polygon(part).geometry));
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [
+                  { type: 'Feature', geometry: requestGeometry, properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel) } },
+                  { type: 'Feature', geometry: null, properties: { minResolutionDeg: zoomLevelToResolutionDeg(CORE_VALIDATIONS.resolutionDeg.min) } },
+                ],
+              },
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
+              const index = expectedGeometries.findIndex((expectedGeometry) =>
+                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
+              );
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
+            });
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(4);
+          });
+
+          it('should return 200 status code and return clipped polygon parts when feature collection has some features with null geometry', async () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
@@ -1365,7 +2123,7 @@ describe('polygonParts', () => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
               );
-              return expectedGeometries.splice(index, 1).length === 1;
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
             });
             expect(responseBody.features[0].properties.requestFeatureId).toBe(expectedFeatureId);
             expect(responseBody.features[1].properties.requestFeatureId).toBe(expectedFeatureId);
@@ -1559,7 +2317,7 @@ describe('polygonParts', () => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
               );
-              return expectedGeometries.splice(index, 1).length === 1;
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
             });
             expect(response).toSatisfyApiSpec();
 
@@ -1627,7 +2385,7 @@ describe('polygonParts', () => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
               );
-              return expectedGeometries.splice(index, 1).length === 1;
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
             });
             expect(response).toSatisfyApiSpec();
 
@@ -1749,7 +2507,7 @@ describe('polygonParts', () => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
               );
-              return expectedGeometries.splice(index, 1).length === 1;
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
             });
             expect(response).toSatisfyApiSpec();
 
@@ -1869,7 +2627,7 @@ describe('polygonParts', () => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
               );
-              return expectedGeometries.splice(index, 1).length === 1;
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
             });
             expect(response).toSatisfyApiSpec();
 
@@ -1959,7 +2717,7 @@ describe('polygonParts', () => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
               );
-              return expectedGeometries.splice(index, 1).length === 1;
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
             });
             expect(response).toSatisfyApiSpec();
 
@@ -2027,7 +2785,7 @@ describe('polygonParts', () => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
               );
-              return expectedGeometries.splice(index, 1).length === 1;
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
             });
             expect(response).toSatisfyApiSpec();
 
@@ -2121,7 +2879,7 @@ describe('polygonParts', () => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
               );
-              return expectedGeometries.splice(index, 1).length === 1;
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
             });
             expect(response).toSatisfyApiSpec();
 
@@ -2213,7 +2971,7 @@ describe('polygonParts', () => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
               );
-              return expectedGeometries.splice(index, 1).length === 1;
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
             });
             expect(response).toSatisfyApiSpec();
 
@@ -2283,7 +3041,7 @@ describe('polygonParts', () => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
               );
-              return expectedGeometries.splice(index, 1).length === 1;
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
             });
             expect(response).toSatisfyApiSpec();
 
@@ -2354,7 +3112,7 @@ describe('polygonParts', () => {
               const index = expectedGeometries.findIndex((expectedGeometry) =>
                 booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
               );
-              return expectedGeometries.splice(index, 1).length === 1;
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
             });
             expect(response).toSatisfyApiSpec();
 
@@ -2401,7 +3159,7 @@ describe('polygonParts', () => {
             const index = expectedGeometries.findIndex((expectedGeometry) =>
               booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
             );
-            return expectedGeometries.splice(index, 1).length === 1;
+            return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
           });
           expect(response).toSatisfyApiSpec();
 
@@ -2464,6 +3222,152 @@ describe('polygonParts', () => {
           expect.assertions(4);
         });
 
+        it('should return 200 status code and return filtered polygon parts when feature collection features (multiple features) have null geometry and are filtered by resolution', async () => {
+          const zoomLevel = faker.number.int({ min: 1, max: 20 });
+          const polygonPartsPayload = generatePolygonPartsPayload({
+            partsData: [
+              {
+                footprint: {
+                  type: 'Polygon',
+                  coordinates: [
+                    [
+                      [-180, -90],
+                      [0, -90],
+                      [0, 90],
+                      [-180, 90],
+                      [-180, -90],
+                    ],
+                  ],
+                },
+                resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
+              },
+              {
+                footprint: {
+                  type: 'Polygon',
+                  coordinates: [
+                    [
+                      [0, -90],
+                      [90, -90],
+                      [90, 90],
+                      [0, 90],
+                      [0, -90],
+                    ],
+                  ],
+                },
+                resolutionDegree: zoomLevelToResolutionDeg(zoomLevel),
+              },
+              {
+                footprint: {
+                  type: 'Polygon',
+                  coordinates: [
+                    [
+                      [90, -90],
+                      [180, -90],
+                      [180, 90],
+                      [90, 90],
+                      [90, -90],
+                    ],
+                  ],
+                },
+                resolutionDegree: zoomLevelToResolutionDeg(zoomLevel + 1),
+              },
+            ],
+          });
+          await requestSender.createPolygonParts(polygonPartsPayload);
+          const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+          const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+          expectedResponse.features.splice(0, 2);
+
+          const response = await requestSender.findPolygonParts({
+            params: { polygonPartsEntityName: entityIdentifier },
+            body: {
+              type: 'FeatureCollection',
+              features: [
+                { type: 'Feature', geometry: null, properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel + 1) } },
+                { type: 'Feature', geometry: null, properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel + 2) } },
+              ],
+            },
+            query: { shouldClip },
+          });
+
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(3);
+        });
+
+        it('should return 200 status code and return empty array when feature collection features (single features) have null geometry and are filtered out by resolution', async () => {
+          const zoomLevel = faker.number.int({ min: 1, max: 20 });
+          const polygonPartsPayload = generatePolygonPartsPayload({
+            partsData: [
+              {
+                footprint: {
+                  type: 'Polygon',
+                  coordinates: [
+                    [
+                      [-180, -90],
+                      [0, -90],
+                      [0, 90],
+                      [-180, 90],
+                      [-180, -90],
+                    ],
+                  ],
+                },
+                resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
+              },
+              {
+                footprint: {
+                  type: 'Polygon',
+                  coordinates: [
+                    [
+                      [0, -90],
+                      [90, -90],
+                      [90, 90],
+                      [0, 90],
+                      [0, -90],
+                    ],
+                  ],
+                },
+                resolutionDegree: zoomLevelToResolutionDeg(zoomLevel),
+              },
+              {
+                footprint: {
+                  type: 'Polygon',
+                  coordinates: [
+                    [
+                      [90, -90],
+                      [180, -90],
+                      [180, 90],
+                      [90, 90],
+                      [90, -90],
+                    ],
+                  ],
+                },
+                resolutionDegree: zoomLevelToResolutionDeg(zoomLevel + 1),
+              },
+            ],
+          });
+          await requestSender.createPolygonParts(polygonPartsPayload);
+          const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+          const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+
+          const response = await requestSender.findPolygonParts({
+            params: { polygonPartsEntityName: entityIdentifier },
+            body: {
+              type: 'FeatureCollection',
+              features: [{ type: 'Feature', geometry: null, properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel + 2) } }],
+            },
+            query: { shouldClip },
+          });
+
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(3);
+        });
+
         describe('input features are polygon geometries', () => {
           it('should return 200 status code and return empty array when feature collection features (single feature) do not intersect existing polygon parts (do not share common interior)', async () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
@@ -2521,137 +3425,6 @@ describe('polygonParts', () => {
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
-          });
-
-          it('should return 200 status code and return polygon parts when request feature collection has some features with null geometry', async () => {
-            const polygonPartsPayload = generatePolygonPartsPayload({
-              partsData: [
-                {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [0, -90],
-                        [0, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
-                },
-                {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [0, -90],
-                        [180, -90],
-                        [180, 90],
-                        [0, 90],
-                        [0, -90],
-                      ],
-                    ],
-                  },
-                },
-              ],
-            });
-            await requestSender.createPolygonParts(polygonPartsPayload);
-            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
-            const requestGeometries = [
-              generatePolygon({ bbox: [-170, -80, -10, 80] }),
-              generatePolygon({ bbox: [10, -80, 80, 80] }),
-              generatePolygon({ bbox: [100, -80, 170, 80] }),
-            ];
-            const expectedGeometries = structuredClone(polygonPartsPayload.partsData.map((partData) => partData.footprint));
-            const expectedFeatureIds = Array.from({ length: 3 }, generateFeatureId);
-            expectedResponse.features.forEach((feature) => {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
-              feature.geometry.coordinates = expect.any(Array<Number[][]>);
-            });
-
-            const response = await requestSender.findPolygonParts({
-              params: { polygonPartsEntityName: entityIdentifier },
-              body: {
-                type: 'FeatureCollection',
-                features: [
-                  { type: 'Feature', geometry: requestGeometries[0], properties: {}, id: expectedFeatureIds[0] },
-                  { type: 'Feature', geometry: requestGeometries[1], properties: {}, id: expectedFeatureIds[1] },
-                  { type: 'Feature', geometry: requestGeometries[2], properties: {}, id: expectedFeatureIds[2] },
-                  { type: 'Feature', geometry: null, properties: {} },
-                ],
-              },
-              query: { shouldClip },
-            });
-
-            const responseBody = response.body as FindPolygonPartsResponseBody;
-            expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return expectedGeometries.splice(index, 1).length === 1;
-            });
-            expect(responseBody.features[0].properties.requestFeatureId).toStrictEqual(expectedFeatureIds[0]);
-            expect(responseBody.features[1].properties.requestFeatureId).toStrictEqual(expectedFeatureIds.slice(1));
-            expect(response).toSatisfyApiSpec();
-
-            expect.assertions(6);
-          });
-
-          it('should return 200 status code and return polygon parts when feature collection features (single feature) partially intersect polygon parts', async () => {
-            const polygonPartsPayload = generatePolygonPartsPayload({
-              partsData: [
-                {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-1, -1],
-                        [1, -1],
-                        [1, 1],
-                        [-1, 1],
-                        [-1, -1],
-                      ],
-                    ],
-                  },
-                },
-              ],
-            });
-            await requestSender.createPolygonParts(polygonPartsPayload);
-            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
-            const expectedGeometry = structuredClone(polygonPartsPayload.partsData[0].footprint);
-            expectedResponse.features.forEach((feature) => {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
-              feature.geometry.coordinates = expect.any(Array<Number[][]>);
-            });
-
-            const response = await requestSender.findPolygonParts({
-              params: { polygonPartsEntityName: entityIdentifier },
-              body: polygons([
-                [
-                  [
-                    [180, 0],
-                    [180, 90],
-                    [-180, 90],
-                    [-180, 0],
-                    [180, 0],
-                  ],
-                ],
-              ]),
-              query: { shouldClip },
-            });
-
-            const responseBody = response.body as FindPolygonPartsResponseBody;
-            expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
-            expect(response).toSatisfyApiSpec();
-
-            expect.assertions(4);
           });
 
           it('should return 200 status code and return empty array when feature collection features (single feature) with a hole and polygon parts are inside the hole', async () => {
@@ -2742,6 +3515,396 @@ describe('polygonParts', () => {
 
             expect.assertions(3);
           });
+
+          it('should return 200 status code and return empty array when feature collection features (single features) are filtered out by resolution', async () => {
+            const zoomLevel = faker.number.int({ min: 1, max: 21 });
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [0, -90],
+                        [0, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, -90],
+                        [90, -90],
+                        [90, 90],
+                        [0, 90],
+                        [0, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [90, -90],
+                        [180, -90],
+                        [180, 90],
+                        [90, 90],
+                        [90, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel + 1),
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const requestGeometry = generatePolygon({ bbox: [10, -80, 80, 80] });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [{ type: 'Feature', geometry: requestGeometry, properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel + 1) } }],
+              },
+              query: { shouldClip },
+            });
+
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(3);
+          });
+
+          it('should return 200 status code and return polygon parts when feature collection features (multiple features) are filtered by resolution', async () => {
+            const zoomLevel = faker.number.int({ min: 1, max: 1 });
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [0, -90],
+                        [0, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, -90],
+                        [90, -90],
+                        [90, 90],
+                        [0, 90],
+                        [0, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [90, -90],
+                        [180, -90],
+                        [180, 90],
+                        [90, 90],
+                        [90, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel + 1),
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const requestGeometries = [
+              generatePolygon({ bbox: [-170, -80, -10, 80] }),
+              generatePolygon({ bbox: [10, -80, 80, 80] }),
+              generatePolygon({ bbox: [100, -80, 170, 80] }),
+            ] satisfies Polygon[];
+            expectedResponse.features.splice(0, 1);
+            const expectedGeometries = structuredClone(expectedResponse.features.map((feature) => feature.geometry));
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [
+                  { type: 'Feature', geometry: requestGeometries[0], properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel) } },
+                  { type: 'Feature', geometry: requestGeometries[1], properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel) } },
+                  { type: 'Feature', geometry: requestGeometries[2], properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel) } },
+                ],
+              },
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
+              const index = expectedGeometries.findIndex((expectedGeometry) =>
+                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
+              );
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
+            });
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(4);
+          });
+
+          it('should return 200 status code and return polygon parts when feature collection features (multiple features) are filtered by resolution - null geometries ignored', async () => {
+            const zoomLevel = faker.number.int({ min: 1, max: 21 });
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [0, -90],
+                        [0, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, -90],
+                        [90, -90],
+                        [90, 90],
+                        [0, 90],
+                        [0, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [90, -90],
+                        [180, -90],
+                        [180, 90],
+                        [90, 90],
+                        [90, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel + 1),
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const requestGeometries = [
+              generatePolygon({ bbox: [-170, -80, -10, 80] }),
+              generatePolygon({ bbox: [10, -80, 80, 80] }),
+              generatePolygon({ bbox: [100, -80, 170, 80] }),
+            ] satisfies Polygon[];
+            expectedResponse.features.splice(0, 1);
+            const expectedGeometries = structuredClone(expectedResponse.features.map((feature) => feature.geometry));
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [
+                  { type: 'Feature', geometry: requestGeometries[0], properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel) } },
+                  { type: 'Feature', geometry: requestGeometries[1], properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel) } },
+                  { type: 'Feature', geometry: requestGeometries[2], properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel) } },
+                  { type: 'Feature', geometry: null, properties: { minResolutionDeg: zoomLevelToResolutionDeg(CORE_VALIDATIONS.resolutionDeg.min) } },
+                ],
+              },
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
+              const index = expectedGeometries.findIndex((expectedGeometry) =>
+                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
+              );
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
+            });
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(4);
+          });
+
+          it('should return 200 status code and return polygon parts when feature collection has some features with null geometry', async () => {
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [0, -90],
+                        [0, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, -90],
+                        [180, -90],
+                        [180, 90],
+                        [0, 90],
+                        [0, -90],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const requestGeometries = [
+              generatePolygon({ bbox: [-170, -80, -10, 80] }),
+              generatePolygon({ bbox: [10, -80, 80, 80] }),
+              generatePolygon({ bbox: [100, -80, 170, 80] }),
+            ];
+            const expectedGeometries = structuredClone(polygonPartsPayload.partsData.map((partData) => partData.footprint));
+            const expectedFeatureIds = Array.from({ length: 3 }, generateFeatureId);
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [
+                  { type: 'Feature', geometry: requestGeometries[0], properties: {}, id: expectedFeatureIds[0] },
+                  { type: 'Feature', geometry: requestGeometries[1], properties: {}, id: expectedFeatureIds[1] },
+                  { type: 'Feature', geometry: requestGeometries[2], properties: {}, id: expectedFeatureIds[2] },
+                  { type: 'Feature', geometry: null, properties: {} },
+                ],
+              },
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
+              const index = expectedGeometries.findIndex((expectedGeometry) =>
+                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
+              );
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
+            });
+            expect(responseBody.features[0].properties.requestFeatureId).toStrictEqual(expectedFeatureIds[0]);
+            expect(responseBody.features[1].properties.requestFeatureId).toStrictEqual(expectedFeatureIds.slice(1));
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(6);
+          });
+
+          it('should return 200 status code and return polygon parts when feature collection features (single feature) partially intersect polygon parts', async () => {
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-1, -1],
+                        [1, -1],
+                        [1, 1],
+                        [-1, 1],
+                        [-1, -1],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const expectedGeometry = structuredClone(polygonPartsPayload.partsData[0].footprint);
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: polygons([
+                [
+                  [
+                    [180, 0],
+                    [180, 90],
+                    [-180, 90],
+                    [-180, 0],
+                    [180, 0],
+                  ],
+                ],
+              ]),
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(4);
+          });
         });
 
         describe('input features are multi-polygon geometries', () => {
@@ -2812,184 +3975,6 @@ describe('polygonParts', () => {
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
-          });
-
-          it('should return 200 status code and return polygon parts when request feature collection has some features with null geometry', async () => {
-            const polygonPartsPayload = generatePolygonPartsPayload({
-              partsData: [
-                {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-180, -90],
-                        [0, -90],
-                        [0, 90],
-                        [-180, 90],
-                        [-180, -90],
-                      ],
-                    ],
-                  },
-                },
-                {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [0, -90],
-                        [180, -90],
-                        [180, 90],
-                        [0, 90],
-                        [0, -90],
-                      ],
-                    ],
-                  },
-                },
-              ],
-            });
-            await requestSender.createPolygonParts(polygonPartsPayload);
-            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
-            const requestGeometries = [
-              {
-                type: 'MultiPolygon',
-                coordinates: [
-                  generatePolygon({ bbox: [-170, -80, -100, 80] }).coordinates,
-                  generatePolygon({ bbox: [-80, -80, -10, 80] }).coordinates,
-                ],
-              },
-              {
-                type: 'MultiPolygon',
-                coordinates: [generatePolygon({ bbox: [10, -80, 35, 80] }).coordinates, generatePolygon({ bbox: [55, -80, 80, 80] }).coordinates],
-              },
-              {
-                type: 'MultiPolygon',
-                coordinates: [generatePolygon({ bbox: [100, -80, 125, 80] }).coordinates, generatePolygon({ bbox: [145, -80, 170, 80] }).coordinates],
-              },
-            ] satisfies MultiPolygon[];
-            const expectedGeometries = structuredClone(expectedResponse.features.map((feature) => feature.geometry));
-            const expectedFeatureIds = Array.from({ length: 3 }, generateFeatureId);
-            expectedResponse.features.forEach((feature) => {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
-              feature.geometry.coordinates = expect.any(Array<Number[][]>);
-            });
-
-            const response = await requestSender.findPolygonParts({
-              params: { polygonPartsEntityName: entityIdentifier },
-              body: {
-                type: 'FeatureCollection',
-                features: [
-                  { type: 'Feature', geometry: requestGeometries[0], properties: {}, id: expectedFeatureIds[0] },
-                  { type: 'Feature', geometry: requestGeometries[1], properties: {}, id: expectedFeatureIds[1] },
-                  { type: 'Feature', geometry: requestGeometries[2], properties: {}, id: expectedFeatureIds[2] },
-                  { type: 'Feature', geometry: null, properties: {} },
-                ],
-              },
-              query: { shouldClip },
-            });
-
-            const responseBody = response.body as FindPolygonPartsResponseBody;
-            expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return expectedGeometries.splice(index, 1).length === 1;
-            });
-            expect(responseBody.features[0].properties.requestFeatureId).toStrictEqual(expectedFeatureIds[0]);
-            expect(responseBody.features[1].properties.requestFeatureId).toStrictEqual(expectedFeatureIds.slice(1));
-            expect(response).toSatisfyApiSpec();
-
-            expect.assertions(6);
-          });
-
-          it('should return 200 status code and return clipped polygon parts when feature collection features (non-continuous multi-polygon) partially intersect the same polygon parts', async () => {
-            const polygonPartsPayload = generatePolygonPartsPayload({
-              partsData: [
-                {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-1, -1],
-                        [1, -1],
-                        [1, 1],
-                        [-1, 1],
-                        [-1, -1],
-                      ],
-                    ],
-                  },
-                },
-              ],
-            });
-            await requestSender.createPolygonParts(polygonPartsPayload);
-            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
-            const expectedGeometry = structuredClone(polygonPartsPayload.partsData[0].footprint);
-            const requsetedGeometry = expectedGeometry;
-            expectedResponse.features.forEach((feature) => {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
-              feature.geometry.coordinates = expect.any(Array<Number[][]>);
-            });
-
-            const response = await requestSender.findPolygonParts({
-              params: { polygonPartsEntityName: entityIdentifier },
-              body: featureCollection([multiPolygon([requsetedGeometry.coordinates])]),
-              query: { shouldClip },
-            });
-
-            const responseBody = response.body as FindPolygonPartsResponseBody;
-            expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
-            expect(response).toSatisfyApiSpec();
-
-            expect.assertions(4);
-          });
-
-          it('should return 200 status code and return clipped polygon parts when feature collection features (multi-polygon with parts touching at points) partially intersect the same polygon parts', async () => {
-            const polygonPartsPayload = generatePolygonPartsPayload({
-              partsData: [
-                {
-                  footprint: {
-                    type: 'Polygon',
-                    coordinates: [
-                      [
-                        [-1, -1],
-                        [1, -1],
-                        [1, 1],
-                        [-1, 1],
-                        [-1, -1],
-                      ],
-                    ],
-                  },
-                },
-              ],
-            });
-            await requestSender.createPolygonParts(polygonPartsPayload);
-            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
-            const expectedGeometry = structuredClone(polygonPartsPayload.partsData[0].footprint);
-            const requsetedGeometry = expectedGeometry;
-            expectedResponse.features.forEach((feature) => {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
-              feature.geometry.coordinates = expect.any(Array<Number[][]>);
-            });
-
-            const response = await requestSender.findPolygonParts({
-              params: { polygonPartsEntityName: entityIdentifier },
-              body: featureCollection([multiPolygon([requsetedGeometry.coordinates])]),
-              query: { shouldClip },
-            });
-
-            const responseBody = response.body as FindPolygonPartsResponseBody;
-            expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
-            expect(response).toSatisfyApiSpec();
-
-            expect.assertions(4);
           });
 
           it('should return 200 status code and return empty array when feature collection features (single feature) with a hole and polygon parts are inside the hole', async () => {
@@ -3100,6 +4085,527 @@ describe('polygonParts', () => {
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
+          });
+
+          it('should return 200 status code and return empty array when feature collection features (single features) are filtered out by resolution', async () => {
+            const zoomLevel = faker.number.int({ min: 1, max: 21 });
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [0, -90],
+                        [0, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, -90],
+                        [90, -90],
+                        [90, 90],
+                        [0, 90],
+                        [0, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [90, -90],
+                        [180, -90],
+                        [180, 90],
+                        [90, 90],
+                        [90, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel + 1),
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const requestGeometry = {
+              type: 'MultiPolygon',
+              coordinates: [generatePolygon({ bbox: [-170, -80, -10, 80] }).coordinates, generatePolygon({ bbox: [10, -80, 80, 80] }).coordinates],
+            } satisfies MultiPolygon;
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [{ type: 'Feature', geometry: requestGeometry, properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel + 1) } }],
+              },
+              query: { shouldClip },
+            });
+
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(3);
+          });
+
+          it('should return 200 status code and return polygon parts when feature collection features (single features) are filtered by resolution - one part of feature multi-polygon filtered out', async () => {
+            const zoomLevel = faker.number.int({ min: 1, max: 21 });
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [0, -90],
+                        [0, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, -90],
+                        [90, -90],
+                        [90, 90],
+                        [0, 90],
+                        [0, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [90, -90],
+                        [180, -90],
+                        [180, 90],
+                        [90, 90],
+                        [90, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel + 1),
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const requestGeometry = {
+              type: 'MultiPolygon',
+              coordinates: [generatePolygon({ bbox: [-170, -80, -10, 80] }).coordinates, generatePolygon({ bbox: [10, -80, 80, 80] }).coordinates],
+            } satisfies MultiPolygon;
+            expectedResponse.features.splice(2, 1);
+            expectedResponse.features.splice(0, 1);
+            const expectedGeometries = structuredClone(expectedResponse.features.map((feature) => feature.geometry));
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [{ type: 'Feature', geometry: requestGeometry, properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel) } }],
+              },
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
+              const index = expectedGeometries.findIndex((expectedGeometry) =>
+                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
+              );
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
+            });
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(4);
+          });
+
+          it('should return 200 status code and return polygon parts when feature collection features (single features) are filtered by resolution', async () => {
+            const zoomLevel = faker.number.int({ min: 1, max: 21 });
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [0, -90],
+                        [0, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, -90],
+                        [90, -90],
+                        [90, 90],
+                        [0, 90],
+                        [0, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [90, -90],
+                        [180, -90],
+                        [180, 90],
+                        [90, 90],
+                        [90, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel + 1),
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const requestGeometry = {
+              type: 'MultiPolygon',
+              coordinates: [generatePolygon({ bbox: [-170, -80, -10, 80] }).coordinates, generatePolygon({ bbox: [10, -80, 80, 80] }).coordinates],
+            } satisfies MultiPolygon;
+            expectedResponse.features.splice(2, 1);
+            const expectedGeometries = structuredClone(expectedResponse.features.map((feature) => feature.geometry));
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [{ type: 'Feature', geometry: requestGeometry, properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel - 1) } }],
+              },
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
+              const index = expectedGeometries.findIndex((expectedGeometry) =>
+                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
+              );
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
+            });
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(4);
+          });
+
+          it('should return 200 status code and return polygon parts when feature collection features (multiple features) are filtered by resolution - null geometries ignored', async () => {
+            const zoomLevel = faker.number.int({ min: 1, max: 21 });
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [0, -90],
+                        [0, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel - 1),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, -90],
+                        [90, -90],
+                        [90, 90],
+                        [0, 90],
+                        [0, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel),
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [90, -90],
+                        [180, -90],
+                        [180, 90],
+                        [90, 90],
+                        [90, -90],
+                      ],
+                    ],
+                  },
+                  resolutionDegree: zoomLevelToResolutionDeg(zoomLevel + 1),
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const requestGeometry = {
+                type: 'MultiPolygon',
+                coordinates: [generatePolygon({ bbox: [10, -80, 80, 80] }).coordinates, generatePolygon({ bbox: [100, -80, 170, 80] }).coordinates],
+              } satisfies MultiPolygon;
+            expectedResponse.features.splice(0, 1);
+            const expectedGeometries = structuredClone(expectedResponse.features.map((feature) => feature.geometry));
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [
+                  { type: 'Feature', geometry: requestGeometry, properties: { minResolutionDeg: zoomLevelToResolutionDeg(zoomLevel) } },
+                  { type: 'Feature', geometry: null, properties: { minResolutionDeg: zoomLevelToResolutionDeg(CORE_VALIDATIONS.resolutionDeg.min) } },
+                ],
+              },
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
+              const index = expectedGeometries.findIndex((expectedGeometry) =>
+                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
+              );
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
+            });
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(4);
+          });
+
+          it('should return 200 status code and return polygon parts when feature collection has some features with null geometry', async () => {
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [0, -90],
+                        [0, 90],
+                        [-180, 90],
+                        [-180, -90],
+                      ],
+                    ],
+                  },
+                },
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, -90],
+                        [180, -90],
+                        [180, 90],
+                        [0, 90],
+                        [0, -90],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const requestGeometries = [
+              {
+                type: 'MultiPolygon',
+                coordinates: [
+                  generatePolygon({ bbox: [-170, -80, -100, 80] }).coordinates,
+                  generatePolygon({ bbox: [-80, -80, -10, 80] }).coordinates,
+                ],
+              },
+              {
+                type: 'MultiPolygon',
+                coordinates: [generatePolygon({ bbox: [10, -80, 35, 80] }).coordinates, generatePolygon({ bbox: [55, -80, 80, 80] }).coordinates],
+              },
+              {
+                type: 'MultiPolygon',
+                coordinates: [generatePolygon({ bbox: [100, -80, 125, 80] }).coordinates, generatePolygon({ bbox: [145, -80, 170, 80] }).coordinates],
+              },
+            ] satisfies MultiPolygon[];
+            const expectedGeometries = structuredClone(expectedResponse.features.map((feature) => feature.geometry));
+            const expectedFeatureIds = Array.from({ length: 3 }, generateFeatureId);
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: {
+                type: 'FeatureCollection',
+                features: [
+                  { type: 'Feature', geometry: requestGeometries[0], properties: {}, id: expectedFeatureIds[0] },
+                  { type: 'Feature', geometry: requestGeometries[1], properties: {}, id: expectedFeatureIds[1] },
+                  { type: 'Feature', geometry: requestGeometries[2], properties: {}, id: expectedFeatureIds[2] },
+                  { type: 'Feature', geometry: null, properties: {} },
+                ],
+              },
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
+              const index = expectedGeometries.findIndex((expectedGeometry) =>
+                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
+              );
+              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
+            });
+            expect(responseBody.features[0].properties.requestFeatureId).toStrictEqual(expectedFeatureIds[0]);
+            expect(responseBody.features[1].properties.requestFeatureId).toStrictEqual(expectedFeatureIds.slice(1));
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(6);
+          });
+
+          it('should return 200 status code and return polygon parts when feature collection features (non-continuous multi-polygon) partially intersect the same polygon parts', async () => {
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-1, -1],
+                        [1, -1],
+                        [1, 1],
+                        [-1, 1],
+                        [-1, -1],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const expectedGeometry = structuredClone(polygonPartsPayload.partsData[0].footprint);
+            const requsetedGeometry = expectedGeometry;
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: featureCollection([multiPolygon([requsetedGeometry.coordinates])]),
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(4);
+          });
+
+          it('should return 200 status code and return polygon parts when feature collection features (multi-polygon with parts touching at points) partially intersect the same polygon parts', async () => {
+            const polygonPartsPayload = generatePolygonPartsPayload({
+              partsData: [
+                {
+                  footprint: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-1, -1],
+                        [1, -1],
+                        [1, 1],
+                        [-1, 1],
+                        [-1, -1],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            });
+            await requestSender.createPolygonParts(polygonPartsPayload);
+            const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+            const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
+            const expectedGeometry = structuredClone(polygonPartsPayload.partsData[0].footprint);
+            const requsetedGeometry = expectedGeometry;
+            expectedResponse.features.forEach((feature) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+              feature.geometry.coordinates = expect.any(Array<Number[][]>);
+            });
+
+            const response = await requestSender.findPolygonParts({
+              params: { polygonPartsEntityName: entityIdentifier },
+              body: featureCollection([multiPolygon([requsetedGeometry.coordinates])]),
+              query: { shouldClip },
+            });
+
+            const responseBody = response.body as FindPolygonPartsResponseBody;
+            expect(response.status).toBe(httpStatusCodes.OK);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
+            expect(response).toSatisfyApiSpec();
+
+            expect.assertions(4);
           });
         });
 

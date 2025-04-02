@@ -38,12 +38,11 @@ import polygonEasternHemisphere from './data/polygonEasternHemisphere.json';
 import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
 import polygonWesternHemisphere from './data/polygonWesternHemisphere.json';
-import { INITIAL_DB } from './helpers/constants';
+import { INITIAL_DB, INTERNAL_DB_GEOM_PRECISION } from './helpers/constants';
 import { HelperDB, createDB, generateFeatureId, generatePolygon, generatePolygonPartsPayload } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
-import { toExpectedFindPolygonPartsResponse, toExpectedPostgresResponse } from './helpers/utils';
+import { allGeometriesEqual, toExpectedFindPolygonPartsResponse, toExpectedPostgresResponse } from './helpers/utils';
 
-const INTERNAL_DB_GEOM_PRECISION = 12; // TODO: adjust precision to the capability of underlying DB precision query response
 let testDataSourceOptions: DataSourceOptions;
 const applicationConfig = config.get<ApplicationConfig>('application');
 const dbConfig = config.get<Required<DbConfig>>('db');
@@ -287,12 +286,7 @@ describe('polygonParts', () => {
           const responseBody = response.body as FindPolygonPartsResponseBody;
           expect(response.status).toBe(httpStatusCodes.OK);
           expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-          expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-            const index = expectedGeometries.findIndex((expectedGeometry) =>
-              booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-            );
-            return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-          });
+          expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
           expect(response).toSatisfyApiSpec();
 
           expect.assertions(4);
@@ -671,12 +665,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -765,12 +754,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -1019,12 +1003,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -1149,12 +1128,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -1230,12 +1204,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -1320,12 +1289,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -1372,12 +1336,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -1469,12 +1428,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -1537,12 +1491,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -1967,12 +1916,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -2058,12 +2002,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -2119,12 +2058,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(responseBody.features[0].properties.requestFeatureId).toBe(expectedFeatureId);
             expect(responseBody.features[1].properties.requestFeatureId).toBe(expectedFeatureId);
             expect(response).toSatisfyApiSpec();
@@ -2313,12 +2247,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -2381,12 +2310,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -2503,12 +2427,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -2623,12 +2542,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -2713,12 +2627,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -2781,12 +2690,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -2875,12 +2779,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -2967,12 +2866,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -3037,12 +2931,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -3108,12 +2997,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -3155,12 +3039,7 @@ describe('polygonParts', () => {
           const responseBody = response.body as FindPolygonPartsResponseBody;
           expect(response.status).toBe(httpStatusCodes.OK);
           expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-          expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-            const index = expectedGeometries.findIndex((expectedGeometry) =>
-              booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-            );
-            return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-          });
+          expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
           expect(response).toSatisfyApiSpec();
 
           expect.assertions(4);
@@ -3670,12 +3549,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -3764,12 +3638,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -3840,12 +3709,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(responseBody.features[0].properties.requestFeatureId).toStrictEqual(expectedFeatureIds[0]);
             expect(responseBody.features[1].properties.requestFeatureId).toStrictEqual(expectedFeatureIds.slice(1));
             expect(response).toSatisfyApiSpec();
@@ -4240,12 +4104,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -4328,12 +4187,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -4419,12 +4273,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(4);
@@ -4507,12 +4356,7 @@ describe('polygonParts', () => {
             const responseBody = response.body as FindPolygonPartsResponseBody;
             expect(response.status).toBe(httpStatusCodes.OK);
             expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
-            expect(responseBody.features).toSatisfyAll<(typeof responseBody.features)[number]>((feature) => {
-              const index = expectedGeometries.findIndex((expectedGeometry) =>
-                booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-              );
-              return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
-            });
+            expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(responseBody.features[0].properties.requestFeatureId).toStrictEqual(expectedFeatureIds[0]);
             expect(responseBody.features[1].properties.requestFeatureId).toStrictEqual(expectedFeatureIds.slice(1));
             expect(response).toSatisfyApiSpec();

@@ -5744,7 +5744,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if shouldClip is not a boolean value', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: featureCollection<Polygon | MultiPolygon>([]),
           query: { shouldClip: 'invalid' as unknown as boolean },
         });
@@ -5883,7 +5883,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if feature collection in req body is an invalid value - is not an object', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: 'invalid' as unknown as FeatureCollection<Polygon | MultiPolygon | null>,
         });
 
@@ -5896,7 +5896,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if feature collection in req body is an invalid value - does not contain entry "type": "FeatureCollection"', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: { type: 'invalid', features: [] } as unknown as FeatureCollection<Polygon | MultiPolygon | null>,
         });
 
@@ -5909,7 +5909,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if feature collection in req body is an invalid value - does not contain entry for "features" property', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: { type: 'FeatureCollection' } as unknown as FeatureCollection<Polygon | MultiPolygon | null>,
         });
 
@@ -5922,7 +5922,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if feature collection in req body is an invalid value - "bbox" value must be an array with 4 items', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
             type: 'FeatureCollection',
             features: [],
@@ -5947,7 +5947,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - does not contain entry "type": "Feature"', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
             type: 'FeatureCollection',
             features: [{ type: 'invalid', properties: {}, geometry: null }],
@@ -5963,7 +5963,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - does not contain entry for "properties" property', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
             type: 'FeatureCollection',
             features: [{ type: 'Feature', geometry: null }],
@@ -5979,7 +5979,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - does not contain entry for "geometry" property', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
             type: 'FeatureCollection',
             features: [{ type: 'Feature', properties: {} }],
@@ -5995,7 +5995,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "id" value must be a number or string', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -6019,7 +6019,7 @@ describe('polygonParts', () => {
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "id" value must be unique', async () => {
         const featureId = generateFeatureId();
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -6048,7 +6048,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "property" value must be an object or null', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -6070,7 +6070,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "geometry" value must be an object or null', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -6092,7 +6092,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "bbox" value must be an array with 4 items', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -6123,7 +6123,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - does not contain entry "type": "Polygon" or "type": "MultiPolygon"', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -6148,7 +6148,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - does not contain entry for "coordinates" property', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -6172,7 +6172,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - "bbox" value must be an array with 4 items', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -6214,7 +6214,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - first and last vertices are not equal', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -6247,7 +6247,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - must have at least 3 vertices', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -6278,7 +6278,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - hole must have at least 3 vertices', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -6475,7 +6475,7 @@ describe('polygonParts', () => {
         'should return 400 status code if polygon geometry inside a feature, inside a feature collection, in req body is an invalid value - $testCase',
         async ({ coordinates }) => {
           const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
             body: {
               type: 'FeatureCollection',
               features: [
@@ -6500,7 +6500,7 @@ describe('polygonParts', () => {
         'should return 400 status code if multi-polygon geometry inside a feature, inside a feature collection, in req body is an invalid value - $testCase',
         async ({ coordinates }) => {
           const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
             body: {
               type: 'FeatureCollection',
               features: [
@@ -6523,7 +6523,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - multi-polygon parts must not overlap', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: featureCollection([
             multiPolygon([
               [
@@ -6557,7 +6557,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - multi-polygon parts must not touch along a line', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: featureCollection([
             multiPolygon([
               [
@@ -6590,7 +6590,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - polygon must have coordinates values in (-180,180) range', async () => {
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: polygons([
             [
               [

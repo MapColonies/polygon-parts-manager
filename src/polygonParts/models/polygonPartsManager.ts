@@ -259,6 +259,7 @@ export class PolygonPartsManager {
     const requestFeatureIds = hasAnyGeometries
       ? ` || jsonb_strip_nulls(
       case
+        when array_length(${filterRequestFeatureIds}, 1) is null then '{}'::jsonb
         when array_length(${filterRequestFeatureIds}, 1) = 1 then jsonb_build_object('${requestFeatureId}', ${filterRequestFeatureIds}[1])
         else jsonb_build_object('${requestFeatureId}', ${filterRequestFeatureIds})
       end

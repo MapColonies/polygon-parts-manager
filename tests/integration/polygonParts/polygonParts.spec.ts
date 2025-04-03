@@ -6219,8 +6219,11 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - first and last vertices are not equal', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload)).body as unknown as PolygonPartsResponse;
+        const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -6480,8 +6483,12 @@ describe('polygonParts', () => {
       it.each(invalidGeometryTopologyTestCases)(
         'should return 400 status code if polygon geometry inside a feature, inside a feature collection, in req body is an invalid value - $testCase',
         async ({ coordinates }) => {
+          const polygonPartsPayload = generatePolygonPartsPayload(1);
+          const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload))
+            .body as unknown as PolygonPartsResponse;
+          const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
           const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+            params: { polygonPartsEntityName },
             body: {
               type: 'FeatureCollection',
               features: [
@@ -6505,8 +6512,12 @@ describe('polygonParts', () => {
       it.each(invalidGeometryTopologyTestCases)(
         'should return 400 status code if multi-polygon geometry inside a feature, inside a feature collection, in req body is an invalid value - $testCase',
         async ({ coordinates }) => {
+          const polygonPartsPayload = generatePolygonPartsPayload(1);
+          const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload))
+            .body as unknown as PolygonPartsResponse;
+          const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
           const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+            params: { polygonPartsEntityName },
             body: {
               type: 'FeatureCollection',
               features: [
@@ -6528,8 +6539,11 @@ describe('polygonParts', () => {
       );
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - multi-polygon parts must not overlap', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload)).body as unknown as PolygonPartsResponse;
+        const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName },
           body: featureCollection([
             multiPolygon([
               [
@@ -6562,8 +6576,11 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - multi-polygon parts must not touch along a line', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload)).body as unknown as PolygonPartsResponse;
+        const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName },
           body: featureCollection([
             multiPolygon([
               [
@@ -6595,8 +6612,11 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - polygon must have coordinates values in (-180,180) range', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload)).body as unknown as PolygonPartsResponse;
+        const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName },
           body: polygons([
             [
               [

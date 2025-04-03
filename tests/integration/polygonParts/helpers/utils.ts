@@ -11,7 +11,9 @@ import { INTERNAL_DB_GEOM_PRECISION } from './constants';
 
 const applicationConfig = config.get<ApplicationConfig>('application');
 
-export const allGeometriesEqual = <E extends FindPolygonPartsResponseBody['features'][number]>(expectedGeometries: Polygon[]): ((feature: E) => boolean) => {
+export const allGeometriesEqual = <E extends FindPolygonPartsResponseBody['features'][number]>(
+  expectedGeometries: Polygon[]
+): ((feature: E) => boolean) => {
   return (feature) => {
     const index = expectedGeometries.findIndex((expectedGeometry) =>
       booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })

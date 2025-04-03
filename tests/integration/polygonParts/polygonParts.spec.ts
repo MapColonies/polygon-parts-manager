@@ -709,7 +709,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: (polygonEarth as FeatureCollection<Polygon>).features[0].geometry
+                  footprint: (polygonEarth as FeatureCollection<Polygon>).features[0].geometry,
                 },
               ],
             });
@@ -947,7 +947,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: (polygonEarth as FeatureCollection<Polygon>).features[0].geometry
+                  footprint: (polygonEarth as FeatureCollection<Polygon>).features[0].geometry,
                 },
               ],
             });
@@ -980,7 +980,7 @@ describe('polygonParts', () => {
             const polygonPartsPayload = generatePolygonPartsPayload({
               partsData: [
                 {
-                  footprint: (polygonEarth as FeatureCollection<Polygon>).features[0].geometry
+                  footprint: (polygonEarth as FeatureCollection<Polygon>).features[0].geometry,
                 },
               ],
             });
@@ -3995,9 +3995,9 @@ describe('polygonParts', () => {
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
             const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
             const requestGeometry = {
-                type: 'MultiPolygon',
-                coordinates: [generatePolygon({ bbox: [10, -80, 80, 80] }).coordinates, generatePolygon({ bbox: [100, -80, 170, 80] }).coordinates],
-              } satisfies MultiPolygon;
+              type: 'MultiPolygon',
+              coordinates: [generatePolygon({ bbox: [10, -80, 80, 80] }).coordinates, generatePolygon({ bbox: [100, -80, 170, 80] }).coordinates],
+            } satisfies MultiPolygon;
             expectedResponse.features.splice(0, 1);
             const expectedGeometries = structuredClone(expectedResponse.features.map((feature) => feature.geometry));
             expectedResponse.features.forEach((feature) => {

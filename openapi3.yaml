@@ -142,7 +142,7 @@ paths:
       summary: Find and filter polygon parts based on spatial criteria
       description: |
         Finds polygon parts that intersect with the provided search geometries. The endpoint accepts a GeoJSON FeatureCollection containing search geometries and optional resolution filters.
-        
+
         **Behavior:**
         - Returns polygon parts that intersect with any of the provided search geometries
         - If `maxResolutionDeg` or `minResolutionDeg` are specified in feature properties, filters results by resolution

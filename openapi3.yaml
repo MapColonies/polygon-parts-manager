@@ -139,8 +139,20 @@ paths:
     post:
       tags:
         - polygon-parts
-      summary: Find polygon parts
-      description: Find polygon parts
+      summary: Find and filter polygon parts based on spatial criteria
+      description: |
+        Finds polygon parts that intersect with the provided search geometries. The endpoint accepts a GeoJSON FeatureCollection containing search geometries and optional resolution filters.
+        
+        **Behavior:**
+        - Returns polygon parts that intersect with any of the provided search geometries
+        - If `maxResolutionDeg` or `minResolutionDeg` are specified in feature properties, filters results by resolution
+        - If `id` property is present in input features, it is propagated to `requestFeatureId` in response feature properties
+        - When the features array is empty or when all feature geometries are null returns all polygon parts
+        - When the features collection includes a mixture of features with null and non-null geometries, null geometry features are discarded
+        - When `shouldClip=true` (default), returned polygon parts geometries are clipped to the search area
+        - When `shouldClip=false`, returns complete original polygon parts geometries
+        - With `shouldClip=true`, each feature maps to exactly one input feature via `requestFeatureId`
+        - With `shouldClip=false`, a feature may map to multiple input features if it intersects multiple search geometries. When multiple search geometries intersect a polygon part it will include an array of `requestFeatureId` instead of a single value (if `requestFeatureId` was provided)
       operationId: FindPolygonParts
       parameters:
         - in: path
@@ -152,8 +164,7 @@ paths:
         - in: query
           name: shouldClip
           description: >-
-            Clip the result to the footprint (results are not clipped if
-            footprint is not provided)
+            Clips results to search area when true, returns complete geometries when false
           schema:
             type: boolean
             default: true

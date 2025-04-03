@@ -1,12 +1,24 @@
+import { booleanEqual } from '@turf/boolean-equal';
 import { feature, featureCollection } from '@turf/helpers';
 import config from 'config';
+import type { Polygon } from 'geojson';
 import type { ApplicationConfig } from '../../../../src/common/interfaces';
 import { payloadToInsertPartsData } from '../../../../src/polygonParts/DAL/utils';
 import type { FindPolygonPartsResponseBody } from '../../../../src/polygonParts/controllers/interfaces';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 import type { ExpectedPostgresResponse } from './types';
+import { INTERNAL_DB_GEOM_PRECISION } from './constants';
 
 const applicationConfig = config.get<ApplicationConfig>('application');
+
+export const allGeometriesEqual = <E extends FindPolygonPartsResponseBody['features'][number]>(expectedGeometries: Polygon[]): ((feature: E) => boolean) => {
+  return (feature) => {
+    const index = expectedGeometries.findIndex((expectedGeometry) =>
+      booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
+    );
+    return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
+  };
+};
 
 export function toExpectedPostgresResponse(polygonPartsPayload: PolygonPartsPayload): ExpectedPostgresResponse {
   const expectedPostgresResponse = payloadToInsertPartsData(polygonPartsPayload, applicationConfig.arraySeparator).map((record) => {

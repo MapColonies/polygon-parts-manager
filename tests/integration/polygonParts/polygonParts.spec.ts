@@ -20,7 +20,13 @@ import { Transformer } from '../../../src/common/middlewares/transformer';
 import { Part } from '../../../src/polygonParts/DAL/part';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
 import type { FindPolygonPartsResponseBody } from '../../../src/polygonParts/controllers/interfaces';
-import type { EntitiesMetadata, EntityIdentifier, EntityIdentifierObject, PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
+import type {
+  EntitiesMetadata,
+  EntityIdentifier,
+  EntityIdentifierObject,
+  PolygonPartsPayload,
+  PolygonPartsResponse,
+} from '../../../src/polygonParts/models/interfaces';
 import {
   createInitPayloadRequest,
   franceFootprint,

@@ -53,6 +53,7 @@ export function toExpectedFindPolygonPartsResponse(polygonPartsPayload: PolygonP
           imagingTimeEndUTC: imagingTimeEndUTC.toISOString(),
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           ingestionDateUTC: expect.toBeDateString(),
+          partId: expect.toBeUuidV4(),
           cities,
           countries,
           description,

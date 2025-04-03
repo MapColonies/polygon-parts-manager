@@ -36,7 +36,7 @@ export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = Fea
   Polygon,
   ReplaceValuesOfType<
     NullableRecordValues<
-      Omit<CommonRecord, 'countries' | 'cities' | 'footprint' | 'sensors'> & {
+      Omit<PolygonPartRecord, 'countries' | 'cities' | 'footprint' | 'insertionOrder' | 'sensors'> & {
         countries?: string[];
         cities?: string[];
         sensors: string[];

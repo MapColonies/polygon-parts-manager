@@ -422,6 +422,7 @@ components:
         - imagingTimeBeginUTC
         - imagingTimeEndUTC
         - ingestionDateUTC
+        - partId
         - productId
         - productType
         - productVersion
@@ -450,6 +451,10 @@ components:
           $ref: '#/components/schemas/ImagingTimeEndUTC'
         ingestionDateUTC:
           $ref: '#/components/schemas/IngestionDateUTC'
+        partId:
+          allOf:
+            - $ref: '#/components/schemas/Id'
+            - description: Part identifier
         productId:
           $ref: '#/components/schemas/ProductId'
         productType:

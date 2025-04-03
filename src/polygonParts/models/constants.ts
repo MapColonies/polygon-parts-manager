@@ -5,7 +5,7 @@ import type { PolygonPartRecord } from './interfaces';
  * Properties to select (include/exclude) in find polygon parts query or a select query applied to the mapped column (implicitly included)
  */
 export const FIND_OUTPUT_PROPERTIES: MapValues<
-  Required<Omit<PolygonPartRecord, 'footprint' | 'partId' | 'insertionOrder'>>,
+  Required<Omit<PolygonPartRecord, 'footprint' | 'insertionOrder'>>,
   boolean | ((column: string) => string)
 > = {
   catalogId: true,
@@ -17,6 +17,7 @@ export const FIND_OUTPUT_PROPERTIES: MapValues<
   imagingTimeBeginUTC: (column: string) => `to_char("${column}" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`,
   imagingTimeEndUTC: (column: string) => `to_char("${column}" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`,
   ingestionDateUTC: (column: string) => `to_char("${column}" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`,
+  partId: true,
   productId: true,
   productType: true,
   productVersion: true,

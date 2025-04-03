@@ -60,12 +60,10 @@ export class ValidationsController {
       schemaParser({ schema: findPolygonPartsQueryParamsSchema, value: req.query, errorMessagePrefix: 'Invalid query params' });
       schemaParser({
         schema: findPolygonPartsRequestBodySchema
-          .transform((featureCollection) =>
-            featureCollection.features
+          .refine((featureCollection) => {
+            const featureIds = featureCollection.features
               .map((feature) => feature.id)
-              .filter<NonNullable<Feature['id']>>((featureId): featureId is NonNullable<Feature['id']> => featureId !== undefined)
-          )
-          .refine((featureIds) => {
+              .filter((featureId): featureId is NonNullable<Feature['id']> => featureId !== undefined);
             const uniqueFeatureIds = new Set(featureIds);
             return uniqueFeatureIds.size === featureIds.length;
           }, 'Input features should have unique ids'),

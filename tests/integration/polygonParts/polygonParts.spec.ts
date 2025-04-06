@@ -6614,7 +6614,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - polygon must have coordinates values in (-180,180) range', async () => {
+      it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - polygon must have coordinates longitude values in (-180,180) range', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload)).body as unknown as PolygonPartsResponse;
         const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
@@ -6625,7 +6625,32 @@ describe('polygonParts', () => {
               [
                 [0, 0],
                 [180, 0],
-                [180 + Number.EPSILON, 90],
+                [180.1, 90],
+                [0, 0],
+              ],
+            ],
+          ]),
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - polygon must have coordinates latitude values in (-90,90) range', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload)).body as unknown as PolygonPartsResponse;
+        const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName },
+          body: polygons([
+            [
+              [
+                [0, 0],
+                [180, 0],
+                [180, 90.1],
                 [0, 0],
               ],
             ],

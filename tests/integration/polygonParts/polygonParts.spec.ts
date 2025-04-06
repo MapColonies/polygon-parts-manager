@@ -7,7 +7,7 @@ import { booleanEqual } from '@turf/boolean-equal';
 import { feature, featureCollection, multiPolygon, polygon, polygons } from '@turf/helpers';
 import { randomPolygon } from '@turf/random';
 import config, { type IConfig } from 'config';
-import type { FeatureCollection, MultiPolygon, Polygon } from 'geojson';
+import type { BBox, FeatureCollection, MultiPolygon, Polygon } from 'geojson';
 import { StatusCodes as httpStatusCodes } from 'http-status-codes';
 import { xor } from 'martinez-polygon-clipping';
 import { container } from 'tsyringe';
@@ -5926,7 +5926,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if feature collection in req body is an invalid value - "bbox" value must be an array with 4 items', async () => {
+      it('should return 400 status code if feature collection in req body is an invalid value - "bbox" value must be an array with 4 or 6 items', async () => {
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
@@ -5936,11 +5936,12 @@ describe('polygonParts', () => {
               {
                 length: faker.helpers.arrayElement([
                   faker.helpers.rangeToNumber({ min: 0, max: 3 }),
-                  faker.helpers.rangeToNumber({ min: 5, max: 10 }),
+                  5,
+                  faker.helpers.rangeToNumber({ min: 7, max: 10 }),
                 ]),
               },
               () => faker.number.float()
-            ) as [number, number, number, number],
+            ) as BBox,
           } as unknown as FeatureCollection<Polygon | MultiPolygon | null>,
         });
 
@@ -6096,7 +6097,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "bbox" value must be an array with 4 items', async () => {
+      it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "bbox" value must be an array with 4 or 6 items', async () => {
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
@@ -6110,11 +6111,12 @@ describe('polygonParts', () => {
                   {
                     length: faker.helpers.arrayElement([
                       faker.helpers.rangeToNumber({ min: 0, max: 3 }),
-                      faker.helpers.rangeToNumber({ min: 5, max: 10 }),
+                      5,
+                      faker.helpers.rangeToNumber({ min: 7, max: 10 }),
                     ]),
                   },
                   () => faker.number.float()
-                ) as [number, number, number, number],
+                ) as BBox,
               },
             ],
           },
@@ -6200,11 +6202,12 @@ describe('polygonParts', () => {
                     {
                       length: faker.helpers.arrayElement([
                         faker.helpers.rangeToNumber({ min: 0, max: 3 }),
-                        faker.helpers.rangeToNumber({ min: 5, max: 10 }),
+                        5,
+                        faker.helpers.rangeToNumber({ min: 7, max: 10 }),
                       ]),
                     },
                     () => faker.number.float()
-                  ) as [number, number, number, number],
+                  ) as BBox,
                 } as unknown as Polygon | MultiPolygon | null,
               },
             ],

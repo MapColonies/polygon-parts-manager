@@ -6180,7 +6180,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - "bbox" value must be an array with 4 items', async () => {
+      it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - "bbox" value must be an array with 4 or 6 items', async () => {
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {

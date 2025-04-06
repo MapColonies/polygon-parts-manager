@@ -54,6 +54,8 @@ const applicationConfig = config.get<ApplicationConfig>('application');
 const dbConfig = config.get<Required<DbConfig>>('db');
 const { schema } = dbConfig;
 
+type FindPolygonPartsResponseBodyFeatureProperties = FindPolygonPartsResponseBody['features'][number]['properties'];
+
 describe('polygonParts', () => {
   let requestSender: PolygonPartsRequestSender;
   let helperDB: HelperDB;
@@ -72,7 +74,7 @@ describe('polygonParts', () => {
     await helperDB.destroyConnection();
     /* uncomment this when running locally, this deletes the created db after all tests,
     instead of removing it manually after each run.*/
-    // await deleteDB(testDataSourceOptions);
+    await deleteDB(testDataSourceOptions);
   });
 
   beforeEach(async () => {
@@ -329,7 +331,7 @@ describe('polygonParts', () => {
           });
           await requestSender.createPolygonParts(polygonPartsPayload);
           const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-          const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+          const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
 
           const response = await requestSender.findPolygonParts({
             params: { polygonPartsEntityName: entityIdentifier },
@@ -382,7 +384,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
@@ -427,7 +429,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
@@ -470,7 +472,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
@@ -537,7 +539,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
             const requestGeometry = generatePolygon({ bbox: [10, -80, 80, 80] });
 
             const response = await requestSender.findPolygonParts({
@@ -1451,7 +1453,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
@@ -1507,7 +1509,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
@@ -1569,7 +1571,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
@@ -1638,7 +1640,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
             const requestGeometry = {
               type: 'MultiPolygon',
               coordinates: [generatePolygon({ bbox: [-170, -80, -10, 80] }).coordinates, generatePolygon({ bbox: [10, -80, 80, 80] }).coordinates],
@@ -3070,7 +3072,7 @@ describe('polygonParts', () => {
           });
           await requestSender.createPolygonParts(polygonPartsPayload);
           const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-          const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+          const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
 
           const response = await requestSender.findPolygonParts({
             params: { polygonPartsEntityName: entityIdentifier },
@@ -3123,7 +3125,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
@@ -3168,7 +3170,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
@@ -3211,7 +3213,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
@@ -3278,7 +3280,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
             const requestGeometry = generatePolygon({ bbox: [10, -80, 80, 80] });
 
             const response = await requestSender.findPolygonParts({
@@ -3603,7 +3605,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
@@ -3659,7 +3661,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
@@ -3721,7 +3723,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
@@ -3790,7 +3792,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBody['features'][number]['properties']>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
             const requestGeometry = {
               type: 'MultiPolygon',
               coordinates: [generatePolygon({ bbox: [-170, -80, -10, 80] }).coordinates, generatePolygon({ bbox: [10, -80, 80, 80] }).coordinates],

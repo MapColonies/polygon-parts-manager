@@ -2,7 +2,7 @@ import { BadRequestError, ConflictError, InternalServerError, NotFoundError } fr
 import type { Logger } from '@map-colonies/js-logger';
 import { CORE_VALIDATIONS, type RoiProperties } from '@map-colonies/raster-shared';
 import { geometryCollection } from '@turf/helpers';
-import type { Feature, Geometry, MultiPolygon, Polygon } from 'geojson';
+import type { Feature, Geometry } from 'geojson';
 import { inject, injectable } from 'tsyringe';
 import type { EntityManager, ObjectLiteral, SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
@@ -18,12 +18,14 @@ import type {
   EntityName,
   EntityNames,
   FindPolygonPartsOptions,
+  FindPolygonPartsOptionsFilterGeometries,
   FindPolygonPartsResponse,
   PolygonPartRecord,
   PolygonPartsPayload,
   PolygonPartsResponse,
 } from './interfaces';
 
+interface FindPolygonPartsOptionsFilterNonNullGeometries extends Feature<NonNullable<FindPolygonPartsOptionsFilterGeometries>> {}
 interface FindPolygonPartsQueryResponse<ShouldClip extends boolean = boolean> {
   readonly geojson: FindPolygonPartsResponse<ShouldClip>;
 }
@@ -99,7 +101,7 @@ export class PolygonPartsManager {
         }
 
         const featuresWithGeometry = filter.features
-          .filter<Feature<Polygon | MultiPolygon>>((feature): feature is Feature<Polygon | MultiPolygon> => !!feature.geometry)
+          .filter((feature): feature is FindPolygonPartsOptionsFilterNonNullGeometries => !!feature.geometry)
           .map((feature) => feature.geometry);
 
         if (featuresWithGeometry.length > 0) {

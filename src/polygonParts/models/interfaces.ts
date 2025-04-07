@@ -9,7 +9,6 @@ import type { Feature, FeatureCollection, GeoJsonProperties, MultiPolygon, Polyg
 import type { NullableRecordValues, ReplaceValuesOfType } from '../../common/types';
 
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
-type FindPolygonPartsOptionsFilterGeometries = Polygon | MultiPolygon | null;
 
 /**
  * Properties of part data for insertion
@@ -28,6 +27,11 @@ export interface FindPolygonPartsOptions<ShouldClip extends boolean = boolean> {
   readonly polygonPartsEntityName: EntityNames;
   readonly filter: FeatureCollection<FindPolygonPartsOptionsFilterGeometries, (GeoJsonProperties & Partial<RoiProperties>) | null>;
 }
+
+/**
+ * Geometry type options for filtering polygon parts
+ */
+export type FindPolygonPartsOptionsFilterGeometries = Polygon | MultiPolygon | null;
 
 /**
  * Find polygon parts response

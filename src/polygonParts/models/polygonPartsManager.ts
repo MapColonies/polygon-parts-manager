@@ -348,7 +348,7 @@ export class PolygonPartsManager {
       .innerJoin(
         'filter_geometries',
         'filter_geometries',
-        `st_relate(${geometryColumn}, filter_geometry, 'T********') and filter_geometry && ${geometryColumn}`
+        `st_relate(${geometryColumn}, filter_geometry, 'T********') and filter_geometry && ${geometryColumn}` // st_relate uses DE-9IM pattern of 'T********', to model interior interesection between two geometries
       )
       .where('filter_feature is not null')
       .andWhere(

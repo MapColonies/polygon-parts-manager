@@ -29,6 +29,11 @@ interface FindPolygonPartsOptionsFilterNonNullGeometries extends Feature<NonNull
 interface FindPolygonPartsQueryResponse<ShouldClip extends boolean = boolean> {
   readonly geojson: FindPolygonPartsResponse<ShouldClip>;
 }
+type QueryFilterOptions<T extends ObjectLiteral, ShouldClip extends boolean = boolean> = FindPolygonPartsOptions<ShouldClip> & {
+  entityManager: EntityManager;
+  select: SelectQueryBuilder<T>;
+  filter: { filterQueryAlias: string; filterRequestFeatureIds: string; findSelectOutputColumns: string[] };
+};
 
 const geometryColumn = getMappedColumnName('footprint' satisfies keyof Pick<PolygonPartRecord, 'footprint'>);
 const idColumn = getMappedColumnName('id' satisfies keyof Pick<PolygonPartRecord, 'id'>);
@@ -240,7 +245,7 @@ export class PolygonPartsManager {
 
     const findPolygonPartsQuery = this.buildPolygonPartsQueryWithFilter({
       ...context,
-      filterQuery,
+      filter: { ...filter, ...filterQuery },
       select: featureCollectionSelect,
     });
     return findPolygonPartsQuery;
@@ -287,16 +292,11 @@ export class PolygonPartsManager {
   }
 
   private buildPolygonPartsQueryWithFilter<T extends ObjectLiteral, ShouldClip extends boolean = boolean>(
-    context: FindPolygonPartsOptions<ShouldClip> & {
-      entityManager: EntityManager;
-      select: SelectQueryBuilder<T>;
-      filterQuery: { filterQueryAlias: string; filterRequestFeatureIds: string; findSelectOutputColumns: string[] };
-    }
+    context: QueryFilterOptions<T, ShouldClip>
   ): SelectQueryBuilder<T> {
     const {
       entityManager,
-      filter,
-      filterQuery: { filterQueryAlias, filterRequestFeatureIds, findSelectOutputColumns },
+      filter: { filterQueryAlias, filterRequestFeatureIds, findSelectOutputColumns, ...filter },
       polygonPartsEntityName,
       select,
       shouldClip,

@@ -24,6 +24,7 @@ import type {
   PolygonPartsResponse,
 } from './interfaces';
 
+type IsValidDetailsResult = { valid: true; reason: null; location: null } | { valid: false; reason: string; location: Geometry | null };
 interface FindPolygonPartsOptionsFilterNonNullGeometries extends Feature<NonNullable<FindPolygonPartsOptionsFilterGeometries>> {}
 interface FindPolygonPartsQueryResponse<ShouldClip extends boolean = boolean> {
   readonly geojson: FindPolygonPartsResponse<ShouldClip>;
@@ -106,11 +107,14 @@ export class PolygonPartsManager {
         if (featuresWithGeometry.length > 0) {
           const geometriesCollection = geometryCollection(featuresWithGeometry).geometry;
           const isValidFilterGeometry = (
-            await entityManager.query<
-              ({ valid: true; reason: null; location: null } | { valid: false; reason: string; location: Geometry | null })[]
-            >('select valid, reason, st_asgeojson(location) as location from st_isvaliddetail(st_geomfromgeojson($1))', [
-              JSON.stringify(geometriesCollection),
-            ])
+            await entityManager.query<IsValidDetailsResult[]>(
+              `select ${'valid' satisfies keyof Pick<IsValidDetailsResult, 'valid'>}, ${
+                'reason' satisfies keyof Pick<IsValidDetailsResult, 'reason'>
+              }, st_asgeojson(location) as ${
+                'location' satisfies keyof Pick<IsValidDetailsResult, 'location'>
+              } from st_isvaliddetail(st_geomfromgeojson($1))`,
+              [JSON.stringify(geometriesCollection)]
+            )
           )[0];
           if (!isValidFilterGeometry.valid) {
             throw new BadRequestError(

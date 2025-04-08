@@ -59,14 +59,13 @@ export class ValidationsController {
       schemaParser({ schema: polygonPartsEntityNameSchema, value: req.params, errorMessagePrefix: 'Invalid request params' });
       schemaParser({ schema: findPolygonPartsQueryParamsSchema, value: req.query, errorMessagePrefix: 'Invalid query params' });
       schemaParser({
-        schema: findPolygonPartsRequestBodySchema
-          .refine((featureCollection) => {
-            const featureIds = featureCollection.features
-              .map((feature) => feature.id)
-              .filter((featureId): featureId is NonNullable<Feature['id']> => featureId !== undefined);
-            const uniqueFeatureIds = new Set(featureIds);
-            return uniqueFeatureIds.size === featureIds.length;
-          }, 'Input features should have unique ids'),
+        schema: findPolygonPartsRequestBodySchema.refine((featureCollection) => {
+          const featureIds = featureCollection.features
+            .map((feature) => feature.id)
+            .filter((featureId): featureId is NonNullable<Feature['id']> => featureId !== undefined);
+          const uniqueFeatureIds = new Set(featureIds);
+          return uniqueFeatureIds.size === featureIds.length;
+        }, 'Input features should have unique ids'),
         value: req.body,
         errorMessagePrefix: 'Invalid request body',
       });

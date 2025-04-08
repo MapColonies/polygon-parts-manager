@@ -1,5 +1,7 @@
 import {
   INGESTION_VALIDATIONS,
+  featureCollectionSchema,
+  featureSchema,
   multiPolygonSchema,
   polygonPartsEntityPatternSchema,
   polygonSchema,
@@ -14,25 +16,12 @@ import type { FindPolygonPartsQueryParams, FindPolygonPartsRequestBody } from '.
 import type { EntitiesMetadata, EntityNames, IsSwapQueryParams } from '../models/interfaces';
 
 const polygonPartsEntityNamePatternSchema = z.string().regex(new RegExp(INGESTION_VALIDATIONS.polygonPartsEntityName.pattern));
-
-const findPolygonPartsFeatureSchema = z.object({
-  id: z.string().or(z.number()).optional(),
-  type: z.literal('Feature'),
-  geometry: polygonSchema.or(multiPolygonSchema).nullable(),
-  properties: z.union([z.object({}).passthrough(), roiPropertiesSchema.passthrough()]).nullable(),
-});
-
-const findPolygonPartsFeatureCollectionSchema = z.object({
-  type: z.literal('FeatureCollection'),
-  features: z.array(findPolygonPartsFeatureSchema),
-});
-
+const findPolygonPartsFeatureSchema = featureSchema(polygonSchema.or(multiPolygonSchema).nullable(), roiPropertiesSchema.partial().passthrough());
+const findPolygonPartsFeatureCollectionSchema = featureCollectionSchema(findPolygonPartsFeatureSchema);
 export const findPolygonPartsQueryParamsSchema: ZodType<FindPolygonPartsQueryParams> = z.object({
   shouldClip: z.boolean(),
 });
-
 export const findPolygonPartsRequestBodySchema: ZodType<FindPolygonPartsRequestBody> = findPolygonPartsFeatureCollectionSchema;
-
 export const updatePolygonPartsQueryParamsSchema: ZodType<IsSwapQueryParams> = z.object({
   isSwap: z.boolean(),
 });

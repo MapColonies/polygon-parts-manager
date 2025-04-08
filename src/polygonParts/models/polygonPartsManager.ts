@@ -49,14 +49,16 @@ export const findSelectOutputColumns = Object.entries(FIND_OUTPUT_PROPERTIES)
 export class PolygonPartsManager {
   private readonly applicationConfig: ApplicationConfig;
   private readonly schema: DbConfig['schema'];
+  private readonly findMaxDecimalDigits: ApplicationConfig['entities']['polygonParts']['find']['maxDecimalDigits'];
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(SERVICES.CONFIG) private readonly config: IConfig,
     @inject(SERVICES.CONNECTION_MANAGER) private readonly connectionManager: ConnectionManager
   ) {
-    this.applicationConfig = this.config.get<ApplicationConfig>('application');
-    this.schema = config.get<DbConfig['schema']>('db.schema');
+    this.applicationConfig = this.config.get('application');
+    this.schema = config.get('db.schema');
+    this.findMaxDecimalDigits = this.config.get('application.entities.polygonParts.find.maxDecimalDigits');
   }
 
   public async createPolygonParts(polygonPartsPayload: PolygonPartsPayload, entitiesMetadata: EntitiesMetadata): Promise<PolygonPartsResponse> {
@@ -282,7 +284,7 @@ export class PolygonPartsManager {
           'features', coalesce(jsonb_agg(
             jsonb_build_object(
               'type', 'Feature',
-              'geometry', st_asgeojson(${geometryColumn}, 15)::jsonb,
+              'geometry', st_asgeojson(${geometryColumn}, ${this.findMaxDecimalDigits})::jsonb,
               'properties', to_jsonb(${filterQueryAlias}) - '{${geometryColumn},${filterRequestFeatureIds}}'::text[] ${requestFeatureIds}
             )
           ), '[]')

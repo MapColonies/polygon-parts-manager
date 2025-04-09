@@ -239,7 +239,7 @@ export class PolygonPartsManager {
     const { filter: inputFilter, findSelectOutputColumns } = context;
     const filterQuery = { filterQueryAlias: 'output_properties', filterRequestFeatureIds: 'request_feature_ids', findSelectOutputColumns };
 
-    const findFilterQuery = this.buildFindFilterQuery({
+    const findFilterQuery = this.buildFilterQuery({
       ...context,
       filter: { inputFilter, ...filterQuery },
     });
@@ -285,7 +285,7 @@ export class PolygonPartsManager {
     return findPolygonPartsSelect;
   }
 
-  private buildFindFilterQuery<ShouldClip extends boolean = boolean>(
+  private buildFilterQuery<ShouldClip extends boolean = boolean>(
     context: FindQueryFilterOptions<ShouldClip>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): SelectQueryBuilder<any> {

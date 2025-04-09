@@ -141,19 +141,20 @@ paths:
         - polygon-parts
       summary: Find and filter polygon parts based on spatial criteria
       description: |
-        Finds polygon parts that intersect with the provided search geometries. The endpoint accepts a GeoJSON FeatureCollection containing search geometries and optional resolution filters.
+        Search for polygon parts based on spatial intersection with search geometries. Takes a GeoJSON FeatureCollection of search geometries with optional resolution filters.
 
-        **Behavior:**
-        - Returns polygon parts that intersect with any of the provided search geometries
-        - If `maxResolutionDeg` or `minResolutionDeg` are specified in feature properties, filters results by resolution
-        - If `id` property is present in input features, it is propagated to `requestFeatureId` in response feature properties
-        - When the features array is empty or when all feature geometries are null returns all polygon parts
-        - When the features collection includes a mixture of features with null and non-null geometries, null geometry features are discarded
-        - When `shouldClip=true` (default), returned polygon parts geometries are clipped to the search area
-        - When `shouldClip=false`, returns complete original polygon parts geometries
-        - With `shouldClip=true`, each feature maps to exactly one input feature via `requestFeatureId`
-        - With `shouldClip=false`, a feature may map to multiple input features if it intersects multiple search geometries. When multiple search geometries intersect a polygon part it will include an array of `requestFeatureId` instead of a single value (if `requestFeatureId` was provided)
-      operationId: FindPolygonParts
+          **Filter Logic**
+          - Returns polygon parts intersecting with input search geometries
+          - Resolution filters (`maxResolutionDeg`/`minResolutionDeg`) can be specified in feature properties
+          - Input feature IDs are tracked in response via `requestFeatureId`
+          - Empty request or empty features array perform unfiltered search
+          - With `shouldClip=true` (default):
+            - Geometries clipped to search geometries
+            - Feature ID maps 1:1 between input and output features via `requestFeatureId`
+          - With `shouldClip=false`:
+            - Returns original geometries
+            - Feature IDs maps 1:many, if part intersects multiple search geometries. responds with an array if there is more than 1 ID map
+      operationId: findPolygonParts
       parameters:
         - in: path
           name: polygonPartsEntityName
@@ -174,7 +175,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PolygonPartsFindPayload'
-        required: true
+        required: false
       responses:
         '200':
           description: OK
@@ -301,13 +302,10 @@ components:
               $ref: '#/components/schemas/ResolutionDegree'
         geometry:
           type: object
-          nullable: true
-          allOf:
-            - oneOf:
-                - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
-                - $ref: >-
-                    ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
-                - $ref: '#/components/schemas/NullTypeRef'
+          oneOf:
+            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
+            - $ref: >-
+                ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
         bbox:
           $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
     FeatureFindResponse:
@@ -535,7 +533,3 @@ components:
           type: string
       required:
         - message
-    NullTypeRef:
-      description: Null type for adding nullability to a ref
-      enum:
-        - null

@@ -25,13 +25,13 @@ export interface InsertPartData extends Readonly<Omit<CommonPayload, 'countries'
 export interface FindPolygonPartsOptions<ShouldClip extends boolean = boolean> {
   readonly shouldClip: ShouldClip;
   readonly polygonPartsEntityName: EntityNames;
-  readonly filter: FeatureCollection<FindPolygonPartsOptionsFilterGeometries, (GeoJsonProperties & Partial<RoiProperties>) | null>;
+  readonly filter?: FeatureCollection<FindPolygonPartsOptionsFilterGeometries, (GeoJsonProperties & Partial<RoiProperties>) | null>;
 }
 
 /**
  * Geometry type options for filtering polygon parts
  */
-export type FindPolygonPartsOptionsFilterGeometries = Polygon | MultiPolygon | null;
+export type FindPolygonPartsOptionsFilterGeometries = Polygon | MultiPolygon;
 
 /**
  * Find polygon parts response

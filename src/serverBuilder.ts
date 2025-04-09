@@ -8,7 +8,6 @@ import compression from 'compression';
 import express, { Router } from 'express';
 import { middleware as OpenApiMiddleware } from 'express-openapi-validator';
 import { inject, injectable } from 'tsyringe';
-import { AGGREGATION_ROUTER_SYMBOL } from './aggregation/routes/aggregationRouter';
 import { SERVICES } from './common/constants';
 import type { IConfig } from './common/interfaces';
 import { POLYGON_PARTS_ROUTER_SYMBOL } from './polygonParts/routes/polygonPartsRouter';
@@ -20,8 +19,7 @@ export class ServerBuilder {
   public constructor(
     @inject(SERVICES.CONFIG) private readonly config: IConfig,
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
-    @inject(POLYGON_PARTS_ROUTER_SYMBOL) private readonly polygonPartsRouter: Router,
-    @inject(AGGREGATION_ROUTER_SYMBOL) private readonly aggregationRouter: Router
+    @inject(POLYGON_PARTS_ROUTER_SYMBOL) private readonly polygonPartsRouter: Router
   ) {
     this.serverInstance = express();
   }
@@ -45,7 +43,6 @@ export class ServerBuilder {
 
   private buildRoutes(): void {
     this.serverInstance.use('/polygonParts', this.polygonPartsRouter);
-    this.serverInstance.use('/aggregation', this.aggregationRouter);
     this.buildDocsRoutes();
   }
 

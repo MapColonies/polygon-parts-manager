@@ -1,4 +1,11 @@
-import type { EntityIdentifier, FindPolygonPartsOptions, FindPolygonPartsResponse } from '../models/interfaces';
+import { z } from 'zod';
+import type {
+  EntityIdentifier,
+  FindPolygonPartsOptions,
+  FindPolygonPartsResponse,
+  AggregateLayerMetadataOptions,
+  GetAggregationLayerMetadataResponse,
+} from '../models/interfaces';
 
 /**
  * Find polygon parts params
@@ -15,9 +22,23 @@ export interface FindPolygonPartsQueryParams extends Readonly<Pick<FindPolygonPa
 /**
  * Find polygon parts request body
  */
-export interface FindPolygonPartsRequestBody extends Readonly<FindPolygonPartsOptions['filter']> {}
+export type FindPolygonPartsRequestBody = Readonly<FindPolygonPartsOptions['filter']>;
+
+export type AggregatePolygonPartsRequestBody = Readonly<AggregateLayerMetadataOptions['filter']>;
 
 /**
  * Find polygon parts response body
  */
 export interface FindPolygonPartsResponseBody<ShouldClip extends boolean = boolean> extends FindPolygonPartsResponse<ShouldClip> {}
+
+/**
+ * Get aggregation layer metadata params
+ */
+export interface GetAggregationLayerMetadataParams {
+  readonly polygonPartsEntityName: EntityIdentifier;
+}
+
+/**
+ * Get aggregation layer metadata response body
+ */
+export interface GetAggregationLayerMetadataResponseBody extends GetAggregationLayerMetadataResponse {}

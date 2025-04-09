@@ -38,7 +38,7 @@ import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
 import polygonWesternHemisphere from './data/polygonWesternHemisphere.json';
 import { INITIAL_DB } from './helpers/constants';
-import { HelperDB, createDB, generateFeatureId, generatePolygon, generatePolygonPartsPayload } from './helpers/db';
+import { HelperDB, createDB, deleteDB, generateFeatureId, generatePolygon, generatePolygonPartsPayload } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import { toExpectedFindPolygonPartsResponse, toExpectedPostgresResponse } from './helpers/utils';
 
@@ -66,7 +66,7 @@ describe('polygonParts', () => {
     await helperDB.destroyConnection();
     /* uncomment this when running locally, this deletes the created db after all tests,
     instead of removing it manually after each run.*/
-    // await deleteDB(testDataSourceOptions);
+    await deleteDB(testDataSourceOptions);
   });
 
   beforeEach(async () => {

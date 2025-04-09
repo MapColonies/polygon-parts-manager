@@ -1,24 +1,29 @@
 import { BadRequestError, ConflictError, InternalServerError, NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
-import { CORE_VALIDATIONS, type RoiProperties } from '@map-colonies/raster-shared';
+import { AggregationLayerMetadata, aggregationMetadataSchema, CORE_VALIDATIONS, type RoiProperties } from '@map-colonies/raster-shared';
 import { geometryCollection } from '@turf/helpers';
 import type { Feature, Geometry, MultiPolygon, Polygon } from 'geojson';
 import { inject, injectable } from 'tsyringe';
 import type { EntityManager, ObjectLiteral, SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
+import { schemaParser } from '../schemas';
 import { SERVICES } from '../../common/constants';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
 import type { PickPropertiesOfType } from '../../common/types';
 import { Part } from '../DAL/part';
 import { PolygonPart } from '../DAL/polygonPart';
 import { getMappedColumnName, payloadToInsertPartsData } from '../DAL/utils';
+import { ValidationError } from '../../common/errors';
 import { FIND_OUTPUT_PROPERTIES } from './constants';
 import type {
+  AggregateLayerMetadataOptions,
   EntitiesMetadata,
   EntityName,
   EntityNames,
+  FeatureCollectionFilter,
   FindPolygonPartsOptions,
   FindPolygonPartsResponse,
+  GetAggregationLayerMetadataResponse,
   PolygonPartRecord,
   PolygonPartsPayload,
   PolygonPartsResponse,
@@ -98,27 +103,7 @@ export class PolygonPartsManager {
           throw new NotFoundError(`Table with the name '${polygonPartsEntityName.entityName}' doesn't exists`);
         }
 
-        const featuresWithGeometry = filter.features
-          .filter<Feature<Polygon | MultiPolygon>>((feature): feature is Feature<Polygon | MultiPolygon> => !!feature.geometry)
-          .map((feature) => feature.geometry);
-
-        if (featuresWithGeometry.length > 0) {
-          const geometriesCollection = geometryCollection(featuresWithGeometry).geometry;
-          const isValidFilterGeometry = (
-            await entityManager.query<
-              ({ valid: true; reason: null; location: null } | { valid: false; reason: string; location: Geometry | null })[]
-            >('select valid, reason, st_asgeojson(location) as location from st_isvaliddetail(st_geomfromgeojson($1))', [
-              JSON.stringify(geometriesCollection),
-            ])
-          )[0];
-          if (!isValidFilterGeometry.valid) {
-            throw new BadRequestError(
-              `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${
-                isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
-              }`
-            );
-          }
-        }
+        await this.validateFeatureCollectionFilter(filter, entityManager);
 
         const findPolygonPartsQuery = this.buildFindPolygonPartsQuery<ShouldClip>({
           shouldClip,
@@ -185,6 +170,202 @@ export class PolygonPartsManager {
       logger.error({ msg: errorMessage, error });
       throw error;
     }
+  }
+
+  public async getAggregationLayerMetadata(options: AggregateLayerMetadataOptions): Promise<GetAggregationLayerMetadataResponse> {
+    const { polygonPartsEntityName, filter } = options;
+
+    const logger = this.logger.child({ polygonPartsEntityName });
+    logger.info({ msg: 'Metadata aggregation request' });
+
+    try {
+      const response = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        const exists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName.entityName);
+        if (!exists) {
+          throw new NotFoundError(`Table with the name '${polygonPartsEntityName.entityName}' doesn't exists`);
+        }
+        let filteredPartsIds: string[] | undefined = undefined;
+
+        if (filter) {
+          const filterQuery = { filterQueryAlias: 'filtered_parts', filterRequestFeatureIds: 'request_feature_ids', findSelectOutputColumns };
+
+          const queryToExecute = this.buildPolygonPartsQueryWithFilter({
+            entityManager,
+            filter,
+            select: entityManager.createQueryBuilder(),
+            shouldClip: true,
+            polygonPartsEntityName,
+            filterQuery,
+          })
+            .from(filterQuery.filterQueryAlias, 'result')
+            .select('array_agg(result.id)', 'filteredIds');
+
+          filteredPartsIds = await queryToExecute.getRawOne<{ filteredIds: string[] }>().then((result) => result?.filteredIds);
+        }
+
+        const aggregationLayerMetadataQuery = this.buildAggregationLayerMetadataQuery({ entityManager, options, filteredPartsIds });
+
+        try {
+          const aggregationResult = await aggregationLayerMetadataQuery.getRawOne<AggregationLayerMetadata>();
+          const aggregationMetadataLayer = schemaParser({ schema: aggregationMetadataSchema, value: aggregationResult });
+          return aggregationMetadataLayer;
+        } catch (error) {
+          let errorMessage: string;
+          if (error instanceof ValidationError) {
+            errorMessage = 'Invalid aggregation metadata response';
+          } else {
+            errorMessage = 'Could not aggregate polygon parts';
+          }
+          logger.error({ msg: errorMessage, error });
+          throw error;
+        }
+      });
+
+      return response;
+    } catch (error) {
+      const errorMessage = 'Aggregation query transaction failed';
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
+  private async validateFeatureCollectionFilter(filter: FeatureCollectionFilter | null, entityManager: EntityManager): Promise<void> {
+    if (!filter) {
+      return;
+    }
+    const featuresWithGeometry = filter.features
+      .filter<Feature<Polygon | MultiPolygon>>((feature): feature is Feature<Polygon | MultiPolygon> => !!feature.geometry)
+      .map((feature) => feature.geometry);
+
+    if (featuresWithGeometry.length > 0) {
+      const geometriesCollection = geometryCollection(featuresWithGeometry).geometry;
+      const isValidFilterGeometry = (
+        await entityManager.query<({ valid: true; reason: null; location: null } | { valid: false; reason: string; location: Geometry | null })[]>(
+          'select valid, reason, st_asgeojson(location) as location from st_isvaliddetail(st_geomfromgeojson($1))',
+          [JSON.stringify(geometriesCollection)]
+        )
+      )[0];
+      if (!isValidFilterGeometry.valid) {
+        throw new BadRequestError(
+          `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${
+            isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
+          }`
+        );
+      }
+    }
+  }
+
+  private buildAggregationLayerMetadataQuery(context: {
+    entityManager: EntityManager;
+    options: AggregateLayerMetadataOptions;
+    filteredPartsIds?: string[];
+  }): SelectQueryBuilder<AggregationLayerMetadata> {
+    const { fixGeometry, maxDecimalDigits, simplifyGeometry } = this.applicationConfig.aggregation;
+    const {
+      entityManager,
+      options: { polygonPartsEntityName },
+      filteredPartsIds,
+    } = context;
+    const polygonPart = entityManager.getRepository(PolygonPart);
+    polygonPart.metadata.tablePath = polygonPartsEntityName.databaseObjectQualifiedName; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
+
+    const footprintUnionCTE = entityManager
+      .createQueryBuilder()
+      .select('st_union("polygon_part".footprint)', 'footprint_union')
+      .from(polygonPartsEntityName.databaseObjectQualifiedName, 'polygon_part');
+
+    const footprintSmoothCTE = entityManager
+      .createQueryBuilder()
+      .select(
+        fixGeometry.enabled
+          ? `st_buffer(st_buffer("footprint_union".footprint_union, ${fixGeometry.bufferSizeDeg}, ${fixGeometry.bufferStyleParameters}), -${fixGeometry.bufferSizeDeg}, ${fixGeometry.bufferStyleParameters})`
+          : `'POLYGON EMPTY'::geometry`,
+        'footprint_buffer'
+      )
+      .addSelect('"footprint_union".footprint_union', 'footprint_union')
+      .from('footprint_union', 'footprint_union');
+
+    const footprintFixEmptyCTE = entityManager
+      .createQueryBuilder()
+      .select(
+        `case when st_isempty("footprint_smooth".footprint_buffer) then "footprint_smooth".footprint_union else "footprint_smooth".footprint_buffer end`,
+        'footprint'
+      )
+      .from('footprint_smooth', 'footprint_smooth');
+
+    const footprintSimplifyCTE = entityManager
+      .createQueryBuilder()
+      .select(
+        simplifyGeometry.enabled
+          ? `st_union(st_simplifypreservetopology("footprint_fix_empty".footprint, ${simplifyGeometry.toleranceDeg}))`
+          : '"footprint_fix_empty".footprint',
+        'footprint'
+      )
+      .from('footprint_fix_empty', 'footprint_fix_empty');
+
+    const footprintAggregationCTE = entityManager
+      .createQueryBuilder()
+      .select(
+        `st_asgeojson(st_geometryn(st_collect("footprint_simplify".footprint), 1), maxdecimaldigits => ${maxDecimalDigits}, options => 1)::json`,
+        'footprint'
+      )
+      .addSelect(
+        `trim(both '[]' from (st_asgeojson(st_geometryn(st_collect("footprint_simplify".footprint), 1), maxdecimaldigits => ${maxDecimalDigits}, options => 1)::json ->> 'bbox'))`,
+        'productBoundingBox'
+      )
+      .from('footprint_simplify', 'footprint_simplify');
+
+    const metadataAggregationCTE = polygonPart
+      .createQueryBuilder('polygon_part')
+      .select('min("polygon_part".imaging_time_begin_utc)::timestamptz', 'imagingTimeBeginUTC')
+      .addSelect('max("polygon_part".imaging_time_end_utc)::timestamptz', 'imagingTimeEndUTC')
+      .addSelect('min("polygon_part".resolution_degree)::numeric', 'maxResolutionDeg') // maxResolutionDeg - refers to the best value (lower is better)
+      .addSelect('max("polygon_part".resolution_degree)::numeric', 'minResolutionDeg') // minResolutionDeg - refers to the worst value (higher is worse)
+      .addSelect('min("polygon_part".resolution_meter)::numeric', 'maxResolutionMeter') // maxResolutionMeter - refers to the best value (lower is better)
+      .addSelect('max("polygon_part".resolution_meter)::numeric', 'minResolutionMeter') // minResolutionMeter - refers to the worst value (higher is worse)
+      .addSelect('min("polygon_part".horizontal_accuracy_ce90)::numeric', 'maxHorizontalAccuracyCE90') // maxHorizontalAccuracyCE90 - refers to the best value (lower is better)
+      .addSelect('max("polygon_part".horizontal_accuracy_ce90)::numeric', 'minHorizontalAccuracyCE90') // minHorizontalAccuracyCE90 - refers to the worst value (higher is worse)
+      .addSelect((subQuery) => {
+        return subQuery.select(`array_agg("sensors_sub_query".sensors_records)`).from((innerSubQuery) => {
+          const query = innerSubQuery
+            .select(`unnest(string_to_array("polygon_part".sensors, '${this.applicationConfig.arraySeparator}'))`, 'sensors_records')
+            .distinct(true)
+            .from(polygonPartsEntityName.databaseObjectQualifiedName, 'polygon_part')
+            .orderBy('sensors_records', 'ASC');
+
+          if (filteredPartsIds && filteredPartsIds.length > 0) {
+            query.andWhere(`"polygon_part".${idColumn} IN (:...filteredIds)`, {
+              filteredIds: filteredPartsIds,
+            });
+          }
+          return query;
+        }, 'sensors_sub_query');
+      }, 'sensors');
+
+    if (filteredPartsIds && filteredPartsIds.length > 0) {
+      footprintUnionCTE.andWhere(`"polygon_part".${idColumn} IN (:...filteredPartsIds)`, {
+        filteredPartsIds: filteredPartsIds,
+      });
+
+      metadataAggregationCTE.andWhere(`"polygon_part".${idColumn} IN (:...filteredPartsIds)`, {
+        filteredPartsIds: filteredPartsIds,
+      });
+    }
+
+    const aggregationQueryBuilder = entityManager
+      .createQueryBuilder()
+      .addCommonTableExpression(footprintUnionCTE, 'footprint_union')
+      .addCommonTableExpression(footprintSmoothCTE, 'footprint_smooth')
+      .addCommonTableExpression(footprintFixEmptyCTE, 'footprint_fix_empty')
+      .addCommonTableExpression(footprintSimplifyCTE, 'footprint_simplify')
+      .addCommonTableExpression(footprintAggregationCTE, 'footprint_aggregation')
+      .addCommonTableExpression(metadataAggregationCTE, 'metadata_aggregation')
+      .select('metadata_aggregation.*')
+      .addSelect('footprint_aggregation.*')
+      .from('footprint_aggregation', 'footprint_aggregation')
+      .addFrom<AggregationLayerMetadata>('metadata_aggregation', 'metadata_aggregation');
+
+    return aggregationQueryBuilder;
   }
 
   private async verifyAvailableTableNames(context: {

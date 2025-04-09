@@ -8,7 +8,6 @@ import { SERVICES, SERVICE_NAME } from './common/constants';
 import { registerDependencies, type InjectionObject, type Providers } from './common/dependencyRegistration';
 import { tracing } from './common/tracing';
 import { POLYGON_PARTS_ROUTER_SYMBOL, polygonPartsRouterFactory } from './polygonParts/routes/polygonPartsRouter';
-import { AGGREGATION_ROUTER_SYMBOL, aggregationRouterFactory } from './aggregation/routes/aggregationRouter';
 
 export interface RegisterOptions {
   override?: InjectionObject<unknown>[];
@@ -40,10 +39,7 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
         },
       },
     },
-    {
-      token: AGGREGATION_ROUTER_SYMBOL,
-      provider: { useFactory: aggregationRouterFactory },
-    },
+
     {
       token: POLYGON_PARTS_ROUTER_SYMBOL,
       provider: { useFactory: polygonPartsRouterFactory },

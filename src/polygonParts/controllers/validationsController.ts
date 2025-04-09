@@ -7,9 +7,20 @@ import type { Feature, MultiPolygon, Polygon } from 'geojson';
 import { inject, singleton } from 'tsyringe';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';
-import type { FindPolygonPartsParams, FindPolygonPartsResponseBody } from '../../polygonParts/controllers/interfaces';
+import type {
+  FindPolygonPartsParams,
+  FindPolygonPartsResponseBody,
+  GetAggregationLayerMetadataParams,
+  GetAggregationLayerMetadataResponseBody,
+} from '../../polygonParts/controllers/interfaces';
 import type { PolygonPartsResponse } from '../models/interfaces';
-import { findPolygonPartsQueryParamsSchema, findPolygonPartsRequestBodySchema, schemaParser, updatePolygonPartsQueryParamsSchema } from '../schemas';
+import {
+  aggregationPolygonPartsRequestBodySchema,
+  findPolygonPartsQueryParamsSchema,
+  findPolygonPartsRequestBodySchema,
+  schemaParser,
+  updatePolygonPartsQueryParamsSchema,
+} from '../schemas';
 
 /**
  * Create polygon parts validation handler
@@ -25,6 +36,13 @@ type FindPolygonPartsValidationHandler = RequestHandler<FindPolygonPartsParams, 
  * Update polygon parts validation handler
  */
 type UpdatePolygonPartsValidationHandler = RequestHandler<undefined, PolygonPartsResponse, unknown, unknown>;
+
+type AggregationLayerMetadataValidationHandler = RequestHandler<
+  GetAggregationLayerMetadataParams,
+  GetAggregationLayerMetadataResponseBody,
+  unknown,
+  undefined
+>;
 
 @singleton()
 export class ValidationsController {
@@ -62,17 +80,35 @@ export class ValidationsController {
       schemaParser({
         schema: findPolygonPartsRequestBodySchema
           .transform((featureCollection) =>
-            featureCollection.features
+            featureCollection?.features
               .map((feature) => feature.id)
               .filter<NonNullable<Feature['id']>>((featureId): featureId is NonNullable<Feature['id']> => featureId !== undefined)
           )
           .refine((featureIds) => {
             const uniqueFeatureIds = new Set(featureIds);
-            return uniqueFeatureIds.size === featureIds.length;
+            return uniqueFeatureIds.size === featureIds?.length;
           }, 'Input features should have unique ids'),
         value: req.body,
         errorMessagePrefix: 'Invalid request body',
       });
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        throw new BadRequestError(error.message);
+      }
+      next(error);
+    }
+    next();
+  };
+
+  public readonly validateAggregateLayerMetadata: AggregationLayerMetadataValidationHandler = (req, _, next) => {
+    try {
+      schemaParser({ schema: polygonPartsEntityNameSchema, value: req.params, errorMessagePrefix: 'Invalid request params' });
+      const validReqBody = schemaParser({
+        schema: aggregationPolygonPartsRequestBodySchema,
+        value: req.body,
+        errorMessagePrefix: 'Invalid request body',
+      });
+      req.body = validReqBody;
     } catch (error) {
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);

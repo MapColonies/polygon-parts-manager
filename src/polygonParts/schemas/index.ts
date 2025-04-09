@@ -15,11 +15,18 @@ import type { EntitiesMetadata, EntityNames, IsSwapQueryParams } from '../models
 
 const polygonPartsEntityNamePatternSchema = z.string().regex(new RegExp(INGESTION_VALIDATIONS.polygonPartsEntityName.pattern));
 
-const findPolygonPartsFeatureSchema = z.object({
+const baseFeatureSchema = z.object({
   id: z.string().or(z.number()).optional(),
   type: z.literal('Feature'),
   geometry: polygonSchema.or(multiPolygonSchema).nullable(),
+});
+
+const findPolygonPartsFeatureSchema = baseFeatureSchema.extend({
   properties: z.union([z.object({}).passthrough(), roiPropertiesSchema.passthrough()]).nullable(),
+});
+
+const aggregatePolygonPartsFeatureSchema = baseFeatureSchema.extend({
+  properties: roiPropertiesSchema,
 });
 
 const findPolygonPartsFeatureCollectionSchema = z.object({
@@ -27,11 +34,23 @@ const findPolygonPartsFeatureCollectionSchema = z.object({
   features: z.array(findPolygonPartsFeatureSchema),
 });
 
+const aggregatePolygonPartsFeatureCollectionSchema = z.object({
+  type: z.literal('FeatureCollection'),
+  features: z.array(aggregatePolygonPartsFeatureSchema),
+});
+
 export const findPolygonPartsQueryParamsSchema: ZodType<FindPolygonPartsQueryParams> = z.object({
   shouldClip: z.boolean(),
 });
 
 export const findPolygonPartsRequestBodySchema: ZodType<FindPolygonPartsRequestBody> = findPolygonPartsFeatureCollectionSchema;
+
+export const aggregationPolygonPartsRequestBodySchema = aggregatePolygonPartsFeatureCollectionSchema.or(
+  z
+    .object({})
+    .strict()
+    .transform(() => null)
+);
 
 export const updatePolygonPartsQueryParamsSchema: ZodType<IsSwapQueryParams> = z.object({
   isSwap: z.boolean(),

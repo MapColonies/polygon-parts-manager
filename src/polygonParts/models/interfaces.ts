@@ -1,4 +1,6 @@
+import { SelectQueryBuilder } from 'typeorm';
 import type {
+  AggregationLayerMetadata,
   PolygonPart,
   PolygonPartsEntityName,
   PolygonPartsEntityNameObject,
@@ -7,9 +9,10 @@ import type {
 } from '@map-colonies/raster-shared';
 import type { Feature, FeatureCollection, GeoJsonProperties, MultiPolygon, Polygon } from 'geojson';
 import type { NullableRecordValues, ReplaceValuesOfType } from '../../common/types';
+import { aggregationPolygonPartsRequestBodySchema } from '../schemas';
 
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
-type FindPolygonPartsOptionsFilterGeometries = Polygon | MultiPolygon | null;
+type PolygonalGeometries = Polygon | MultiPolygon | null;
 
 /**
  * Properties of part data for insertion
@@ -20,13 +23,15 @@ export interface InsertPartData extends Readonly<Omit<CommonPayload, 'countries'
   readonly sensors: string;
 }
 
+export type FeatureCollectionFilter = FeatureCollection<PolygonalGeometries, (GeoJsonProperties & Partial<RoiProperties>) | null>;
+
 /**
  * Find polygon parts options
  */
 export interface FindPolygonPartsOptions<ShouldClip extends boolean = boolean> {
   readonly shouldClip: ShouldClip;
   readonly polygonPartsEntityName: EntityNames;
-  readonly filter: FeatureCollection<FindPolygonPartsOptionsFilterGeometries, (GeoJsonProperties & Partial<RoiProperties>) | null>;
+  readonly filter: FeatureCollectionFilter;
 }
 
 /**
@@ -120,3 +125,18 @@ export interface EntitiesMetadata {
 export interface IsSwapQueryParams {
   isSwap: boolean;
 }
+
+/**
+ * Get aggregation layer metadata options
+ */
+export type EmptyFilter = Record<string, never>;
+
+export interface AggregateLayerMetadataOptions {
+  readonly polygonPartsEntityName: EntityNames;
+  readonly filter?: FeatureCollectionFilter;
+}
+
+/**
+ * Get aggregation layer metadata response
+ */
+export interface GetAggregationLayerMetadataResponse extends AggregationLayerMetadata {}

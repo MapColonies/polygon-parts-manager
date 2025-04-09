@@ -6,51 +6,7 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-tags:
-  - name: aggregation
-    description: Summary of polygon parts data
-  - name: polygon-parts
-    description: CRUD operations to manage polygon parts
 paths:
-  /aggregation/{polygonPartsEntityName}:
-    get:
-      tags:
-        - aggregation
-      summary: Get aggregated polygon parts data by polygon parts entity name
-      description: Get aggregated polygon parts data by polygon parts entity name
-      operationId: getAggregationLayerMetadata
-      parameters:
-        - in: path
-          name: polygonPartsEntityName
-          description: Polygon parts entity name
-          schema:
-            $ref: '#/components/schemas/PolygonPartsEntityName'
-          required: true
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AggregationLayerMetadata'
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorMessage'
-        '404':
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorMessage'
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorMessage'
   /polygonParts:
     post:
       tags:
@@ -163,7 +119,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PolygonPartsFindPayload'
-        required: true
+        required: false
       responses:
         '200':
           description: OK
@@ -171,6 +127,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PolygonPartsFindResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+  /polygonParts/{polygonPartsEntityName}/aggregate:
+    post:
+      tags:
+        - polygon-parts
+      summary: Get aggregated polygon parts data by polygon parts entity name and
+        polygon parts filter
+      description: Get aggregated polygon parts data by polygon parts entity name and
+        polygon parts filter
+      operationId: getAggregationLayerMetadata
+      parameters:
+        - in: path
+          name: polygonPartsEntityName
+          description: Polygon parts entity name
+          schema:
+            $ref: '#/components/schemas/PolygonPartsEntityName'
+          required: true
+      requestBody:
+        description: Aggregation filter (feature collection)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AggregationFilterPayload'
+        required: false
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AggregationLayerMetadata'
         '400':
           description: Bad Request
           content:
@@ -465,6 +469,10 @@ components:
           $ref: '#/components/schemas/SourceName'
         sourceResolutionMeter:
           $ref: '#/components/schemas/SourceResolutionMeter'
+    AggregationFilterPayload:
+      allOf:
+        - $ref: '#/components/schemas/FeatureCollectionFindPayload'
+        - description: Aggregation filter payload by feature collection
     PolygonPartsPayload:
       $ref: >-
         ./Schema/polygonPartsManager/payload.yaml#/components/schemas/PolygonPartsPayload

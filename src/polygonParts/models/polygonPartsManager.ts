@@ -46,6 +46,11 @@ interface FindQuerySelectOptions {
 const geometryColumn = getMappedColumnName('footprint' satisfies keyof Pick<PolygonPartRecord, 'footprint'>);
 const idColumn = getMappedColumnName('id' satisfies keyof Pick<PolygonPartRecord, 'id'>);
 const insertionOrderColumn = getMappedColumnName('insertionOrder' satisfies keyof Pick<PolygonPartRecord, 'insertionOrder'>);
+const isValidDetailsResult = {
+  valid: 'valid' satisfies keyof Pick<IsValidDetailsResult, 'valid'>,
+  reason: 'reason' satisfies keyof Pick<IsValidDetailsResult, 'reason'>,
+  location: 'location' satisfies keyof Pick<IsValidDetailsResult, 'location'>,
+};
 const minResolutionDeg = 'minResolutionDeg' satisfies keyof Pick<RoiProperties, 'minResolutionDeg'>;
 const requestFeatureId = 'requestFeatureId' satisfies keyof Pick<FindPolygonPartsResponse['features'][number]['properties'], 'requestFeatureId'>;
 
@@ -120,11 +125,7 @@ export class PolygonPartsManager {
           const geometriesCollection = geometryCollection(filterGeometries).geometry;
           const isValidFilterGeometry = (
             await entityManager.query<IsValidDetailsResult[]>(
-              `select ${'valid' satisfies keyof Pick<IsValidDetailsResult, 'valid'>}, ${
-                'reason' satisfies keyof Pick<IsValidDetailsResult, 'reason'>
-              }, st_asgeojson(location) as ${
-                'location' satisfies keyof Pick<IsValidDetailsResult, 'location'>
-              } from st_isvaliddetail(st_geomfromgeojson($1))`,
+              `select ${isValidDetailsResult.valid}, ${isValidDetailsResult.reason}, st_asgeojson(location) as ${isValidDetailsResult.location} from st_isvaliddetail(st_geomfromgeojson($1))`,
               [JSON.stringify(geometriesCollection)]
             )
           )[0];

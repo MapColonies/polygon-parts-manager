@@ -120,23 +120,10 @@ export class PolygonPartsManager {
           throw new NotFoundError(`Table with the name '${polygonPartsEntityName.entityName}' doesn't exists`);
         }
 
-        if (filter && filter.features.length > 0) {
-          const filterGeometries = filter.features.map((feature) => feature.geometry);
-          const geometriesCollection = geometryCollection(filterGeometries).geometry;
-          const isValidFilterGeometry = (
-            await entityManager.query<IsValidDetailsResult[]>(
-              `select ${isValidDetailsResult.valid}, ${isValidDetailsResult.reason}, st_asgeojson(location) as ${isValidDetailsResult.location} from st_isvaliddetail(st_geomfromgeojson($1))`,
-              [JSON.stringify(geometriesCollection)]
-            )
-          )[0];
-          if (!isValidFilterGeometry.valid) {
-            throw new BadRequestError(
-              `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${
-                isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
-              }`
-            );
-          }
-        }
+        await this.validateFeatureCollectionFilter({
+          entityManager,
+          filter,
+        });
 
         const findPolygonPartsQuery = this.buildFindQuery<ShouldClip>({
           shouldClip,
@@ -479,5 +466,28 @@ export class PolygonPartsManager {
 
   private async truncateEntity(entityManager: EntityManager, entityName: EntityName): Promise<void> {
     await entityManager.query(`TRUNCATE ${entityName} RESTART IDENTITY CASCADE;`);
+  }
+
+  private async validateFeatureCollectionFilter(context: { entityManager: EntityManager; filter: FindPolygonPartsOptions['filter'] }): Promise<void> {
+    // TODO: move function to validation middleware
+    const { entityManager, filter } = context;
+
+    if (filter && filter.features.length > 0) {
+      const filterGeometries = filter.features.map((feature) => feature.geometry);
+      const geometriesCollection = geometryCollection(filterGeometries).geometry;
+      const isValidFilterGeometry = (
+        await entityManager.query<IsValidDetailsResult[]>(
+          `select ${isValidDetailsResult.valid}, ${isValidDetailsResult.reason}, st_asgeojson(location) as ${isValidDetailsResult.location} from st_isvaliddetail(st_geomfromgeojson($1))`,
+          [JSON.stringify(geometriesCollection)]
+        )
+      )[0];
+      if (!isValidFilterGeometry.valid) {
+        throw new BadRequestError(
+          `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${
+            isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
+          }`
+        );
+      }
+    }
   }
 }

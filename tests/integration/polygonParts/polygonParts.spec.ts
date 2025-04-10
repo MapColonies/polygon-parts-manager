@@ -6519,6 +6519,30 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
+      it('should return 500 status code for a database error - geometry validity check query error', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const {
+          entityIdentifier,
+          entitiesNames: { polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
+        await helperDB.createTable(polygonParts.entityName, schema);
+        const expectedErrorMessage = 'query error';
+        const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: entityIdentifier },
+          body: featureCollection<Polygon | MultiPolygon>([{ type: 'Feature', geometry: generatePolygon(), properties: {} }]),
+        });
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
+        expect(response).toSatisfyApiSpec();
+        expect(spyQuery).toHaveBeenCalledTimes(1);
+
+        spyQuery.mockRestore();
+        expect.assertions(4);
+      });
+
       it('should return 500 status code for a database error - find polygon parts query error', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         const {

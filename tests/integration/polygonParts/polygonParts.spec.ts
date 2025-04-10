@@ -2484,7 +2484,48 @@ describe('polygonParts', () => {
             params: { polygonPartsEntityName: entityIdentifier },
             body: featureCollection(
               [requestedGeometries[1], multiPolygon([requestedGeometries[0].coordinates, requestedGeometries[2].coordinates]).geometry].map(
-                (requestedGeometry) => feature(requestedGeometry)
+                (requestedGeometry) => feature(requestedGeometry, null)
+              )
+            ),
+            query: { shouldClip },
+          });
+
+          const responseBody = response.body as FindPolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+          expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(4);
+        });
+
+        it('should return 200 status code and return clipped polygon parts when feature collection features (polygon and multi-polygon) intersect polygon parts - support null feature properties', async () => {
+          const polygonPartsPayload = generatePolygonPartsPayload({
+            partsData: [
+              {
+                footprint: (polygonEarth as FeatureCollection<Polygon>).features[0].geometry,
+              },
+            ],
+          });
+          await requestSender.createPolygonParts(polygonPartsPayload);
+          const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+          const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload, 3);
+          const expectedGeometries = [
+            generatePolygon({ bbox: [-170, -80, -130, 80] }),
+            generatePolygon({ bbox: [-110, -80, 110, 80] }),
+            generatePolygon({ bbox: [130, -80, 170, 80] }),
+          ];
+          const requestedGeometries = expectedGeometries;
+          expectedResponse.features.forEach((feature) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+            feature.geometry.coordinates = expect.any(Array<Number[][]>);
+          });
+
+          const response = await requestSender.findPolygonParts({
+            params: { polygonPartsEntityName: entityIdentifier },
+            body: featureCollection(
+              [requestedGeometries[1], multiPolygon([requestedGeometries[0].coordinates, requestedGeometries[2].coordinates]).geometry].map(
+                (requestedGeometry) => feature(requestedGeometry, null)
               )
             ),
             query: { shouldClip },
@@ -3369,6 +3410,40 @@ describe('polygonParts', () => {
             body: featureCollection(
               [requestedGeometries[1], multiPolygon([requestedGeometries[0].coordinates, requestedGeometries[2].coordinates]).geometry].map(
                 (requestedGeometry) => feature(requestedGeometry)
+              )
+            ),
+            query: { shouldClip },
+          });
+
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(3);
+        });
+
+        it('should return 200 status code and return polygon parts when feature collection features (polygon and multi-polygon) intersect polygon parts - support null feature properties', async () => {
+          const polygonPartsPayload = generatePolygonPartsPayload({
+            partsData: [
+              {
+                footprint: (polygonEarth as FeatureCollection<Polygon>).features[0].geometry,
+              },
+            ],
+          });
+          await requestSender.createPolygonParts(polygonPartsPayload);
+          const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+          const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload, 1);
+          const requestedGeometries = [
+            generatePolygon({ bbox: [-170, -80, -130, 80] }),
+            generatePolygon({ bbox: [-110, -80, 110, 80] }),
+            generatePolygon({ bbox: [130, -80, 170, 80] }),
+          ];
+
+          const response = await requestSender.findPolygonParts({
+            params: { polygonPartsEntityName: entityIdentifier },
+            body: featureCollection(
+              [requestedGeometries[1], multiPolygon([requestedGeometries[0].coordinates, requestedGeometries[2].coordinates]).geometry].map(
+                (requestedGeometry) => feature(requestedGeometry, null)
               )
             ),
             query: { shouldClip },

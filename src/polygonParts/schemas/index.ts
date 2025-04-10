@@ -16,7 +16,7 @@ import type { FindPolygonPartsQueryParams, FindPolygonPartsRequestBody } from '.
 import type { EntitiesMetadata, EntityNames, IsSwapQueryParams } from '../models/interfaces';
 
 const polygonPartsEntityNamePatternSchema = z.string().regex(new RegExp(INGESTION_VALIDATIONS.polygonPartsEntityName.pattern));
-const findPolygonPartsFeatureSchema = featureSchema(polygonSchema.or(multiPolygonSchema), roiPropertiesSchema.partial().passthrough());
+const findPolygonPartsFeatureSchema = featureSchema(polygonSchema.or(multiPolygonSchema), roiPropertiesSchema.partial().passthrough().nullable());
 const findPolygonPartsFeatureCollectionSchema = featureCollectionSchema(findPolygonPartsFeatureSchema).or(
   z
     .object({})

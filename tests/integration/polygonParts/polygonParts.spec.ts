@@ -54,8 +54,6 @@ const applicationConfig = config.get<ApplicationConfig>('application');
 const dbConfig = config.get<Required<DbConfig>>('db');
 const { schema } = dbConfig;
 
-type FindPolygonPartsResponseBodyFeatureProperties = FindPolygonPartsResponseBody['features'][number]['properties'];
-
 describe('polygonParts', () => {
   let requestSender: PolygonPartsRequestSender;
   let helperDB: HelperDB;
@@ -102,6 +100,11 @@ describe('polygonParts', () => {
 
   describe('Happy Path', () => {
     describe('POST /polygonParts/:polygonPartsEntityName/find', () => {
+      type FindPolygonPartsResponseBodyFeatureProperties<ShouldClip extends boolean = boolean> =
+        FindPolygonPartsResponseBody<ShouldClip>['features'][number]['properties'];
+      type ShouldClipEnabled = true;
+      type ShouldClipDisabled = false;
+
       describe('clip result enabled (shouldClip)', () => {
         const shouldClip = true;
 
@@ -121,9 +124,9 @@ describe('polygonParts', () => {
             query: { shouldClip },
           });
 
-          const responseBody = response.body as FindPolygonPartsResponseBody;
+          const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
           expect(response.status).toBe(httpStatusCodes.OK);
-          expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+          expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
           expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
           expect(response).toSatisfyApiSpec();
 
@@ -145,9 +148,9 @@ describe('polygonParts', () => {
             body: featureCollection<Polygon | MultiPolygon>([]),
           });
 
-          const responseBody = response.body as FindPolygonPartsResponseBody;
+          const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
           expect(response.status).toBe(httpStatusCodes.OK);
-          expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+          expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
           expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
           expect(response).toSatisfyApiSpec();
 
@@ -170,9 +173,9 @@ describe('polygonParts', () => {
             query: { shouldClip },
           });
 
-          const responseBody = response.body as FindPolygonPartsResponseBody;
+          const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
           expect(response.status).toBe(httpStatusCodes.OK);
-          expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+          expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
           expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
           expect(response).toSatisfyApiSpec();
 
@@ -214,7 +217,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties<ShouldClipEnabled>>([]);
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
@@ -232,7 +235,7 @@ describe('polygonParts', () => {
             });
 
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
@@ -259,7 +262,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties<ShouldClipEnabled>>([]);
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
@@ -268,7 +271,7 @@ describe('polygonParts', () => {
             });
 
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
@@ -302,7 +305,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties<ShouldClipEnabled>>([]);
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
@@ -321,7 +324,7 @@ describe('polygonParts', () => {
             });
 
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
@@ -369,7 +372,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties<ShouldClipEnabled>>([]);
             const requestGeometry = generatePolygon({ bbox: [10, -80, 80, 80] });
 
             const response = await requestSender.findPolygonParts({
@@ -382,7 +385,7 @@ describe('polygonParts', () => {
             });
 
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
@@ -456,9 +459,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -482,9 +485,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
             expect(response).toSatisfyApiSpec();
 
@@ -511,9 +514,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
             expect(response).toSatisfyApiSpec();
 
@@ -572,9 +575,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
             expect(response).toSatisfyApiSpec();
 
@@ -653,9 +656,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -686,9 +689,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
             expect(response).toSatisfyApiSpec();
 
@@ -756,9 +759,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -832,9 +835,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -917,9 +920,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -964,9 +967,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -1056,9 +1059,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -1119,9 +1122,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -1164,7 +1167,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties<ShouldClipEnabled>>([]);
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
@@ -1193,7 +1196,7 @@ describe('polygonParts', () => {
             });
 
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
@@ -1220,7 +1223,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties<ShouldClipEnabled>>([]);
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
@@ -1248,7 +1251,7 @@ describe('polygonParts', () => {
             });
 
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
@@ -1282,7 +1285,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties<ShouldClipEnabled>>([]);
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
@@ -1303,7 +1306,7 @@ describe('polygonParts', () => {
             });
 
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
@@ -1351,7 +1354,7 @@ describe('polygonParts', () => {
             });
             await requestSender.createPolygonParts(polygonPartsPayload);
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties>([]);
+            const expectedResponse = featureCollection<Polygon, FindPolygonPartsResponseBodyFeatureProperties<ShouldClipEnabled>>([]);
             const requestGeometry = {
               type: 'MultiPolygon',
               coordinates: [generatePolygon({ bbox: [-170, -80, -10, 80] }).coordinates, generatePolygon({ bbox: [10, -80, 80, 80] }).coordinates],
@@ -1367,7 +1370,7 @@ describe('polygonParts', () => {
             });
 
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
@@ -1439,9 +1442,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
             expect(response).toSatisfyApiSpec();
 
@@ -1511,9 +1514,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -1553,9 +1556,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
             expect(response).toSatisfyApiSpec();
 
@@ -1613,9 +1616,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
             expect(response).toSatisfyApiSpec();
 
@@ -1698,9 +1701,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -1761,9 +1764,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -1878,9 +1881,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -1993,9 +1996,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -2078,9 +2081,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -2141,9 +2144,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -2230,9 +2233,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -2317,9 +2320,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -2382,9 +2385,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -2448,9 +2451,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -2490,9 +2493,9 @@ describe('polygonParts', () => {
             query: { shouldClip },
           });
 
-          const responseBody = response.body as FindPolygonPartsResponseBody;
+          const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
           expect(response.status).toBe(httpStatusCodes.OK);
-          expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+          expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
           expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
           expect(response).toSatisfyApiSpec();
 
@@ -2531,9 +2534,9 @@ describe('polygonParts', () => {
             query: { shouldClip },
           });
 
-          const responseBody = response.body as FindPolygonPartsResponseBody;
+          const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipEnabled>;
           expect(response.status).toBe(httpStatusCodes.OK);
-          expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+          expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipEnabled>>(expectedResponse);
           expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
           expect(response).toSatisfyApiSpec();
 
@@ -2561,9 +2564,9 @@ describe('polygonParts', () => {
             query: { shouldClip },
           });
 
-          const responseBody = response.body as FindPolygonPartsResponseBody;
+          const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipDisabled>;
           expect(response.status).toBe(httpStatusCodes.OK);
-          expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+          expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipDisabled>>(expectedResponse);
           expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
           expect(response).toSatisfyApiSpec();
 
@@ -2623,7 +2626,7 @@ describe('polygonParts', () => {
             });
 
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipDisabled>>(expectedResponse);
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
@@ -2659,7 +2662,7 @@ describe('polygonParts', () => {
             });
 
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipDisabled>>(expectedResponse);
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
@@ -2712,7 +2715,7 @@ describe('polygonParts', () => {
             });
 
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipDisabled>>(expectedResponse);
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
@@ -2773,7 +2776,7 @@ describe('polygonParts', () => {
             });
 
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipDisabled>>(expectedResponse);
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
@@ -2847,9 +2850,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipDisabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipDisabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -2900,9 +2903,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipDisabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipDisabled>>(expectedResponse);
             expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
             expect(response).toSatisfyApiSpec();
 
@@ -2974,7 +2977,7 @@ describe('polygonParts', () => {
             });
 
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipDisabled>>(expectedResponse);
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
@@ -3029,7 +3032,7 @@ describe('polygonParts', () => {
             });
 
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipDisabled>>(expectedResponse);
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
@@ -3084,7 +3087,7 @@ describe('polygonParts', () => {
             });
 
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipDisabled>>(expectedResponse);
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
@@ -3148,7 +3151,7 @@ describe('polygonParts', () => {
             });
 
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipDisabled>>(expectedResponse);
             expect(response).toSatisfyApiSpec();
 
             expect.assertions(3);
@@ -3218,9 +3221,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipDisabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipDisabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -3290,9 +3293,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipDisabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipDisabled>>(expectedResponse);
             expect(responseBody.features).toSatisfyAll(allGeometriesEqual(expectedGeometries));
             expect(response).toSatisfyApiSpec();
 
@@ -3334,9 +3337,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipDisabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipDisabled>>(expectedResponse);
             expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
             expect(response).toSatisfyApiSpec();
 
@@ -3378,9 +3381,9 @@ describe('polygonParts', () => {
               query: { shouldClip },
             });
 
-            const responseBody = response.body as FindPolygonPartsResponseBody;
+            const responseBody = response.body as FindPolygonPartsResponseBody<ShouldClipDisabled>;
             expect(response.status).toBe(httpStatusCodes.OK);
-            expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+            expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipDisabled>>(expectedResponse);
             expect(booleanEqual(responseBody.features[0].geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })).toBeTrue();
             expect(response).toSatisfyApiSpec();
 
@@ -3416,7 +3419,7 @@ describe('polygonParts', () => {
           });
 
           expect(response.status).toBe(httpStatusCodes.OK);
-          expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+          expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipDisabled>>(expectedResponse);
           expect(response).toSatisfyApiSpec();
 
           expect.assertions(3);
@@ -3450,7 +3453,7 @@ describe('polygonParts', () => {
           });
 
           expect(response.status).toBe(httpStatusCodes.OK);
-          expect(response.body).toMatchObject<FindPolygonPartsResponseBody>(expectedResponse);
+          expect(response.body).toMatchObject<FindPolygonPartsResponseBody<ShouldClipDisabled>>(expectedResponse);
           expect(response).toSatisfyApiSpec();
 
           expect.assertions(3);

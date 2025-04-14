@@ -286,42 +286,47 @@ export class PolygonPartsManager {
     const polygonPart = entityManager.getRepository(PolygonPart);
     polygonPart.metadata.tablePath = polygonPartsEntityName.databaseObjectQualifiedName; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
 
-    const inputFilterGeometriesCTE = entityManager
-      .createQueryBuilder()
-      .select(`jsonb_array_elements('${JSON.stringify(inputFilter)}'::jsonb -> 'features')`, 'filter_feature')
-      .addSelect(`jsonb_array_elements('${JSON.stringify(inputFilter)}'::jsonb -> 'features') ->> 'geometry'`, 'filter_geometry')
-      .fromDummy();
+    const inputFilterGeometriesCTE = `select *
+      from jsonb_to_recordset('${JSON.stringify(inputFilter)}'::jsonb -> 'features') as x(geometry jsonb, properties jsonb, id jsonb)`;
 
-    const filterGeometriesCTE = `select filter_feature, st_geomfromgeojson(filter_geometry) as filter_geometry
-      from input_filter_geometries
-      union all
-      select '{"type": "Feature", "geometry": null, "properties": null}'::jsonb, st_makeenvelope(-180, -90, 180, 90, 4326)
-      where not exists (
-        select 1 from input_filter_geometries
-	    )`;
+    const filterGeometriesCTE = entityManager
+      .createQueryBuilder()
+      .select('st_geomfromgeojson(geometry)', 'filter_geometry')
+      .addSelect('properties')
+      .addSelect('id', 'filter_id')
+      .from('input_filter_geometries', 'input_filter_geometries');
+
+    const isEmptyFilterCTE = entityManager
+      .createQueryBuilder()
+      .select('not exists (select 1 from filter_geometries)', 'is_empty_filter')
+      .fromDummy();
 
     const intersectedPolygonPartsCTE = polygonPart
       .createQueryBuilder('polygon_part')
-      .select([
-        `polygon_part.${idColumn} as polygon_part_id`,
-        `${shouldClip ? `(st_dump(st_intersection(${geometryColumn}, filter_geometry))).geom` : geometryColumn} as ${geometryColumn}`,
-        'filter_feature',
-      ])
-      .innerJoin(
+      .select(idColumn, 'polygon_part_id')
+      .addSelect(
+        `${
+          shouldClip
+            ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
+            : geometryColumn
+        }`,
+        geometryColumn
+      )
+      .addSelect('filter_id')
+      .leftJoin(
         'filter_geometries',
         'filter_geometries',
         `st_relate(${geometryColumn}, filter_geometry, 'T********') and filter_geometry && ${geometryColumn}` // st_relate uses DE-9IM pattern of 'T********', to model interior interesection between two geometries
       )
-      .where('filter_feature is not null')
-      .andWhere(
-        `resolution_degree <= coalesce((filter_feature -> 'properties' ->> '${minResolutionDeg}')::numeric, ${CORE_VALIDATIONS.resolutionDeg.max})`
-      );
+      .where('filter_geometry is not null')
+      .andWhere(`resolution_degree <= coalesce((properties ->> '${minResolutionDeg}')::numeric, ${CORE_VALIDATIONS.resolutionDeg.max})`)
+      .orWhere('(select is_empty_filter from is_empty_filter)');
 
     const filteredPolygonPartsCTE = entityManager
       .createQueryBuilder()
-      .select('polygon_part_id', 'polygon_part_id')
-      .addSelect(geometryColumn, geometryColumn)
-      .addSelect(`array_remove(array_agg(filter_feature -> 'id'), NULL)`, 'filter_feature_ids')
+      .select('polygon_part_id')
+      .addSelect(`(st_dump(${geometryColumn})).geom`, geometryColumn)
+      .addSelect(`array_remove(array_agg(filter_id), NULL)`, 'filter_ids')
       .from('intersected_polygon_parts', 'intersected_polygon_parts')
       .groupBy('polygon_part_id')
       .addGroupBy(geometryColumn);
@@ -330,7 +335,7 @@ export class PolygonPartsManager {
       .createQueryBuilder('polygon_part')
       .select(`filtered_polygon_parts.${geometryColumn}`, geometryColumn)
       .addSelect(findSelectOutputColumns)
-      .addSelect('filter_feature_ids', filterRequestFeatureIds)
+      .addSelect('filter_ids', filterRequestFeatureIds)
       .orderBy(insertionOrderColumn)
       .innerJoin('filtered_polygon_parts', 'filtered_polygon_parts', 'id = polygon_part_id');
 
@@ -338,6 +343,7 @@ export class PolygonPartsManager {
       .createQueryBuilder()
       .addCommonTableExpression(inputFilterGeometriesCTE, 'input_filter_geometries')
       .addCommonTableExpression(filterGeometriesCTE, 'filter_geometries')
+      .addCommonTableExpression(isEmptyFilterCTE, 'is_empty_filter')
       .addCommonTableExpression(intersectedPolygonPartsCTE, 'intersected_polygon_parts')
       .addCommonTableExpression(filteredPolygonPartsCTE, 'filtered_polygon_parts')
       .addCommonTableExpression(outputPropertiesCTE, filterQueryAlias);

@@ -2,23 +2,27 @@ import { booleanEqual } from '@turf/boolean-equal';
 import { feature, featureCollection } from '@turf/helpers';
 import config from 'config';
 import type { Polygon } from 'geojson';
+import { isMatch } from 'lodash';
 import type { ApplicationConfig } from '../../../../src/common/interfaces';
 import { payloadToInsertPartsData } from '../../../../src/polygonParts/DAL/utils';
 import type { FindPolygonPartsResponseBody } from '../../../../src/polygonParts/controllers/interfaces';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
-import type { ExpectedPostgresResponse } from './types';
 import { INTERNAL_DB_GEOM_PRECISION } from './constants';
+import type { ExpectedPostgresResponse } from './types';
 
 const applicationConfig = config.get<ApplicationConfig>('application');
 
-export const allGeometriesEqual = <E extends FindPolygonPartsResponseBody['features'][number]>(
-  expectedGeometries: Polygon[]
-): ((feature: E) => boolean) => {
+export const allFindFeaturesEqual = <T extends FindPolygonPartsResponseBody<ShouldClip>['features'][number], ShouldClip extends boolean = boolean>(
+  expectedGeometries: Polygon[],
+  expectedProperties?: Partial<T['properties']>[]
+): ((feature: T) => boolean) => {
   return (feature) => {
-    const index = expectedGeometries.findIndex((expectedGeometry) =>
-      booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION })
-    );
-    return index >= 0 && expectedGeometries.splice(index, 1).length === 1;
+    const index = expectedGeometries.findIndex((expectedGeometry, index) => {
+      const geometryEquality = booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION });
+      const propertiesEquality = expectedProperties && isMatch(feature.properties, expectedProperties[index]);
+      return geometryEquality && propertiesEquality;
+    });
+    return index >= 0 && expectedGeometries.splice(index, 1).length === 1 && expectedProperties?.splice(index, 1).length === 1;
   };
 };
 
@@ -31,6 +35,7 @@ export function toExpectedPostgresResponse(polygonPartsPayload: PolygonPartsPayl
   return expectedPostgresResponse;
 }
 
+// TODO: update to take an id input of the intersecting feature or to generate an id ?!
 export function toExpectedFindPolygonPartsResponse(polygonPartsPayload: PolygonPartsPayload, duplicates = 1): FindPolygonPartsResponseBody {
   const { partsData, ...layerMetadata } = polygonPartsPayload;
   const expectedFeatures = partsData

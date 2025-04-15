@@ -2519,21 +2519,21 @@ describe('polygonParts', () => {
             const expectedGeometries = [
               polygon([
                 [
-                  [-1, 0.5],
+                  [-1, 0],
                   [0, 0.75],
-                  [1, 0.5],
+                  [1, 0],
                   [1, 1],
                   [-1, 1],
-                  [-1, 0.5],
+                  [-1, 0],
                 ],
               ]),
               polygon([
                 [
                   [-1, -1],
                   [1, -1],
-                  [1, -0.5],
+                  [1, 0],
                   [0, -0.75],
-                  [-1, -0.5],
+                  [-1, 0],
                   [-1, -1],
                 ],
               ]),
@@ -3601,7 +3601,26 @@ describe('polygonParts', () => {
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
             const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
             const expectedGeometry = structuredClone(polygonPartsPayload.partsData[0].footprint);
-            const requsetedGeometry = expectedGeometry;
+            const requsetedGeometry = [
+              polygon([
+                [
+                  [-1, 0.5],
+                  [1, 0.5],
+                  [1, 1],
+                  [-1, 1],
+                  [-1, 0.5],
+                ],
+              ]),
+              polygon([
+                [
+                  [-1, -1],
+                  [1, -1],
+                  [1, -0.5],
+                  [-1, -0.5],
+                  [-1, -1],
+                ],
+              ]),
+            ].map((expectedGeometry) => expectedGeometry.geometry.coordinates);
             expectedResponse.features.forEach((feature) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
               feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -3609,7 +3628,7 @@ describe('polygonParts', () => {
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
-              body: featureCollection([multiPolygon([requsetedGeometry.coordinates])]),
+              body: featureCollection([multiPolygon(requsetedGeometry)]),
               query: { shouldClip },
             });
 
@@ -3645,7 +3664,28 @@ describe('polygonParts', () => {
             const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
             const expectedResponse = toExpectedFindPolygonPartsResponse(polygonPartsPayload);
             const expectedGeometry = structuredClone(polygonPartsPayload.partsData[0].footprint);
-            const requsetedGeometry = expectedGeometry;
+            const requsetedGeometry = [
+              polygon([
+                [
+                  [-1, 0],
+                  [0, 0.75],
+                  [1, 0],
+                  [1, 1],
+                  [-1, 1],
+                  [-1, 0],
+                ],
+              ]),
+              polygon([
+                [
+                  [-1, -1],
+                  [1, -1],
+                  [1, 0],
+                  [0, -0.75],
+                  [-1, 0],
+                  [-1, -1],
+                ],
+              ]),
+            ].map((expectedGeometry) => expectedGeometry.geometry.coordinates);
             expectedResponse.features.forEach((feature) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
               feature.geometry.coordinates = expect.any(Array<Number[][]>);
@@ -3653,7 +3693,7 @@ describe('polygonParts', () => {
 
             const response = await requestSender.findPolygonParts({
               params: { polygonPartsEntityName: entityIdentifier },
-              body: featureCollection([multiPolygon([requsetedGeometry.coordinates])]),
+              body: featureCollection([multiPolygon(requsetedGeometry)]),
               query: { shouldClip },
             });
 

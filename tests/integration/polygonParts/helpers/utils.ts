@@ -19,10 +19,12 @@ export const allFindFeaturesEqual = <T extends FindPolygonPartsResponseBody<Shou
   return (feature) => {
     const index = expectedGeometries.findIndex((expectedGeometry, index) => {
       const geometryEquality = booleanEqual(feature.geometry, expectedGeometry, { precision: INTERNAL_DB_GEOM_PRECISION });
-      const propertiesEquality = expectedProperties && isMatch(feature.properties, expectedProperties[index]);
+      const propertiesEquality = expectedProperties ? isMatch(feature.properties, expectedProperties[index]) : true;
       return geometryEquality && propertiesEquality;
     });
-    return index >= 0 && expectedGeometries.splice(index, 1).length === 1 && expectedProperties?.splice(index, 1).length === 1;
+    const sucessfullyRemoveGeometry = expectedGeometries.splice(index, 1).length === 1;
+    const sucessfullyRemoveProperty = expectedProperties ? expectedProperties.splice(index, 1).length === 1 : true;
+    return index >= 0 && sucessfullyRemoveGeometry && sucessfullyRemoveProperty;
   };
 };
 

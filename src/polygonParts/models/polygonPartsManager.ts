@@ -296,10 +296,7 @@ export class PolygonPartsManager {
       .addSelect('id', 'filter_id')
       .from('input_filter_geometries', 'input_filter_geometries');
 
-    const isEmptyFilterCTE = entityManager
-      .createQueryBuilder()
-      .select('not exists (select 1 from filter_geometries)', 'is_empty_filter')
-      .fromDummy();
+    const isEmptyFilterCTE = entityManager.createQueryBuilder().select('not exists (select 1 from filter_geometries)', 'is_empty_filter').fromDummy();
 
     const intersectedPolygonPartsCTE = polygonPart
       .createQueryBuilder('polygon_part')

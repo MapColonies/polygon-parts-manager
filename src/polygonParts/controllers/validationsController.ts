@@ -32,6 +32,7 @@ export class ValidationsController {
       schemaParser({ schema: polygonPartsPayloadSchema, value: req.body, errorMessagePrefix: 'Invalid request body' });
       next();
     } catch (error) {
+      this.logger.error({ msg: error }, 'create polygon parts validation failed');
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }
@@ -45,6 +46,7 @@ export class ValidationsController {
       schemaParser({ schema: updatePolygonPartsQueryParamsSchema, value: req.query, errorMessagePrefix: 'Invalid query params' });
       next();
     } catch (error) {
+      this.logger.error({ msg: error }, 'update polygon parts validation failed');
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }
@@ -73,6 +75,7 @@ export class ValidationsController {
       });
       next();
     } catch (error) {
+      this.logger.error({ msg: error }, 'find polygon parts validation failed');
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }

@@ -5414,10 +5414,9 @@ describe('polygonParts', () => {
 
   describe('Bad Path', () => {
     describe('POST /polygonParts/:polygonPartsEntityName/find', () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const expectedErrorMessage = { message: expect.any(String) };
-
       it('should return 400 status code if shouldClip is not a boolean value', async () => {
+        const expectedErrorMessage = { message: 'request/query/shouldClip must be boolean' };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: featureCollection<Polygon | MultiPolygon>([]),
@@ -5432,6 +5431,8 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (start with [a-z] char)', async () => {
+        const expectedErrorMessage = { message: 'request/params/polygonPartsEntityName must match pattern "^[a-z][a-z0-9_]{0,61}[a-z0-9]$"' };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: '0invalid_raster' as EntityIdentifier },
           body: featureCollection<Polygon | MultiPolygon>([]),
@@ -5445,6 +5446,8 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (contain [a-z0-9_] characters inside)', async () => {
+        const expectedErrorMessage = { message: 'request/params/polygonPartsEntityName must match pattern "^[a-z][a-z0-9_]{0,61}[a-z0-9]$"' };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'invalid@name_raster' as EntityIdentifier },
           body: featureCollection<Polygon | MultiPolygon>([]),
@@ -5458,6 +5461,10 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (end with [a-z] char or [0-9] digit)', async () => {
+        const expectedErrorMessage = {
+          message: 'request/params/polygonPartsEntityName must match pattern "^[a-z][a-z0-9_]{0,61}[a-z0-9]$"',
+        };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'invalid_' as EntityIdentifier },
           body: featureCollection<Polygon | MultiPolygon>([]),
@@ -5471,6 +5478,10 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (not less than 2 chars)', async () => {
+        const expectedErrorMessage = {
+          message: 'request/params/polygonPartsEntityName must match pattern "^[a-z][a-z0-9_]{0,61}[a-z0-9]$"',
+        };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'a' as EntityIdentifier },
           body: featureCollection<Polygon | MultiPolygon>([]),
@@ -5484,6 +5495,10 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (not more than 63 chars)', async () => {
+        const expectedErrorMessage = {
+          message: 'request/params/polygonPartsEntityName must match pattern "^[a-z][a-z0-9_]{0,61}[a-z0-9]$"',
+        };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'a'.repeat(64) as EntityIdentifier },
           body: featureCollection<Polygon | MultiPolygon>([]),
@@ -5497,6 +5512,10 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if polygonPartsEntityName is an invalid value - must end with raster product type', async () => {
+        const expectedErrorMessage = {
+          message: 'Invalid request params: Polygon parts entity name should end with one of the valid raster product types',
+        };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'invalid_name' as EntityIdentifier },
           body: featureCollection<Polygon | MultiPolygon>([]),
@@ -5543,6 +5562,10 @@ describe('polygonParts', () => {
           useChild: true,
         });
         requestSender = new PolygonPartsRequestSender(app);
+        const expectedErrorMessage = {
+          message:
+            'Invalid request parameter resource identifier: Polygon parts entity name should valid entity name; Polygon parts entity name should valid entity name',
+        };
 
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'very_long_valid_name_orthophoto' as EntityIdentifier },
@@ -5557,6 +5580,8 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if feature collection in req body is an invalid value - is not an object', async () => {
+        const expectedErrorMessage = { message: `Unexpected token 'i', "#" is not valid JSON` };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: 'invalid' as unknown as FeatureCollection<Polygon | MultiPolygon>,
@@ -5570,6 +5595,8 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if feature collection in req body is an invalid value - does not contain entry "type": "FeatureCollection"', async () => {
+        const expectedErrorMessage = { message: 'request/body/type must be equal to one of the allowed values: FeatureCollection' };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: { type: 'invalid', features: [] } as unknown as FeatureCollection<Polygon | MultiPolygon>,
@@ -5583,6 +5610,8 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if feature collection in req body is an invalid value - does not contain entry for "features" property', async () => {
+        const expectedErrorMessage = { message: "request/body must have required property 'features'" };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: { type: 'FeatureCollection' } as unknown as FeatureCollection<Polygon | MultiPolygon>,
@@ -5596,6 +5625,11 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if feature collection in req body is an invalid value - "bbox" value must be an array with 4 or 6 items', async () => {
+        const expectedErrorMessages = [
+          { message: 'Invalid request body: Array must contain at most 4 element(s)' },
+          { message: 'request/body/bbox must NOT have fewer than 4 items' },
+        ];
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
@@ -5605,8 +5639,7 @@ describe('polygonParts', () => {
               {
                 length: faker.helpers.arrayElement([
                   faker.helpers.rangeToNumber({ min: 0, max: 3 }),
-                  5,
-                  faker.helpers.rangeToNumber({ min: 7, max: 10 }),
+                  faker.helpers.rangeToNumber({ min: 5, max: 10 }),
                 ]),
               },
               () => faker.number.float()
@@ -5615,13 +5648,15 @@ describe('polygonParts', () => {
         });
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response.body).toBeOneOf(expectedErrorMessages);
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);
       });
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - does not contain entry "type": "Feature"', async () => {
+        const expectedErrorMessage = { message: 'request/body/features/0/type must be equal to one of the allowed values: Feature' };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
@@ -5638,6 +5673,8 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - does not contain entry for "properties" property', async () => {
+        const expectedErrorMessage = { message: `request/body/features/0 must have required property 'properties'` };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
@@ -5654,6 +5691,8 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - does not contain entry for "geometry" property', async () => {
+        const expectedErrorMessage = { message: `request/body/features/0 must have required property 'geometry'` };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
@@ -5670,6 +5709,11 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "id" value must be a number or string', async () => {
+        const expectedErrorMessage = {
+          message:
+            'request/body/features/0/id must be number, request/body/features/0/id must be string, request/body/features/0/id must match exactly one schema in oneOf',
+        };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
@@ -5693,6 +5737,8 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "id" value must be unique', async () => {
+        const expectedErrorMessage = { message: 'Invalid request body: Input features should have unique ids' };
+
         const featureId = generateFeatureId();
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
@@ -5723,6 +5769,8 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "property" value must be an object or null', async () => {
+        const expectedErrorMessage = { message: 'request/body/features/0/properties must be object' };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
@@ -5745,6 +5793,11 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "geometry" value must be an object', async () => {
+        const expectedErrorMessage = {
+          message:
+            'request/body/features/0/geometry must be object, request/body/features/0/geometry must be object, request/body/features/0/geometry must be object, request/body/features/0/geometry must match exactly one schema in oneOf',
+        };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
@@ -5767,6 +5820,11 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "bbox" value must be an array with 4 or 6 items', async () => {
+        const expectedErrorMessages = [
+          { message: 'Invalid request body: Array must contain at most 4 element(s)' },
+          { message: 'request/body/features/0/bbox must NOT have fewer than 4 items' },
+        ];
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
@@ -5780,8 +5838,7 @@ describe('polygonParts', () => {
                   {
                     length: faker.helpers.arrayElement([
                       faker.helpers.rangeToNumber({ min: 0, max: 3 }),
-                      5,
-                      faker.helpers.rangeToNumber({ min: 7, max: 10 }),
+                      faker.helpers.rangeToNumber({ min: 5, max: 10 }),
                     ]),
                   },
                   () => faker.number.float()
@@ -5792,13 +5849,18 @@ describe('polygonParts', () => {
         });
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response.body).toBeOneOf(expectedErrorMessages);
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);
       });
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - does not contain entry "type": "Polygon" or "type": "MultiPolygon"', async () => {
+        const expectedErrorMessage = {
+          message:
+            'request/body/features/0/geometry/type must be equal to one of the allowed values: Polygon, request/body/features/0/geometry/coordinates/0 must be array, request/body/features/0/geometry/coordinates/1 must be array, request/body/features/0/geometry/type must be equal to one of the allowed values: MultiPolygon, request/body/features/0/geometry/coordinates/0 must be array, request/body/features/0/geometry/coordinates/1 must be array, request/body/features/0/geometry must match exactly one schema in oneOf',
+        };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
@@ -5824,6 +5886,10 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - does not contain entry for "coordinates" property', async () => {
+        const expectedErrorMessage = {
+          message: `request/body/features/0/geometry must have required property 'coordinates', request/body/features/0/geometry must have required property 'coordinates', request/body/features/0/geometry/type must be equal to one of the allowed values: MultiPolygon, request/body/features/0/geometry must match exactly one schema in oneOf`,
+        };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
@@ -5834,7 +5900,7 @@ describe('polygonParts', () => {
                 properties: {},
                 geometry: {
                   type: 'Polygon',
-                } as unknown as Polygon | MultiPolygon,
+                } as unknown as Polygon,
               },
             ],
           },
@@ -5848,6 +5914,14 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - "bbox" value must be an array with 4 or 6 items', async () => {
+        const expectedErrorMessages = [
+          { message: 'Invalid request body: Array must contain at most 4 element(s)' },
+          {
+            message:
+              'request/body/features/0/geometry/bbox must NOT have fewer than 4 items, request/body/features/0/geometry/type must be equal to one of the allowed values: MultiPolygon, request/body/features/0/geometry/coordinates/0/0 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/0/0/0 must be array, request/body/features/0/geometry/coordinates/0/0/1 must be array, request/body/features/0/geometry/coordinates/0/1 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/0/1/0 must be array, request/body/features/0/geometry/coordinates/0/1/1 must be array, request/body/features/0/geometry/coordinates/0/2 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/0/2/0 must be array, request/body/features/0/geometry/coordinates/0/2/1 must be array, request/body/features/0/geometry/coordinates/0/3 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/0/3/0 must be array, request/body/features/0/geometry/coordinates/0/3/1 must be array, request/body/features/0/geometry/coordinates/0/4 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/0/4/0 must be array, request/body/features/0/geometry/coordinates/0/4/1 must be array, request/body/features/0/geometry/bbox must NOT have fewer than 4 items, request/body/features/0/geometry must match exactly one schema in oneOf',
+          },
+        ];
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
@@ -5871,20 +5945,19 @@ describe('polygonParts', () => {
                     {
                       length: faker.helpers.arrayElement([
                         faker.helpers.rangeToNumber({ min: 0, max: 3 }),
-                        5,
-                        faker.helpers.rangeToNumber({ min: 7, max: 10 }),
+                        faker.helpers.rangeToNumber({ min: 5, max: 10 }),
                       ]),
                     },
                     () => faker.number.float()
                   ) as BBox,
-                } as unknown as Polygon | MultiPolygon,
+                } as unknown as Polygon,
               },
             ],
           },
         });
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-        expect(response.body).toMatchObject(expectedErrorMessage);
+        expect(response.body).toBeOneOf(expectedErrorMessages);
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);
@@ -5894,6 +5967,9 @@ describe('polygonParts', () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload)).body as unknown as PolygonPartsResponse;
         const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
+        // TODO: update error message
+        const expectedErrorMessage = { message: 'Invalid request body: Invalid input' };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName },
           body: {
@@ -5927,6 +6003,11 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - must have at least 3 vertices', async () => {
+        const expectedErrorMessage = {
+          message:
+            'request/body/features/0/geometry/coordinates/0 must NOT have fewer than 4 items, request/body/features/0/geometry/type must be equal to one of the allowed values: MultiPolygon, request/body/features/0/geometry/coordinates/0/0 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/0/0/0 must be array, request/body/features/0/geometry/coordinates/0/0/1 must be array, request/body/features/0/geometry/coordinates/0/1 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/0/1/0 must be array, request/body/features/0/geometry/coordinates/0/1/1 must be array, request/body/features/0/geometry/coordinates/0/2 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/0/2/0 must be array, request/body/features/0/geometry/coordinates/0/2/1 must be array, request/body/features/0/geometry must match exactly one schema in oneOf',
+        };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
@@ -5958,6 +6039,11 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - hole must have at least 3 vertices', async () => {
+        const expectedErrorMessage = {
+          message:
+            'request/body/features/0/geometry/coordinates/1 must NOT have fewer than 4 items, request/body/features/0/geometry/type must be equal to one of the allowed values: MultiPolygon, request/body/features/0/geometry/coordinates/0/0 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/0/0/0 must be array, request/body/features/0/geometry/coordinates/0/0/1 must be array, request/body/features/0/geometry/coordinates/0/1 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/0/1/0 must be array, request/body/features/0/geometry/coordinates/0/1/1 must be array, request/body/features/0/geometry/coordinates/0/2 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/0/2/0 must be array, request/body/features/0/geometry/coordinates/0/2/1 must be array, request/body/features/0/geometry/coordinates/0/3 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/0/3/0 must be array, request/body/features/0/geometry/coordinates/0/3/1 must be array, request/body/features/0/geometry/coordinates/0/4 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/0/4/0 must be array, request/body/features/0/geometry/coordinates/0/4/1 must be array, request/body/features/0/geometry/coordinates/1/0 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/1/0/0 must be array, request/body/features/0/geometry/coordinates/1/0/1 must be array, request/body/features/0/geometry/coordinates/1/1 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/1/1/0 must be array, request/body/features/0/geometry/coordinates/1/1/1 must be array, request/body/features/0/geometry/coordinates/1/2 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/1/2/0 must be array, request/body/features/0/geometry/coordinates/1/2/1 must be array, request/body/features/0/geometry must match exactly one schema in oneOf',
+        };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
           body: {
@@ -6009,6 +6095,7 @@ describe('polygonParts', () => {
               [0, 0],
             ],
           ],
+          errorMessage: 'Invalid geometry filter: Self-intersection. Location: "{\\"type\\":\\"Point\\",\\"coordinates\\":[1.333333333,0]}"',
         },
         {
           testCase: 'exterior ring must not self-touch',
@@ -6022,6 +6109,7 @@ describe('polygonParts', () => {
               [0, 0],
             ],
           ],
+          errorMessage: 'Invalid geometry filter: Self-intersection. Location: "{\\"type\\":\\"Point\\",\\"coordinates\\":[1,1]}"',
         },
         {
           testCase: 'interior hole ring must not cross the exterior',
@@ -6041,6 +6129,7 @@ describe('polygonParts', () => {
               [1, 1],
             ],
           ],
+          errorMessage: 'Invalid geometry filter: Self-intersection. Location: "{\\"type\\":\\"Point\\",\\"coordinates\\":[1,3]}"',
         },
         {
           testCase: 'interior hole rings must not cross each other',
@@ -6067,6 +6156,7 @@ describe('polygonParts', () => {
               [1, 1],
             ],
           ],
+          errorMessage: 'Invalid geometry filter: Self-intersection. Location: "{\\"type\\":\\"Point\\",\\"coordinates\\":[2,2]}"',
         },
         {
           testCase: 'interior hole ring must not touch the exterior ring along a line',
@@ -6086,6 +6176,7 @@ describe('polygonParts', () => {
               [0, 1],
             ],
           ],
+          errorMessage: 'Invalid geometry filter: Self-intersection. Location: "{\\"type\\":\\"Point\\",\\"coordinates\\":[0,1]}"',
         },
         {
           testCase: 'interior hole rings must not touch each other along a line',
@@ -6112,6 +6203,7 @@ describe('polygonParts', () => {
               [2, 1],
             ],
           ],
+          errorMessage: 'Invalid geometry filter: Self-intersection. Location: "{\\"type\\":\\"Point\\",\\"coordinates\\":[2,1]}"',
         },
         {
           testCase: 'interior hole rings must be contained in exterior ring',
@@ -6131,6 +6223,7 @@ describe('polygonParts', () => {
               [3, 3],
             ],
           ],
+          errorMessage: 'Invalid geometry filter: Hole lies outside shell. Location: "{\\"type\\":\\"Point\\",\\"coordinates\\":[3,3]}"',
         },
         {
           testCase: 'interior hole rings must not split the geometry into more than one part',
@@ -6143,22 +6236,25 @@ describe('polygonParts', () => {
               [0, 0],
             ],
             [
-              [0, 0],
+              [2, 1],
               [4, 2],
               [0, 2],
-              [0, 0],
+              [2, 1],
             ],
           ],
+          errorMessage: 'Invalid geometry filter: Interior is disconnected. Location: "{\\"type\\":\\"Point\\",\\"coordinates\\":[0,2]}"',
         },
-      ] satisfies { testCase: string; coordinates: Polygon['coordinates'] }[];
+      ] satisfies { testCase: string; coordinates: Polygon['coordinates']; errorMessage: string }[];
 
       it.each(invalidGeometryTopologyTestCases)(
         'should return 400 status code if polygon geometry inside a feature, inside a feature collection, in req body is an invalid value - $testCase',
-        async ({ coordinates }) => {
+        async ({ coordinates, errorMessage }) => {
           const polygonPartsPayload = generatePolygonPartsPayload(1);
           const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload))
             .body as unknown as PolygonPartsResponse;
           const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
+          const expectedErrorMessage = { message: errorMessage };
+
           const response = await requestSender.findPolygonParts({
             params: { polygonPartsEntityName },
             body: {
@@ -6183,11 +6279,13 @@ describe('polygonParts', () => {
 
       it.each(invalidGeometryTopologyTestCases)(
         'should return 400 status code if multi-polygon geometry inside a feature, inside a feature collection, in req body is an invalid value - $testCase',
-        async ({ coordinates }) => {
+        async ({ coordinates, errorMessage }) => {
           const polygonPartsPayload = generatePolygonPartsPayload(1);
           const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload))
             .body as unknown as PolygonPartsResponse;
           const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
+          const expectedErrorMessage = { message: errorMessage };
+
           const response = await requestSender.findPolygonParts({
             params: { polygonPartsEntityName },
             body: {
@@ -6214,6 +6312,10 @@ describe('polygonParts', () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload)).body as unknown as PolygonPartsResponse;
         const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
+        const expectedErrorMessage = {
+          message: 'Invalid geometry filter: Self-intersection. Location: "{\\"type\\":\\"Point\\",\\"coordinates\\":[0,1]}"',
+        };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName },
           body: featureCollection([
@@ -6251,6 +6353,10 @@ describe('polygonParts', () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload)).body as unknown as PolygonPartsResponse;
         const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
+        const expectedErrorMessage = {
+          message: 'Invalid geometry filter: Self-intersection. Location: "{\\"type\\":\\"Point\\",\\"coordinates\\":[2,0]}"',
+        };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName },
           body: featureCollection([
@@ -6287,6 +6393,11 @@ describe('polygonParts', () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload)).body as unknown as PolygonPartsResponse;
         const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
+        const expectedErrorMessage = {
+          message:
+            'request/body/features/0/geometry/coordinates/0/2/0 must be <= 180, request/body/features/0/geometry/type must be equal to one of the allowed values: MultiPolygon, request/body/features/0/geometry/coordinates/0/0 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/0/0/0 must be array, request/body/features/0/geometry/coordinates/0/0/1 must be array, request/body/features/0/geometry/coordinates/0/1 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/0/1/0 must be array, request/body/features/0/geometry/coordinates/0/1/1 must be array, request/body/features/0/geometry/coordinates/0/2 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/0/2/0 must be array, request/body/features/0/geometry/coordinates/0/2/1 must be array, request/body/features/0/geometry/coordinates/0/3 must NOT have fewer than 4 items, request/body/features/0/geometry/coordinates/0/3/0 must be array, request/body/features/0/geometry/coordinates/0/3/1 must be array, request/body/features/0/geometry must match exactly one schema in oneOf',
+        };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName },
           body: polygons([
@@ -6312,6 +6423,8 @@ describe('polygonParts', () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload)).body as unknown as PolygonPartsResponse;
         const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
+        const expectedErrorMessage = { message: 'Invalid request body: Number must be less than or equal to 90' };
+
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName },
           body: polygons([

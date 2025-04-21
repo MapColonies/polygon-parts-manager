@@ -30,26 +30,26 @@ export class ValidationsController {
   public readonly validateCreatePolygonParts: CreatePolygonPartsValidationHandler = (req, _, next) => {
     try {
       schemaParser({ schema: polygonPartsPayloadSchema, value: req.body, errorMessagePrefix: 'Invalid request body' });
+      next();
     } catch (error) {
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }
       next(error);
     }
-    next();
   };
 
   public readonly validateUpdatePolygonParts: UpdatePolygonPartsValidationHandler = (req, _, next) => {
     try {
       schemaParser({ schema: polygonPartsPayloadSchema, value: req.body, errorMessagePrefix: 'Invalid request body' });
       schemaParser({ schema: updatePolygonPartsQueryParamsSchema, value: req.query, errorMessagePrefix: 'Invalid query params' });
+      next();
     } catch (error) {
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }
       next(error);
     }
-    next();
   };
 
   public readonly validateFindPolygonParts: FindPolygonPartsValidationHandler = (req, _, next) => {
@@ -71,12 +71,12 @@ export class ValidationsController {
         value: req.body,
         errorMessagePrefix: 'Invalid request body',
       });
+      next();
     } catch (error) {
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }
       next(error);
     }
-    next();
   };
 }

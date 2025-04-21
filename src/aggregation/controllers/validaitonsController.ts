@@ -21,12 +21,12 @@ export class ValidationsController {
   public readonly validateGetAggregationLayerMetadata: GetAggregationLayerMetadataValidationHandler = (req, _, next) => {
     try {
       schemaParser({ schema: polygonPartsEntityNameSchema, value: req.params, errorMessagePrefix: 'Invalid request params' });
+      next();
     } catch (error) {
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }
       next(error);
     }
-    next();
   };
 }

@@ -1,6 +1,7 @@
 import { InternalServerError } from '@map-colonies/error-types';
 import httpStatusCodes from 'http-status-codes';
 import { ZodError, ZodIssue } from 'zod';
+import { fromZodError } from 'zod-validation-error';
 
 export class DBConnectionError extends InternalServerError {
   public constructor(message?: string) {
@@ -17,6 +18,8 @@ export class ValidationError extends ZodError {
   }
 
   public get message(): string {
-    return `${this.errorMessagePrefix !== undefined ? `${this.errorMessagePrefix}: ` : ''}${super.message}`;
+    return `${this.errorMessagePrefix !== undefined ? `${this.errorMessagePrefix}: ` : ''}${
+      fromZodError(this, { includePath: false, prefix: null }).message
+    }`;
   }
 }

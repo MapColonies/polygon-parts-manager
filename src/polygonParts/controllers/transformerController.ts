@@ -1,5 +1,7 @@
+import type { Logger } from '@map-colonies/js-logger';
 import { RequestHandler } from 'express';
 import { inject, singleton } from 'tsyringe';
+import { SERVICES } from '../../common/constants';
 import { Transformer } from '../../common/middlewares/transformer';
 import type { IsSwapQueryParams, PolygonPartsPayload } from '../models/interfaces';
 import type { FindPolygonPartsParams, FindPolygonPartsQueryParams, FindPolygonPartsRequestBody } from './interfaces';
@@ -26,7 +28,7 @@ type UpdatePolygonPartsTransformerHandler = RequestHandler<undefined, undefined,
 
 @singleton()
 export class TransformerController {
-  public constructor(@inject(Transformer) private readonly transformer: Transformer) {}
+  public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, @inject(Transformer) private readonly transformer: Transformer) {}
 
   public readonly parseCreatePolygonParts: CreatePolygonPartsTransformerHandler = (req, res, next) => {
     try {
@@ -34,6 +36,7 @@ export class TransformerController {
       res.locals = entitiesMetadata;
       next();
     } catch (error) {
+      this.logger.error({msg: error}, 'create polygon parts transformer failed');
       next(error);
     }
   };
@@ -47,6 +50,7 @@ export class TransformerController {
       }
       next();
     } catch (error) {
+      this.logger.error({msg: error}, 'find polygon parts transformer failed');
       next(error);
     }
   };
@@ -57,6 +61,7 @@ export class TransformerController {
       res.locals = entitiesMetadata;
       next();
     } catch (error) {
+      this.logger.error({msg: error}, 'update polygon parts transformer failed');
       next(error);
     }
   };

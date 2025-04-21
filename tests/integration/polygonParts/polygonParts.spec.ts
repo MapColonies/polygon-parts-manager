@@ -5605,7 +5605,7 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if feature collection in req body is an invalid value - is not an object', async () => {
-        const expectedErrorMessage = { message: `Unexpected token 'i', "#" is not valid JSON` };
+        const expectedErrorMessage = { message: 'Unexpected token i in JSON at position 0' };
 
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },

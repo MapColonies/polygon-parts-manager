@@ -10,7 +10,15 @@ import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfac
 import { Part } from '../DAL/part';
 import { PolygonPart } from '../DAL/polygonPart';
 import { payloadToInsertPartsData } from '../DAL/utils';
-import { findSelectOutputColumns, geometryColumn, idColumn, insertionOrderColumn, isValidDetailsResult, minResolutionDeg, requestFeatureId } from './constants';
+import {
+  findSelectOutputColumns,
+  geometryColumn,
+  idColumn,
+  insertionOrderColumn,
+  isValidDetailsResult,
+  minResolutionDeg,
+  requestFeatureId,
+} from './constants';
 import type {
   EntitiesMetadata,
   EntityName,
@@ -22,7 +30,7 @@ import type {
   FindQuerySelectOptions,
   IsValidDetailsResult,
   PolygonPartsPayload,
-  PolygonPartsResponse
+  PolygonPartsResponse,
 } from './interfaces';
 
 @injectable()

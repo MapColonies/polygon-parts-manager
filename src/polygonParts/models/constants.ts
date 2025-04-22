@@ -6,10 +6,7 @@ import type { FindPolygonPartsResponse, IsValidDetailsResult, PolygonPartRecord 
 /**
  * Properties to select (include/exclude) in find polygon parts query or a select query applied to the mapped column (implicitly included)
  */
-const FIND_OUTPUT_PROPERTIES: MapValues<
-  Required<Omit<PolygonPartRecord, 'footprint' | 'insertionOrder'>>,
-  boolean | ((column: string) => string)
-> = {
+const FIND_OUTPUT_PROPERTIES: MapValues<Required<Omit<PolygonPartRecord, 'footprint' | 'insertionOrder'>>, boolean | ((column: string) => string)> = {
   catalogId: true,
   cities: (column: string) => `string_to_array("${column}", ',')`,
   countries: (column: string) => `string_to_array("${column}", ',')`,
@@ -31,7 +28,6 @@ const FIND_OUTPUT_PROPERTIES: MapValues<
   sourceResolutionMeter: true,
 };
 
-
 export const geometryColumn = getMappedColumnName('footprint' satisfies keyof Pick<PolygonPartRecord, 'footprint'>);
 export const idColumn = getMappedColumnName('id' satisfies keyof Pick<PolygonPartRecord, 'id'>);
 export const insertionOrderColumn = getMappedColumnName('insertionOrder' satisfies keyof Pick<PolygonPartRecord, 'insertionOrder'>);
@@ -41,7 +37,10 @@ export const isValidDetailsResult = {
   location: 'location' satisfies keyof Pick<IsValidDetailsResult, 'location'>,
 };
 export const minResolutionDeg = 'minResolutionDeg' satisfies keyof Pick<RoiProperties, 'minResolutionDeg'>;
-export const requestFeatureId = 'requestFeatureId' satisfies keyof Pick<FindPolygonPartsResponse['features'][number]['properties'], 'requestFeatureId'>;
+export const requestFeatureId = 'requestFeatureId' satisfies keyof Pick<
+  FindPolygonPartsResponse['features'][number]['properties'],
+  'requestFeatureId'
+>;
 
 export const findSelectOutputColumns = Object.entries(FIND_OUTPUT_PROPERTIES)
   .filter(([, value]) => value)

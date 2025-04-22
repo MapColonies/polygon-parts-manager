@@ -1,10 +1,12 @@
+import type { RoiProperties } from '@map-colonies/raster-shared';
 import type { MapValues } from '../../common/types';
-import type { PolygonPartRecord } from './interfaces';
+import { getMappedColumnName } from '../DAL/utils';
+import type { FindPolygonPartsResponse, IsValidDetailsResult, PolygonPartRecord } from './interfaces';
 
 /**
  * Properties to select (include/exclude) in find polygon parts query or a select query applied to the mapped column (implicitly included)
  */
-export const FIND_OUTPUT_PROPERTIES: MapValues<
+const FIND_OUTPUT_PROPERTIES: MapValues<
   Required<Omit<PolygonPartRecord, 'footprint' | 'insertionOrder'>>,
   boolean | ((column: string) => string)
 > = {
@@ -28,3 +30,19 @@ export const FIND_OUTPUT_PROPERTIES: MapValues<
   sourceName: true,
   sourceResolutionMeter: true,
 };
+
+
+export const geometryColumn = getMappedColumnName('footprint' satisfies keyof Pick<PolygonPartRecord, 'footprint'>);
+export const idColumn = getMappedColumnName('id' satisfies keyof Pick<PolygonPartRecord, 'id'>);
+export const insertionOrderColumn = getMappedColumnName('insertionOrder' satisfies keyof Pick<PolygonPartRecord, 'insertionOrder'>);
+export const isValidDetailsResult = {
+  valid: 'valid' satisfies keyof Pick<IsValidDetailsResult, 'valid'>,
+  reason: 'reason' satisfies keyof Pick<IsValidDetailsResult, 'reason'>,
+  location: 'location' satisfies keyof Pick<IsValidDetailsResult, 'location'>,
+};
+export const minResolutionDeg = 'minResolutionDeg' satisfies keyof Pick<RoiProperties, 'minResolutionDeg'>;
+export const requestFeatureId = 'requestFeatureId' satisfies keyof Pick<FindPolygonPartsResponse['features'][number]['properties'], 'requestFeatureId'>;
+
+export const findSelectOutputColumns = Object.entries(FIND_OUTPUT_PROPERTIES)
+  .filter(([, value]) => value)
+  .map(([key, value]) => `${typeof value === 'boolean' ? `"${getMappedColumnName(key)}"` : value(getMappedColumnName(key))} as "${key}"`);

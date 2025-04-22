@@ -5,9 +5,11 @@ import type {
   PolygonPartsPayload as PolygonPartsPayloadType,
   RoiProperties,
 } from '@map-colonies/raster-shared';
-import type { Feature, FeatureCollection, GeoJsonProperties, MultiPolygon, Polygon } from 'geojson';
+import type { Feature, FeatureCollection, GeoJsonProperties, Geometry, MultiPolygon, Polygon } from 'geojson';
+import { EntityManager, SelectQueryBuilder } from 'typeorm';
 import type { NullableRecordValues, ReplaceValuesOfType } from '../../common/types';
 
+//#region public
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
 
 /**
@@ -124,3 +126,26 @@ export interface EntitiesMetadata {
 export interface IsSwapQueryParams {
   isSwap: boolean;
 }
+//#endregion
+
+//#region private
+export type IsValidDetailsResult = { valid: true; reason: null; location: null } | { valid: false; reason: string; location: Geometry | null };
+export interface FindPolygonPartsQueryResponse<ShouldClip extends boolean = boolean> {
+  readonly geojson: FindPolygonPartsResponse<ShouldClip>;
+}
+export type FindQueryFilterOptions<ShouldClip extends boolean = boolean> = Omit<FindPolygonPartsOptions, 'filter'> & {
+  entityManager: EntityManager;
+  filter: {
+    inputFilter: FindPolygonPartsOptions<ShouldClip>['filter'];
+    filterQueryAlias: string;
+    filterRequestFeatureIds: string;
+    findSelectOutputColumns: string[];
+  };
+};
+export interface FindQuerySelectOptions {
+  geometryColumn: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  filter: { findFilterQuery: SelectQueryBuilder<any>; filterQueryAlias: string; filterRequestFeatureIds: string };
+  requestFeatureId: string;
+}
+//#endregion

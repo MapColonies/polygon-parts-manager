@@ -1,8 +1,7 @@
 import { BadRequestError, ConflictError, InternalServerError, NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
-import { CORE_VALIDATIONS, type RoiProperties } from '@map-colonies/raster-shared';
+import { CORE_VALIDATIONS } from '@map-colonies/raster-shared';
 import { geometryCollection } from '@turf/helpers';
-import type { Geometry } from 'geojson';
 import { inject, injectable } from 'tsyringe';
 import type { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
@@ -10,53 +9,21 @@ import { SERVICES } from '../../common/constants';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
 import { Part } from '../DAL/part';
 import { PolygonPart } from '../DAL/polygonPart';
-import { getMappedColumnName, payloadToInsertPartsData } from '../DAL/utils';
-import { FIND_OUTPUT_PROPERTIES } from './constants';
+import { payloadToInsertPartsData } from '../DAL/utils';
+import { findSelectOutputColumns, geometryColumn, idColumn, insertionOrderColumn, isValidDetailsResult, minResolutionDeg, requestFeatureId } from './constants';
 import type {
   EntitiesMetadata,
   EntityName,
   EntityNames,
   FindPolygonPartsOptions,
+  FindPolygonPartsQueryResponse,
   FindPolygonPartsResponse,
-  PolygonPartRecord,
+  FindQueryFilterOptions,
+  FindQuerySelectOptions,
+  IsValidDetailsResult,
   PolygonPartsPayload,
-  PolygonPartsResponse,
+  PolygonPartsResponse
 } from './interfaces';
-
-type IsValidDetailsResult = { valid: true; reason: null; location: null } | { valid: false; reason: string; location: Geometry | null };
-interface FindPolygonPartsQueryResponse<ShouldClip extends boolean = boolean> {
-  readonly geojson: FindPolygonPartsResponse<ShouldClip>;
-}
-type FindQueryFilterOptions<ShouldClip extends boolean = boolean> = Omit<FindPolygonPartsOptions, 'filter'> & {
-  entityManager: EntityManager;
-  filter: {
-    inputFilter: FindPolygonPartsOptions<ShouldClip>['filter'];
-    filterQueryAlias: string;
-    filterRequestFeatureIds: string;
-    findSelectOutputColumns: string[];
-  };
-};
-interface FindQuerySelectOptions {
-  geometryColumn: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  filter: { findFilterQuery: SelectQueryBuilder<any>; filterQueryAlias: string; filterRequestFeatureIds: string };
-  requestFeatureId: string;
-}
-
-const geometryColumn = getMappedColumnName('footprint' satisfies keyof Pick<PolygonPartRecord, 'footprint'>);
-const idColumn = getMappedColumnName('id' satisfies keyof Pick<PolygonPartRecord, 'id'>);
-const insertionOrderColumn = getMappedColumnName('insertionOrder' satisfies keyof Pick<PolygonPartRecord, 'insertionOrder'>);
-const isValidDetailsResult = {
-  valid: 'valid' satisfies keyof Pick<IsValidDetailsResult, 'valid'>,
-  reason: 'reason' satisfies keyof Pick<IsValidDetailsResult, 'reason'>,
-  location: 'location' satisfies keyof Pick<IsValidDetailsResult, 'location'>,
-};
-const minResolutionDeg = 'minResolutionDeg' satisfies keyof Pick<RoiProperties, 'minResolutionDeg'>;
-const requestFeatureId = 'requestFeatureId' satisfies keyof Pick<FindPolygonPartsResponse['features'][number]['properties'], 'requestFeatureId'>;
-
-export const findSelectOutputColumns = Object.entries(FIND_OUTPUT_PROPERTIES)
-  .filter(([, value]) => value)
-  .map(([key, value]) => `${typeof value === 'boolean' ? `"${getMappedColumnName(key)}"` : value(getMappedColumnName(key))} as "${key}"`);
 
 @injectable()
 export class PolygonPartsManager {

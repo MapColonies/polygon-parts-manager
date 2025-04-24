@@ -22,9 +22,12 @@ export const allFindFeaturesEqual = <T extends FindPolygonPartsResponseBody<Shou
       const propertiesEquality = expectedProperties ? isMatch(feature.properties, expectedProperties[index]) : true;
       return geometryEquality && propertiesEquality;
     });
+    if (index < 0) {
+      return false;
+    }
     const sucessfullyRemoveGeometry = expectedGeometries.splice(index, 1).length === 1;
     const sucessfullyRemoveProperty = expectedProperties ? expectedProperties.splice(index, 1).length === 1 : true;
-    return index >= 0 && sucessfullyRemoveGeometry && sucessfullyRemoveProperty;
+    return sucessfullyRemoveGeometry && sucessfullyRemoveProperty;
   };
 };
 

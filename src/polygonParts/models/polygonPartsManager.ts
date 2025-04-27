@@ -447,7 +447,7 @@ export class PolygonPartsManager {
   }
 
   private async validateFeatureCollectionFilter(context: { entityManager: EntityManager; filter: FindPolygonPartsOptions['filter'] }): Promise<void> {
-    // TODO: move function to validation middleware
+    // TODO: move function to a validation middleware
     const { entityManager, filter } = context;
 
     if (filter && filter.features.length > 0) {

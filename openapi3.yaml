@@ -139,9 +139,22 @@ paths:
     post:
       tags:
         - polygon-parts
-      summary: Find polygon parts
-      description: Find polygon parts
-      operationId: FindPolygonParts
+      summary: Find and filter polygon parts based on spatial criteria
+      description: |
+        Search for polygon parts based on spatial intersection with search geometries. Takes a GeoJSON FeatureCollection of search geometries with optional resolution filters.
+
+          **Filter Logic**
+          - Returns polygon parts intersecting with input search geometries
+          - Resolution filters (`maxResolutionDeg`/`minResolutionDeg`) can be specified in feature properties
+          - Input feature IDs are tracked in response via `requestFeatureId`
+          - Empty request or empty features array perform unfiltered search
+          - With `shouldClip=true` (default):
+            - Geometries clipped to search geometries
+            - Feature ID maps 1:1 between input and output features via `requestFeatureId`
+          - With `shouldClip=false`:
+            - Returns original geometries
+            - Feature IDs maps 1:many, if part intersects multiple search geometries. responds with an array if there is more than 1 ID map
+      operationId: findPolygonParts
       parameters:
         - in: path
           name: polygonPartsEntityName
@@ -152,8 +165,7 @@ paths:
         - in: query
           name: shouldClip
           description: >-
-            Clip the result to the footprint (results are not clipped if
-            footprint is not provided)
+            Clips results to search area when true, returns complete geometries when false
           schema:
             type: boolean
             default: true
@@ -163,7 +175,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PolygonPartsFindPayload'
-        required: true
+        required: false
       responses:
         '200':
           description: OK
@@ -268,6 +280,34 @@ components:
     Description:
       type: string
       nullable: true
+    FeatureFindPayload:
+      required:
+        - type
+        - properties
+        - geometry
+      properties:
+        type:
+          type: string
+          enum:
+            - Feature
+        id:
+          $ref: '#/components/schemas/FeatureId'
+        properties:
+          type: object
+          nullable: true
+          properties:
+            maxResolutionDeg:
+              $ref: '#/components/schemas/ResolutionDegree'
+            minResolutionDeg:
+              $ref: '#/components/schemas/ResolutionDegree'
+        geometry:
+          type: object
+          oneOf:
+            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
+            - $ref: >-
+                ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
+        bbox:
+          $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
     FeatureFindResponse:
       required:
         - type
@@ -279,13 +319,32 @@ components:
           enum:
             - Feature
         id:
-          oneOf:
-            - type: number
-            - type: string
+          $ref: '#/components/schemas/FeatureId'
         properties:
           $ref: '#/components/schemas/PolygonPartsFindResponseFeatureProperties'
         geometry:
           $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
+        bbox:
+          $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
+    FeatureId:
+      oneOf:
+        - type: number
+        - type: string
+    FeatureCollectionFindPayload:
+      type: object
+      description: GeoJSON Feature collection
+      required:
+        - type
+        - features
+      properties:
+        type:
+          type: string
+          enum:
+            - FeatureCollection
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureFindPayload'
         bbox:
           $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
     FeatureCollectionFindResponse:
@@ -303,51 +362,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/FeatureFindResponse'
-        bbox:
-          $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
-    FeatureFindPayload:
-      required:
-        - type
-        - properties
-        - geometry
-      properties:
-        type:
-          type: string
-          enum:
-            - Feature
-        id:
-          oneOf:
-            - type: number
-            - type: string
-        properties:
-          type: object
-          nullable: true
-        geometry:
-          type: object
-          nullable: true
-          allOf:
-            - oneOf:
-                - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
-                - $ref: >-
-                    ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
-                - $ref: '#/components/schemas/NullTypeRef'
-        bbox:
-          $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
-    FeatureCollectionFindPayload:
-      type: object
-      description: GeoJSON Feature collection
-      required:
-        - type
-        - features
-      properties:
-        type:
-          type: string
-          enum:
-            - FeatureCollection
-        features:
-          type: array
-          items:
-            $ref: '#/components/schemas/FeatureFindPayload'
         bbox:
           $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
     Id:
@@ -406,6 +420,7 @@ components:
         - imagingTimeBeginUTC
         - imagingTimeEndUTC
         - ingestionDateUTC
+        - partId
         - productId
         - productType
         - productVersion
@@ -434,6 +449,10 @@ components:
           $ref: '#/components/schemas/ImagingTimeEndUTC'
         ingestionDateUTC:
           $ref: '#/components/schemas/IngestionDateUTC'
+        partId:
+          allOf:
+            - $ref: '#/components/schemas/Id'
+            - description: Part identifier
         productId:
           $ref: '#/components/schemas/ProductId'
         productType:
@@ -441,6 +460,13 @@ components:
             ./Schema/ingestionTrigger/metadata/rasterLayerMetadata.yaml#/components/schemas/productType
         productVersion:
           $ref: '#/components/schemas/ProductVersion'
+        requestFeatureId:
+          description: If shouldClip is set to true, only a single FeatureId is returned per Feature. Otherwise, it can return either a single FeatureId or an array of FeatureIds per Feature
+          oneOf:
+            - $ref: '#/components/schemas/FeatureId'
+            - type: array
+              items:
+                $ref: '#/components/schemas/FeatureId'
         resolutionDegree:
           $ref: '#/components/schemas/ResolutionDegree'
         resolutionMeter:
@@ -507,7 +533,3 @@ components:
           type: string
       required:
         - message
-    NullTypeRef:
-      description: Null type for adding nullability to a ref
-      enum:
-        - null

@@ -15,9 +15,9 @@ export interface FindPolygonPartsQueryParams extends Readonly<Pick<FindPolygonPa
 /**
  * Find polygon parts request body
  */
-export interface FindPolygonPartsRequestBody extends Readonly<FindPolygonPartsOptions['filter']> {}
+export type FindPolygonPartsRequestBody = Readonly<FindPolygonPartsOptions['filter']>;
 
 /**
  * Find polygon parts response body
  */
-export interface FindPolygonPartsResponseBody extends FindPolygonPartsResponse {}
+export interface FindPolygonPartsResponseBody<ShouldClip extends boolean = boolean> extends FindPolygonPartsResponse<ShouldClip> {}

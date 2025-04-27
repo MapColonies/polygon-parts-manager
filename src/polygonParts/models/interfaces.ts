@@ -3,10 +3,13 @@ import type {
   PolygonPartsEntityName,
   PolygonPartsEntityNameObject,
   PolygonPartsPayload as PolygonPartsPayloadType,
+  RoiProperties,
 } from '@map-colonies/raster-shared';
-import type { FeatureCollection, MultiPolygon, Polygon } from 'geojson';
+import type { Feature, FeatureCollection, GeoJsonProperties, Geometry, MultiPolygon, Polygon } from 'geojson';
+import { EntityManager, SelectQueryBuilder } from 'typeorm';
 import type { NullableRecordValues, ReplaceValuesOfType } from '../../common/types';
 
+//#region public
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
 
 /**
@@ -21,28 +24,35 @@ export interface InsertPartData extends Readonly<Omit<CommonPayload, 'countries'
 /**
  * Find polygon parts options
  */
-export interface FindPolygonPartsOptions {
-  readonly shouldClip: boolean;
+export interface FindPolygonPartsOptions<ShouldClip extends boolean = boolean> {
+  readonly shouldClip: ShouldClip;
   readonly polygonPartsEntityName: EntityNames;
-  readonly filter: FeatureCollection<Polygon | MultiPolygon | null>;
+  readonly filter?: FeatureCollection<FindPolygonPartsOptionsFilterGeometries, (GeoJsonProperties & Partial<RoiProperties>) | null>;
 }
+
+/**
+ * Geometry type options for filtering polygon parts
+ */
+export type FindPolygonPartsOptionsFilterGeometries = Polygon | MultiPolygon;
 
 /**
  * Find polygon parts response
  */
-export type FindPolygonPartsResponse = FeatureCollection<
+export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = FeatureCollection<
   Polygon,
   ReplaceValuesOfType<
     NullableRecordValues<
-      Omit<CommonRecord, 'countries' | 'cities' | 'footprint' | 'sensors'> & {
-        readonly countries?: string[];
-        readonly cities?: string[];
-        readonly sensors: string[];
+      Omit<PolygonPartRecord, 'countries' | 'cities' | 'footprint' | 'insertionOrder' | 'sensors'> & {
+        countries?: string[];
+        cities?: string[];
+        sensors: string[];
       }
     >,
     Date,
     string
-  >
+  > & {
+    requestFeatureId?: NonNullable<Feature['id']> | (ShouldClip extends true ? never : NonNullable<Feature['id']>[]);
+  }
 >;
 
 /**
@@ -116,3 +126,26 @@ export interface EntitiesMetadata {
 export interface IsSwapQueryParams {
   isSwap: boolean;
 }
+//#endregion
+
+//#region private
+export type IsValidDetailsResult = { valid: true; reason: null; location: null } | { valid: false; reason: string; location: Geometry | null };
+export interface FindPolygonPartsQueryResponse<ShouldClip extends boolean = boolean> {
+  readonly geojson: FindPolygonPartsResponse<ShouldClip>;
+}
+export type FindQueryFilterOptions<ShouldClip extends boolean = boolean> = Omit<FindPolygonPartsOptions, 'filter'> & {
+  entityManager: EntityManager;
+  filter: {
+    inputFilter: FindPolygonPartsOptions<ShouldClip>['filter'];
+    filterQueryAlias: string;
+    filterRequestFeatureIds: string;
+    findSelectOutputColumns: string[];
+  };
+};
+export interface FindQuerySelectOptions {
+  geometryColumn: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  filter: { findFilterQuery: SelectQueryBuilder<any>; filterQueryAlias: string; filterRequestFeatureIds: string };
+  requestFeatureId: string;
+}
+//#endregion

@@ -8,12 +8,12 @@ import type { FindPolygonPartsParams, FindPolygonPartsQueryParams, FindPolygonPa
 /**
  * Create polygon parts handler
  */
-export type CreatePolygonPartsHandler = RequestHandler<undefined, PolygonPartsResponse, PolygonPartsPayload, undefined, EntitiesMetadata>;
+type CreatePolygonPartsHandler = RequestHandler<undefined, PolygonPartsResponse, PolygonPartsPayload, undefined, EntitiesMetadata>;
 
 /**
  * Find polygon parts handler
  */
-export type FindPolygonPartsHandler = RequestHandler<
+type FindPolygonPartsHandler = RequestHandler<
   FindPolygonPartsParams,
   FindPolygonPartsResponseBody,
   FindPolygonPartsRequestBody,
@@ -24,7 +24,7 @@ export type FindPolygonPartsHandler = RequestHandler<
 /**
  * Update polygon parts handler
  */
-export type UpdatePolygonPartsHandler = RequestHandler<undefined, PolygonPartsResponse, PolygonPartsPayload, IsSwapQueryParams, EntitiesMetadata>;
+type UpdatePolygonPartsHandler = RequestHandler<undefined, PolygonPartsResponse, PolygonPartsPayload, IsSwapQueryParams, EntitiesMetadata>;
 
 @injectable()
 export class PolygonPartsController {

@@ -1,4 +1,12 @@
-import { INGESTION_VALIDATIONS, multiPolygonSchema, polygonPartsEntityPatternSchema, polygonSchema } from '@map-colonies/raster-shared';
+import {
+  INGESTION_VALIDATIONS,
+  featureCollectionSchema,
+  featureSchema,
+  multiPolygonSchema,
+  polygonPartsEntityPatternSchema,
+  polygonSchema,
+  roiPropertiesSchema,
+} from '@map-colonies/raster-shared';
 import { ZodType, z, type ZodTypeDef } from 'zod';
 import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig } from '../../common/interfaces';
@@ -7,25 +15,24 @@ import type { DeepMapValues } from '../../common/types';
 import type { FindPolygonPartsQueryParams, FindPolygonPartsRequestBody } from '../controllers/interfaces';
 import type { EntitiesMetadata, EntityNames, IsSwapQueryParams } from '../models/interfaces';
 
-const polygonPartsEntityNamePatternSchema = z.string().regex(new RegExp(INGESTION_VALIDATIONS.polygonPartsEntityName.pattern));
-
-const findPolygonPartsFeatureSchema = z.object({
-  type: z.literal('Feature'),
-  geometry: polygonSchema.or(multiPolygonSchema).nullable(),
-  properties: z.object({}).passthrough().nullable(),
-});
-
-const findPolygonPartsFeatureCollectionSchema = z.object({
-  type: z.literal('FeatureCollection'),
-  features: z.array(findPolygonPartsFeatureSchema),
-});
-
+const polygonPartsEntityNamePatternSchema = z
+  .string()
+  .regex(new RegExp(INGESTION_VALIDATIONS.polygonPartsEntityName.pattern), { message: 'Polygon parts entity name should valid entity name' });
+const findPolygonPartsFeatureSchema = featureSchema(polygonSchema.or(multiPolygonSchema), roiPropertiesSchema.partial().passthrough().nullable());
+const findPolygonPartsFeatureCollectionSchema = featureCollectionSchema(findPolygonPartsFeatureSchema).or(
+  z
+    .object({})
+    .strict()
+    .transform(() => undefined)
+);
 export const findPolygonPartsQueryParamsSchema: ZodType<FindPolygonPartsQueryParams> = z.object({
   shouldClip: z.boolean(),
 });
-
-export const findPolygonPartsRequestBodySchema: ZodType<FindPolygonPartsRequestBody> = findPolygonPartsFeatureCollectionSchema;
-
+export const findPolygonPartsRequestBodySchema: ZodType<
+  FindPolygonPartsRequestBody,
+  ZodTypeDef,
+  NonNullable<FindPolygonPartsRequestBody> | Record<PropertyKey, never>
+> = findPolygonPartsFeatureCollectionSchema;
 export const updatePolygonPartsQueryParamsSchema: ZodType<IsSwapQueryParams> = z.object({
   isSwap: z.boolean(),
 });

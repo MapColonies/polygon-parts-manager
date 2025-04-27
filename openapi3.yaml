@@ -95,9 +95,22 @@ paths:
     post:
       tags:
         - polygon-parts
-      summary: Find polygon parts
-      description: Find polygon parts
-      operationId: FindPolygonParts
+      summary: Find and filter polygon parts based on spatial criteria
+      description: |
+        Search for polygon parts based on spatial intersection with search geometries. Takes a GeoJSON FeatureCollection of search geometries with optional resolution filters.
+
+          **Filter Logic**
+          - Returns polygon parts intersecting with input search geometries
+          - Resolution filters (`maxResolutionDeg`/`minResolutionDeg`) can be specified in feature properties
+          - Input feature IDs are tracked in response via `requestFeatureId`
+          - Empty request or empty features array perform unfiltered search
+          - With `shouldClip=true` (default):
+            - Geometries clipped to search geometries
+            - Feature ID maps 1:1 between input and output features via `requestFeatureId`
+          - With `shouldClip=false`:
+            - Returns original geometries
+            - Feature IDs maps 1:many, if part intersects multiple search geometries. responds with an array if there is more than 1 ID map
+      operationId: findPolygonParts
       parameters:
         - in: path
           name: polygonPartsEntityName
@@ -108,8 +121,7 @@ paths:
         - in: query
           name: shouldClip
           description: >-
-            Clip the result to the footprint (results are not clipped if
-            footprint is not provided)
+            Clips results to search area when true, returns complete geometries when false
           schema:
             type: boolean
             default: true
@@ -174,7 +186,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AggregationLayerMetadata'
+                $ref: '#/components/schemas/AggregationFeature'
         '400':
           description: Bad Request
           content:
@@ -195,58 +207,74 @@ paths:
                 $ref: '#/components/schemas/ErrorMessage'
 components:
   schemas:
-    AggregationLayerMetadata:
+    AggregationFeature:
       type: object
-      additionalProperties: false
+      description: Aggregation feature
       required:
-        - footprint
-        - imagingTimeBeginUTC
-        - imagingTimeEndUTC
-        - maxHorizontalAccuracyCE90
-        - maxResolutionDeg
-        - maxResolutionMeter
-        - minHorizontalAccuracyCE90
-        - minResolutionDeg
-        - minResolutionMeter
-        - productBoundingBox
-        - sensors
+        - type
+        - properties
+        - geometry
+      additionalProperties: false
       properties:
-        footprint:
+        type:
+          type: string
+          enum:
+            - Feature
+        geometry:
+          type: object
+          nullable: true
           oneOf:
             - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
-            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
-        imagingTimeBeginUTC:
-          $ref: '#/components/schemas/ImagingTimeBeginUTC'
-        imagingTimeEndUTC:
-          $ref: '#/components/schemas/ImagingTimeEndUTC'
-        maxResolutionDeg:
-          allOf:
-            - $ref: '#/components/schemas/ResolutionDegree'
-            - description: Maximal resolution of layer in degrees/pixel
-        minResolutionDeg:
-          allOf:
-            - $ref: '#/components/schemas/ResolutionDegree'
-            - description: Minimal resolution of layer in degrees/pixel
-        maxResolutionMeter:
-          allOf:
-            - $ref: '#/components/schemas/ResolutionMeter'
-            - description: Maximal resolution of layer in meters
-        minResolutionMeter:
-          allOf:
-            - $ref: '#/components/schemas/ResolutionMeter'
-            - description: Minimal resolution of layer in meters
-        maxHorizontalAccuracyCE90:
-          allOf:
-            - $ref: '#/components/schemas/HorizontalAccuracyCE90'
-            - description: Maximal horizontal accuracy
-        minHorizontalAccuracyCE90:
-          allOf:
-            - $ref: '#/components/schemas/HorizontalAccuracyCE90'
-            - description: Minimal horizontal accuracy
-        productBoundingBox:
-          $ref: '#/components/schemas/BoundingBox'
-        sensors:
-          $ref: '#/components/schemas/Sensors'
+            - $ref: >-
+                ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
+        properties:
+          type: object
+          description: Aggregation feature properties
+          nullable: true
+          required:
+            - imagingTimeBeginUTC
+            - imagingTimeEndUTC
+            - maxHorizontalAccuracyCE90
+            - maxResolutionDeg
+            - maxResolutionMeter
+            - minHorizontalAccuracyCE90
+            - minResolutionDeg
+            - minResolutionMeter
+            - productBoundingBox
+            - sensors
+          properties:
+            imagingTimeBeginUTC:
+              $ref: '#/components/schemas/ImagingTimeBeginUTC'
+            imagingTimeEndUTC:
+              $ref: '#/components/schemas/ImagingTimeEndUTC'
+            maxResolutionDeg:
+              allOf:
+                - $ref: '#/components/schemas/ResolutionDegree'
+                - description: Maximal resolution of layer in degrees/pixel
+            minResolutionDeg:
+              allOf:
+                - $ref: '#/components/schemas/ResolutionDegree'
+                - description: Minimal resolution of layer in degrees/pixel
+            maxResolutionMeter:
+              allOf:
+                - $ref: '#/components/schemas/ResolutionMeter'
+                - description: Maximal resolution of layer in meters
+            minResolutionMeter:
+              allOf:
+                - $ref: '#/components/schemas/ResolutionMeter'
+                - description: Minimal resolution of layer in meters
+            maxHorizontalAccuracyCE90:
+              allOf:
+                - $ref: '#/components/schemas/HorizontalAccuracyCE90'
+                - description: Maximal horizontal accuracy
+            minHorizontalAccuracyCE90:
+              allOf:
+                - $ref: '#/components/schemas/HorizontalAccuracyCE90'
+                - description: Minimal horizontal accuracy
+            productBoundingBox:
+              $ref: '#/components/schemas/BoundingBox'
+            sensors:
+              $ref: '#/components/schemas/Sensors'
     BoundingBox:
       type: string
       pattern: >-
@@ -293,13 +321,10 @@ components:
               $ref: '#/components/schemas/ResolutionDegree'
         geometry:
           type: object
-          nullable: true
-          allOf:
-            - oneOf:
-                - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
-                - $ref: >-
-                    ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
-                - $ref: '#/components/schemas/NullTypeRef'
+          oneOf:
+            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
+            - $ref: >-
+                ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
         bbox:
           $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
     FeatureFindResponse:
@@ -414,6 +439,7 @@ components:
         - imagingTimeBeginUTC
         - imagingTimeEndUTC
         - ingestionDateUTC
+        - partId
         - productId
         - productType
         - productVersion
@@ -442,6 +468,10 @@ components:
           $ref: '#/components/schemas/ImagingTimeEndUTC'
         ingestionDateUTC:
           $ref: '#/components/schemas/IngestionDateUTC'
+        partId:
+          allOf:
+            - $ref: '#/components/schemas/Id'
+            - description: Part identifier
         productId:
           $ref: '#/components/schemas/ProductId'
         productType:
@@ -526,7 +556,3 @@ components:
           type: string
       required:
         - message
-    NullTypeRef:
-      description: Null type for adding nullability to a ref
-      enum:
-        - null

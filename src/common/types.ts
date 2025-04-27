@@ -14,7 +14,3 @@ export type ReplaceValuesOfType<T, VFrom, VTo> = {
 export type NonNullableRecordValues<T extends Record<PropertyKey, any>> = {
   [K in keyof T]-?: T[K] extends NonNullable<T[K]> ? T[K] : Exclude<T[K] | null, undefined>;
 };
-
-export type PickPropertiesOfType<T, PT> = keyof {
-  [K in keyof T as Exclude<K, T[K] extends PT ? never : K>]: T[K];
-};

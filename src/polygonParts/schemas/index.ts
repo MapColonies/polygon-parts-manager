@@ -1,5 +1,7 @@
 import {
   INGESTION_VALIDATIONS,
+  featureCollectionSchema,
+  featureSchema,
   multiPolygonSchema,
   polygonPartsEntityPatternSchema,
   polygonSchema,
@@ -13,44 +15,37 @@ import type { DeepMapValues } from '../../common/types';
 import type { FindPolygonPartsQueryParams, FindPolygonPartsRequestBody } from '../controllers/interfaces';
 import type { EntitiesMetadata, EntityNames, IsSwapQueryParams } from '../models/interfaces';
 
-const polygonPartsEntityNamePatternSchema = z.string().regex(new RegExp(INGESTION_VALIDATIONS.polygonPartsEntityName.pattern));
 
-const baseFeatureSchema = z.object({
-  id: z.string().or(z.number()).optional(),
-  type: z.literal('Feature'),
-  geometry: polygonSchema.or(multiPolygonSchema).nullable(),
-});
+const aggregatePolygonPartsFeatureSchema = featureSchema(polygonSchema.or(multiPolygonSchema), roiPropertiesSchema);
 
-const findPolygonPartsFeatureSchema = baseFeatureSchema.extend({
-  properties: z.union([z.object({}).passthrough(), roiPropertiesSchema.passthrough()]).nullable(),
-});
+const aggregatePolygonPartsFeatureCollectionSchema = featureCollectionSchema(
+  aggregatePolygonPartsFeatureSchema)
 
-const aggregatePolygonPartsFeatureSchema = baseFeatureSchema.extend({
-  properties: roiPropertiesSchema,
-});
+const emptyFeatureCollectionFilterSchema = z
+  .object({})
+  .strict()
+  .transform(() => undefined);  
 
-const findPolygonPartsFeatureCollectionSchema = z.object({
-  type: z.literal('FeatureCollection'),
-  features: z.array(findPolygonPartsFeatureSchema),
-});
+export const aggregationPolygonPartsRequestBodySchema = aggregatePolygonPartsFeatureCollectionSchema.or(
+  emptyFeatureCollectionFilterSchema
+);
 
-const aggregatePolygonPartsFeatureCollectionSchema = z.object({
-  type: z.literal('FeatureCollection'),
-  features: z.array(aggregatePolygonPartsFeatureSchema),
-});
+const polygonPartsEntityNamePatternSchema = z
+  .string()
+  .regex(new RegExp(INGESTION_VALIDATIONS.polygonPartsEntityName.pattern), { message: 'Polygon parts entity name should valid entity name' });
+const findPolygonPartsFeatureSchema = featureSchema(polygonSchema.or(multiPolygonSchema), roiPropertiesSchema.partial().passthrough().nullable());
+const findPolygonPartsFeatureCollectionSchema = featureCollectionSchema(findPolygonPartsFeatureSchema).or(emptyFeatureCollectionFilterSchema
+);
 
 export const findPolygonPartsQueryParamsSchema: ZodType<FindPolygonPartsQueryParams> = z.object({
   shouldClip: z.boolean(),
 });
 
-export const findPolygonPartsRequestBodySchema: ZodType<FindPolygonPartsRequestBody> = findPolygonPartsFeatureCollectionSchema;
-
-export const aggregationPolygonPartsRequestBodySchema = aggregatePolygonPartsFeatureCollectionSchema.or(
-  z
-    .object({})
-    .strict()
-    .transform(() => undefined)
-);
+export const findPolygonPartsRequestBodySchema: ZodType<
+  FindPolygonPartsRequestBody,
+  ZodTypeDef,
+  NonNullable<FindPolygonPartsRequestBody> | Record<PropertyKey, never>
+> = findPolygonPartsFeatureCollectionSchema;
 
 export const updatePolygonPartsQueryParamsSchema: ZodType<IsSwapQueryParams> = z.object({
   isSwap: z.boolean(),

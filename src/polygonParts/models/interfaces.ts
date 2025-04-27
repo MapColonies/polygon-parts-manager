@@ -6,11 +6,16 @@ import type {
   PolygonPartsPayload as PolygonPartsPayloadType,
   RoiProperties,
 } from '@map-colonies/raster-shared';
-import type { Feature, FeatureCollection, GeoJsonProperties, MultiPolygon, Polygon } from 'geojson';
+import type { Feature, FeatureCollection, GeoJsonProperties, Geometry, MultiPolygon, Polygon } from 'geojson';
+import { EntityManager, SelectQueryBuilder } from 'typeorm';
 import type { NonNullableRecordValues, ReplaceValuesOfType } from '../../common/types';
 
+//#region public
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
-type PolygonalGeometries = Polygon | MultiPolygon | null;
+/**
+ * Polygonal geometries
+ */
+type PolygonalGeometries = Polygon | MultiPolygon;
 
 /**
  * Properties of part data for insertion
@@ -29,7 +34,7 @@ export type FeatureCollectionFilter = FeatureCollection<PolygonalGeometries, (Ge
 export interface FindPolygonPartsOptions<ShouldClip extends boolean = boolean> {
   readonly shouldClip: ShouldClip;
   readonly polygonPartsEntityName: EntityNames;
-  readonly filter: FeatureCollectionFilter | undefined;
+  readonly filter?: FeatureCollectionFilter;
 }
 
 /**
@@ -39,7 +44,7 @@ export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = Fea
   Polygon,
   ReplaceValuesOfType<
     NonNullableRecordValues<
-      Omit<CommonRecord, 'countries' | 'cities' | 'footprint' | 'sensors'> & {
+      Omit<PolygonPartRecord, 'countries' | 'cities' | 'footprint' | 'insertionOrder' | 'sensors'> & {
         countries?: string[];
         cities?: string[];
         sensors: string[];
@@ -144,3 +149,26 @@ export interface FilterQueryMetadata {
  */
 
 export interface GetAggregationLayerMetadataResponse extends AggregationFeature {}
+//#endregion
+
+//#region private
+export type IsValidDetailsResult = { valid: true; reason: null; location: null } | { valid: false; reason: string; location: Geometry | null };
+export interface FindPolygonPartsQueryResponse<ShouldClip extends boolean = boolean> {
+  readonly geojson: FindPolygonPartsResponse<ShouldClip>;
+}
+export type FindQueryFilterOptions<ShouldClip extends boolean = boolean> = Omit<FindPolygonPartsOptions<ShouldClip>, 'filter'> & {
+  entityManager: EntityManager;
+  filter: {
+    inputFilter: FindPolygonPartsOptions<ShouldClip>['filter'];
+    filterQueryAlias: string;
+    filterRequestFeatureIds: string;
+    selectOutputColumns: string[];
+  };
+};
+export interface FindQuerySelectOptions {
+  geometryColumn: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  filter: { findFilterQuery: SelectQueryBuilder<any>; filterQueryAlias: string; filterRequestFeatureIds: string };
+  requestFeatureId: string;
+}
+//#endregion

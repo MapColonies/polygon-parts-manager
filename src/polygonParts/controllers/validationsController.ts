@@ -6,13 +6,7 @@ import type { Feature } from 'geojson';
 import { inject, singleton } from 'tsyringe';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';
-import type {
-  FindPolygonPartsParams,
-  FindPolygonPartsResponseBody,
-  GetAggregationLayerMetadataParams,
-  GetAggregationLayerMetadataResponseBody,
-} from '../../polygonParts/controllers/interfaces';
-import type { PolygonPartsResponse } from '../models/interfaces';
+import type { GetAggregationLayerMetadataParams, GetAggregationLayerMetadataResponseBody } from '../../polygonParts/controllers/interfaces';
 import {
   aggregationPolygonPartsRequestBodySchema,
   findPolygonPartsQueryParamsSchema,
@@ -24,17 +18,17 @@ import {
 /**
  * Create polygon parts validation handler
  */
-type CreatePolygonPartsValidationHandler = RequestHandler<undefined, PolygonPartsResponse, unknown, undefined>;
+type CreatePolygonPartsValidationHandler = RequestHandler<undefined, undefined, unknown, undefined>;
 
 /**
  * Find polygon parts validation handler
  */
-type FindPolygonPartsValidationHandler = RequestHandler<FindPolygonPartsParams, FindPolygonPartsResponseBody, unknown, unknown>;
+type FindPolygonPartsValidationHandler = RequestHandler<unknown, undefined, unknown, unknown>;
 
 /**
  * Update polygon parts validation handler
  */
-type UpdatePolygonPartsValidationHandler = RequestHandler<undefined, PolygonPartsResponse, unknown, unknown>;
+type UpdatePolygonPartsValidationHandler = RequestHandler<undefined, undefined, unknown, unknown>;
 
 type AggregationLayerMetadataValidationHandler = RequestHandler<
   GetAggregationLayerMetadataParams,
@@ -52,6 +46,7 @@ export class ValidationsController {
       schemaParser({ schema: polygonPartsPayloadSchema, value: req.body, errorMessagePrefix: 'Invalid request body' });
       next();
     } catch (error) {
+      this.logger.error({ msg: 'create polygon parts validation failed', error });
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }
@@ -65,6 +60,7 @@ export class ValidationsController {
       schemaParser({ schema: updatePolygonPartsQueryParamsSchema, value: req.query, errorMessagePrefix: 'Invalid query params' });
       next();
     } catch (error) {
+      this.logger.error({ msg: 'update polygon parts validation failed', error });
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }
@@ -77,16 +73,17 @@ export class ValidationsController {
       schemaParser({ schema: polygonPartsEntityNameSchema, value: req.params, errorMessagePrefix: 'Invalid request params' });
       schemaParser({ schema: findPolygonPartsQueryParamsSchema, value: req.query, errorMessagePrefix: 'Invalid query params' });
       schemaParser({
-        schema: findPolygonPartsRequestBodySchema
-          .transform((featureCollection) =>
-            featureCollection?.features
-              .map((feature) => feature.id)
-              .filter<NonNullable<Feature['id']>>((featureId): featureId is NonNullable<Feature['id']> => featureId !== undefined)
-          )
-          .refine((featureIds) => {
-            const uniqueFeatureIds = new Set(featureIds);
-            return uniqueFeatureIds.size === featureIds?.length;
-          }, 'Input features should have unique ids'),
+        schema: findPolygonPartsRequestBodySchema.refine((featureCollection) => {
+          if (!featureCollection) {
+            return true;
+          }
+
+          const featureIds = featureCollection.features
+            .map((feature) => feature.id)
+            .filter((featureId): featureId is NonNullable<Feature['id']> => featureId !== undefined);
+          const uniqueFeatureIds = new Set(featureIds);
+          return uniqueFeatureIds.size === featureIds.length;
+        }, 'Input features should have unique ids'),
         value: req.body,
         errorMessagePrefix: 'Invalid request body',
       });
@@ -110,6 +107,7 @@ export class ValidationsController {
       req.body = validReqBody;
       next();
     } catch (error) {
+      this.logger.error({ msg: 'find polygon parts validation failed', error });
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }

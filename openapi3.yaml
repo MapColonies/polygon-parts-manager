@@ -214,8 +214,7 @@ components:
         footprint:
           oneOf:
             - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
-            - $ref: >-
-                ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
+            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
         imagingTimeBeginUTC:
           $ref: '#/components/schemas/ImagingTimeBeginUTC'
         imagingTimeEndUTC:

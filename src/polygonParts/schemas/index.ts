@@ -49,7 +49,7 @@ export const aggregationPolygonPartsRequestBodySchema = aggregatePolygonPartsFea
   z
     .object({})
     .strict()
-    .transform(() => null)
+    .transform(() => undefined)
 );
 
 export const updatePolygonPartsQueryParamsSchema: ZodType<IsSwapQueryParams> = z.object({

@@ -155,3 +155,26 @@ export const intersectionWithItalyRequest: PolygonPartsPayload = generateRequest
   italyFootprint,
   intersectionWithItalyFootprint,
 ]);
+
+// Aggregation request
+export const createEuropeInitPayloadRequest: PolygonPartsPayload = generateRequest({ ...createLayerMetadata, productId: 'EUROPE' }, [
+  franceFootprint,
+  germanyFootprint,
+  italyFootprint,
+]);
+
+export const outsideEuropePolygon: Polygon = {
+  type: 'Polygon',
+  coordinates: [
+    [
+      [-74.01635160613628, 40.7056039283942],
+      [-73.97589673652533, 40.711341979367205],
+      [-73.97269222486422, 40.729207684432765],
+      [-73.94155345753425, 40.77550944512822],
+      [-73.92903628251918, 40.79975012847805],
+      [-73.94507323481, 40.84266749777501],
+      [-74.0079112667282, 40.75192233366903],
+      [-74.01635160613628, 40.7056039283942],
+    ],
+  ],
+};

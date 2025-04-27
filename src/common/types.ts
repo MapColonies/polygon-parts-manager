@@ -11,7 +11,7 @@ export type ReplaceValuesOfType<T, VFrom, VTo> = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type NullableRecordValues<T extends Record<PropertyKey, any>> = {
+export type NonNullableRecordValues<T extends Record<PropertyKey, any>> = {
   [K in keyof T]-?: T[K] extends NonNullable<T[K]> ? T[K] : Exclude<T[K] | null, undefined>;
 };
 

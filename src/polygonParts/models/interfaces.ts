@@ -1,6 +1,5 @@
-import { SelectQueryBuilder } from 'typeorm';
 import type {
-  AggregationLayerMetadata,
+  AggregationFeature,
   PolygonPart,
   PolygonPartsEntityName,
   PolygonPartsEntityNameObject,
@@ -8,8 +7,7 @@ import type {
   RoiProperties,
 } from '@map-colonies/raster-shared';
 import type { Feature, FeatureCollection, GeoJsonProperties, MultiPolygon, Polygon } from 'geojson';
-import type { NullableRecordValues, ReplaceValuesOfType } from '../../common/types';
-import { aggregationPolygonPartsRequestBodySchema } from '../schemas';
+import type { NonNullableRecordValues, ReplaceValuesOfType } from '../../common/types';
 
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
 type PolygonalGeometries = Polygon | MultiPolygon | null;
@@ -31,7 +29,7 @@ export type FeatureCollectionFilter = FeatureCollection<PolygonalGeometries, (Ge
 export interface FindPolygonPartsOptions<ShouldClip extends boolean = boolean> {
   readonly shouldClip: ShouldClip;
   readonly polygonPartsEntityName: EntityNames;
-  readonly filter: FeatureCollectionFilter;
+  readonly filter: FeatureCollectionFilter | undefined;
 }
 
 /**
@@ -40,7 +38,7 @@ export interface FindPolygonPartsOptions<ShouldClip extends boolean = boolean> {
 export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = FeatureCollection<
   Polygon,
   ReplaceValuesOfType<
-    NullableRecordValues<
+    NonNullableRecordValues<
       Omit<CommonRecord, 'countries' | 'cities' | 'footprint' | 'sensors'> & {
         countries?: string[];
         cities?: string[];
@@ -53,7 +51,6 @@ export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = Fea
     requestFeatureId?: NonNullable<Feature['id']> | (ShouldClip extends true ? never : NonNullable<Feature['id']>[]);
   }
 >;
-
 /**
  * Polygon parts ingestion payload
  */
@@ -133,10 +130,17 @@ export type EmptyFilter = Record<string, never>;
 
 export interface AggregateLayerMetadataOptions {
   readonly polygonPartsEntityName: EntityNames;
-  readonly filter?: FeatureCollectionFilter;
+  readonly filter: FeatureCollectionFilter;
+}
+
+export interface FilterQueryMetadata {
+  filterQueryAlias: string;
+  filterRequestFeatureIds: string;
+  selectOutputColumns: string[];
 }
 
 /**
  * Get aggregation layer metadata response
  */
-export interface GetAggregationLayerMetadataResponse extends AggregationLayerMetadata {}
+
+export interface GetAggregationLayerMetadataResponse extends AggregationFeature {}

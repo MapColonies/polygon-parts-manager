@@ -5,6 +5,8 @@ import type {
   FindPolygonPartsParams,
   FindPolygonPartsQueryParams,
   FindPolygonPartsRequestBody,
+  GetAggregationLayerMetadataParams,
+  AggregatePolygonPartsRequestBody,
 } from '../../../../src/polygonParts/controllers/interfaces';
 
 interface FindPolygonParts {
@@ -31,5 +33,12 @@ export class PolygonPartsRequestSender {
 
   public async updatePolygonParts(body: PolygonPartsPayload, isSwap: boolean): Promise<supertest.Response> {
     return supertest.agent(this.app).put('/polygonParts').query({ isSwap }).set('Content-Type', 'application/json').send(body);
+  }
+
+  public async aggregateLayerMetadata(options: {
+    params: GetAggregationLayerMetadataParams;
+    body?: AggregatePolygonPartsRequestBody;
+  }): Promise<supertest.Response> {
+    return supertest.agent(this.app).post(`/polygonParts/${options.params.polygonPartsEntityName}/aggregate`).send(options.body);
   }
 }

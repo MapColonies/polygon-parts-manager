@@ -1,4 +1,4 @@
-import type { NullableRecordValues } from '../../../../src/common/types';
+import type { NonNullableRecordValues } from '../../../../src/common/types';
 import type { InsertPartData } from '../../../../src/polygonParts/models/interfaces';
 
 export type DeepPartial<T> = T extends object
@@ -7,4 +7,4 @@ export type DeepPartial<T> = T extends object
     }
   : T;
 
-export type ExpectedPostgresResponse = NullableRecordValues<InsertPartData>[];
+export type ExpectedPostgresResponse = NonNullableRecordValues<InsertPartData>[];

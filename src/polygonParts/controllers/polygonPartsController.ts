@@ -30,6 +30,11 @@ type FindPolygonPartsHandler = RequestHandler<
 >;
 
 /**
+ * Update polygon parts handler
+ */
+type UpdatePolygonPartsHandler = RequestHandler<undefined, PolygonPartsResponse, PolygonPartsPayload, IsSwapQueryParams, EntitiesMetadata>;
+
+/**
  * Get aggregation layer metadata handler
  */
 export type AggregationLayerMetadataHandler = RequestHandler<
@@ -39,11 +44,6 @@ export type AggregationLayerMetadataHandler = RequestHandler<
   undefined,
   EntitiesMetadata
 >;
-
-/**
- * Update polygon parts handler
- */
-type UpdatePolygonPartsHandler = RequestHandler<undefined, PolygonPartsResponse, PolygonPartsPayload, IsSwapQueryParams, EntitiesMetadata>;
 
 @injectable()
 export class PolygonPartsController {

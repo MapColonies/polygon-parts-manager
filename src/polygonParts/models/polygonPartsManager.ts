@@ -228,6 +228,7 @@ export class PolygonPartsManager {
     entityManager: EntityManager,
     polygonPartsEntityName: EntityNames,
     filter: FindPolygonPartsOptions<true>['filter'] | undefined
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<{ filterQueryMetadata?: FilterQueryMetadata; filteredPolygonPartsQuery?: SelectQueryBuilder<any> }> {
     if (!filter) {
       return { filterQueryMetadata: undefined, filteredPolygonPartsQuery: undefined };
@@ -262,6 +263,7 @@ export class PolygonPartsManager {
     entityManager: EntityManager;
     options: AggregateLayerMetadataOptions;
     filterQueryMetadata?: FilterQueryMetadata;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     filteredPolygonPartsQuery: SelectQueryBuilder<any> | undefined;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }): SelectQueryBuilder<any> {

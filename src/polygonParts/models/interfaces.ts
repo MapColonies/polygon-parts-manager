@@ -38,6 +38,11 @@ export interface FindPolygonPartsOptions<ShouldClip extends boolean = boolean> {
 }
 
 /**
+ * Geometry type options for filtering polygon parts
+ */
+export type FindPolygonPartsOptionsFilterGeometries = Polygon | MultiPolygon;
+
+/**
  * Find polygon parts response
  */
 export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = FeatureCollection<

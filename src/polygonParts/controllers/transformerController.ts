@@ -2,11 +2,9 @@ import type { Logger } from '@map-colonies/js-logger';
 import { RequestHandler } from 'express';
 import { inject, singleton } from 'tsyringe';
 import { SERVICES } from '../../common/constants';
-import { Transformer } from '../../common/middlewares/transformer';
-import type {
-  AggregationLayerMetadataHandler,
-} from './polygonPartsController';
 import type { IsSwapQueryParams, PolygonPartsPayload } from '../models/interfaces';
+import { Transformer } from '../../common/middlewares/transformer';
+import type { AggregationLayerMetadataHandler } from './polygonPartsController';
 import type { FindPolygonPartsParams, FindPolygonPartsQueryParams, FindPolygonPartsRequestBody } from './interfaces';
 
 /**

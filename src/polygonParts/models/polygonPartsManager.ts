@@ -175,7 +175,7 @@ export class PolygonPartsManager {
     const { polygonPartsEntityName, filter } = options;
 
     const logger = this.logger.child({ polygonPartsEntityName });
-    logger.info({ msg: 'Metadata aggregation request', polygonPartsEntityName });
+    logger.info({ msg: 'Metadata aggregation request' });
     logger.debug({ msg: 'Metadata aggregation filter', filter });
 
     try {

@@ -15,7 +15,7 @@ import { container } from 'tsyringe';
 import { EntityManager, Geometry, Repository, SelectQueryBuilder, type DataSourceOptions } from 'typeorm';
 import { getApp } from '../../../src/app';
 import { ConnectionManager } from '../../../src/common/connectionManager';
-import { aggregationMismatchResponse } from '../../mocks/responseMocks';
+import { customAggregationNoFilter, customAggregationWithFilter, emptyFeature } from '../../mocks/responseMocks';
 import { aggregationFeaturePropertiesValidationTestCases } from '../../mocks/aggregationTestCases';
 import { SERVICES } from '../../../src/common/constants';
 import type { ApplicationConfig, DbConfig } from '../../../src/common/interfaces';
@@ -24,7 +24,6 @@ import { Part } from '../../../src/polygonParts/DAL/part';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
 import type { AggregatePolygonPartsRequestBody, FindPolygonPartsResponseBody } from '../../../src/polygonParts/controllers/interfaces';
 import type {
-  AggregationLayerMetadataResponse,
   EntitiesMetadata,
   EntityIdentifier,
   EntityIdentifierObject,
@@ -34,6 +33,7 @@ import type {
 import {
   createEuropeInitPayloadRequest,
   createInitPayloadRequest,
+  createCustomInitPayloadRequestForAggregation,
   franceFootprint,
   germanyFootprint,
   intersectionWithItalyFootprint,
@@ -5443,7 +5443,7 @@ describe('polygonParts', () => {
     });
 
     describe('POST /polygonParts/:polygonPartsEntityName/aggregate', () => {
-      it('should return 200 status code and aggregated metadata with an empty request body', async () => {
+      it('should return 200 status code and aggregated metadata with an empty request body (random data)', async () => {
         const polygonPartsPayload = createInitPayloadRequest;
         await requestSender.createPolygonParts(polygonPartsPayload);
         const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
@@ -5460,7 +5460,25 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should return 200 status code and filtered aggregated metadata with a valid feature collection filter', async () => {
+      it('should return 200 status code and aggregated metadata with an empty request body (custom data)', async () => {
+        const polygonPartsPayload = createCustomInitPayloadRequestForAggregation;
+        await requestSender.createPolygonParts(polygonPartsPayload);
+        const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+
+        const response = await requestSender.aggregateLayerMetadata({
+          params: { polygonPartsEntityName: entityIdentifier },
+        });
+
+        const result = aggregationFeatureSchema.safeParse(response.body);
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response).toSatisfyApiSpec();
+        expect(result.success).toBe(true);
+        expect(result.data).toEqual(customAggregationNoFilter);
+
+        expect.assertions(4);
+      });
+
+      it('should return 200 status code and filtered aggregated metadata with a valid feature collection filter (random data)', async () => {
         const polygonPartsPayload = createInitPayloadRequest;
         await requestSender.createPolygonParts(polygonPartsPayload);
         const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
@@ -5495,6 +5513,53 @@ describe('polygonParts', () => {
         expect.assertions(4);
       });
 
+      it('should return 200 status code and filtered aggregated metadata with a valid feature collection filter (custom data)', async () => {
+        const polygonPartsPayload = createCustomInitPayloadRequestForAggregation;
+        const x = await requestSender.createPolygonParts(polygonPartsPayload);
+        const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+
+        const filterBody: AggregatePolygonPartsRequestBody = {
+          type: 'FeatureCollection',
+          features: [
+            {
+              type: 'Feature',
+              properties: {
+                minResolutionDeg: 0.0001,
+                maxResolutionDeg: 0.0001,
+              },
+              geometry: {
+                type: 'Polygon',
+                coordinates: [
+                  [
+                    [35.2, 31.75],
+                    [35.25, 31.75],
+                    [35.25, 31.8],
+                    [35.2, 31.8],
+                    [35.2, 31.75],
+                  ],
+                ],
+              },
+            },
+          ],
+        };
+
+        const response = await requestSender.aggregateLayerMetadata({
+          params: { polygonPartsEntityName: entityIdentifier },
+          body: filterBody,
+        });
+
+        const result = aggregationFeatureSchema.safeParse(response.body);
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response).toSatisfyApiSpec();
+        expect(result.success).toBe(true);
+        expect(result.data).toEqual(customAggregationWithFilter);
+
+        const isContained = booleanContains(filterBody.features[0], result.data?.geometry as Geometry);
+        expect(isContained).toBe(true);
+
+        expect.assertions(5);
+      });
+
       it('should return 200 status code with null values when filter geometry does not intersect with any records', async () => {
         const polygonPartsPayload = createEuropeInitPayloadRequest;
         await requestSender.createPolygonParts(polygonPartsPayload);
@@ -5520,7 +5585,7 @@ describe('polygonParts', () => {
         });
 
         expect(response.status).toBe(httpStatusCodes.OK);
-        expect(response.body).toMatchObject(aggregationMismatchResponse);
+        expect(response.body).toMatchObject(emptyFeature);
 
         expect.assertions(2);
       });
@@ -5552,7 +5617,7 @@ describe('polygonParts', () => {
         });
 
         expect(response.status).toBe(httpStatusCodes.OK);
-        expect(response.body).toMatchObject(aggregationMismatchResponse);
+        expect(response.body).toMatchObject(emptyFeature);
 
         expect.assertions(2);
       });
@@ -5561,12 +5626,6 @@ describe('polygonParts', () => {
         const polygonPartsPayload = createInitPayloadRequest;
         await requestSender.createPolygonParts(polygonPartsPayload);
         const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-
-        const emptyFeature: AggregationLayerMetadataResponse = {
-          type: 'Feature',
-          geometry: null,
-          properties: null,
-        };
 
         const spyGetRawOne = jest.spyOn(SelectQueryBuilder.prototype, 'getRawOne').mockResolvedValueOnce(undefined);
 
@@ -5604,7 +5663,9 @@ describe('polygonParts', () => {
         });
 
         it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (start with [a-z] char)', async () => {
-          const expectedErrorMessage = { message: 'request/params/polygonPartsEntityName must match pattern "^[a-z][a-z0-9_]{0,61}[a-z0-9]$"' };
+          const expectedErrorMessage = {
+            message: `request/params/polygonPartsEntityName must match pattern "${INGESTION_VALIDATIONS.polygonPartsEntityName.pattern}"`,
+          };
 
           const response = await requestSender.findPolygonParts({
             params: { polygonPartsEntityName: '0invalid_raster' as EntityIdentifier },
@@ -5619,7 +5680,9 @@ describe('polygonParts', () => {
         });
 
         it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (contain [a-z0-9_] characters inside)', async () => {
-          const expectedErrorMessage = { message: 'request/params/polygonPartsEntityName must match pattern "^[a-z][a-z0-9_]{0,61}[a-z0-9]$"' };
+          const expectedErrorMessage = {
+            message: `request/params/polygonPartsEntityName must match pattern "${INGESTION_VALIDATIONS.polygonPartsEntityName.pattern}"`,
+          };
 
           const response = await requestSender.findPolygonParts({
             params: { polygonPartsEntityName: 'invalid@name_raster' as EntityIdentifier },
@@ -5635,7 +5698,7 @@ describe('polygonParts', () => {
 
         it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (end with [a-z] char or [0-9] digit)', async () => {
           const expectedErrorMessage = {
-            message: 'request/params/polygonPartsEntityName must match pattern "^[a-z][a-z0-9_]{0,61}[a-z0-9]$"',
+            message: `request/params/polygonPartsEntityName must match pattern "${INGESTION_VALIDATIONS.polygonPartsEntityName.pattern}"`,
           };
 
           const response = await requestSender.findPolygonParts({
@@ -5652,7 +5715,7 @@ describe('polygonParts', () => {
 
         it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (not less than 2 chars)', async () => {
           const expectedErrorMessage = {
-            message: 'request/params/polygonPartsEntityName must match pattern "^[a-z][a-z0-9_]{0,61}[a-z0-9]$"',
+            message: `request/params/polygonPartsEntityName must match pattern "${INGESTION_VALIDATIONS.polygonPartsEntityName.pattern}"`,
           };
 
           const response = await requestSender.findPolygonParts({
@@ -5669,7 +5732,7 @@ describe('polygonParts', () => {
 
         it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (not more than 63 chars)', async () => {
           const expectedErrorMessage = {
-            message: 'request/params/polygonPartsEntityName must match pattern "^[a-z][a-z0-9_]{0,61}[a-z0-9]$"',
+            message: `request/params/polygonPartsEntityName must match pattern "${INGESTION_VALIDATIONS.polygonPartsEntityName.pattern}"`,
           };
 
           const response = await requestSender.findPolygonParts({

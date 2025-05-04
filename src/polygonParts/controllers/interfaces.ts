@@ -3,7 +3,7 @@ import type {
   FindPolygonPartsOptions,
   FindPolygonPartsResponse,
   AggregateLayerMetadataOptions,
-  GetAggregationLayerMetadataResponse,
+  AggregationLayerMetadataResponse,
 } from '../models/interfaces';
 
 /**
@@ -33,11 +33,11 @@ export interface FindPolygonPartsResponseBody<ShouldClip extends boolean = boole
 /**
  * Get aggregation layer metadata params
  */
-export interface GetAggregationLayerMetadataParams {
+export interface AggregationLayerMetadataParams {
   readonly polygonPartsEntityName: EntityIdentifier;
 }
 
 /**
  * Get aggregation layer metadata response body
  */
-export interface GetAggregationLayerMetadataResponseBody extends GetAggregationLayerMetadataResponse {}
+export interface AggregationLayerMetadataResponseBody extends AggregationLayerMetadataResponse {}

@@ -1,6 +1,6 @@
-import { GetAggregationLayerMetadataResponse } from '../../src/polygonParts/models/interfaces';
+import { AggregationLayerMetadataResponse } from '../../src/polygonParts/models/interfaces';
 
-export const aggregationMismatchResponse: GetAggregationLayerMetadataResponse = {
+export const aggregationMismatchResponse: AggregationLayerMetadataResponse = {
   type: 'Feature',
   geometry: null,
   properties: null,

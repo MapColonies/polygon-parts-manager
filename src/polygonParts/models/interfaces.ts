@@ -136,7 +136,6 @@ export interface IsSwapQueryParams {
 /**
  * Get aggregation layer metadata options
  */
-export type EmptyFilter = Record<string, never>;
 
 export interface AggregateLayerMetadataOptions {
   readonly polygonPartsEntityName: EntityNames;
@@ -153,7 +152,7 @@ export interface FilterQueryMetadata {
  * Get aggregation layer metadata response
  */
 
-export interface GetAggregationLayerMetadataResponse extends AggregationFeature {}
+export interface AggregationLayerMetadataResponse extends AggregationFeature {}
 //#endregion
 
 //#region private

@@ -6,7 +6,7 @@ import type { Feature } from 'geojson';
 import { inject, singleton } from 'tsyringe';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';
-import type { GetAggregationLayerMetadataParams, GetAggregationLayerMetadataResponseBody } from '../../polygonParts/controllers/interfaces';
+import type { AggregationLayerMetadataParams, AggregationLayerMetadataResponseBody } from '../../polygonParts/controllers/interfaces';
 import {
   aggregationPolygonPartsRequestBodySchema,
   findPolygonPartsQueryParamsSchema,
@@ -31,8 +31,8 @@ type FindPolygonPartsValidationHandler = RequestHandler<unknown, undefined, unkn
 type UpdatePolygonPartsValidationHandler = RequestHandler<undefined, undefined, unknown, unknown>;
 
 type AggregationLayerMetadataValidationHandler = RequestHandler<
-  GetAggregationLayerMetadataParams,
-  GetAggregationLayerMetadataResponseBody,
+  AggregationLayerMetadataParams,
+  AggregationLayerMetadataResponseBody,
   unknown,
   undefined
 >;
@@ -89,6 +89,7 @@ export class ValidationsController {
       });
       next();
     } catch (error) {
+      this.logger.error({ msg: 'find polygon parts validation failed', error });
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }
@@ -107,7 +108,7 @@ export class ValidationsController {
       req.body = validReqBody;
       next();
     } catch (error) {
-      this.logger.error({ msg: 'find polygon parts validation failed', error });
+      this.logger.error({ msg: 'aggregate layer metadata validation failed', error });
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }

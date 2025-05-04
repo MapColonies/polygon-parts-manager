@@ -5,7 +5,7 @@ import type {
   FindPolygonPartsParams,
   FindPolygonPartsQueryParams,
   FindPolygonPartsRequestBody,
-  GetAggregationLayerMetadataParams,
+  AggregationLayerMetadataParams,
   AggregatePolygonPartsRequestBody,
 } from '../../../../src/polygonParts/controllers/interfaces';
 
@@ -36,7 +36,7 @@ export class PolygonPartsRequestSender {
   }
 
   public async aggregateLayerMetadata(options: {
-    params: GetAggregationLayerMetadataParams;
+    params: AggregationLayerMetadataParams;
     body?: AggregatePolygonPartsRequestBody;
   }): Promise<supertest.Response> {
     return supertest.agent(this.app).post(`/polygonParts/${options.params.polygonPartsEntityName}/aggregate`).send(options.body);

@@ -29,7 +29,7 @@ import type {
   FindPolygonPartsOptions,
   FindPolygonPartsQueryResponse,
   FindPolygonPartsResponse,
-  GetAggregationLayerMetadataResponse,
+  AggregationLayerMetadataResponse,
   FindQueryFilterOptions,
   FindQuerySelectOptions,
   IsValidDetailsResult,
@@ -171,11 +171,12 @@ export class PolygonPartsManager {
     }
   }
 
-  public async getAggregationLayerMetadata(options: AggregateLayerMetadataOptions): Promise<GetAggregationLayerMetadataResponse> {
+  public async aggregateLayerMetadata(options: AggregateLayerMetadataOptions): Promise<AggregationLayerMetadataResponse> {
     const { polygonPartsEntityName, filter } = options;
 
     const logger = this.logger.child({ polygonPartsEntityName });
-    logger.info({ msg: 'Metadata aggregation request' });
+    logger.info({ msg: 'Metadata aggregation request', polygonPartsEntityName });
+    logger.debug({ msg: 'Metadata aggregation filter', filter });
 
     try {
       const response = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
@@ -213,7 +214,11 @@ export class PolygonPartsManager {
       });
 
       if (!response) {
-        throw new InternalServerError('Could not generate aggregation response');
+        return {
+          type: 'Feature',
+          geometry: null,
+          properties: null,
+        };
       }
 
       return response.feature;

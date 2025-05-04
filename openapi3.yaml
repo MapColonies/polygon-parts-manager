@@ -162,10 +162,10 @@ paths:
       tags:
         - polygon-parts
       summary: Get aggregated polygon parts data by polygon parts entity name and
-        polygon parts filter
+        polygon parts filter (optional)
       description: Get aggregated polygon parts data by polygon parts entity name and
-        polygon parts filter
-      operationId: getAggregationLayerMetadata
+        polygon parts filter (optional)
+      operationId: aggregationLayerMetadata
       parameters:
         - in: path
           name: polygonPartsEntityName

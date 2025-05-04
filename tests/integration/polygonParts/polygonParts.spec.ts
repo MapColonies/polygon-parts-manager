@@ -24,6 +24,7 @@ import { Part } from '../../../src/polygonParts/DAL/part';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
 import type { AggregatePolygonPartsRequestBody, FindPolygonPartsResponseBody } from '../../../src/polygonParts/controllers/interfaces';
 import type {
+  AggregationLayerMetadataResponse,
   EntitiesMetadata,
   EntityIdentifier,
   EntityIdentifierObject,
@@ -5555,6 +5556,32 @@ describe('polygonParts', () => {
 
         expect.assertions(2);
       });
+
+      it('should return 200 status code with empty feature (null geometry and properties) if transaction response is undefined', async () => {
+        const polygonPartsPayload = createInitPayloadRequest;
+        await requestSender.createPolygonParts(polygonPartsPayload);
+        const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+
+        const emptyFeature: AggregationLayerMetadataResponse = {
+          type: 'Feature',
+          geometry: null,
+          properties: null,
+        };
+
+        const spyGetRawOne = jest.spyOn(SelectQueryBuilder.prototype, 'getRawOne').mockResolvedValueOnce(undefined);
+
+        const response = await requestSender.aggregateLayerMetadata({
+          params: { polygonPartsEntityName: entityIdentifier },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response.body).toMatchObject(emptyFeature);
+        expect(response).toSatisfyApiSpec();
+        expect(spyGetRawOne).toHaveBeenCalledTimes(1);
+
+        spyGetRawOne.mockRestore();
+        expect.assertions(4);
+      });
     });
 
     describe('Bad Path', () => {
@@ -7464,26 +7491,6 @@ describe('polygonParts', () => {
 
           const expectedErrorMessage = 'aggregation query error';
           const spyGetRawOne = jest.spyOn(SelectQueryBuilder.prototype, 'getRawOne').mockRejectedValueOnce(new Error(expectedErrorMessage));
-
-          const response = await requestSender.aggregateLayerMetadata({
-            params: { polygonPartsEntityName: entityIdentifier },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-          expect(response.body).toMatchObject({ message: expectedErrorMessage });
-          expect(response).toSatisfyApiSpec();
-          expect(spyGetRawOne).toHaveBeenCalledTimes(1);
-
-          spyGetRawOne.mockRestore();
-          expect.assertions(4);
-        });
-
-        it('should return 500 status code if transaction response is undefined', async () => {
-          const polygonPartsPayload = createInitPayloadRequest;
-          await requestSender.createPolygonParts(polygonPartsPayload);
-          const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-          const expectedErrorMessage = 'Could not generate aggregation response';
-          const spyGetRawOne = jest.spyOn(SelectQueryBuilder.prototype, 'getRawOne').mockResolvedValueOnce(undefined);
 
           const response = await requestSender.aggregateLayerMetadata({
             params: { polygonPartsEntityName: entityIdentifier },

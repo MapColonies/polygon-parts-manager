@@ -223,10 +223,12 @@ components:
         geometry:
           type: object
           nullable: true
-          oneOf:
+          anyOf:
             - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
             - $ref: >-
                 ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
+            - type: object
+              nullable: true
         properties:
           type: object
           description: Aggregation feature properties

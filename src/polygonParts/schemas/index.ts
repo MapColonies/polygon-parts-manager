@@ -15,19 +15,27 @@ import type { DeepMapValues } from '../../common/types';
 import type { FindPolygonPartsQueryParams, FindPolygonPartsRequestBody } from '../controllers/interfaces';
 import type { EntitiesMetadata, EntityNames, IsSwapQueryParams } from '../models/interfaces';
 
+const aggregatePolygonPartsFeatureSchema = featureSchema(polygonSchema.or(multiPolygonSchema), roiPropertiesSchema);
+
+const aggregatePolygonPartsFeatureCollectionSchema = featureCollectionSchema(aggregatePolygonPartsFeatureSchema);
+
+const emptyFeatureCollectionFilterSchema = z
+  .object({})
+  .strict()
+  .transform(() => undefined);
+
 const polygonPartsEntityNamePatternSchema = z
   .string()
   .regex(new RegExp(INGESTION_VALIDATIONS.polygonPartsEntityName.pattern), { message: 'Polygon parts entity name should valid entity name' });
 const findPolygonPartsFeatureSchema = featureSchema(polygonSchema.or(multiPolygonSchema), roiPropertiesSchema.partial().passthrough().nullable());
-const findPolygonPartsFeatureCollectionSchema = featureCollectionSchema(findPolygonPartsFeatureSchema).or(
-  z
-    .object({})
-    .strict()
-    .transform(() => undefined)
-);
+const findPolygonPartsFeatureCollectionSchema = featureCollectionSchema(findPolygonPartsFeatureSchema).or(emptyFeatureCollectionFilterSchema);
+
+export const aggregationPolygonPartsRequestBodySchema = aggregatePolygonPartsFeatureCollectionSchema.or(emptyFeatureCollectionFilterSchema);
+
 export const findPolygonPartsQueryParamsSchema: ZodType<FindPolygonPartsQueryParams> = z.object({
   shouldClip: z.boolean(),
 });
+
 export const findPolygonPartsRequestBodySchema: ZodType<
   FindPolygonPartsRequestBody,
   ZodTypeDef,

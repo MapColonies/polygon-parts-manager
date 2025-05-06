@@ -11,6 +11,12 @@ const polygonPartsRouterFactory: FactoryFunction<Router> = (dependencyContainer)
   const transformer = dependencyContainer.resolve(TransformerController);
 
   router.post('/:polygonPartsEntityName/find', validations.validateFindPolygonParts, transformer.parseFindPolygonParts, controller.findPolygonParts);
+  router.post(
+    '/:polygonPartsEntityName/aggregate',
+    validations.validateAggregateLayerMetadata,
+    transformer.parseAggregateLayerMetadata,
+    controller.aggregateLayerMetadata
+  );
   router.post('/', validations.validateCreatePolygonParts, transformer.parseCreatePolygonParts, controller.createPolygonParts);
   router.put('/', validations.validateUpdatePolygonParts, transformer.parseUpdatePolygonParts, controller.updatePolygonParts);
 

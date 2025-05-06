@@ -6,7 +6,14 @@ import type { Feature } from 'geojson';
 import { inject, singleton } from 'tsyringe';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';
-import { findPolygonPartsQueryParamsSchema, findPolygonPartsRequestBodySchema, schemaParser, updatePolygonPartsQueryParamsSchema } from '../schemas';
+import type { AggregationLayerMetadataParams, AggregationLayerMetadataResponseBody } from '../../polygonParts/controllers/interfaces';
+import {
+  aggregationPolygonPartsRequestBodySchema,
+  findPolygonPartsQueryParamsSchema,
+  findPolygonPartsRequestBodySchema,
+  schemaParser,
+  updatePolygonPartsQueryParamsSchema,
+} from '../schemas';
 
 /**
  * Create polygon parts validation handler
@@ -22,6 +29,13 @@ type FindPolygonPartsValidationHandler = RequestHandler<unknown, undefined, unkn
  * Update polygon parts validation handler
  */
 type UpdatePolygonPartsValidationHandler = RequestHandler<undefined, undefined, unknown, unknown>;
+
+type AggregationLayerMetadataValidationHandler = RequestHandler<
+  AggregationLayerMetadataParams,
+  AggregationLayerMetadataResponseBody,
+  unknown,
+  undefined
+>;
 
 @singleton()
 export class ValidationsController {
@@ -76,6 +90,25 @@ export class ValidationsController {
       next();
     } catch (error) {
       this.logger.error({ msg: 'find polygon parts validation failed', error });
+      if (error instanceof ValidationError) {
+        throw new BadRequestError(error.message);
+      }
+      next(error);
+    }
+  };
+
+  public readonly validateAggregateLayerMetadata: AggregationLayerMetadataValidationHandler = (req, _, next) => {
+    try {
+      schemaParser({ schema: polygonPartsEntityNameSchema, value: req.params, errorMessagePrefix: 'Invalid request params' });
+      const validReqBody = schemaParser({
+        schema: aggregationPolygonPartsRequestBodySchema,
+        value: req.body,
+        errorMessagePrefix: 'Invalid request body',
+      });
+      req.body = validReqBody;
+      next();
+    } catch (error) {
+      this.logger.error({ msg: 'aggregate layer metadata validation failed', error });
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }

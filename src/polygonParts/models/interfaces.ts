@@ -1,4 +1,5 @@
 import type {
+  AggregationFeature,
   PolygonPart,
   PolygonPartsEntityName,
   PolygonPartsEntityNameObject,
@@ -7,10 +8,14 @@ import type {
 } from '@map-colonies/raster-shared';
 import type { Feature, FeatureCollection, GeoJsonProperties, Geometry, MultiPolygon, Polygon } from 'geojson';
 import { EntityManager, SelectQueryBuilder } from 'typeorm';
-import type { NullableRecordValues, ReplaceValuesOfType } from '../../common/types';
+import type { NonNullableRecordValues, ReplaceValuesOfType } from '../../common/types';
 
 //#region public
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
+/**
+ * Polygonal geometries
+ */
+type PolygonalGeometries = Polygon | MultiPolygon;
 
 /**
  * Properties of part data for insertion
@@ -21,13 +26,15 @@ export interface InsertPartData extends Readonly<Omit<CommonPayload, 'countries'
   readonly sensors: string;
 }
 
+export type FeatureCollectionFilter = FeatureCollection<PolygonalGeometries, (GeoJsonProperties & Partial<RoiProperties>) | null>;
+
 /**
  * Find polygon parts options
  */
 export interface FindPolygonPartsOptions<ShouldClip extends boolean = boolean> {
   readonly shouldClip: ShouldClip;
   readonly polygonPartsEntityName: EntityNames;
-  readonly filter?: FeatureCollection<FindPolygonPartsOptionsFilterGeometries, (GeoJsonProperties & Partial<RoiProperties>) | null>;
+  readonly filter?: FeatureCollectionFilter;
 }
 
 /**
@@ -41,7 +48,7 @@ export type FindPolygonPartsOptionsFilterGeometries = Polygon | MultiPolygon;
 export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = FeatureCollection<
   Polygon,
   ReplaceValuesOfType<
-    NullableRecordValues<
+    NonNullableRecordValues<
       Omit<PolygonPartRecord, 'countries' | 'cities' | 'footprint' | 'insertionOrder' | 'sensors'> & {
         countries?: string[];
         cities?: string[];
@@ -54,7 +61,6 @@ export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = Fea
     requestFeatureId?: NonNullable<Feature['id']> | (ShouldClip extends true ? never : NonNullable<Feature['id']>[]);
   }
 >;
-
 /**
  * Polygon parts ingestion payload
  */
@@ -126,6 +132,27 @@ export interface EntitiesMetadata {
 export interface IsSwapQueryParams {
   isSwap: boolean;
 }
+
+/**
+ * Get aggregation layer metadata options
+ */
+
+export interface AggregateLayerMetadataOptions {
+  readonly polygonPartsEntityName: EntityNames;
+  readonly filter: FeatureCollectionFilter;
+}
+
+export interface FilterQueryMetadata {
+  filterQueryAlias: string;
+  filterRequestFeatureIds: string;
+  selectOutputColumns: string[];
+}
+
+/**
+ * Get aggregation layer metadata response
+ */
+
+export interface AggregationLayerMetadataResponse extends AggregationFeature {}
 //#endregion
 
 //#region private
@@ -133,13 +160,13 @@ export type IsValidDetailsResult = { valid: true; reason: null; location: null }
 export interface FindPolygonPartsQueryResponse<ShouldClip extends boolean = boolean> {
   readonly geojson: FindPolygonPartsResponse<ShouldClip>;
 }
-export type FindQueryFilterOptions<ShouldClip extends boolean = boolean> = Omit<FindPolygonPartsOptions, 'filter'> & {
+export type FindQueryFilterOptions<ShouldClip extends boolean = boolean> = Omit<FindPolygonPartsOptions<ShouldClip>, 'filter'> & {
   entityManager: EntityManager;
   filter: {
     inputFilter: FindPolygonPartsOptions<ShouldClip>['filter'];
     filterQueryAlias: string;
     filterRequestFeatureIds: string;
-    findSelectOutputColumns: string[];
+    selectOutputColumns: string[];
   };
 };
 export interface FindQuerySelectOptions {

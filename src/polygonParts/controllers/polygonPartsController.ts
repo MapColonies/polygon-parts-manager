@@ -3,7 +3,15 @@ import httpStatus from 'http-status-codes';
 import { inject, injectable } from 'tsyringe';
 import type { EntitiesMetadata, IsSwapQueryParams, PolygonPartsPayload, PolygonPartsResponse } from '../models/interfaces';
 import { PolygonPartsManager } from '../models/polygonPartsManager';
-import type { FindPolygonPartsParams, FindPolygonPartsQueryParams, FindPolygonPartsRequestBody, FindPolygonPartsResponseBody } from './interfaces';
+import type {
+  AggregatePolygonPartsRequestBody,
+  FindPolygonPartsParams,
+  FindPolygonPartsQueryParams,
+  FindPolygonPartsRequestBody,
+  FindPolygonPartsResponseBody,
+  AggregationLayerMetadataParams,
+  AggregationLayerMetadataResponseBody,
+} from './interfaces';
 
 /**
  * Create polygon parts handler
@@ -26,6 +34,17 @@ type FindPolygonPartsHandler = RequestHandler<
  */
 type UpdatePolygonPartsHandler = RequestHandler<undefined, PolygonPartsResponse, PolygonPartsPayload, IsSwapQueryParams, EntitiesMetadata>;
 
+/**
+ * Get aggregation layer metadata handler
+ */
+export type AggregationLayerMetadataHandler = RequestHandler<
+  AggregationLayerMetadataParams,
+  AggregationLayerMetadataResponseBody,
+  AggregatePolygonPartsRequestBody,
+  undefined,
+  EntitiesMetadata
+>;
+
 @injectable()
 export class PolygonPartsController {
   public constructor(@inject(PolygonPartsManager) private readonly polygonPartsManager: PolygonPartsManager) {}
@@ -47,6 +66,18 @@ export class PolygonPartsController {
         polygonPartsEntityName: res.locals.entitiesNames.polygonParts,
       });
       return res.status(httpStatus.OK).send(response);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public aggregateLayerMetadata: AggregationLayerMetadataHandler = async (req, res, next) => {
+    try {
+      const response = await this.polygonPartsManager.aggregateLayerMetadata({
+        polygonPartsEntityName: res.locals.entitiesNames.polygonParts,
+        filter: req.body,
+      });
+      return res.status(httpStatus.OK).json(response);
     } catch (error) {
       next(error);
     }

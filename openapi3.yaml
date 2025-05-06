@@ -6,51 +6,7 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-tags:
-  - name: aggregation
-    description: Summary of polygon parts data
-  - name: polygon-parts
-    description: CRUD operations to manage polygon parts
 paths:
-  /aggregation/{polygonPartsEntityName}:
-    get:
-      tags:
-        - aggregation
-      summary: Get aggregated polygon parts data by polygon parts entity name
-      description: Get aggregated polygon parts data by polygon parts entity name
-      operationId: getAggregationLayerMetadata
-      parameters:
-        - in: path
-          name: polygonPartsEntityName
-          description: Polygon parts entity name
-          schema:
-            $ref: '#/components/schemas/PolygonPartsEntityName'
-          required: true
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AggregationLayerMetadata'
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorMessage'
-        '404':
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorMessage'
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorMessage'
   /polygonParts:
     post:
       tags:
@@ -201,61 +157,126 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
+  /polygonParts/{polygonPartsEntityName}/aggregate:
+    post:
+      tags:
+        - polygon-parts
+      summary: Get aggregated polygon parts data by polygon parts entity name and
+        polygon parts filter (optional)
+      description: Get aggregated polygon parts data by polygon parts entity name and
+        polygon parts filter (optional)
+      operationId: aggregationLayerMetadata
+      parameters:
+        - in: path
+          name: polygonPartsEntityName
+          description: Polygon parts entity name
+          schema:
+            $ref: '#/components/schemas/PolygonPartsEntityName'
+          required: true
+      requestBody:
+        description: Aggregation filter (feature collection)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AggregationFilterPayload'
+        required: false
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AggregationFeature'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
 components:
   schemas:
-    AggregationLayerMetadata:
+    AggregationFeature:
       type: object
-      additionalProperties: false
+      description: Aggregation feature
       required:
-        - footprint
-        - imagingTimeBeginUTC
-        - imagingTimeEndUTC
-        - maxHorizontalAccuracyCE90
-        - maxResolutionDeg
-        - maxResolutionMeter
-        - minHorizontalAccuracyCE90
-        - minResolutionDeg
-        - minResolutionMeter
-        - productBoundingBox
-        - sensors
+        - type
+        - properties
+        - geometry
+      additionalProperties: false
       properties:
-        footprint:
-          oneOf:
+        type:
+          type: string
+          enum:
+            - Feature
+        geometry:
+          type: object
+          nullable: true
+          anyOf:
             - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
             - $ref: >-
                 ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
-        imagingTimeBeginUTC:
-          $ref: '#/components/schemas/ImagingTimeBeginUTC'
-        imagingTimeEndUTC:
-          $ref: '#/components/schemas/ImagingTimeEndUTC'
-        maxResolutionDeg:
-          allOf:
-            - $ref: '#/components/schemas/ResolutionDegree'
-            - description: Maximal resolution of layer in degrees/pixel
-        minResolutionDeg:
-          allOf:
-            - $ref: '#/components/schemas/ResolutionDegree'
-            - description: Minimal resolution of layer in degrees/pixel
-        maxResolutionMeter:
-          allOf:
-            - $ref: '#/components/schemas/ResolutionMeter'
-            - description: Maximal resolution of layer in meters
-        minResolutionMeter:
-          allOf:
-            - $ref: '#/components/schemas/ResolutionMeter'
-            - description: Minimal resolution of layer in meters
-        maxHorizontalAccuracyCE90:
-          allOf:
-            - $ref: '#/components/schemas/HorizontalAccuracyCE90'
-            - description: Maximal horizontal accuracy
-        minHorizontalAccuracyCE90:
-          allOf:
-            - $ref: '#/components/schemas/HorizontalAccuracyCE90'
-            - description: Minimal horizontal accuracy
-        productBoundingBox:
-          $ref: '#/components/schemas/BoundingBox'
-        sensors:
-          $ref: '#/components/schemas/Sensors'
+            - type: object
+              nullable: true
+        properties:
+          type: object
+          description: Aggregation feature properties
+          nullable: true
+          required:
+            - imagingTimeBeginUTC
+            - imagingTimeEndUTC
+            - maxHorizontalAccuracyCE90
+            - maxResolutionDeg
+            - maxResolutionMeter
+            - minHorizontalAccuracyCE90
+            - minResolutionDeg
+            - minResolutionMeter
+            - productBoundingBox
+            - sensors
+          properties:
+            imagingTimeBeginUTC:
+              $ref: '#/components/schemas/ImagingTimeBeginUTC'
+            imagingTimeEndUTC:
+              $ref: '#/components/schemas/ImagingTimeEndUTC'
+            maxResolutionDeg:
+              allOf:
+                - $ref: '#/components/schemas/ResolutionDegree'
+                - description: Maximal resolution of layer in degrees/pixel
+            minResolutionDeg:
+              allOf:
+                - $ref: '#/components/schemas/ResolutionDegree'
+                - description: Minimal resolution of layer in degrees/pixel
+            maxResolutionMeter:
+              allOf:
+                - $ref: '#/components/schemas/ResolutionMeter'
+                - description: Maximal resolution of layer in meters
+            minResolutionMeter:
+              allOf:
+                - $ref: '#/components/schemas/ResolutionMeter'
+                - description: Minimal resolution of layer in meters
+            maxHorizontalAccuracyCE90:
+              allOf:
+                - $ref: '#/components/schemas/HorizontalAccuracyCE90'
+                - description: Maximal horizontal accuracy
+            minHorizontalAccuracyCE90:
+              allOf:
+                - $ref: '#/components/schemas/HorizontalAccuracyCE90'
+                - description: Minimal horizontal accuracy
+            productBoundingBox:
+              $ref: '#/components/schemas/BoundingBox'
+            sensors:
+              $ref: '#/components/schemas/Sensors'
     BoundingBox:
       type: string
       pattern: >-
@@ -479,6 +500,10 @@ components:
           $ref: '#/components/schemas/SourceName'
         sourceResolutionMeter:
           $ref: '#/components/schemas/SourceResolutionMeter'
+    AggregationFilterPayload:
+      allOf:
+        - $ref: '#/components/schemas/FeatureCollectionFindPayload'
+        - description: Aggregation filter payload by feature collection
     PolygonPartsPayload:
       $ref: >-
         ./Schema/polygonPartsManager/payload.yaml#/components/schemas/PolygonPartsPayload

@@ -5515,7 +5515,7 @@ describe('polygonParts', () => {
 
       it('should return 200 status code and filtered aggregated metadata with a valid feature collection filter (custom data)', async () => {
         const polygonPartsPayload = createCustomInitPayloadRequestForAggregation;
-        const x = await requestSender.createPolygonParts(polygonPartsPayload);
+        await requestSender.createPolygonParts(polygonPartsPayload);
         const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
 
         const filterBody: AggregatePolygonPartsRequestBody = {

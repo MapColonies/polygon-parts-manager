@@ -20,6 +20,7 @@ import { SERVICES } from '../../../src/common/constants';
 import type { ApplicationConfig, DbConfig } from '../../../src/common/interfaces';
 import { Transformer } from '../../../src/common/middlewares/transformer';
 import { Part } from '../../../src/polygonParts/DAL/part';
+import { customAggregationNoFilter, customAggregationWithFilter } from '../../mocks/responseMocks';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
 import type { AggregatePolygonPartsRequestBody, FindPolygonPartsResponseBody } from '../../../src/polygonParts/controllers/interfaces';
 import type {
@@ -30,7 +31,6 @@ import type {
   PolygonPartsResponse,
 } from '../../../src/polygonParts/models/interfaces';
 import {
-  createEuropeInitPayloadRequest,
   createInitPayloadRequest,
   createCustomInitPayloadRequestForAggregation,
   franceFootprint,
@@ -52,7 +52,6 @@ import { INITIAL_DB, INTERNAL_DB_GEOM_PRECISION } from './helpers/constants';
 import { HelperDB, createDB, generateFeatureId, generatePolygon, generatePolygonPartsPayload } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import { allFindFeaturesEqual, toExpectedFindPolygonPartsResponse, toExpectedPostgresResponse } from './helpers/utils';
-import { customAggregationNoFilter, customAggregationWithFilter } from '../../mocks/responseMocks';
 
 let testDataSourceOptions: DataSourceOptions;
 const applicationConfig = config.get<ApplicationConfig>('application');

@@ -1,5 +1,6 @@
 /* eslint-disable  @typescript-eslint/no-magic-numbers */
 import { RasterProductTypes, type PolygonPart } from '@map-colonies/raster-shared';
+import { ProductType } from '@map-colonies/mc-model-types';
 import type { Polygon } from 'geojson';
 import type { PolygonPartsPayload } from '../../src/polygonParts/models/interfaces';
 import { generatePolygonPart } from '../integration/polygonParts/helpers/db';
@@ -176,5 +177,64 @@ export const outsideEuropePolygon: Polygon = {
       [-74.0079112667282, 40.75192233366903],
       [-74.01635160613628, 40.7056039283942],
     ],
+  ],
+};
+
+export const createCustomInitPayloadRequestForAggregation: PolygonPartsPayload = {
+  catalogId: 'c52d8189-7e07-456a-8c6b-53859523c3e9',
+  productId: 'AGGREGATED_EXAMPLE',
+  productType: ProductType.ORTHOPHOTO,
+  productVersion: '1.5',
+  partsData: [
+    {
+      sourceName: 'Example Source 1',
+      imagingTimeBeginUTC: new Date('2024-01-15T10:30:00.000Z'),
+      imagingTimeEndUTC: new Date('2024-01-15T11:45:00.000Z'),
+      resolutionDegree: 0.00025,
+      resolutionMeter: 25.5,
+      sourceResolutionMeter: 25.5,
+      horizontalAccuracyCE90: 3.5,
+      sensors: ['Sensor_A', 'Sensor_B'],
+      countries: ['Israel'],
+      cities: ['Haifa', 'Tel Aviv'],
+      description: 'Northern coastal region imagery',
+      footprint: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [34.85149443279957, 32.30543192283443],
+            [34.85149443279957, 32.29430955805424],
+            [34.86824157112912, 32.29430955805424],
+            [34.86824157112912, 32.30543192283443],
+            [34.85149443279957, 32.30543192283443],
+          ],
+        ],
+      },
+    },
+    {
+      sourceName: 'Example Source 2',
+      imagingTimeBeginUTC: new Date('2024-01-16T09:20:00.000Z'),
+      imagingTimeEndUTC: new Date('2024-01-16T10:15:00.000Z'),
+      resolutionDegree: 0.0001,
+      resolutionMeter: 10.2,
+      sourceResolutionMeter: 10.2,
+      horizontalAccuracyCE90: 2.1,
+      sensors: ['Sensor_C'],
+      countries: ['Israel'],
+      cities: ['Jerusalem'],
+      description: 'Central region high-resolution capture',
+      footprint: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [35.21012157112912, 31.78243192283443],
+            [35.21012157112912, 31.76430955805424],
+            [35.23149443279957, 31.76430955805424],
+            [35.23149443279957, 31.78243192283443],
+            [35.21012157112912, 31.78243192283443],
+          ],
+        ],
+      },
+    },
   ],
 };

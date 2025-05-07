@@ -69,7 +69,7 @@
       "key": "",
       "cert": ""
     },
-    "database": "postgres",
+    "database": "test",
     "schema": "polygon_parts",
     "synchronize": false,
     "migrationsRun": false,

@@ -232,7 +232,7 @@ export class PolygonPartsManager {
   private async prepareAggregationFilterQuery(
     entityManager: EntityManager,
     polygonPartsEntityName: EntityNames,
-    filter: FindPolygonPartsOptions<true>['filter'] | undefined
+    filter: FindPolygonPartsOptions<true>['filter'] | null
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<{ filterQueryMetadata?: FilterQueryMetadata; filteredPolygonPartsQuery?: SelectQueryBuilder<any> }> {
     if (!filter) {
@@ -672,7 +672,10 @@ export class PolygonPartsManager {
     await entityManager.query(`TRUNCATE ${entityName} RESTART IDENTITY CASCADE;`);
   }
 
-  private async validateFeatureCollectionFilter(context: { entityManager: EntityManager; filter: FindPolygonPartsOptions['filter'] }): Promise<void> {
+  private async validateFeatureCollectionFilter(context: {
+    entityManager: EntityManager;
+    filter: FindPolygonPartsOptions['filter'] | null;
+  }): Promise<void> {
     // TODO: move function to a validation middleware
     const { entityManager, filter } = context;
 

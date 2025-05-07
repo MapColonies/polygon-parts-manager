@@ -21,9 +21,8 @@ export interface FindPolygonPartsQueryParams extends Readonly<Pick<FindPolygonPa
 /**
  * Find polygon parts request body
  */
-export type FindPolygonPartsRequestBody = Readonly<FindPolygonPartsOptions['filter']>;
-
-export type AggregatePolygonPartsRequestBody = Readonly<AggregateLayerMetadataOptions['filter']>;
+export type FindPolygonPartsRequestBody = Pick<FindPolygonPartsOptions, 'filter'>;
+export type AggregatePolygonPartsRequestBody = Pick<AggregateLayerMetadataOptions, 'filter'>;
 
 /**
  * Find polygon parts response body

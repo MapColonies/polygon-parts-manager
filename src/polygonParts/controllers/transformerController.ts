@@ -46,9 +46,6 @@ export class TransformerController {
     try {
       const entitiesMetadata = this.transformer.parseEntitiesMetadata(req.params);
       res.locals = entitiesMetadata;
-      if (typeof req.body === 'object' && Object.keys(req.body).length === 0) {
-        req.body = undefined;
-      }
       next();
     } catch (error) {
       this.logger.error({ msg: 'find polygon parts transformer failed', error });

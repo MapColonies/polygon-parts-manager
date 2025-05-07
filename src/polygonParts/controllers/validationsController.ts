@@ -73,12 +73,12 @@ export class ValidationsController {
       schemaParser({ schema: polygonPartsEntityNameSchema, value: req.params, errorMessagePrefix: 'Invalid request params' });
       schemaParser({ schema: findPolygonPartsQueryParamsSchema, value: req.query, errorMessagePrefix: 'Invalid query params' });
       schemaParser({
-        schema: findPolygonPartsRequestBodySchema.refine((featureCollection) => {
-          if (!featureCollection) {
+        schema: findPolygonPartsRequestBodySchema.refine((body) => {
+          if (!body.filter) {
             return true;
           }
 
-          const featureIds = featureCollection.features
+          const featureIds = body.filter.features
             .map((feature) => feature.id)
             .filter((featureId): featureId is NonNullable<Feature['id']> => featureId !== undefined);
           const uniqueFeatureIds = new Set(featureIds);

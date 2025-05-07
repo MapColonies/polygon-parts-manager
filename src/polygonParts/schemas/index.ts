@@ -12,35 +12,30 @@ import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig } from '../../common/interfaces';
 import { Transformer } from '../../common/middlewares/transformer';
 import type { DeepMapValues } from '../../common/types';
-import type { FindPolygonPartsQueryParams, FindPolygonPartsRequestBody } from '../controllers/interfaces';
+import type { FindPolygonPartsQueryParams } from '../controllers/interfaces';
 import type { EntitiesMetadata, EntityNames, IsSwapQueryParams } from '../models/interfaces';
 
 const aggregatePolygonPartsFeatureSchema = featureSchema(polygonSchema.or(multiPolygonSchema), roiPropertiesSchema);
-
 const aggregatePolygonPartsFeatureCollectionSchema = featureCollectionSchema(aggregatePolygonPartsFeatureSchema);
-
-const emptyFeatureCollectionFilterSchema = z
-  .object({})
-  .strict()
-  .transform(() => undefined);
 
 const polygonPartsEntityNamePatternSchema = z
   .string()
   .regex(new RegExp(INGESTION_VALIDATIONS.polygonPartsEntityName.pattern), { message: 'Polygon parts entity name should valid entity name' });
 const findPolygonPartsFeatureSchema = featureSchema(polygonSchema.or(multiPolygonSchema), roiPropertiesSchema.partial().passthrough().nullable());
-const findPolygonPartsFeatureCollectionSchema = featureCollectionSchema(findPolygonPartsFeatureSchema).or(emptyFeatureCollectionFilterSchema);
+const findPolygonPartsFeatureCollectionSchema = featureCollectionSchema(findPolygonPartsFeatureSchema);
 
-export const aggregationPolygonPartsRequestBodySchema = aggregatePolygonPartsFeatureCollectionSchema.or(emptyFeatureCollectionFilterSchema);
+export const aggregationPolygonPartsRequestBodySchema = z.object({
+  filter: aggregatePolygonPartsFeatureCollectionSchema.nullable(),
+});
 
 export const findPolygonPartsQueryParamsSchema: ZodType<FindPolygonPartsQueryParams> = z.object({
   shouldClip: z.boolean(),
 });
 
-export const findPolygonPartsRequestBodySchema: ZodType<
-  FindPolygonPartsRequestBody,
-  ZodTypeDef,
-  NonNullable<FindPolygonPartsRequestBody> | Record<PropertyKey, never>
-> = findPolygonPartsFeatureCollectionSchema;
+export const findPolygonPartsRequestBodySchema = z.object({
+  filter: findPolygonPartsFeatureCollectionSchema.nullable(),
+});
+
 export const updatePolygonPartsQueryParamsSchema: ZodType<IsSwapQueryParams> = z.object({
   isSwap: z.boolean(),
 });

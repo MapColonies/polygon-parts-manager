@@ -34,7 +34,7 @@ export type FeatureCollectionFilter = FeatureCollection<PolygonalGeometries, (Ge
 export interface FindPolygonPartsOptions<ShouldClip extends boolean = boolean> {
   readonly shouldClip: ShouldClip;
   readonly polygonPartsEntityName: EntityNames;
-  readonly filter?: FeatureCollectionFilter;
+  readonly filter: FeatureCollectionFilter | null;
 }
 
 /**
@@ -139,7 +139,7 @@ export interface IsSwapQueryParams {
 
 export interface AggregateLayerMetadataOptions {
   readonly polygonPartsEntityName: EntityNames;
-  readonly filter: FeatureCollectionFilter;
+  readonly filter: FeatureCollectionFilter | null;
 }
 
 export interface FilterQueryMetadata {

@@ -23,12 +23,11 @@ export class PolygonPartsRequestSender {
   }
 
   public async findPolygonParts({ params, body, query }: FindPolygonParts): Promise<supertest.Response> {
-    const request = supertest
+    return supertest
       .agent(this.app)
       .post(`/polygonParts/${params.polygonPartsEntityName}/find`)
-      .query(query ?? {});
-
-    return body ? request.set('Content-Type', 'application/json').send(body) : request;
+      .query(query ?? {})
+      .send(body);
   }
 
   public async updatePolygonParts(body: PolygonPartsPayload, isSwap: boolean): Promise<supertest.Response> {

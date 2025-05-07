@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
+import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
+import { DatabaseCreateContext, createDatabase, dropDatabase } from 'typeorm-extension';
 import { faker } from '@faker-js/faker';
 import { CORE_VALIDATIONS, INGESTION_VALIDATIONS, RASTER_PRODUCT_TYPE_LIST, RasterProductTypes, type PolygonPart } from '@map-colonies/raster-shared';
 import { randomPolygon } from '@turf/random';
 import type { Feature, Polygon } from 'geojson';
 import { randexp } from 'randexp';
-import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
-import { DatabaseCreateContext, createDatabase, dropDatabase } from 'typeorm-extension';
+import { setRepositoryTablePath } from '../../../../src/polygonParts/DAL/utils';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 import type { DeepPartial } from './types';
 
@@ -155,14 +156,14 @@ export class HelperDB {
 
   public async find<Entity extends ObjectLiteral>(table: string, target: EntityTarget<Entity>): Promise<Entity[]> {
     const repository = this.appDataSource.getRepository(target);
-    repository.metadata.tablePath = table; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
+    setRepositoryTablePath(repository, table);
     const response = await repository.find();
     return response;
   }
 
   public async insert<Entity extends ObjectLiteral>(table: string, target: EntityTarget<Entity>, insertValues: Entity | Entity[]): Promise<void> {
     const repository = this.appDataSource.getRepository(target);
-    repository.metadata.tablePath = table; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
+    setRepositoryTablePath(repository, table);
     await repository.insert(insertValues);
   }
 }

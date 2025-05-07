@@ -40,7 +40,6 @@ export function toExpectedPostgresResponse(polygonPartsPayload: PolygonPartsPayl
   return expectedPostgresResponse;
 }
 
-// TODO: update to take an id input of the intersecting feature or to generate an id ?!
 export function toExpectedFindPolygonPartsResponse(polygonPartsPayload: PolygonPartsPayload, duplicates = 1): FindPolygonPartsResponseBody {
   const { partsData, ...layerMetadata } = polygonPartsPayload;
   const expectedFeatures = partsData

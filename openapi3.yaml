@@ -427,6 +427,8 @@ components:
       properties:
         filter:
           $ref: '#/components/schemas/RoiFeatureCollection'
+      required:
+        - filter
       description: Find polygon parts payload
     PolygonPartsFindResponse:
       allOf:
@@ -508,6 +510,8 @@ components:
       properties:
         filter:
           $ref: '#/components/schemas/RoiFeatureCollection'
+      required:
+        - filter
       description: Aggregation filter payload by feature collection
     PolygonPartsPayload:
       $ref: >-

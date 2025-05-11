@@ -672,10 +672,7 @@ export class PolygonPartsManager {
     await entityManager.query(`TRUNCATE ${entityName} RESTART IDENTITY CASCADE;`);
   }
 
-  private async validateFeatureCollectionFilter(context: {
-    entityManager: EntityManager;
-    filter: FindPolygonPartsOptions['filter'] | null;
-  }): Promise<void> {
+  private async validateFeatureCollectionFilter(context: { entityManager: EntityManager; filter: FindPolygonPartsOptions['filter'] }): Promise<void> {
     // TODO: move function to a validation middleware
     const { entityManager, filter } = context;
 

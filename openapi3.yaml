@@ -301,7 +301,7 @@ components:
     Description:
       type: string
       nullable: true
-    FeatureFindPayload:
+    RoiFeaturePayload:
       required:
         - type
         - properties
@@ -351,8 +351,9 @@ components:
       oneOf:
         - type: number
         - type: string
-    FeatureCollectionFindPayload:
+    RoiFeatureCollection:
       type: object
+      nullable: true
       description: GeoJSON Feature collection
       required:
         - type
@@ -365,7 +366,7 @@ components:
         features:
           type: array
           items:
-            $ref: '#/components/schemas/FeatureFindPayload'
+            $ref: '#/components/schemas/RoiFeaturePayload'
         bbox:
           $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
     FeatureCollectionFindResponse:
@@ -422,9 +423,13 @@ components:
         polygonPartsEntityName:
           $ref: '#/components/schemas/PolygonPartsEntityName'
     PolygonPartsFindPayload:
-      allOf:
-        - $ref: '#/components/schemas/FeatureCollectionFindPayload'
-        - description: Find polygon parts payload
+      type: object
+      properties:
+        filter:
+          $ref: '#/components/schemas/RoiFeatureCollection'
+      required:
+        - filter
+      description: Find polygon parts payload
     PolygonPartsFindResponse:
       allOf:
         - $ref: '#/components/schemas/FeatureCollectionFindResponse'
@@ -501,9 +506,13 @@ components:
         sourceResolutionMeter:
           $ref: '#/components/schemas/SourceResolutionMeter'
     AggregationFilterPayload:
-      allOf:
-        - $ref: '#/components/schemas/FeatureCollectionFindPayload'
-        - description: Aggregation filter payload by feature collection
+      type: object
+      properties:
+        filter:
+          $ref: '#/components/schemas/RoiFeatureCollection'
+      required:
+        - filter
+      description: Aggregation filter payload by feature collection
     PolygonPartsPayload:
       $ref: >-
         ./Schema/polygonPartsManager/payload.yaml#/components/schemas/PolygonPartsPayload

@@ -232,7 +232,7 @@ export class PolygonPartsManager {
   private async prepareAggregationFilterQuery(
     entityManager: EntityManager,
     polygonPartsEntityName: EntityNames,
-    filter: FindPolygonPartsOptions<true>['filter'] | undefined
+    filter: FindPolygonPartsOptions<true>['filter']
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<{ filterQueryMetadata?: FilterQueryMetadata; filteredPolygonPartsQuery?: SelectQueryBuilder<any> }> {
     if (!filter) {

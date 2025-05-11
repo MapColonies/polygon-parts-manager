@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Polygon-Parts Manager
   description: CRUD operations to manage polygon parts
-  version: 1.6.0
+  version: 1.7.0
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -96,8 +96,10 @@ paths:
       tags:
         - polygon-parts
       summary: Find and filter polygon parts based on spatial criteria
-      description: |
-        Search for polygon parts based on spatial intersection with search geometries. Takes a GeoJSON FeatureCollection of search geometries with optional resolution filters.
+      description: >
+        Search for polygon parts based on spatial intersection with search
+        geometries. Takes a GeoJSON FeatureCollection of search geometries with
+        optional resolution filters.
 
           **Filter Logic**
           - Returns polygon parts intersecting with input search geometries
@@ -121,7 +123,8 @@ paths:
         - in: query
           name: shouldClip
           description: >-
-            Clips results to search area when true, returns complete geometries when false
+            Clips results to search area when true, returns complete geometries
+            when false
           schema:
             type: boolean
             default: true
@@ -161,9 +164,11 @@ paths:
     post:
       tags:
         - polygon-parts
-      summary: Get aggregated polygon parts data by polygon parts entity name and
+      summary: >-
+        Get aggregated polygon parts data by polygon parts entity name and
         polygon parts filter (optional)
-      description: Get aggregated polygon parts data by polygon parts entity name and
+      description: >-
+        Get aggregated polygon parts data by polygon parts entity name and
         polygon parts filter (optional)
       operationId: aggregationLayerMetadata
       parameters:
@@ -487,7 +492,10 @@ components:
         productVersion:
           $ref: '#/components/schemas/ProductVersion'
         requestFeatureId:
-          description: If shouldClip is set to true, only a single FeatureId is returned per Feature. Otherwise, it can return either a single FeatureId or an array of FeatureIds per Feature
+          description: >-
+            If shouldClip is set to true, only a single FeatureId is returned
+            per Feature. Otherwise, it can return either a single FeatureId or
+            an array of FeatureIds per Feature
           oneOf:
             - $ref: '#/components/schemas/FeatureId'
             - type: array

@@ -7282,6 +7282,48 @@ describe('polygonParts', () => {
     });
 
     describe('Sad Path', () => {
+      describe('POST /polygonParts/:polygonPartsEntityName/aggregate', () => {
+        it('should return 404 status code if polygon part resource does not exist', async () => {
+          const polygonPartsPayload = createInitPayloadRequest;
+          await requestSender.createPolygonParts(polygonPartsPayload);
+          const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+          const notExistingEntityName = 'not_existing_orthophoto';
+
+          const response = await requestSender.aggregateLayerMetadata({
+            params: { polygonPartsEntityName: notExistingEntityName },
+            body: { filter: null },
+          });
+
+          expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
+          expect(response).toSatisfyApiSpec();
+          expect(entityIdentifier).not.toBe(notExistingEntityName);
+
+          expect.assertions(3);
+        });
+
+        it('should return 500 status code for a database error during aggregation', async () => {
+          const polygonPartsPayload = createInitPayloadRequest;
+          await requestSender.createPolygonParts(polygonPartsPayload);
+          const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+
+          const expectedErrorMessage = 'aggregation query error';
+          const spyGetRawOne = jest.spyOn(SelectQueryBuilder.prototype, 'getRawOne').mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+          const response = await requestSender.aggregateLayerMetadata({
+            params: { polygonPartsEntityName: entityIdentifier },
+            body: { filter: null },
+          });
+
+          expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+          expect(response.body).toMatchObject({ message: expectedErrorMessage });
+          expect(response).toSatisfyApiSpec();
+          expect(spyGetRawOne).toHaveBeenCalledTimes(1);
+
+          spyGetRawOne.mockRestore();
+          expect.assertions(4);
+        });
+      });
+
       describe('POST /polygonParts/:polygonPartsEntityName/find', () => {
         it('should return 404 status code if a polygon part resource does not exists', async () => {
           const polygonPartsEntityName = 'very_long_valid_name_orthophoto';
@@ -7370,489 +7412,447 @@ describe('polygonParts', () => {
           expect.assertions(4);
         });
       });
-    });
-  });
 
-  describe('POST /polygonParts/:polygonPartsEntityName/aggregate', () => {
-    it('should return 404 status code if polygon part resource does not exist', async () => {
-      const polygonPartsPayload = createInitPayloadRequest;
-      await requestSender.createPolygonParts(polygonPartsPayload);
-      const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-      const notExistingEntityName = 'not_existing_orthophoto';
+      describe('POST /polygonParts', () => {
+        it('should return 409 status code if a part resource already exists', async () => {
+          const polygonPartsPayload = generatePolygonPartsPayload(1);
+          const {
+            entitiesNames: { parts },
+          } = getEntitiesMetadata(polygonPartsPayload);
+          await helperDB.createTable(parts.entityName, schema);
 
-      const response = await requestSender.aggregateLayerMetadata({
-        params: { polygonPartsEntityName: notExistingEntityName },
-        body: { filter: null },
+          const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+          expect(response.status).toBe(httpStatusCodes.CONFLICT);
+          expect(response.body).toMatchObject({ message: `Table with the name '${parts.databaseObjectQualifiedName}' already exists` });
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(3);
+        });
+
+        it('should return 409 status code if a polygon part resource already exists', async () => {
+          const polygonPartsPayload = generatePolygonPartsPayload(1);
+          const {
+            entitiesNames: { polygonParts },
+          } = getEntitiesMetadata(polygonPartsPayload);
+          await helperDB.createTable(polygonParts.entityName, schema);
+
+          const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+          expect(response.status).toBe(httpStatusCodes.CONFLICT);
+          expect(response.body).toMatchObject({ message: `Table with the name '${polygonParts.databaseObjectQualifiedName}' already exists` });
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(3);
+        });
+
+        it('should return 500 status code for a database error - set search_path error', async () => {
+          const polygonPartsPayload = generatePolygonPartsPayload(1);
+          const {
+            entitiesNames: { parts, polygonParts },
+          } = getEntitiesMetadata(polygonPartsPayload);
+          const expectedErrorMessage = 'search_path error';
+          const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+          const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+          expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+          expect(response.body).toMatchObject({ message: expectedErrorMessage });
+          expect(response).toSatisfyApiSpec();
+          expect(spyQuery).toHaveBeenCalledTimes(1);
+
+          const existsParts = await helperDB.tableExists(parts.entityName, schema);
+          const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+          expect(existsParts).toBeFalse();
+          expect(existsPolygonParts).toBeFalse();
+
+          expect.assertions(6);
+        });
+
+        it('should return 500 status code for a database error - verify available tables (first table) error', async () => {
+          const polygonPartsPayload = generatePolygonPartsPayload(1);
+          const {
+            entitiesNames: { parts, polygonParts },
+          } = getEntitiesMetadata(polygonPartsPayload);
+          const expectedErrorMessage = 'exists error';
+          const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+          const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+          expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+          expect(response.body).toMatchObject({ message: expectedErrorMessage });
+          expect(response).toSatisfyApiSpec();
+          expect(spyGetExists).toHaveBeenCalledTimes(2);
+
+          spyGetExists.mockRestore();
+
+          const existsParts = await helperDB.tableExists(parts.entityName, schema);
+          const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+          expect(existsParts).toBeFalse();
+          expect(existsPolygonParts).toBeFalse();
+
+          expect.assertions(6);
+        });
+
+        it('should return 500 status code for a database error - verify available tables (second table) error', async () => {
+          const polygonPartsPayload = generatePolygonPartsPayload(1);
+          const {
+            entitiesNames: { parts, polygonParts },
+          } = getEntitiesMetadata(polygonPartsPayload);
+          const expectedErrorMessage = 'exists error';
+          const spyGetExists = jest
+            .spyOn(SelectQueryBuilder.prototype, 'getExists')
+            .mockResolvedValueOnce(false)
+            .mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+          const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+          expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+          expect(response.body).toMatchObject({ message: expectedErrorMessage });
+          expect(response).toSatisfyApiSpec();
+          expect(spyGetExists).toHaveBeenCalledTimes(2);
+
+          spyGetExists.mockRestore();
+
+          const existsParts = await helperDB.tableExists(parts.entityName, schema);
+          const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+          expect(existsParts).toBeFalse();
+          expect(existsPolygonParts).toBeFalse();
+
+          expect.assertions(6);
+        });
+
+        it('should return 500 status code for a database error - create tables error', async () => {
+          const polygonPartsPayload = generatePolygonPartsPayload(1);
+          const {
+            entitiesNames: { parts, polygonParts },
+          } = getEntitiesMetadata(polygonPartsPayload);
+          // eslint-disable-next-line @typescript-eslint/unbound-method
+          const originalQuery = EntityManager.prototype.query;
+          const expectedErrorMessage = 'query error';
+          const spyQuery = jest
+            .spyOn(EntityManager.prototype, 'query')
+            .mockImplementationOnce(originalQuery)
+            .mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+          const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+          expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+          expect(response.body).toMatchObject({ message: expectedErrorMessage });
+          expect(response).toSatisfyApiSpec();
+          expect(spyQuery).toHaveBeenCalledTimes(2);
+
+          const existsParts = await helperDB.tableExists(parts.entityName, schema);
+          const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+          expect(existsParts).toBeFalse();
+          expect(existsPolygonParts).toBeFalse();
+
+          expect.assertions(6);
+        });
+
+        it('should return 500 status code for a database error - save error', async () => {
+          const polygonPartsPayload = generatePolygonPartsPayload(1);
+          const {
+            entitiesNames: { parts, polygonParts },
+          } = getEntitiesMetadata(polygonPartsPayload);
+          const expectedErrorMessage = 'save error';
+          const spySave = jest.spyOn(Repository.prototype, 'save').mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+          const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+          expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+          expect(response.body).toMatchObject({ message: expectedErrorMessage });
+          expect(response).toSatisfyApiSpec();
+          expect(spySave).toHaveBeenCalledTimes(1);
+
+          const existsParts = await helperDB.tableExists(parts.entityName, schema);
+          const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+          expect(existsParts).toBeFalse();
+          expect(existsPolygonParts).toBeFalse();
+
+          expect.assertions(6);
+        });
+
+        it('should return 500 status code for a database error - calculate polygon parts error', async () => {
+          const polygonPartsPayload = generatePolygonPartsPayload(1);
+          const {
+            entitiesNames: { parts, polygonParts },
+          } = getEntitiesMetadata(polygonPartsPayload);
+          // eslint-disable-next-line @typescript-eslint/unbound-method
+          const originalQuery = EntityManager.prototype.query;
+          const expectedErrorMessage = 'query error';
+          const spyQuery = jest
+            .spyOn(EntityManager.prototype, 'query')
+            .mockImplementationOnce(originalQuery)
+            .mockImplementationOnce(originalQuery)
+            .mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+          const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+          expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+          expect(response.body).toMatchObject({ message: expectedErrorMessage });
+          expect(response).toSatisfyApiSpec();
+          expect(spyQuery).toHaveBeenCalledTimes(3);
+
+          const existsParts = await helperDB.tableExists(parts.entityName, schema);
+          const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+          expect(existsParts).toBeFalse();
+          expect(existsPolygonParts).toBeFalse();
+
+          expect.assertions(6);
+        });
+
+        it.todo('should return 500 status code for a database error - no connection');
+        it.todo('should return 500 status code for a database error - timeout');
       });
 
-      expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
-      expect(response).toSatisfyApiSpec();
-      expect(entityIdentifier).not.toBe(notExistingEntityName);
+      describe('PUT /polygonParts', () => {
+        afterEach(() => {
+          jest.restoreAllMocks(); // Restore original implementations
+        });
+        it("should return 404 status code if a part resource doesn't exist", async () => {
+          const updatePayload = separatePolygonsRequest;
+          const {
+            entitiesNames: { parts },
+          } = getEntitiesMetadata(updatePayload);
 
-      expect.assertions(3);
-    });
+          const response = await requestSender.updatePolygonParts(updatePayload, false);
 
-    it('should return 500 status code for a database error during aggregation', async () => {
-      const polygonPartsPayload = createInitPayloadRequest;
-      await requestSender.createPolygonParts(polygonPartsPayload);
-      const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+          expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
+          expect(response.body).toMatchObject({ message: `Table with the name '${parts.databaseObjectQualifiedName}' doesn't exists` });
+          expect(response).toSatisfyApiSpec();
 
-      const expectedErrorMessage = 'aggregation query error';
-      const spyGetRawOne = jest.spyOn(SelectQueryBuilder.prototype, 'getRawOne').mockRejectedValueOnce(new Error(expectedErrorMessage));
+          expect.assertions(3);
+        });
 
-      const response = await requestSender.aggregateLayerMetadata({
-        params: { polygonPartsEntityName: entityIdentifier },
-        body: { filter: null },
+        it("should return 404 status code if a polygon part resource doesn't exist", async () => {
+          const updatePayload = separatePolygonsRequest;
+          const {
+            entitiesNames: { parts, polygonParts },
+          } = getEntitiesMetadata(updatePayload);
+          await helperDB.createTable(parts.entityName, schema);
+
+          const response = await requestSender.updatePolygonParts(updatePayload, false);
+
+          expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
+          expect(response.body).toMatchObject({ message: `Table with the name '${polygonParts.databaseObjectQualifiedName}' doesn't exists` });
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(3);
+        });
+
+        it('should return 500 status code for a database error - set search_path error', async () => {
+          await requestSender.createPolygonParts(createInitPayloadRequest);
+          const updatePayload = separatePolygonsRequest;
+          const {
+            entitiesNames: { parts, polygonParts },
+          } = getEntitiesMetadata(updatePayload);
+          const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error('Transaction failed'));
+
+          const response = await requestSender.updatePolygonParts(updatePayload, true);
+
+          expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+          expect(response.body).toMatchObject({ message: 'Transaction failed' });
+          expect(spyQuery).toHaveBeenCalledTimes(1);
+          expect(response).toSatisfyApiSpec();
+
+          const existsParts = await helperDB.tableExists(parts.entityName, schema);
+          const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+          expect(existsParts).toBeTrue();
+          expect(existsPolygonParts).toBeTrue();
+
+          expect.assertions(6);
+        });
+
+        it('should return 500 status code if when truncate parts fails', async () => {
+          await requestSender.createPolygonParts(createInitPayloadRequest);
+          const updatePayload = separatePolygonsRequest;
+          const {
+            entitiesNames: { parts, polygonParts },
+          } = getEntitiesMetadata(updatePayload);
+          // eslint-disable-next-line @typescript-eslint/unbound-method
+          const originalQuery = EntityManager.prototype.query;
+          const spyQuery = jest
+            .spyOn(EntityManager.prototype, 'query')
+            .mockImplementationOnce(originalQuery)
+            .mockRejectedValueOnce(new Error('Failed to truncate table'))
+            .mockImplementationOnce(originalQuery);
+
+          const response = await requestSender.updatePolygonParts(updatePayload, true);
+
+          expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+          expect(response.body).toMatchObject({ message: 'Failed to truncate table' });
+          expect(spyQuery).toHaveBeenCalledTimes(3);
+          expect(response).toSatisfyApiSpec();
+
+          const existsParts = await helperDB.tableExists(parts.entityName, schema);
+          const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+          expect(existsParts).toBeTrue();
+          expect(existsPolygonParts).toBeTrue();
+
+          expect.assertions(6);
+        });
+
+        it('should return 500 status code if when truncate polygon parts fails', async () => {
+          await requestSender.createPolygonParts(createInitPayloadRequest);
+          const updatePayload = separatePolygonsRequest;
+          const {
+            entitiesNames: { parts, polygonParts },
+          } = getEntitiesMetadata(updatePayload);
+          // eslint-disable-next-line @typescript-eslint/unbound-method
+          const originalQuery = EntityManager.prototype.query;
+          const spyQuery = jest
+            .spyOn(EntityManager.prototype, 'query')
+            .mockImplementationOnce(originalQuery)
+            .mockImplementationOnce(originalQuery)
+            .mockRejectedValueOnce(new Error('Failed to truncate table'));
+
+          const response = await requestSender.updatePolygonParts(updatePayload, true);
+
+          expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+          expect(response.body).toMatchObject({ message: 'Failed to truncate table' });
+          expect(spyQuery).toHaveBeenCalledTimes(3);
+          expect(response).toSatisfyApiSpec();
+
+          const existsParts = await helperDB.tableExists(parts.entityName, schema);
+          const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+          expect(existsParts).toBeTrue();
+          expect(existsPolygonParts).toBeTrue();
+
+          expect.assertions(6);
+        });
+
+        it('should return 500 status code for a database error - verify tables exists (first table) error', async () => {
+          await requestSender.createPolygonParts(createInitPayloadRequest);
+          const updatePayload = separatePolygonsRequest;
+          const {
+            entitiesNames: { parts, polygonParts },
+          } = getEntitiesMetadata(updatePayload);
+          const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValueOnce(new Error('Failed to execute query'));
+
+          const response = await requestSender.updatePolygonParts(updatePayload, true);
+
+          expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+          expect(response.body).toMatchObject({ message: 'Failed to execute query' });
+          expect(response).toSatisfyApiSpec();
+          expect(spyGetExists).toHaveBeenCalledTimes(2);
+
+          const existsParts = await helperDB.tableExists(parts.entityName, schema);
+          const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+          expect(existsParts).toBeTrue();
+          expect(existsPolygonParts).toBeTrue();
+
+          expect.assertions(6);
+        });
+
+        it('should return 500 status code for a database error - verify tables exists(second table) error', async () => {
+          await requestSender.createPolygonParts(createInitPayloadRequest);
+          const updatePayload = separatePolygonsRequest;
+          const {
+            entitiesNames: { parts, polygonParts },
+          } = getEntitiesMetadata(updatePayload);
+          const spyGetExists = jest
+            .spyOn(SelectQueryBuilder.prototype, 'getExists')
+            .mockResolvedValueOnce(true)
+            .mockRejectedValueOnce(new Error('Failed to execute query'));
+
+          const response = await requestSender.updatePolygonParts(updatePayload, true);
+
+          expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+          expect(response.body).toMatchObject({ message: 'Failed to execute query' });
+          expect(response).toSatisfyApiSpec();
+          expect(spyGetExists).toHaveBeenCalledTimes(2);
+
+          const existsParts = await helperDB.tableExists(parts.entityName, schema);
+          const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+          expect(existsParts).toBeTrue();
+          expect(existsPolygonParts).toBeTrue();
+
+          expect.assertions(6);
+        });
+
+        it('should return 500 status code for a database error - save error', async () => {
+          await requestSender.createPolygonParts(createInitPayloadRequest);
+          const updatePayload = separatePolygonsRequest;
+          const {
+            entitiesNames: { parts, polygonParts },
+          } = getEntitiesMetadata(updatePayload);
+          const expectedErrorMessage = `Failed to save to ${parts.entityName}`;
+          const spySave = jest.spyOn(Repository.prototype, 'save').mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+          const response = await requestSender.updatePolygonParts(updatePayload, true);
+
+          expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+          expect(response.body).toMatchObject({ message: expectedErrorMessage });
+          expect(response).toSatisfyApiSpec();
+          expect(spySave).toHaveBeenCalledTimes(1);
+
+          const existsParts = await helperDB.tableExists(parts.entityName, schema);
+          const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+          expect(existsParts).toBeTrue();
+          expect(existsPolygonParts).toBeTrue();
+
+          expect.assertions(6);
+        });
+
+        it('should return 500 status code for a database error - calculate polygon parts error on regular update', async () => {
+          await requestSender.createPolygonParts(createInitPayloadRequest);
+          const updatePayload = separatePolygonsRequest;
+          const {
+            entitiesNames: { parts, polygonParts },
+          } = getEntitiesMetadata(updatePayload);
+          // eslint-disable-next-line @typescript-eslint/unbound-method
+          const originalQuery = EntityManager.prototype.query;
+          const spyQuery = jest
+            .spyOn(EntityManager.prototype, 'query')
+            .mockImplementationOnce(originalQuery)
+            .mockRejectedValueOnce(new Error(`Failed to calculate polygon parts on  ${polygonParts.entityName}`));
+
+          const response = await requestSender.updatePolygonParts(updatePayload, false);
+
+          expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+          expect(response.body).toMatchObject({ message: `Failed to calculate polygon parts on  ${polygonParts.entityName}` });
+          expect(response).toSatisfyApiSpec();
+          expect(spyQuery).toHaveBeenCalledTimes(2);
+
+          const existsParts = await helperDB.tableExists(parts.entityName, schema);
+          const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+          expect(existsParts).toBeTrue();
+          expect(existsPolygonParts).toBeTrue();
+
+          expect.assertions(6);
+        });
+
+        it('should return 500 status code for a database error - calculate polygon parts error on swap update', async () => {
+          await requestSender.createPolygonParts(createInitPayloadRequest);
+          const updatePayload = separatePolygonsRequest;
+          const {
+            entitiesNames: { parts, polygonParts },
+          } = getEntitiesMetadata(updatePayload);
+          // eslint-disable-next-line @typescript-eslint/unbound-method
+          const originalQuery = EntityManager.prototype.query;
+          const spyQuery = jest
+            .spyOn(EntityManager.prototype, 'query')
+            .mockImplementationOnce(originalQuery)
+            .mockImplementationOnce(originalQuery)
+            .mockImplementationOnce(originalQuery)
+            .mockRejectedValueOnce(new Error(`Failed to calculate polygon parts on  ${polygonParts.entityName}`));
+
+          const response = await requestSender.updatePolygonParts(updatePayload, true);
+
+          expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+          expect(response.body).toMatchObject({ message: `Failed to calculate polygon parts on  ${polygonParts.entityName}` });
+          expect(response).toSatisfyApiSpec();
+          expect(spyQuery).toHaveBeenCalledTimes(4);
+
+          const existsParts = await helperDB.tableExists(parts.entityName, schema);
+          const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+          expect(existsParts).toBeTrue();
+          expect(existsPolygonParts).toBeTrue();
+
+          expect.assertions(6);
+        });
       });
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spyGetRawOne).toHaveBeenCalledTimes(1);
-
-      spyGetRawOne.mockRestore();
-      expect.assertions(4);
-    });
-  });
-
-  describe('POST /polygonParts', () => {
-    it('should return 409 status code if a part resource already exists', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entitiesNames: { parts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      await helperDB.createTable(parts.entityName, schema);
-
-      const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-      expect(response.status).toBe(httpStatusCodes.CONFLICT);
-      expect(response.body).toMatchObject({ message: `Table with the name '${parts.databaseObjectQualifiedName}' already exists` });
-      expect(response).toSatisfyApiSpec();
-
-      expect.assertions(3);
-    });
-
-    it('should return 409 status code if a polygon part resource already exists', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entitiesNames: { polygonParts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      await helperDB.createTable(polygonParts.entityName, schema);
-
-      const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-      expect(response.status).toBe(httpStatusCodes.CONFLICT);
-      expect(response.body).toMatchObject({ message: `Table with the name '${polygonParts.databaseObjectQualifiedName}' already exists` });
-      expect(response).toSatisfyApiSpec();
-
-      expect.assertions(3);
-    });
-
-    it('should return 500 status code for a database error - set search_path error', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      const expectedErrorMessage = 'search_path error';
-      const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error(expectedErrorMessage));
-
-      const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spyQuery).toHaveBeenCalledTimes(1);
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeFalse();
-      expect(existsPolygonParts).toBeFalse();
-
-      expect.assertions(6);
-    });
-
-    it('should return 500 status code for a database error - verify available tables (first table) error', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      const expectedErrorMessage = 'exists error';
-      const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValueOnce(new Error(expectedErrorMessage));
-
-      const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spyGetExists).toHaveBeenCalledTimes(2);
-
-      spyGetExists.mockRestore();
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeFalse();
-      expect(existsPolygonParts).toBeFalse();
-
-      expect.assertions(6);
-    });
-
-    it('should return 500 status code for a database error - verify available tables (second table) error', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      const expectedErrorMessage = 'exists error';
-      const spyGetExists = jest
-        .spyOn(SelectQueryBuilder.prototype, 'getExists')
-        .mockResolvedValueOnce(false)
-        .mockRejectedValueOnce(new Error(expectedErrorMessage));
-
-      const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spyGetExists).toHaveBeenCalledTimes(2);
-
-      spyGetExists.mockRestore();
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeFalse();
-      expect(existsPolygonParts).toBeFalse();
-
-      expect.assertions(6);
-    });
-
-    it('should return 500 status code for a database error - create tables error', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const originalQuery = EntityManager.prototype.query;
-      const expectedErrorMessage = 'query error';
-      const spyQuery = jest
-        .spyOn(EntityManager.prototype, 'query')
-        .mockImplementationOnce(originalQuery)
-        .mockRejectedValueOnce(new Error(expectedErrorMessage));
-
-      const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spyQuery).toHaveBeenCalledTimes(2);
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeFalse();
-      expect(existsPolygonParts).toBeFalse();
-
-      expect.assertions(6);
-    });
-
-    it('should return 500 status code for a database error - save error', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      const expectedErrorMessage = 'save error';
-      const spySave = jest.spyOn(Repository.prototype, 'save').mockRejectedValueOnce(new Error(expectedErrorMessage));
-
-      const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spySave).toHaveBeenCalledTimes(1);
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeFalse();
-      expect(existsPolygonParts).toBeFalse();
-
-      expect.assertions(6);
-    });
-
-    it('should return 500 status code for a database error - calculate polygon parts error', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const originalQuery = EntityManager.prototype.query;
-      const expectedErrorMessage = 'query error';
-      const spyQuery = jest
-        .spyOn(EntityManager.prototype, 'query')
-        .mockImplementationOnce(originalQuery)
-        .mockImplementationOnce(originalQuery)
-        .mockRejectedValueOnce(new Error(expectedErrorMessage));
-
-      const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spyQuery).toHaveBeenCalledTimes(3);
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeFalse();
-      expect(existsPolygonParts).toBeFalse();
-
-      expect.assertions(6);
-    });
-
-    it.todo('should return 500 status code for a database error - no connection');
-    it.todo('should return 500 status code for a database error - timeout');
-  });
-
-  describe('PUT /polygonParts', () => {
-    afterEach(() => {
-      jest.restoreAllMocks(); // Restore original implementations
-    });
-    it("should return 404 status code if a part resource doesn't exist", async () => {
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts },
-      } = getEntitiesMetadata(updatePayload);
-
-      const response = await requestSender.updatePolygonParts(updatePayload, false);
-
-      expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
-      expect(response.body).toMatchObject({ message: `Table with the name '${parts.databaseObjectQualifiedName}' doesn't exists` });
-      expect(response).toSatisfyApiSpec();
-
-      expect.assertions(3);
-    });
-
-    it("should return 404 status code if a polygon part resource doesn't exist", async () => {
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(updatePayload);
-      await helperDB.createTable(parts.entityName, schema);
-
-      const response = await requestSender.updatePolygonParts(updatePayload, false);
-
-      expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
-      expect(response.body).toMatchObject({ message: `Table with the name '${polygonParts.databaseObjectQualifiedName}' doesn't exists` });
-      expect(response).toSatisfyApiSpec();
-
-      expect.assertions(3);
-    });
-
-    it('should return 500 status code for a database error - set search_path error', async () => {
-      await requestSender.createPolygonParts(createInitPayloadRequest);
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(updatePayload);
-      const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error('Transaction failed'));
-
-      const response = await requestSender.updatePolygonParts(updatePayload, true);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: 'Transaction failed' });
-      expect(spyQuery).toHaveBeenCalledTimes(1);
-      expect(response).toSatisfyApiSpec();
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeTrue();
-      expect(existsPolygonParts).toBeTrue();
-
-      expect.assertions(6);
-    });
-
-    it('should return 500 status code if when truncate parts fails', async () => {
-      await requestSender.createPolygonParts(createInitPayloadRequest);
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(updatePayload);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const originalQuery = EntityManager.prototype.query;
-      const spyQuery = jest
-        .spyOn(EntityManager.prototype, 'query')
-        .mockImplementationOnce(originalQuery)
-        .mockRejectedValueOnce(new Error('Failed to truncate table'))
-        .mockImplementationOnce(originalQuery);
-
-      const response = await requestSender.updatePolygonParts(updatePayload, true);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: 'Failed to truncate table' });
-      expect(spyQuery).toHaveBeenCalledTimes(3);
-      expect(response).toSatisfyApiSpec();
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeTrue();
-      expect(existsPolygonParts).toBeTrue();
-
-      expect.assertions(6);
-    });
-
-    it('should return 500 status code if when truncate polygon parts fails', async () => {
-      await requestSender.createPolygonParts(createInitPayloadRequest);
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(updatePayload);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const originalQuery = EntityManager.prototype.query;
-      const spyQuery = jest
-        .spyOn(EntityManager.prototype, 'query')
-        .mockImplementationOnce(originalQuery)
-        .mockImplementationOnce(originalQuery)
-        .mockRejectedValueOnce(new Error('Failed to truncate table'));
-
-      const response = await requestSender.updatePolygonParts(updatePayload, true);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: 'Failed to truncate table' });
-      expect(spyQuery).toHaveBeenCalledTimes(3);
-      expect(response).toSatisfyApiSpec();
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeTrue();
-      expect(existsPolygonParts).toBeTrue();
-
-      expect.assertions(6);
-    });
-
-    it('should return 500 status code for a database error - verify tables exists (first table) error', async () => {
-      await requestSender.createPolygonParts(createInitPayloadRequest);
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(updatePayload);
-      const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValueOnce(new Error('Failed to execute query'));
-
-      const response = await requestSender.updatePolygonParts(updatePayload, true);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: 'Failed to execute query' });
-      expect(response).toSatisfyApiSpec();
-      expect(spyGetExists).toHaveBeenCalledTimes(2);
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeTrue();
-      expect(existsPolygonParts).toBeTrue();
-
-      expect.assertions(6);
-    });
-
-    it('should return 500 status code for a database error - verify tables exists(second table) error', async () => {
-      await requestSender.createPolygonParts(createInitPayloadRequest);
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(updatePayload);
-      const spyGetExists = jest
-        .spyOn(SelectQueryBuilder.prototype, 'getExists')
-        .mockResolvedValueOnce(true)
-        .mockRejectedValueOnce(new Error('Failed to execute query'));
-
-      const response = await requestSender.updatePolygonParts(updatePayload, true);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: 'Failed to execute query' });
-      expect(response).toSatisfyApiSpec();
-      expect(spyGetExists).toHaveBeenCalledTimes(2);
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeTrue();
-      expect(existsPolygonParts).toBeTrue();
-
-      expect.assertions(6);
-    });
-
-    it('should return 500 status code for a database error - save error', async () => {
-      await requestSender.createPolygonParts(createInitPayloadRequest);
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(updatePayload);
-      const expectedErrorMessage = `Failed to save to ${parts.entityName}`;
-      const spySave = jest.spyOn(Repository.prototype, 'save').mockRejectedValueOnce(new Error(expectedErrorMessage));
-
-      const response = await requestSender.updatePolygonParts(updatePayload, true);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spySave).toHaveBeenCalledTimes(1);
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeTrue();
-      expect(existsPolygonParts).toBeTrue();
-
-      expect.assertions(6);
-    });
-
-    it('should return 500 status code for a database error - calculate polygon parts error on regular update', async () => {
-      await requestSender.createPolygonParts(createInitPayloadRequest);
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(updatePayload);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const originalQuery = EntityManager.prototype.query;
-      const spyQuery = jest
-        .spyOn(EntityManager.prototype, 'query')
-        .mockImplementationOnce(originalQuery)
-        .mockRejectedValueOnce(new Error(`Failed to calculate polygon parts on  ${polygonParts.entityName}`));
-
-      const response = await requestSender.updatePolygonParts(updatePayload, false);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: `Failed to calculate polygon parts on  ${polygonParts.entityName}` });
-      expect(response).toSatisfyApiSpec();
-      expect(spyQuery).toHaveBeenCalledTimes(2);
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeTrue();
-      expect(existsPolygonParts).toBeTrue();
-
-      expect.assertions(6);
-    });
-
-    it('should return 500 status code for a database error - calculate polygon parts error on swap update', async () => {
-      await requestSender.createPolygonParts(createInitPayloadRequest);
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(updatePayload);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const originalQuery = EntityManager.prototype.query;
-      const spyQuery = jest
-        .spyOn(EntityManager.prototype, 'query')
-        .mockImplementationOnce(originalQuery)
-        .mockImplementationOnce(originalQuery)
-        .mockImplementationOnce(originalQuery)
-        .mockRejectedValueOnce(new Error(`Failed to calculate polygon parts on  ${polygonParts.entityName}`));
-
-      const response = await requestSender.updatePolygonParts(updatePayload, true);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: `Failed to calculate polygon parts on  ${polygonParts.entityName}` });
-      expect(response).toSatisfyApiSpec();
-      expect(spyQuery).toHaveBeenCalledTimes(4);
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeTrue();
-      expect(existsPolygonParts).toBeTrue();
-
-      expect.assertions(6);
     });
   });
 });

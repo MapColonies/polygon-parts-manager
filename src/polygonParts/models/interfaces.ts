@@ -8,7 +8,7 @@ import type {
 } from '@map-colonies/raster-shared';
 import type { Feature, FeatureCollection, GeoJsonProperties, Geometry, MultiPolygon, Polygon } from 'geojson';
 import { EntityManager, SelectQueryBuilder } from 'typeorm';
-import type { NonNullableRecordValues, ReplaceValuesOfType } from '../../common/types';
+import type { OptionalToNullableRecordValues, ReplaceValuesOfType } from '../../common/types';
 
 //#region public
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
@@ -48,7 +48,7 @@ export type FindPolygonPartsOptionsFilterGeometries = Polygon | MultiPolygon;
 export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = FeatureCollection<
   Polygon,
   ReplaceValuesOfType<
-    NonNullableRecordValues<
+    OptionalToNullableRecordValues<
       Omit<PolygonPartRecord, 'countries' | 'cities' | 'footprint' | 'insertionOrder' | 'sensors'> & {
         countries?: string[];
         cities?: string[];

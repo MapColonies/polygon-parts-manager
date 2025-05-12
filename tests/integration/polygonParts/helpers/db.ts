@@ -76,7 +76,6 @@ export const generatePolygonPart = (): PolygonPart => {
   };
 };
 
-// TODO: merge with generateRequest() in requestsMocks.ts
 export function generatePolygonPartsPayload(partsCount: number): PolygonPartsPayload;
 export function generatePolygonPartsPayload(template: DeepPartial<PolygonPartsPayload>): PolygonPartsPayload;
 export function generatePolygonPartsPayload(input: number | DeepPartial<PolygonPartsPayload>): PolygonPartsPayload {

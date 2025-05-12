@@ -62,7 +62,7 @@ export class PolygonPartsController {
     try {
       const response = await this.polygonPartsManager.findPolygonParts({
         shouldClip: req.query.shouldClip,
-        filter: req.body,
+        filter: req.body.filter,
         polygonPartsEntityName: res.locals.entitiesNames.polygonParts,
       });
       return res.status(httpStatus.OK).send(response);
@@ -75,7 +75,7 @@ export class PolygonPartsController {
     try {
       const response = await this.polygonPartsManager.aggregateLayerMetadata({
         polygonPartsEntityName: res.locals.entitiesNames.polygonParts,
-        filter: req.body,
+        filter: req.body.filter,
       });
       return res.status(httpStatus.OK).json(response);
     } catch (error) {

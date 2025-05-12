@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.7.0](https://github.com/MapColonies/polygon-parts-manager/compare/v1.6.0...v1.7.0) (2025-05-11)
+
+
+### Features
+
+* add aggreagtion filter and geojson feature response(MAPCO-6245) ([#43](https://github.com/MapColonies/polygon-parts-manager/issues/43)) ([d6c78cd](https://github.com/MapColonies/polygon-parts-manager/commit/d6c78cdce9d142403e1318762fa26843a0e35d60))
+* filter find response by resolution (MAPCO-7092) ([#42](https://github.com/MapColonies/polygon-parts-manager/issues/42)) ([11255d2](https://github.com/MapColonies/polygon-parts-manager/commit/11255d24eae1898c44a55080db922bb3880bf990))
+
 ## [1.6.0](https://github.com/MapColonies/polygon-parts-manager/compare/v1.5.2...v1.6.0) (2025-03-10)
 
 

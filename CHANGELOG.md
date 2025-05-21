@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.7.1](https://github.com/MapColonies/polygon-parts-manager/compare/v1.7.0...v1.7.1) (2025-05-21)
+
+
+### Bug Fixes
+
+* mixed geometries ([#46](https://github.com/MapColonies/polygon-parts-manager/issues/46)) ([9c1f24c](https://github.com/MapColonies/polygon-parts-manager/commit/9c1f24c6dc8b0edb18a00ead4a144992fcd4424d))
+
 ## [1.7.0](https://github.com/MapColonies/polygon-parts-manager/compare/v1.6.0...v1.7.0) (2025-05-11)
 
 

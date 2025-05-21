@@ -492,7 +492,7 @@ export class PolygonPartsManager {
 
     const filterGeometriesCTE = entityManager
       .createQueryBuilder()
-      .select('st_geomfromgeojson(geometry)', 'filter_geometry')
+      .select('st_setsrid(st_geomfromgeojson(geometry), 4326)', 'filter_geometry')
       .addSelect('properties')
       .addSelect('id', 'filter_id')
       .from('input_filter_geometries', 'input_filter_geometries');
@@ -684,7 +684,7 @@ export class PolygonPartsManager {
     const geometriesCollection = geometryCollection(filterGeometries).geometry;
     const isValidFilterGeometry = (
       await entityManager.query<IsValidDetailsResult[]>(
-        `select ${isValidDetailsResult.valid}, ${isValidDetailsResult.reason}, st_asgeojson(location) as ${isValidDetailsResult.location} from st_isvaliddetail(st_geomfromgeojson($1))`,
+        `select ${isValidDetailsResult.valid}, ${isValidDetailsResult.reason}, st_asgeojson(location) as ${isValidDetailsResult.location} from st_isvaliddetail(st_setsrid(st_geomfromgeojson($1), 4326))`,
         [JSON.stringify(geometriesCollection)]
       )
     )[0];

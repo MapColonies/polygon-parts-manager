@@ -1,4 +1,4 @@
-import { DefaultNamingStrategy, type Table } from 'typeorm';
+import { DefaultNamingStrategy, type ObjectLiteral, type Repository, type Table } from 'typeorm';
 import type { ApplicationConfig } from '../../common/interfaces';
 import { camelCaseToSnakeCase } from '../../common/utils';
 import type { InsertPartData, PolygonPartsPayload } from '../models/interfaces';
@@ -23,6 +23,11 @@ customNamingStrategy.primaryKeyName = (tableOrName: Table | string): string => {
 
 export const getMappedColumnName = (propertyName: string): string => {
   return camelCaseToSnakeCase(propertyName);
+};
+
+export const setRepositoryTablePath = <Entity extends ObjectLiteral>(repository: Repository<Entity>, table: string): Repository<Entity> => {
+  repository.metadata.tablePath = table; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
+  return repository;
 };
 
 export const payloadToInsertPartsData = (

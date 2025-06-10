@@ -1,5 +1,5 @@
 import type { RoiProperties } from '@map-colonies/raster-shared';
-import type { MapValues } from '../../common/types';
+import type { IdenticalKeyValuePairs, MapValues } from '../../common/types';
 import { getMappedColumnName } from '../DAL/utils';
 import type { FindPolygonPartsResponse, IsValidDetailsResult, PolygonPartRecord } from './interfaces';
 
@@ -31,10 +31,10 @@ const FIND_OUTPUT_PROPERTIES: MapValues<Required<Omit<PolygonPartRecord, 'footpr
 export const geometryColumn = getMappedColumnName('footprint' satisfies keyof Pick<PolygonPartRecord, 'footprint'>);
 export const idColumn = getMappedColumnName('id' satisfies keyof Pick<PolygonPartRecord, 'id'>);
 export const insertionOrderColumn = getMappedColumnName('insertionOrder' satisfies keyof Pick<PolygonPartRecord, 'insertionOrder'>);
-export const isValidDetailsResult = {
-  valid: 'valid' satisfies keyof Pick<IsValidDetailsResult, 'valid'>,
-  reason: 'reason' satisfies keyof Pick<IsValidDetailsResult, 'reason'>,
-  location: 'location' satisfies keyof Pick<IsValidDetailsResult, 'location'>,
+export const isValidDetailsResult: IdenticalKeyValuePairs<IsValidDetailsResult> = {
+  valid: 'valid',
+  reason: 'reason',
+  location: 'location',
 };
 export const minResolutionDeg = 'minResolutionDeg' satisfies keyof Pick<RoiProperties, 'minResolutionDeg'>;
 export const requestFeatureId = 'requestFeatureId' satisfies keyof Pick<

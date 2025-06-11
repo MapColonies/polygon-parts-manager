@@ -3,6 +3,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class ModifyPolygonPartsCalculationStoredProcedure1749550991995 implements MigrationInterface {
 
     public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP PROCEDURE IF EXISTS polygon_parts.update_polygon_parts(regclass, regclass)`);
+
         await queryRunner.query(`
             CREATE OR REPLACE PROCEDURE polygon_parts.update_polygon_parts(
                 IN parts regclass,

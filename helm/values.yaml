@@ -83,6 +83,7 @@ db:
   name: ''
   schema: polygon_parts
   logging: false
+  logNotifications: false
   applicationName: polygon_parts
   sslEnabled: false
   sslAuth:

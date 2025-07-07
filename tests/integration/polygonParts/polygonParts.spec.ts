@@ -1,10 +1,10 @@
 import { faker } from '@faker-js/faker';
 import jsLogger from '@map-colonies/js-logger';
-import { aggregationFeatureSchema, CORE_VALIDATIONS, INGESTION_VALIDATIONS, PolygonPart as PolygonPartType } from '@map-colonies/raster-shared';
 import { zoomLevelToResolutionDeg } from '@map-colonies/mc-utils';
+import { aggregationFeatureSchema, CORE_VALIDATIONS, INGESTION_VALIDATIONS, PolygonPart as PolygonPartType } from '@map-colonies/raster-shared';
 import { trace } from '@opentelemetry/api';
-import { booleanEqual } from '@turf/boolean-equal';
 import { booleanContains } from '@turf/boolean-contains';
+import { booleanEqual } from '@turf/boolean-equal';
 import { feature, featureCollection, multiPolygon, polygon, polygons } from '@turf/helpers';
 import { randomPolygon } from '@turf/random';
 import config, { type IConfig } from 'config';
@@ -15,14 +15,14 @@ import { container } from 'tsyringe';
 import { EntityManager, Geometry, Repository, SelectQueryBuilder, type DataSourceOptions } from 'typeorm';
 import { getApp } from '../../../src/app';
 import { ConnectionManager } from '../../../src/common/connectionManager';
-import { aggregationFeaturePropertiesValidationTestCases } from '../../mocks/aggregationTestCases';
 import { SERVICES } from '../../../src/common/constants';
 import type { ApplicationConfig, DbConfig } from '../../../src/common/interfaces';
 import { Transformer } from '../../../src/common/middlewares/transformer';
-import { Part } from '../../../src/polygonParts/DAL/part';
-import { customAggregationNoFilter, customAggregationWithFilter } from '../../mocks/responseMocks';
-import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
+import { createConnectionOptions } from '../../../src/common/utils';
 import type { AggregatePolygonPartsRequestBody, FindPolygonPartsResponseBody } from '../../../src/polygonParts/controllers/interfaces';
+import { Part } from '../../../src/polygonParts/DAL/part';
+import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
+import { namingStrategy } from '../../../src/polygonParts/DAL/utils';
 import type {
   EntitiesMetadata,
   EntityIdentifier,
@@ -30,9 +30,10 @@ import type {
   PolygonPartsPayload,
   PolygonPartsResponse,
 } from '../../../src/polygonParts/models/interfaces';
+import { aggregationFeaturePropertiesValidationTestCases } from '../../mocks/aggregationTestCases';
 import {
-  createInitPayloadRequest,
   createCustomInitPayloadRequestForAggregation,
+  createInitPayloadRequest,
   franceFootprint,
   germanyFootprint,
   intersectionWithItalyFootprint,
@@ -43,13 +44,14 @@ import {
   worldFootprint,
   worldMinusSeparateCountries,
 } from '../../mocks/requestsMocks';
+import { customAggregationNoFilter, customAggregationWithFilter } from '../../mocks/responseMocks';
 import polygonEarth from './data/polygonEarth.json';
 import polygonEasternHemisphere from './data/polygonEasternHemisphere.json';
 import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
 import polygonWesternHemisphere from './data/polygonWesternHemisphere.json';
 import { INITIAL_DB, INTERNAL_DB_GEOM_PRECISION } from './helpers/constants';
-import { HelperDB, createDB, generateFeatureId, generatePolygon, generatePolygonPartsPayload } from './helpers/db';
+import { createDB, generateFeatureId, generatePolygon, generatePolygonPartsPayload, HelperDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import { allFindFeaturesEqual, toExpectedFindPolygonPartsResponse, toExpectedPostgresResponse } from './helpers/utils';
 
@@ -66,7 +68,7 @@ describe('polygonParts', () => {
   ) => EntitiesMetadata;
 
   beforeAll(async () => {
-    testDataSourceOptions = ConnectionManager.createConnectionOptions(dbConfig);
+    testDataSourceOptions = { entities: [Part, PolygonPart], namingStrategy, ...createConnectionOptions(dbConfig) };
     await createDB({ options: testDataSourceOptions, initialDatabase: INITIAL_DB });
     helperDB = new HelperDB(testDataSourceOptions);
     await helperDB.initConnection();

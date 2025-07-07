@@ -1,4 +1,3 @@
-import { readFileSync } from 'fs';
 import { Logger } from '@map-colonies/js-logger';
 import { types } from 'pg';
 import { inject, singleton } from 'tsyringe';
@@ -10,6 +9,8 @@ import type { DbConfig, IConfig } from '../common/interfaces';
 import { Part } from '../polygonParts/DAL/part';
 import { PolygonPart } from '../polygonParts/DAL/polygonPart';
 import { namingStrategy } from '../polygonParts/DAL/utils';
+import { DataSourceLogger } from './dataSourceLogger';
+import { createConnectionOptions } from './utils';
 
 // postgresql - parse NUMERIC and BIGINT as numbers instead of strings
 types.setTypeParser(types.builtins.NUMERIC, (value) => parseFloat(value));
@@ -22,20 +23,15 @@ export class ConnectionManager {
   private readonly dataSourceOptions: DataSourceOptions;
   private readonly schema: DbConfig['schema'];
 
-  public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, @inject(SERVICES.CONFIG) private readonly config: IConfig) {
+  public constructor(
+    @inject(SERVICES.LOGGER) private readonly logger: Logger,
+    @inject(SERVICES.CONFIG) private readonly config: IConfig,
+    @inject(DataSourceLogger) private readonly dataSourceLogger: DataSourceLogger
+  ) {
     const connectionConfig = this.config.get<DbConfig>('db');
     this.schema = connectionConfig.schema;
-    this.dataSourceOptions = ConnectionManager.createConnectionOptions(connectionConfig);
+    this.dataSourceOptions = this.createConnectionOptions(connectionConfig);
     this.dataSource = new DataSource(this.dataSourceOptions);
-  }
-
-  public static createConnectionOptions(dbConfig: DbConfig): PostgresConnectionOptions {
-    const { enableSslAuth, sslPaths, ...connectionOptions } = dbConfig;
-    if (enableSslAuth) {
-      connectionOptions.password = undefined;
-      connectionOptions.ssl = { key: readFileSync(sslPaths.key), cert: readFileSync(sslPaths.cert), ca: readFileSync(sslPaths.ca) };
-    }
-    return { entities: [Part, PolygonPart], namingStrategy, ...connectionOptions };
   }
 
   public async init(): Promise<void> {
@@ -103,6 +99,11 @@ export class ConnectionManager {
       .andWhere(`table_name = '${entityName}'`)
       .getExists();
     return exists;
+  }
+
+  private createConnectionOptions(dbConfig: DbConfig): PostgresConnectionOptions {
+    const connectionOptions = createConnectionOptions(dbConfig);
+    return { entities: [Part, PolygonPart], namingStrategy, logger: this.dataSourceLogger, ...connectionOptions };
   }
 
   private async schemaExists(): Promise<boolean> {

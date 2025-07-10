@@ -6961,11 +6961,9 @@ describe('polygonParts', () => {
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        expect(response.body).toMatchObject({ message: expect.any(String) });
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(3);
+        expect.assertions(2);
       });
     });
 

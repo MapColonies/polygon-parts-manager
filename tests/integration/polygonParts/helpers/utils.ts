@@ -10,7 +10,7 @@ import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/in
 import { INTERNAL_DB_GEOM_PRECISION } from './constants';
 import type { ExpectedPostgresResponse } from './types';
 
-const applicationConfig = config.get<ApplicationConfig>('application');
+const getApplicationConfig = (): ApplicationConfig => config.get<ApplicationConfig>('application');
 
 export const allFindFeaturesEqual = <T extends FindPolygonPartsResponseBody<ShouldClip>['features'][number], ShouldClip extends boolean = boolean>(
   expectedGeometries: Polygon[],
@@ -32,7 +32,7 @@ export const allFindFeaturesEqual = <T extends FindPolygonPartsResponseBody<Shou
 };
 
 export function toExpectedPostgresResponse(polygonPartsPayload: PolygonPartsPayload): ExpectedPostgresResponse {
-  const expectedPostgresResponse = payloadToInsertPartsData(polygonPartsPayload, applicationConfig.arraySeparator).map((record) => {
+  const expectedPostgresResponse = payloadToInsertPartsData(polygonPartsPayload, getApplicationConfig().arraySeparator).map((record) => {
     const { cities = null, countries = null, description = null, sourceId = null, ...props } = record;
     return { cities, countries, description, sourceId, ...props };
   });

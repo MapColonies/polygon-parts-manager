@@ -1,28 +1,27 @@
 import { faker } from '@faker-js/faker';
 import jsLogger from '@map-colonies/js-logger';
-import { aggregationFeatureSchema, CORE_VALIDATIONS, INGESTION_VALIDATIONS, PolygonPart as PolygonPartType } from '@map-colonies/raster-shared';
 import { zoomLevelToResolutionDeg } from '@map-colonies/mc-utils';
+import { aggregationFeatureSchema, CORE_VALIDATIONS, INGESTION_VALIDATIONS, PolygonPart as PolygonPartType } from '@map-colonies/raster-shared';
 import { trace } from '@opentelemetry/api';
-import { booleanEqual } from '@turf/boolean-equal';
 import { booleanContains } from '@turf/boolean-contains';
+import { booleanEqual } from '@turf/boolean-equal';
 import { feature, featureCollection, multiPolygon, polygon, polygons } from '@turf/helpers';
 import { randomPolygon } from '@turf/random';
-import config, { type IConfig } from 'config';
+import config from 'config';
 import type { BBox, FeatureCollection, MultiPolygon, Polygon } from 'geojson';
 import { StatusCodes as httpStatusCodes } from 'http-status-codes';
+import { get as getValue, merge } from 'lodash';
 import { xor } from 'martinez-polygon-clipping';
 import { container } from 'tsyringe';
 import { EntityManager, Geometry, Repository, SelectQueryBuilder, type DataSourceOptions } from 'typeorm';
 import { getApp } from '../../../src/app';
 import { ConnectionManager } from '../../../src/common/connectionManager';
-import { aggregationFeaturePropertiesValidationTestCases } from '../../mocks/aggregationTestCases';
 import { SERVICES } from '../../../src/common/constants';
 import type { ApplicationConfig, DbConfig } from '../../../src/common/interfaces';
 import { Transformer } from '../../../src/common/middlewares/transformer';
-import { Part } from '../../../src/polygonParts/DAL/part';
-import { customAggregationNoFilter, customAggregationWithFilter } from '../../mocks/responseMocks';
-import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
 import type { AggregatePolygonPartsRequestBody, FindPolygonPartsResponseBody } from '../../../src/polygonParts/controllers/interfaces';
+import { Part } from '../../../src/polygonParts/DAL/part';
+import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
 import type {
   EntitiesMetadata,
   EntityIdentifier,
@@ -30,9 +29,10 @@ import type {
   PolygonPartsPayload,
   PolygonPartsResponse,
 } from '../../../src/polygonParts/models/interfaces';
+import { aggregationFeaturePropertiesValidationTestCases } from '../../mocks/aggregationTestCases';
 import {
-  createInitPayloadRequest,
   createCustomInitPayloadRequestForAggregation,
+  createInitPayloadRequest,
   franceFootprint,
   germanyFootprint,
   intersectionWithItalyFootprint,
@@ -43,15 +43,35 @@ import {
   worldFootprint,
   worldMinusSeparateCountries,
 } from '../../mocks/requestsMocks';
+import { customAggregationNoFilter, customAggregationWithFilter } from '../../mocks/responseMocks';
 import polygonEarth from './data/polygonEarth.json';
 import polygonEasternHemisphere from './data/polygonEasternHemisphere.json';
 import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
 import polygonWesternHemisphere from './data/polygonWesternHemisphere.json';
 import { INITIAL_DB, INTERNAL_DB_GEOM_PRECISION } from './helpers/constants';
-import { HelperDB, createDB, generateFeatureId, generatePolygon, generatePolygonPartsPayload } from './helpers/db';
+import { createDB, generateFeatureId, generatePolygon, generatePolygonPartsPayload, HelperDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
+import type { DeepPartial } from './helpers/types';
 import { allFindFeaturesEqual, toExpectedFindPolygonPartsResponse, toExpectedPostgresResponse } from './helpers/utils';
+
+type ConfigImport = typeof import('config') & { application: ApplicationConfig };
+
+const mockGetConfig = jest.fn<{ application: DeepPartial<ApplicationConfig> } | undefined, [string]>();
+jest.mock<{ default: ConfigImport }>('config', () => {
+  const originalModule = jest.requireActual<ConfigImport>('config');
+  return {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    __esModule: true,
+    default: {
+      ...originalModule,
+      get<T>(setting: string): T {
+        const overrideConfig = mockGetConfig(setting);
+        return getValue(merge({}, originalModule, overrideConfig), setting) as unknown as T;
+      },
+    },
+  };
+});
 
 let testDataSourceOptions: DataSourceOptions;
 const applicationConfig = config.get<ApplicationConfig>('application');
@@ -5859,33 +5879,16 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if polygonPartsEntityName is an invalid value - must resolve to a valid resource identifier (no longer than 63 chars)', async () => {
-        const customConfig: IConfig = {
-          get: <T>(setting: string): T => {
-            if (setting === 'application') {
-              const defaultApplicationConfig = config.get<ApplicationConfig>(setting);
-              return {
-                ...defaultApplicationConfig,
-                entities: {
-                  ...defaultApplicationConfig.entities,
-                  parts: {
-                    namePrefix: 'very_long_prefix_',
-                    nameSuffix: '_very_long_suffix',
-                  },
-                },
-              } as unknown as T;
-            }
-            return config.get(setting);
-          },
-          // eslint-disable-next-line @typescript-eslint/unbound-method
-          has: config.has,
-          util: config.util,
-        };
+        mockGetConfig.mockImplementation((setting: string) => {
+          return setting === 'application'
+            ? { application: { entities: { parts: { namePrefix: 'very_long_prefix_', nameSuffix: '_very_long_suffix' } } } }
+            : undefined;
+        });
         const connectionManager = container.resolve<ConnectionManager>(ConnectionManager);
         await connectionManager.destroy();
         container.clearInstances();
         const app = await getApp({
           override: [
-            { token: SERVICES.CONFIG, provider: { useValue: customConfig } },
             { token: SERVICES.LOGGER, provider: { useValue: jsLogger({ enabled: false }) } },
             { token: SERVICES.TRACER, provider: { useValue: trace.getTracer('testTracer') } },
           ],

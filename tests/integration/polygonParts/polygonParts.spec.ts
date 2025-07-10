@@ -6251,7 +6251,7 @@ describe('polygonParts', () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload)).body as unknown as PolygonPartsResponse;
         const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
-        // TODO: update error message
+        // TODO: update error message - add expect for specific error message
 
         const response = await requestSender.findPolygonParts({
           params: { polygonPartsEntityName },

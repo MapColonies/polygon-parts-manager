@@ -6680,7 +6680,6 @@ describe('polygonParts', () => {
     describe('POST /polygonParts', () => {
       it('should return 400 status code if product type is an invalid value', async () => {
         const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productType: 'bad value' };
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload as PolygonPartsPayload);
 
@@ -6692,7 +6691,6 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if catalog id is an invalid value', async () => {
         const polygonPartsPayload = { ...generatePolygonPartsPayload(1), catalogId: 'bad value' };
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
@@ -6704,7 +6702,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if product id is an invalid value', async () => {
         const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productId: 'bad value' };
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
@@ -6715,12 +6713,10 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if product id has more than 38 characters', async () => {
         const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productId: 'a123456789b123456789c123456789d12345678' };
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(2);
@@ -6728,12 +6724,10 @@ describe('polygonParts', () => {
 
       it('should return 400 status code if product version is an invalid value', async () => {
         const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productVersion: 'bad value' };
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(2);
@@ -6742,12 +6736,10 @@ describe('polygonParts', () => {
       it('should return 400 status code if countries is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], countries: [123] } as unknown as PolygonPartType];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(2);
@@ -6756,12 +6748,10 @@ describe('polygonParts', () => {
       it('should return 400 status code if cities is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], cities: [123] } as unknown as PolygonPartType];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(2);
@@ -6770,12 +6760,10 @@ describe('polygonParts', () => {
       it('should return 400 status code if sensors is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sensors: 123 } as unknown as PolygonPartType];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(2);
@@ -6784,7 +6772,6 @@ describe('polygonParts', () => {
       it('should return 400 status code if source name is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceName: 123 } as unknown as PolygonPartType];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
@@ -6797,7 +6784,6 @@ describe('polygonParts', () => {
       it('should return 400 status code if resolution degree is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: 0 }];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
@@ -6810,7 +6796,6 @@ describe('polygonParts', () => {
       it('should return 400 status code if resolution meter is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionMeter: 0 }];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
@@ -6823,7 +6808,6 @@ describe('polygonParts', () => {
       it('should return 400 status code if source resolution meter is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceResolutionMeter: 0 }];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
@@ -6836,7 +6820,6 @@ describe('polygonParts', () => {
       it('should return 400 status code if horizontal accuracy ce90 is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], horizontalAccuracyCE90: 0 }];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
@@ -6849,7 +6832,6 @@ describe('polygonParts', () => {
       it('should return 400 status code if imaging time begin utc is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], imagingTimeBeginUTC: 'bad value' } as unknown as PolygonPartType];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
@@ -6862,7 +6844,6 @@ describe('polygonParts', () => {
       it('should return 400 status code if imaging time end utc is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], imagingTimeEndUTC: 'bad value' } as unknown as PolygonPartType];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
@@ -6882,7 +6863,6 @@ describe('polygonParts', () => {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const { coordinates, ...badFootprint } = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
@@ -6898,7 +6878,6 @@ describe('polygonParts', () => {
         const badFootprint = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
         badFootprint.coordinates[0] = badFootprint.coordinates[0].filter((_, index) => (index === 1 ? false : true));
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], footprint: badFootprint }];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
@@ -6914,7 +6893,6 @@ describe('polygonParts', () => {
         const badFootprint = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
         badFootprint.coordinates[0][0][1] = 181;
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], footprint: badFootprint }];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
@@ -6929,7 +6907,6 @@ describe('polygonParts', () => {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const { type, ...badFootprint } = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
@@ -6944,7 +6921,6 @@ describe('polygonParts', () => {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const badFootprint = { ...randomPolygon(1, { num_vertices: 3 }).features[0].geometry, type: 'Point' };
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
@@ -6957,7 +6933,6 @@ describe('polygonParts', () => {
       it('should return 400 status code if source id is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceId: 123 } as unknown as PolygonPartType];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
@@ -6970,7 +6945,6 @@ describe('polygonParts', () => {
       it('should return 400 status code if description is an invalid value', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
         polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], description: 123 } as unknown as PolygonPartType];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 

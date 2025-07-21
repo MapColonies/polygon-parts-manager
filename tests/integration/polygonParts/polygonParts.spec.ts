@@ -26,6 +26,7 @@ import type {
   EntitiesMetadata,
   EntityIdentifier,
   EntityIdentifierObject,
+  EntityNames,
   PolygonPartsPayload,
   PolygonPartsResponse,
 } from '../../../src/polygonParts/models/interfaces';
@@ -102,6 +103,7 @@ describe('polygonParts', () => {
   beforeEach(async () => {
     jest.resetAllMocks();
     jest.clearAllMocks();
+    jest.restoreAllMocks();
     await helperDB.createSchema(schema);
     await helperDB.sync();
     container.clearInstances();
@@ -112,7 +114,8 @@ describe('polygonParts', () => {
       ],
       useChild: true,
     });
-    getEntitiesMetadata = container.resolve(Transformer).getEntitiesMetadata;
+    const transformer = container.resolve(Transformer);
+    getEntitiesMetadata = transformer.getEntitiesMetadata.bind(transformer);
     requestSender = new PolygonPartsRequestSender(app);
   });
 
@@ -5879,25 +5882,16 @@ describe('polygonParts', () => {
       });
 
       it('should return 400 status code if polygonPartsEntityName is an invalid value - must resolve to a valid resource identifier (no longer than 63 chars)', async () => {
-        mockGetConfig.mockImplementation((setting: string) => {
-          return setting === 'application'
-            ? { application: { entities: { parts: { namePrefix: 'very_long_prefix_', nameSuffix: '_very_long_suffix' } } } }
-            : undefined;
-        });
-        const connectionManager = container.resolve<ConnectionManager>(ConnectionManager);
-        await connectionManager.destroy();
-        container.clearInstances();
-        const app = await getApp({
-          override: [
-            { token: SERVICES.LOGGER, provider: { useValue: jsLogger({ enabled: false }) } },
-            { token: SERVICES.TRACER, provider: { useValue: trace.getTracer('testTracer') } },
-          ],
-          useChild: true,
-        });
-        requestSender = new PolygonPartsRequestSender(app);
+        const entityIdentifier = 'very_long_valid_name_orthophoto';
 
+        jest
+          .spyOn(Transformer, 'getEntityName')
+          .mockImplementation(
+            (entityIdentifier: EntityIdentifier): EntityNames['entityName'] =>
+              `very_long_prefix_${entityIdentifier}_very_long_suffix` as EntityNames['entityName']
+          );
         const response = await requestSender.findPolygonParts({
-          params: { polygonPartsEntityName: 'very_long_valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: entityIdentifier as EntityIdentifier },
           body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
         });
 

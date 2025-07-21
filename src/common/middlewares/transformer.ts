@@ -10,9 +10,9 @@ import type {
 } from '../../polygonParts/models/interfaces';
 import { getEntitiesMetadataSchemaFactory, schemaParser } from '../../polygonParts/schemas';
 import { SERVICES } from '../constants';
+import { ValidationError } from '../errors';
 import type { ApplicationConfig, DbConfig, IConfig } from '../interfaces';
 import type { DeepMapValues } from '../types';
-import { ValidationError } from '../errors';
 
 @singleton()
 export class Transformer {
@@ -24,48 +24,58 @@ export class Transformer {
     this.applicationConfig = this.config.get<ApplicationConfig>('application');
     this.schema = this.config.get<DbConfig['schema']>('db.schema');
     this.entitiesMetadataSchema = getEntitiesMetadataSchemaFactory({
-      getEntitiesMetadata: this.getEntitiesMetadata,
       ...{ schema: this.schema },
       ...{ entities: this.applicationConfig.entities },
     });
   }
 
-  public readonly getDatabaseObjectQualifiedName = (
+  public static getDatabaseObjectQualifiedName(
     schema: Lowercase<string>,
     value: EntityNames['entityName']
-  ): EntityNames['databaseObjectQualifiedName'] => {
+  ): EntityNames['databaseObjectQualifiedName'] {
     return `${schema}.${value}` satisfies EntityNames['databaseObjectQualifiedName'];
-  };
+  }
 
-  public readonly getEntitiesMetadata = (
+  public static getEntityIdentifier(
     entityIdentifierOptions: EntityIdentifierObject | Pick<PolygonPartsPayload, 'productId' | 'productType'>
-  ): EntitiesMetadata => {
-    const entityIdentifier = (
+  ): EntityIdentifier {
+    return (
       'polygonPartsEntityName' in entityIdentifierOptions
         ? entityIdentifierOptions.polygonPartsEntityName
         : [entityIdentifierOptions.productId, entityIdentifierOptions.productType].join('_').toLowerCase()
     ) as EntityIdentifier;
-    const partsEntityName =
-      `${this.applicationConfig.entities.parts.namePrefix}${entityIdentifier}${this.applicationConfig.entities.parts.nameSuffix}` satisfies EntityNames['entityName'];
-    const polygonPartsEntityName =
-      `${this.applicationConfig.entities.polygonParts.namePrefix}${entityIdentifier}${this.applicationConfig.entities.polygonParts.nameSuffix}` satisfies EntityNames['entityName'];
+  }
+
+  public static getEntityName(
+    entityIdentifier: EntityIdentifier,
+    entityNameOptions: { namePrefix: Lowercase<string>; nameSuffix: Lowercase<string> }
+  ): EntityNames['entityName'] {
+    return `${entityNameOptions.namePrefix}${entityIdentifier}${entityNameOptions.nameSuffix}` satisfies EntityNames['entityName'];
+  }
+
+  public getEntitiesMetadata(
+    entityIdentifierOptions: EntityIdentifierObject | Pick<PolygonPartsPayload, 'productId' | 'productType'>
+  ): EntitiesMetadata {
+    const entityIdentifier = Transformer.getEntityIdentifier(entityIdentifierOptions);
+    const partsEntityName = Transformer.getEntityName(entityIdentifier, this.applicationConfig.entities.parts);
+    const polygonPartsEntityName = Transformer.getEntityName(entityIdentifier, this.applicationConfig.entities.polygonParts);
 
     return {
       entityIdentifier,
       entitiesNames: {
         parts: {
           entityName: partsEntityName,
-          databaseObjectQualifiedName: this.getDatabaseObjectQualifiedName(this.schema, partsEntityName),
+          databaseObjectQualifiedName: Transformer.getDatabaseObjectQualifiedName(this.schema, partsEntityName),
         },
         polygonParts: {
           entityName: polygonPartsEntityName,
-          databaseObjectQualifiedName: this.getDatabaseObjectQualifiedName(this.schema, polygonPartsEntityName),
+          databaseObjectQualifiedName: Transformer.getDatabaseObjectQualifiedName(this.schema, polygonPartsEntityName),
         },
       },
     };
-  };
+  }
 
-  public readonly parseEntitiesMetadata = (input: EntityIdentifierObject | PolygonPartsPayload): EntitiesMetadata => {
+  public parseEntitiesMetadata(input: EntityIdentifierObject | PolygonPartsPayload): EntitiesMetadata {
     try {
       const entitiesMetadata = this.getEntitiesMetadata(input);
       return schemaParser({
@@ -79,5 +89,5 @@ export class Transformer {
       }
       throw error;
     }
-  };
+  }
 }

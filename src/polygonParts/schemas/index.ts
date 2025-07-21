@@ -44,33 +44,26 @@ export const getDBEntityNameSchemaFactory = <T extends keyof ApplicationConfig['
   namePrefix,
   nameSuffix,
   schema,
-  entity,
-  getEntitiesMetadata,
-}: { entity: T } & ApplicationConfig['entities'][T] & Pick<DbConfig, 'schema'> & Pick<Transformer, 'getEntitiesMetadata'>): ZodType<
-  EntityNames,
-  ZodTypeDef,
-  DeepMapValues<EntityNames, string>
-> => {
+}: ApplicationConfig['entities'][T] & Pick<DbConfig, 'schema'>): ZodType<EntityNames, ZodTypeDef, DeepMapValues<EntityNames, string>> => {
   return z.object({
     entityName: polygonPartsEntityNamePatternSchema
       .transform((val) => val.replaceAll(new RegExp(`(^${namePrefix})|(${nameSuffix}$)`, 'g'), ''))
       .pipe(polygonPartsEntityPatternSchema)
-      .transform((val) => getEntitiesMetadata({ polygonPartsEntityName: val }).entitiesNames[entity].entityName),
+      .transform((entityIdentifier) => Transformer.getEntityName(entityIdentifier, { namePrefix, nameSuffix })),
     databaseObjectQualifiedName: z
       .string()
       .transform((val) => val.replaceAll(new RegExp(`(^${schema}\\.)`, 'g'), ''))
       .pipe(polygonPartsEntityNamePatternSchema)
       .transform((val) => val.replaceAll(new RegExp(`(^${namePrefix})|(${nameSuffix}$)`, 'g'), ''))
       .pipe(polygonPartsEntityPatternSchema)
-      .transform((val) => getEntitiesMetadata({ polygonPartsEntityName: val }).entitiesNames[entity].databaseObjectQualifiedName),
+      .transform((entityIdentifier) => Transformer.getDatabaseObjectQualifiedName(schema, `${namePrefix}${entityIdentifier}${nameSuffix}`)),
   });
 };
 
 export const getEntitiesMetadataSchemaFactory = ({
   entities: { parts, polygonParts },
   schema,
-  getEntitiesMetadata,
-}: Pick<ApplicationConfig, 'entities'> & Pick<DbConfig, 'schema'> & Pick<Transformer, 'getEntitiesMetadata'>): ZodType<
+}: Pick<ApplicationConfig, 'entities'> & Pick<DbConfig, 'schema'>): ZodType<
   EntitiesMetadata,
   ZodTypeDef,
   DeepMapValues<EntitiesMetadata, string>
@@ -78,15 +71,11 @@ export const getEntitiesMetadataSchemaFactory = ({
   const partsDBEntityNameSchema = getDBEntityNameSchemaFactory({
     ...parts,
     ...{ schema },
-    getEntitiesMetadata,
-    entity: 'parts',
   });
 
   const polygonPartsDBEntityNameSchema = getDBEntityNameSchemaFactory({
     ...polygonParts,
     ...{ schema },
-    getEntitiesMetadata,
-    entity: 'polygonParts',
   });
 
   return z

@@ -66,7 +66,7 @@ export class AddNotificationsToPolygonPartsStoredProcedure1751267100992 implemen
                         "part_id",
                         diff
                     from tbl
-                    -- very small area polgons are filtered out since postgis internal calculations are prone to some geometric precision
+                    -- very small area polygons are filtered out since postgis internal calculations are prone to some geometric precision
                     where not st_isempty(diff) and st_area(diff) >= ' || min_polygon_part_area || '
                 )
                 insert into ' || polygon_parts || ' as pp ("part_id", "catalog_id", "product_id", "product_type", "source_id", "source_name", "product_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce90", sensors, countries, cities, description, "footprint", "insertion_order")

@@ -1,11 +1,13 @@
-import jsLogger, { type LoggerOptions } from '@map-colonies/js-logger';
+import jsLogger, { type Logger, type LoggerOptions } from '@map-colonies/js-logger';
 import { Metrics, getOtelMixin } from '@map-colonies/telemetry';
 import { metrics as OtelMetrics, trace } from '@opentelemetry/api';
-import config from 'config';
+import config, { type IConfig } from 'config';
 import type { DependencyContainer } from 'tsyringe/dist/typings/types';
 import { ConnectionManager } from './common/connectionManager';
 import { SERVICES, SERVICE_NAME } from './common/constants';
+import { DataSourceLogger } from './common/dataSourceLogger';
 import { registerDependencies, type InjectionObject, type Providers } from './common/dependencyRegistration';
+import type { DbConfig } from './common/interfaces';
 import { tracing } from './common/tracing';
 import { POLYGON_PARTS_ROUTER_SYMBOL, polygonPartsRouterFactory } from './polygonParts/routes/polygonPartsRouter';
 
@@ -29,6 +31,17 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
     { token: SERVICES.LOGGER, provider: { useValue: logger } },
     { token: SERVICES.TRACER, provider: { useValue: tracer } },
     { token: SERVICES.METER, provider: { useValue: OtelMetrics.getMeterProvider().getMeter(SERVICE_NAME) } },
+    {
+      token: DataSourceLogger,
+      provider: {
+        useFactory: (dependencyContainer: DependencyContainer): DataSourceLogger => {
+          const config = dependencyContainer.resolve<IConfig>(SERVICES.CONFIG);
+          const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
+          const loggerOptions = config.get<DbConfig['logging']>('db.logging') ?? true;
+          return new DataSourceLogger(logger, loggerOptions);
+        },
+      },
+    },
     {
       token: SERVICES.CONNECTION_MANAGER,
       provider: {

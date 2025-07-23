@@ -33,6 +33,7 @@ data:
   DB_NAME: {{ $db.name | quote }}
   DB_SCHEMA: {{ $db.schema | quote }}
   DB_LOGGING: {{ $db.logging | quote }}
+  DB_LOG_NOTIFICATIONS_ENABLED: {{ $db.logNotifications | quote }}
   DB_APPNAME: {{ $db.applicationName | quote }}
   DB_ENABLE_SSL_AUTH: {{ $db.sslEnabled | quote }}
   {{- if $db.sslEnabled }}

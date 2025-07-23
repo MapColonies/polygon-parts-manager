@@ -116,6 +116,10 @@
     "database": "DB_NAME",
     "schema": "DB_SCHEMA",
     "logging": "DB_LOGGING",
-    "applicationName": "DB_APPNAME"
+    "applicationName": "DB_APPNAME",
+    "logNotifications": {
+      "__name": "DB_LOG_NOTIFICATIONS_ENABLED",
+      "__format": "boolean"
+    }
   }
 }

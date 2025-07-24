@@ -6,11 +6,11 @@ import { inject, injectable } from 'tsyringe';
 import type { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
+import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
 import { Part } from '../DAL/part';
 import { PolygonPart } from '../DAL/polygonPart';
-import { payloadToInsertPartsData } from '../DAL/utils';
-import { ValidationError } from '../../common/errors';
+import { setRepositoryTablePath, payloadToInsertPartsData } from '../DAL/utils';
 import {
   findSelectOutputColumns,
   geometryColumn,
@@ -22,6 +22,7 @@ import {
 } from './constants';
 import type {
   AggregateLayerMetadataOptions,
+  AggregationLayerMetadataResponse,
   EntitiesMetadata,
   EntityName,
   EntityNames,
@@ -29,7 +30,6 @@ import type {
   FindPolygonPartsOptions,
   FindPolygonPartsQueryResponse,
   FindPolygonPartsResponse,
-  AggregationLayerMetadataResponse,
   FindQueryFilterOptions,
   FindQuerySelectOptions,
   IsValidDetailsResult,
@@ -485,7 +485,7 @@ export class PolygonPartsManager {
       shouldClip,
     } = context;
     const polygonPart = entityManager.getRepository(PolygonPart);
-    polygonPart.metadata.tablePath = polygonPartsEntityName.databaseObjectQualifiedName; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
+    setRepositoryTablePath(polygonPart, polygonPartsEntityName.databaseObjectQualifiedName);
 
     const inputFilterGeometriesCTE = `select *
       from jsonb_to_recordset('${JSON.stringify(inputFilter)}'::jsonb -> 'features') as x(geometry jsonb, properties jsonb, id jsonb)`;
@@ -641,7 +641,7 @@ export class PolygonPartsManager {
 
     try {
       const part = entityManager.getRepository(Part);
-      part.metadata.tablePath = partsEntityQualifiedName; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
+      setRepositoryTablePath(part, partsEntityQualifiedName);
       await part.save(insertPartsData, { chunk: this.applicationConfig.chunkSize });
     } catch (error) {
       const errorMessage = `Could not insert polygon parts data to table '${partsEntityQualifiedName}'`;

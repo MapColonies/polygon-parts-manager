@@ -1,28 +1,27 @@
 import { faker } from '@faker-js/faker';
 import jsLogger from '@map-colonies/js-logger';
-import { aggregationFeatureSchema, CORE_VALIDATIONS, INGESTION_VALIDATIONS, PolygonPart as PolygonPartType } from '@map-colonies/raster-shared';
 import { zoomLevelToResolutionDeg } from '@map-colonies/mc-utils';
+import { aggregationFeatureSchema, CORE_VALIDATIONS, INGESTION_VALIDATIONS, PolygonPart as PolygonPartType } from '@map-colonies/raster-shared';
 import { trace } from '@opentelemetry/api';
-import { booleanEqual } from '@turf/boolean-equal';
 import { booleanContains } from '@turf/boolean-contains';
+import { booleanEqual } from '@turf/boolean-equal';
 import { feature, featureCollection, multiPolygon, polygon, polygons } from '@turf/helpers';
 import { randomPolygon } from '@turf/random';
-import config, { type IConfig } from 'config';
+import config from 'config';
 import type { BBox, FeatureCollection, MultiPolygon, Polygon } from 'geojson';
 import { StatusCodes as httpStatusCodes } from 'http-status-codes';
+import { get as getValue, merge } from 'lodash';
 import { xor } from 'martinez-polygon-clipping';
 import { container } from 'tsyringe';
 import { EntityManager, Geometry, Repository, SelectQueryBuilder, type DataSourceOptions } from 'typeorm';
 import { getApp } from '../../../src/app';
 import { ConnectionManager } from '../../../src/common/connectionManager';
-import { aggregationFeaturePropertiesValidationTestCases } from '../../mocks/aggregationTestCases';
 import { SERVICES } from '../../../src/common/constants';
 import type { ApplicationConfig, DbConfig } from '../../../src/common/interfaces';
 import { Transformer } from '../../../src/common/middlewares/transformer';
-import { Part } from '../../../src/polygonParts/DAL/part';
-import { customAggregationNoFilter, customAggregationWithFilter } from '../../mocks/responseMocks';
-import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
 import type { AggregatePolygonPartsRequestBody, FindPolygonPartsResponseBody } from '../../../src/polygonParts/controllers/interfaces';
+import { Part } from '../../../src/polygonParts/DAL/part';
+import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
 import type {
   EntitiesMetadata,
   EntityIdentifier,
@@ -30,9 +29,10 @@ import type {
   PolygonPartsPayload,
   PolygonPartsResponse,
 } from '../../../src/polygonParts/models/interfaces';
+import { aggregationFeaturePropertiesValidationTestCases } from '../../mocks/aggregationTestCases';
 import {
-  createInitPayloadRequest,
   createCustomInitPayloadRequestForAggregation,
+  createInitPayloadRequest,
   franceFootprint,
   germanyFootprint,
   intersectionWithItalyFootprint,
@@ -43,15 +43,35 @@ import {
   worldFootprint,
   worldMinusSeparateCountries,
 } from '../../mocks/requestsMocks';
+import { customAggregationNoFilter, customAggregationWithFilter } from '../../mocks/responseMocks';
 import polygonEarth from './data/polygonEarth.json';
 import polygonEasternHemisphere from './data/polygonEasternHemisphere.json';
 import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
 import polygonWesternHemisphere from './data/polygonWesternHemisphere.json';
 import { INITIAL_DB, INTERNAL_DB_GEOM_PRECISION } from './helpers/constants';
-import { HelperDB, createDB, generateFeatureId, generatePolygon, generatePolygonPartsPayload } from './helpers/db';
+import { createDB, generateFeatureId, generatePolygon, generatePolygonPartsPayload, HelperDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
+import type { DeepPartial } from './helpers/types';
 import { allFindFeaturesEqual, toExpectedFindPolygonPartsResponse, toExpectedPostgresResponse } from './helpers/utils';
+
+type ConfigImport = typeof import('config') & { application: ApplicationConfig };
+
+const mockGetConfig = jest.fn<{ application: DeepPartial<ApplicationConfig> } | undefined, [string]>();
+jest.mock<{ default: ConfigImport }>('config', () => {
+  const originalModule = jest.requireActual<ConfigImport>('config');
+  return {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    __esModule: true,
+    default: {
+      ...originalModule,
+      get<T>(setting: string): T {
+        const overrideConfig = mockGetConfig(setting);
+        return getValue(merge({}, originalModule, overrideConfig), setting) as unknown as T;
+      },
+    },
+  };
+});
 
 let testDataSourceOptions: DataSourceOptions;
 const applicationConfig = config.get<ApplicationConfig>('application');
@@ -103,6 +123,131 @@ describe('polygonParts', () => {
   });
 
   describe('Happy Path', () => {
+    describe('POST /polygonParts/:polygonPartsEntityName/aggregate', () => {
+      it('should return 200 status code and aggregated metadata with an empty request body (random data)', async () => {
+        const polygonPartsPayload = createInitPayloadRequest;
+        await requestSender.createPolygonParts(polygonPartsPayload);
+        const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+
+        const response = await requestSender.aggregateLayerMetadata({
+          params: { polygonPartsEntityName: entityIdentifier },
+          body: { filter: null },
+        });
+
+        const result = aggregationFeatureSchema.safeParse(response.body);
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response).toSatisfyApiSpec();
+        expect(result.success).toBe(true);
+
+        expect.assertions(3);
+      });
+
+      it('should return 200 status code and aggregated metadata with an empty request body (custom data)', async () => {
+        const polygonPartsPayload = createCustomInitPayloadRequestForAggregation;
+        await requestSender.createPolygonParts(polygonPartsPayload);
+        const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+
+        const response = await requestSender.aggregateLayerMetadata({
+          params: { polygonPartsEntityName: entityIdentifier },
+          body: { filter: null },
+        });
+
+        const result = aggregationFeatureSchema.safeParse(response.body);
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response).toSatisfyApiSpec();
+        expect(result.success).toBe(true);
+        expect(result.data).toEqual(customAggregationNoFilter);
+
+        expect.assertions(4);
+      });
+
+      it('should return 200 status code and filtered aggregated metadata with a valid feature collection filter (random data)', async () => {
+        const polygonPartsPayload = createInitPayloadRequest;
+        await requestSender.createPolygonParts(polygonPartsPayload);
+        const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+
+        const filterBody: AggregatePolygonPartsRequestBody = {
+          filter: {
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                properties: {
+                  minResolutionDeg: 0.703125,
+                  maxResolutionDeg: 0.703125,
+                },
+                geometry: italyFootprint,
+              },
+            ],
+          },
+        };
+
+        const response = await requestSender.aggregateLayerMetadata({
+          params: { polygonPartsEntityName: entityIdentifier },
+          body: filterBody,
+        });
+
+        const result = aggregationFeatureSchema.safeParse(response.body);
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response).toSatisfyApiSpec();
+        expect(result.success).toBe(true);
+
+        const isContained = booleanContains(filterBody.filter?.features[0].geometry as Geometry, result.data?.geometry as Geometry);
+        expect(isContained).toBe(true);
+
+        expect.assertions(4);
+      });
+
+      it('should return 200 status code and filtered aggregated metadata with a valid feature collection filter (custom data)', async () => {
+        const polygonPartsPayload = createCustomInitPayloadRequestForAggregation;
+        await requestSender.createPolygonParts(polygonPartsPayload);
+        const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+
+        const filterBody: AggregatePolygonPartsRequestBody = {
+          filter: {
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                properties: {
+                  minResolutionDeg: 0.0001,
+                  maxResolutionDeg: 0.0001,
+                },
+                geometry: {
+                  type: 'Polygon',
+                  coordinates: [
+                    [
+                      [35.2, 31.75],
+                      [35.25, 31.75],
+                      [35.25, 31.8],
+                      [35.2, 31.8],
+                      [35.2, 31.75],
+                    ],
+                  ],
+                },
+              },
+            ],
+          },
+        };
+
+        const response = await requestSender.aggregateLayerMetadata({
+          params: { polygonPartsEntityName: entityIdentifier },
+          body: filterBody,
+        });
+
+        const result = aggregationFeatureSchema.safeParse(response.body);
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response).toSatisfyApiSpec();
+        expect(result.success).toBe(true);
+        expect(result.data).toEqual(customAggregationWithFilter);
+
+        const isContained = booleanContains(filterBody.filter?.features[0].geometry as Geometry, result.data?.geometry as Geometry);
+        expect(isContained).toBe(true);
+
+        expect.assertions(5);
+      });
+    });
+
     describe('POST /polygonParts/:polygonPartsEntityName/find', () => {
       type FindPolygonPartsResponseBodyFeatureProperties<ShouldClip extends boolean = boolean> =
         FindPolygonPartsResponseBody<ShouldClip>['features'][number]['properties'];
@@ -5545,490 +5690,541 @@ describe('polygonParts', () => {
         expect.assertions(29);
       });
     });
+  });
 
+  describe('Bad Path', () => {
     describe('POST /polygonParts/:polygonPartsEntityName/aggregate', () => {
-      it('should return 200 status code and aggregated metadata with an empty request body (random data)', async () => {
-        const polygonPartsPayload = createInitPayloadRequest;
-        await requestSender.createPolygonParts(polygonPartsPayload);
-        const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
+      it('should return 400 status code if polygonPartsEntityName is an invalid value', async () => {
         const response = await requestSender.aggregateLayerMetadata({
-          params: { polygonPartsEntityName: entityIdentifier },
-          body: { filter: null },
+          params: { polygonPartsEntityName: 'invalid_name_without_right_suffix' as EntityIdentifier },
         });
 
-        const result = aggregationFeatureSchema.safeParse(response.body);
-        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-        expect(result.success).toBe(true);
 
-        expect.assertions(3);
+        expect.assertions(2);
       });
 
-      it('should return 200 status code and aggregated metadata with an empty request body (custom data)', async () => {
-        const polygonPartsPayload = createCustomInitPayloadRequestForAggregation;
-        await requestSender.createPolygonParts(polygonPartsPayload);
-        const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-
+      it('should return 400 status code if feature collection in req body has invalid structure', async () => {
         const response = await requestSender.aggregateLayerMetadata({
-          params: { polygonPartsEntityName: entityIdentifier },
-          body: { filter: null },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
+          body: { filter: { type: 'invalid', features: [] } as unknown as FeatureCollection<Polygon | MultiPolygon> },
         });
 
-        const result = aggregationFeatureSchema.safeParse(response.body);
-        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-        expect(result.success).toBe(true);
-        expect(result.data).toEqual(customAggregationNoFilter);
 
-        expect.assertions(4);
+        expect.assertions(2);
       });
 
-      it('should return 200 status code and filtered aggregated metadata with a valid feature collection filter (random data)', async () => {
-        const polygonPartsPayload = createInitPayloadRequest;
-        await requestSender.createPolygonParts(polygonPartsPayload);
-        const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+      it('should return 400 status code if feature collection in req body is missing features', async () => {
+        const response = await requestSender.aggregateLayerMetadata({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
+          body: { filter: { type: 'FeatureCollection' } as unknown as FeatureCollection<Polygon | MultiPolygon> },
+        });
 
-        const filterBody: AggregatePolygonPartsRequestBody = {
-          filter: {
-            type: 'FeatureCollection',
-            features: [
-              {
-                type: 'Feature',
-                properties: {
-                  minResolutionDeg: 0.703125,
-                  maxResolutionDeg: 0.703125,
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if feature has invalid geometry type', async () => {
+        const response = await requestSender.aggregateLayerMetadata({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
+          body: {
+            filter: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  properties: {},
+                  geometry: {
+                    type: 'Point',
+                    coordinates: [0, 0],
+                  } as unknown as Polygon | MultiPolygon,
                 },
-                geometry: italyFootprint,
-              },
-            ],
+              ],
+            },
           },
-        };
-
-        const response = await requestSender.aggregateLayerMetadata({
-          params: { polygonPartsEntityName: entityIdentifier },
-          body: filterBody,
         });
 
-        const result = aggregationFeatureSchema.safeParse(response.body);
-        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-        expect(result.success).toBe(true);
 
-        const isContained = booleanContains(filterBody.filter?.features[0].geometry as Geometry, result.data?.geometry as Geometry);
-        expect(isContained).toBe(true);
-
-        expect.assertions(4);
+        expect.assertions(2);
       });
 
-      it('should return 200 status code and filtered aggregated metadata with a valid feature collection filter (custom data)', async () => {
-        const polygonPartsPayload = createCustomInitPayloadRequestForAggregation;
-        await requestSender.createPolygonParts(polygonPartsPayload);
-        const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-
-        const filterBody: AggregatePolygonPartsRequestBody = {
-          filter: {
-            type: 'FeatureCollection',
-            features: [
-              {
-                type: 'Feature',
-                properties: {
-                  minResolutionDeg: 0.0001,
-                  maxResolutionDeg: 0.0001,
-                },
-                geometry: {
-                  type: 'Polygon',
-                  coordinates: [
-                    [
-                      [35.2, 31.75],
-                      [35.25, 31.75],
-                      [35.25, 31.8],
-                      [35.2, 31.8],
-                      [35.2, 31.75],
+      test.each(aggregationFeaturePropertiesValidationTestCases)('$name', async ({ properties }) => {
+        const response = await requestSender.aggregateLayerMetadata({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
+          body: {
+            filter: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  properties,
+                  geometry: {
+                    coordinates: [
+                      [
+                        [-180, -90],
+                        [-180, 90],
+                        [180, 90],
+                        [180, -90],
+                        [-180, -90],
+                      ],
                     ],
-                  ],
+                    type: 'Polygon',
+                  },
                 },
-              },
-            ],
+              ],
+            },
           },
-        };
-
-        const response = await requestSender.aggregateLayerMetadata({
-          params: { polygonPartsEntityName: entityIdentifier },
-          body: filterBody,
         });
 
-        const result = aggregationFeatureSchema.safeParse(response.body);
-        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-        expect(result.success).toBe(true);
-        expect(result.data).toEqual(customAggregationWithFilter);
 
-        const isContained = booleanContains(filterBody.filter?.features[0].geometry as Geometry, result.data?.geometry as Geometry);
-        expect(isContained).toBe(true);
-
-        expect.assertions(5);
+        expect.assertions(2);
       });
     });
 
-    describe('Bad Path', () => {
-      describe('POST /polygonParts/:polygonPartsEntityName/find', () => {
-        it('should return 400 status code if shouldClip is not a boolean value', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
-            body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
-            query: { shouldClip: 'invalid' as unknown as boolean },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
+    describe('POST /polygonParts/:polygonPartsEntityName/find', () => {
+      it('should return 400 status code if shouldClip is not a boolean value', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
+          query: { shouldClip: 'invalid' as unknown as boolean },
         });
 
-        it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (start with [a-z] char)', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: '0invalid_raster' as EntityIdentifier },
-            body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
-          });
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
 
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
+        expect.assertions(2);
+      });
 
-          expect.assertions(2);
+      it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (start with [a-z] char)', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: '0invalid_raster' as EntityIdentifier },
+          body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
         });
 
-        it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (contain [a-z0-9_] characters inside)', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'invalid@name_raster' as EntityIdentifier },
-            body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
-          });
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
 
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
+        expect.assertions(2);
+      });
 
-          expect.assertions(2);
+      it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (contain [a-z0-9_] characters inside)', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'invalid@name_raster' as EntityIdentifier },
+          body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
         });
 
-        it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (end with [a-z] char or [0-9] digit)', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'invalid_' as EntityIdentifier },
-            body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
-          });
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
 
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
+        expect.assertions(2);
+      });
 
-          expect.assertions(2);
+      it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (end with [a-z] char or [0-9] digit)', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'invalid_' as EntityIdentifier },
+          body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
         });
 
-        it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (not less than 2 chars)', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'a' as EntityIdentifier },
-            body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
-          });
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
 
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
+        expect.assertions(2);
+      });
 
-          expect.assertions(2);
+      it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (not less than 2 chars)', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'a' as EntityIdentifier },
+          body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
         });
 
-        it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (not more than 63 chars)', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'a'.repeat(64) as EntityIdentifier },
-            body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
-          });
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
 
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
+        expect.assertions(2);
+      });
 
-          expect.assertions(2);
+      it('should return 400 status code if polygonPartsEntityName is an invalid value - must follow a regex pattern (not more than 63 chars)', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'a'.repeat(64) as EntityIdentifier },
+          body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
         });
 
-        it('should return 400 status code if polygonPartsEntityName is an invalid value - must end with raster product type', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'invalid_name' as EntityIdentifier },
-            body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
-          });
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
 
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
+        expect.assertions(2);
+      });
 
-          expect.assertions(2);
+      it('should return 400 status code if polygonPartsEntityName is an invalid value - must end with raster product type', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'invalid_name' as EntityIdentifier },
+          body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
         });
 
-        it('should return 400 status code if polygonPartsEntityName is an invalid value - must resolve to a valid resource identifier (no longer than 63 chars)', async () => {
-          const customConfig: IConfig = {
-            get: <T>(setting: string): T => {
-              if (setting === 'application') {
-                const defaultApplicationConfig = config.get<ApplicationConfig>(setting);
-                return {
-                  ...defaultApplicationConfig,
-                  entities: {
-                    ...defaultApplicationConfig.entities,
-                    parts: {
-                      namePrefix: 'very_long_prefix_',
-                      nameSuffix: '_very_long_suffix',
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if polygonPartsEntityName is an invalid value - must resolve to a valid resource identifier (no longer than 63 chars)', async () => {
+        mockGetConfig.mockImplementation((setting: string) => {
+          return setting === 'application'
+            ? { application: { entities: { parts: { namePrefix: 'very_long_prefix_', nameSuffix: '_very_long_suffix' } } } }
+            : undefined;
+        });
+        const connectionManager = container.resolve<ConnectionManager>(ConnectionManager);
+        await connectionManager.destroy();
+        container.clearInstances();
+        const app = await getApp({
+          override: [
+            { token: SERVICES.LOGGER, provider: { useValue: jsLogger({ enabled: false }) } },
+            { token: SERVICES.TRACER, provider: { useValue: trace.getTracer('testTracer') } },
+          ],
+          useChild: true,
+        });
+        requestSender = new PolygonPartsRequestSender(app);
+
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'very_long_valid_name_orthophoto' as EntityIdentifier },
+          body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if feature collection in req body is an invalid value - is not an object', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          body: { filter: 'invalid' as unknown as FeatureCollection<Polygon | MultiPolygon> },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if feature collection in req body is an invalid value - does not contain entry "type": "FeatureCollection"', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          body: { filter: { type: 'invalid', features: [] } as unknown as FeatureCollection<Polygon | MultiPolygon> },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if feature collection in req body is an invalid value - does not contain entry for "features" property', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          body: { filter: { type: 'FeatureCollection' } as unknown as FeatureCollection<Polygon | MultiPolygon> },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if feature collection in req body is an invalid value - "bbox" value must be an array with 4 or 6 items', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          body: {
+            filter: {
+              type: 'FeatureCollection',
+              features: [],
+              bbox: Array.from(
+                {
+                  length: faker.helpers.arrayElement([
+                    faker.helpers.rangeToNumber({ min: 0, max: 3 }),
+                    faker.helpers.rangeToNumber({ min: 5, max: 10 }),
+                  ]),
+                },
+                () => faker.number.float()
+              ) as BBox,
+            } as unknown as FeatureCollection<Polygon | MultiPolygon>,
+          },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if feature inside a feature collection in req body is an invalid value - does not contain entry "type": "Feature"', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          body: {
+            filter: {
+              type: 'FeatureCollection',
+              features: [{ type: 'invalid', properties: {}, geometry: generatePolygon() }],
+            } as unknown as FeatureCollection<Polygon | MultiPolygon>,
+          },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if feature inside a feature collection in req body is an invalid value - does not contain entry for "properties" property', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          body: {
+            filter: {
+              type: 'FeatureCollection',
+              features: [{ type: 'Feature', geometry: generatePolygon() }],
+            } as unknown as FeatureCollection<Polygon | MultiPolygon>,
+          },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if feature inside a feature collection in req body is an invalid value - does not contain entry for "geometry" property', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          body: {
+            filter: {
+              type: 'FeatureCollection',
+              features: [{ type: 'Feature', properties: {} }],
+            } as unknown as FeatureCollection<Polygon | MultiPolygon>,
+          },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "id" value must be a number or string', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          body: {
+            filter: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  id: {} as unknown as string,
+                  properties: {},
+                  geometry: generatePolygon(),
+                },
+              ],
+            },
+          },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "id" value must be unique', async () => {
+        const featureId = generateFeatureId();
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          body: {
+            filter: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  id: featureId,
+                  properties: {},
+                  geometry: generatePolygon(),
+                },
+                {
+                  type: 'Feature',
+                  id: featureId,
+                  properties: {},
+                  geometry: generatePolygon(),
+                },
+              ],
+            },
+          },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "property" value must be an object or null', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          body: {
+            filter: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  properties: 'invalid' as unknown as Record<string, unknown>,
+                  geometry: generatePolygon(),
+                },
+              ],
+            },
+          },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "geometry" value must be an object', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          body: {
+            filter: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  properties: {},
+                  geometry: null as unknown as Polygon | MultiPolygon,
+                },
+              ],
+            },
+          },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "bbox" value must be an array with 4 or 6 items', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          body: {
+            filter: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  properties: {},
+                  geometry: generatePolygon(),
+                  bbox: Array.from(
+                    {
+                      length: faker.helpers.arrayElement([
+                        faker.helpers.rangeToNumber({ min: 0, max: 3 }),
+                        faker.helpers.rangeToNumber({ min: 5, max: 10 }),
+                      ]),
                     },
-                  },
-                } as unknown as T;
-              }
-              return config.get(setting);
+                    () => faker.number.float()
+                  ) as BBox,
+                },
+              ],
             },
-            // eslint-disable-next-line @typescript-eslint/unbound-method
-            has: config.has,
-            util: config.util,
-          };
-          const connectionManager = container.resolve<ConnectionManager>(ConnectionManager);
-          await connectionManager.destroy();
-          container.clearInstances();
-          const app = await getApp({
-            override: [
-              { token: SERVICES.CONFIG, provider: { useValue: customConfig } },
-              { token: SERVICES.LOGGER, provider: { useValue: jsLogger({ enabled: false }) } },
-              { token: SERVICES.TRACER, provider: { useValue: trace.getTracer('testTracer') } },
-            ],
-            useChild: true,
-          });
-          requestSender = new PolygonPartsRequestSender(app);
-
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'very_long_valid_name_orthophoto' as EntityIdentifier },
-            body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
+          },
         });
 
-        it('should return 400 status code if feature collection in req body is an invalid value - is not an object', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
-            body: { filter: 'invalid' as unknown as FeatureCollection<Polygon | MultiPolygon> },
-          });
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
 
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
+        expect.assertions(2);
+      });
 
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if feature collection in req body is an invalid value - does not contain entry "type": "FeatureCollection"', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
-            body: { filter: { type: 'invalid', features: [] } as unknown as FeatureCollection<Polygon | MultiPolygon> },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if feature collection in req body is an invalid value - does not contain entry for "features" property', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
-            body: { filter: { type: 'FeatureCollection' } as unknown as FeatureCollection<Polygon | MultiPolygon> },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if feature collection in req body is an invalid value - "bbox" value must be an array with 4 or 6 items', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
-            body: {
-              filter: {
-                type: 'FeatureCollection',
-                features: [],
-                bbox: Array.from(
-                  {
-                    length: faker.helpers.arrayElement([
-                      faker.helpers.rangeToNumber({ min: 0, max: 3 }),
-                      faker.helpers.rangeToNumber({ min: 5, max: 10 }),
-                    ]),
-                  },
-                  () => faker.number.float()
-                ) as BBox,
-              } as unknown as FeatureCollection<Polygon | MultiPolygon>,
+      it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - does not contain entry "type": "Polygon" or "type": "MultiPolygon"', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          body: {
+            filter: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  properties: {},
+                  geometry: {
+                    type: 'Point',
+                    coordinates: [0, 0],
+                  } as unknown as Polygon | MultiPolygon,
+                },
+              ],
             },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
+          },
         });
 
-        it('should return 400 status code if feature inside a feature collection in req body is an invalid value - does not contain entry "type": "Feature"', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
-            body: {
-              filter: {
-                type: 'FeatureCollection',
-                features: [{ type: 'invalid', properties: {}, geometry: generatePolygon() }],
-              } as unknown as FeatureCollection<Polygon | MultiPolygon>,
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - does not contain entry for "coordinates" property', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          body: {
+            filter: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  properties: {},
+                  geometry: {
+                    type: 'Polygon',
+                  } as unknown as Polygon,
+                },
+              ],
             },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
+          },
         });
 
-        it('should return 400 status code if feature inside a feature collection in req body is an invalid value - does not contain entry for "properties" property', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
-            body: {
-              filter: {
-                type: 'FeatureCollection',
-                features: [{ type: 'Feature', geometry: generatePolygon() }],
-              } as unknown as FeatureCollection<Polygon | MultiPolygon>,
-            },
-          });
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
 
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
+        expect.assertions(2);
+      });
 
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if feature inside a feature collection in req body is an invalid value - does not contain entry for "geometry" property', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
-            body: {
-              filter: {
-                type: 'FeatureCollection',
-                features: [{ type: 'Feature', properties: {} }],
-              } as unknown as FeatureCollection<Polygon | MultiPolygon>,
-            },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "id" value must be a number or string', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
-            body: {
-              filter: {
-                type: 'FeatureCollection',
-                features: [
-                  {
-                    type: 'Feature',
-                    id: {} as unknown as string,
-                    properties: {},
-                    geometry: generatePolygon(),
-                  },
-                ],
-              },
-            },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "id" value must be unique', async () => {
-          const featureId = generateFeatureId();
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
-            body: {
-              filter: {
-                type: 'FeatureCollection',
-                features: [
-                  {
-                    type: 'Feature',
-                    id: featureId,
-                    properties: {},
-                    geometry: generatePolygon(),
-                  },
-                  {
-                    type: 'Feature',
-                    id: featureId,
-                    properties: {},
-                    geometry: generatePolygon(),
-                  },
-                ],
-              },
-            },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "property" value must be an object or null', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
-            body: {
-              filter: {
-                type: 'FeatureCollection',
-                features: [
-                  {
-                    type: 'Feature',
-                    properties: 'invalid' as unknown as Record<string, unknown>,
-                    geometry: generatePolygon(),
-                  },
-                ],
-              },
-            },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "geometry" value must be an object', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
-            body: {
-              filter: {
-                type: 'FeatureCollection',
-                features: [
-                  {
-                    type: 'Feature',
-                    properties: {},
-                    geometry: null as unknown as Polygon | MultiPolygon,
-                  },
-                ],
-              },
-            },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "bbox" value must be an array with 4 or 6 items', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
-            body: {
-              filter: {
-                type: 'FeatureCollection',
-                features: [
-                  {
-                    type: 'Feature',
-                    properties: {},
-                    geometry: generatePolygon(),
+      it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - "bbox" value must be an array with 4 or 6 items', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          body: {
+            filter: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  properties: {},
+                  geometry: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, 0],
+                        [1, 0],
+                        [1, 1],
+                        [0, 1],
+                        [0, 0],
+                      ],
+                    ],
                     bbox: Array.from(
                       {
                         length: faker.helpers.arrayElement([
@@ -6038,443 +6234,320 @@ describe('polygonParts', () => {
                       },
                       () => faker.number.float()
                     ) as BBox,
-                  },
-                ],
-              },
-            },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - does not contain entry "type": "Polygon" or "type": "MultiPolygon"', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
-            body: {
-              filter: {
-                type: 'FeatureCollection',
-                features: [
-                  {
-                    type: 'Feature',
-                    properties: {},
-                    geometry: {
-                      type: 'Point',
-                      coordinates: [0, 0],
-                    } as unknown as Polygon | MultiPolygon,
-                  },
-                ],
-              },
-            },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - does not contain entry for "coordinates" property', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
-            body: {
-              filter: {
-                type: 'FeatureCollection',
-                features: [
-                  {
-                    type: 'Feature',
-                    properties: {},
-                    geometry: {
-                      type: 'Polygon',
-                    } as unknown as Polygon,
-                  },
-                ],
-              },
-            },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - "bbox" value must be an array with 4 or 6 items', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
-            body: {
-              filter: {
-                type: 'FeatureCollection',
-                features: [
-                  {
-                    type: 'Feature',
-                    properties: {},
-                    geometry: {
-                      type: 'Polygon',
-                      coordinates: [
-                        [
-                          [0, 0],
-                          [1, 0],
-                          [1, 1],
-                          [0, 1],
-                          [0, 0],
-                        ],
-                      ],
-                      bbox: Array.from(
-                        {
-                          length: faker.helpers.arrayElement([
-                            faker.helpers.rangeToNumber({ min: 0, max: 3 }),
-                            faker.helpers.rangeToNumber({ min: 5, max: 10 }),
-                          ]),
-                        },
-                        () => faker.number.float()
-                      ) as BBox,
-                    } as unknown as Polygon,
-                  },
-                ],
-              },
-            },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - first and last vertices are not equal', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload))
-            .body as unknown as PolygonPartsResponse;
-          const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
-          // TODO: update error message
-
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName },
-            body: {
-              filter: {
-                type: 'FeatureCollection',
-                features: [
-                  {
-                    type: 'Feature',
-                    properties: {},
-                    geometry: {
-                      type: 'Polygon',
-                      coordinates: [
-                        [
-                          [0, 0],
-                          [1, 0],
-                          [1, 1],
-                          [0, 1],
-                          [0, 0.1],
-                        ],
-                      ],
-                    },
-                  },
-                ],
-              },
-            },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - must have at least 3 vertices', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
-            body: {
-              filter: {
-                type: 'FeatureCollection',
-                features: [
-                  {
-                    type: 'Feature',
-                    properties: {},
-                    geometry: {
-                      type: 'Polygon',
-                      coordinates: [
-                        [
-                          [0, 0],
-                          [1, 0],
-                          [0, 0],
-                        ],
-                      ],
-                    },
-                  },
-                ],
-              },
-            },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - hole must have at least 3 vertices', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
-            body: {
-              filter: {
-                type: 'FeatureCollection',
-                features: [
-                  {
-                    type: 'Feature',
-                    properties: {},
-                    geometry: {
-                      type: 'Polygon',
-                      coordinates: [
-                        [
-                          [0, 0],
-                          [2, 0],
-                          [2, 2],
-                          [0, 2],
-                          [0, 0],
-                        ],
-                        [
-                          [1, 1],
-                          [1.5, 1],
-                          [1, 1],
-                        ],
-                      ],
-                    },
-                  },
-                ],
-              },
-            },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        const invalidGeometryTopologyTestCases = [
-          {
-            testCase: 'exterior ring must not cross itself',
-            coordinates: [
-              [
-                [0, 0],
-                [2, 0],
-                [1, 1],
-                [0, 2],
-                [2, 2],
-                [1, -1],
-                [0, 0],
-              ],
-            ],
-          },
-          {
-            testCase: 'exterior ring must not self-touch',
-            coordinates: [
-              [
-                [0, 0],
-                [2, 0],
-                [1, 1],
-                [1, 2],
-                [1, 1],
-                [0, 0],
-              ],
-            ],
-          },
-          {
-            testCase: 'interior hole ring must not cross the exterior',
-            coordinates: [
-              [
-                [0, 0],
-                [3, 0],
-                [3, 3],
-                [0, 3],
-                [0, 0],
-              ],
-              [
-                [1, 1],
-                [2, 1],
-                [2, 4],
-                [1, 4],
-                [1, 1],
-              ],
-            ],
-          },
-          {
-            testCase: 'interior hole rings must not cross each other',
-            coordinates: [
-              [
-                [0, 0],
-                [4, 0],
-                [4, 4],
-                [0, 4],
-                [0, 0],
-              ],
-              [
-                [1, 1],
-                [2, 1],
-                [2, 3],
-                [1, 3],
-                [1, 1],
-              ],
-              [
-                [1, 1],
-                [1, 2],
-                [3, 2],
-                [3, 1],
-                [1, 1],
-              ],
-            ],
-          },
-          {
-            testCase: 'interior hole ring must not touch the exterior ring along a line',
-            coordinates: [
-              [
-                [0, 0],
-                [3, 0],
-                [3, 3],
-                [0, 3],
-                [0, 0],
-              ],
-              [
-                [0, 1],
-                [2, 1],
-                [2, 2],
-                [0, 2],
-                [0, 1],
-              ],
-            ],
-          },
-          {
-            testCase: 'interior hole rings must not touch each other along a line',
-            coordinates: [
-              [
-                [0, 0],
-                [4, 0],
-                [4, 4],
-                [0, 4],
-                [0, 0],
-              ],
-              [
-                [1, 1],
-                [2, 1],
-                [2, 2],
-                [1, 2],
-                [1, 1],
-              ],
-              [
-                [2, 1],
-                [3, 1],
-                [3, 2],
-                [2, 2],
-                [2, 1],
-              ],
-            ],
-          },
-          {
-            testCase: 'interior hole rings must be contained in exterior ring',
-            coordinates: [
-              [
-                [0, 0],
-                [2, 0],
-                [2, 2],
-                [0, 2],
-                [0, 0],
-              ],
-              [
-                [3, 3],
-                [4, 3],
-                [4, 4],
-                [3, 4],
-                [3, 3],
-              ],
-            ],
-          },
-          {
-            testCase: 'interior hole rings must not split the geometry into more than one part',
-            coordinates: [
-              [
-                [0, 0],
-                [4, 0],
-                [4, 4],
-                [0, 4],
-                [0, 0],
-              ],
-              [
-                [2, 1],
-                [4, 2],
-                [0, 2],
-                [2, 1],
-              ],
-            ],
-          },
-        ] satisfies { testCase: string; coordinates: Polygon['coordinates'] }[];
-
-        it.each(invalidGeometryTopologyTestCases)(
-          'should return 400 status code if polygon geometry inside a feature, inside a feature collection, in req body is an invalid value - $testCase',
-          async ({ coordinates }) => {
-            const polygonPartsPayload = generatePolygonPartsPayload(1);
-            const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload))
-              .body as unknown as PolygonPartsResponse;
-            const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
-
-            const response = await requestSender.findPolygonParts({
-              params: { polygonPartsEntityName },
-              body: {
-                filter: {
-                  type: 'FeatureCollection',
-                  features: [
-                    {
-                      type: 'Feature',
-                      properties: {},
-                      geometry: polygon(coordinates).geometry,
-                    },
-                  ],
+                  } as unknown as Polygon,
                 },
-              },
-            });
+              ],
+            },
+          },
+        });
 
-            expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-            expect(response).toSatisfyApiSpec();
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
 
-            expect.assertions(2);
-          }
-        );
+        expect.assertions(2);
+      });
 
-        it.each(invalidGeometryTopologyTestCases)(
-          'should return 400 status code if multi-polygon geometry inside a feature, inside a feature collection, in req body is an invalid value - $testCase',
-          async ({ coordinates }) => {
-            const polygonPartsPayload = generatePolygonPartsPayload(1);
-            const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload))
-              .body as unknown as PolygonPartsResponse;
-            const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
+      it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - first and last vertices are not equal', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload)).body as unknown as PolygonPartsResponse;
+        const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
+        // TODO: update error message - add expect for specific error message
 
-            const response = await requestSender.findPolygonParts({
-              params: { polygonPartsEntityName },
-              body: {
-                filter: {
-                  type: 'FeatureCollection',
-                  features: [
-                    {
-                      type: 'Feature',
-                      properties: {},
-                      geometry: multiPolygon([coordinates]).geometry,
-                    },
-                  ],
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName },
+          body: {
+            filter: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  properties: {},
+                  geometry: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, 0],
+                        [1, 0],
+                        [1, 1],
+                        [0, 1],
+                        [0, 0.1],
+                      ],
+                    ],
+                  },
                 },
+              ],
+            },
+          },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - must have at least 3 vertices', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          body: {
+            filter: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  properties: {},
+                  geometry: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, 0],
+                        [1, 0],
+                        [0, 0],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - hole must have at least 3 vertices', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          body: {
+            filter: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  properties: {},
+                  geometry: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [0, 0],
+                        [2, 0],
+                        [2, 2],
+                        [0, 2],
+                        [0, 0],
+                      ],
+                      [
+                        [1, 1],
+                        [1.5, 1],
+                        [1, 1],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      const invalidGeometryTopologyTestCases = [
+        {
+          testCase: 'exterior ring must not cross itself',
+          coordinates: [
+            [
+              [0, 0],
+              [2, 0],
+              [1, 1],
+              [0, 2],
+              [2, 2],
+              [1, -1],
+              [0, 0],
+            ],
+          ],
+        },
+        {
+          testCase: 'exterior ring must not self-touch',
+          coordinates: [
+            [
+              [0, 0],
+              [2, 0],
+              [1, 1],
+              [1, 2],
+              [1, 1],
+              [0, 0],
+            ],
+          ],
+        },
+        {
+          testCase: 'interior hole ring must not cross the exterior',
+          coordinates: [
+            [
+              [0, 0],
+              [3, 0],
+              [3, 3],
+              [0, 3],
+              [0, 0],
+            ],
+            [
+              [1, 1],
+              [2, 1],
+              [2, 4],
+              [1, 4],
+              [1, 1],
+            ],
+          ],
+        },
+        {
+          testCase: 'interior hole rings must not cross each other',
+          coordinates: [
+            [
+              [0, 0],
+              [4, 0],
+              [4, 4],
+              [0, 4],
+              [0, 0],
+            ],
+            [
+              [1, 1],
+              [2, 1],
+              [2, 3],
+              [1, 3],
+              [1, 1],
+            ],
+            [
+              [1, 1],
+              [1, 2],
+              [3, 2],
+              [3, 1],
+              [1, 1],
+            ],
+          ],
+        },
+        {
+          testCase: 'interior hole ring must not touch the exterior ring along a line',
+          coordinates: [
+            [
+              [0, 0],
+              [3, 0],
+              [3, 3],
+              [0, 3],
+              [0, 0],
+            ],
+            [
+              [0, 1],
+              [2, 1],
+              [2, 2],
+              [0, 2],
+              [0, 1],
+            ],
+          ],
+        },
+        {
+          testCase: 'interior hole rings must not touch each other along a line',
+          coordinates: [
+            [
+              [0, 0],
+              [4, 0],
+              [4, 4],
+              [0, 4],
+              [0, 0],
+            ],
+            [
+              [1, 1],
+              [2, 1],
+              [2, 2],
+              [1, 2],
+              [1, 1],
+            ],
+            [
+              [2, 1],
+              [3, 1],
+              [3, 2],
+              [2, 2],
+              [2, 1],
+            ],
+          ],
+        },
+        {
+          testCase: 'interior hole rings must be contained in exterior ring',
+          coordinates: [
+            [
+              [0, 0],
+              [2, 0],
+              [2, 2],
+              [0, 2],
+              [0, 0],
+            ],
+            [
+              [3, 3],
+              [4, 3],
+              [4, 4],
+              [3, 4],
+              [3, 3],
+            ],
+          ],
+        },
+        {
+          testCase: 'interior hole rings must not split the geometry into more than one part',
+          coordinates: [
+            [
+              [0, 0],
+              [4, 0],
+              [4, 4],
+              [0, 4],
+              [0, 0],
+            ],
+            [
+              [2, 1],
+              [4, 2],
+              [0, 2],
+              [2, 1],
+            ],
+          ],
+        },
+      ] satisfies { testCase: string; coordinates: Polygon['coordinates'] }[];
+
+      it.each(invalidGeometryTopologyTestCases)(
+        'should return 400 status code if polygon geometry inside a feature, inside a feature collection, in req body is an invalid value - $testCase',
+        async ({ coordinates }) => {
+          const polygonPartsPayload = generatePolygonPartsPayload(1);
+          const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload))
+            .body as unknown as PolygonPartsResponse;
+          const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
+
+          const response = await requestSender.findPolygonParts({
+            params: { polygonPartsEntityName },
+            body: {
+              filter: {
+                type: 'FeatureCollection',
+                features: [
+                  {
+                    type: 'Feature',
+                    properties: {},
+                    geometry: polygon(coordinates).geometry,
+                  },
+                ],
               },
-            });
+            },
+          });
 
-            expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-            expect(response).toSatisfyApiSpec();
+          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+          expect(response).toSatisfyApiSpec();
 
-            expect.assertions(2);
-          }
-        );
+          expect.assertions(2);
+        }
+      );
 
-        it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - multi-polygon parts must not overlap', async () => {
+      it.each(invalidGeometryTopologyTestCases)(
+        'should return 400 status code if multi-polygon geometry inside a feature, inside a feature collection, in req body is an invalid value - $testCase',
+        async ({ coordinates }) => {
           const polygonPartsPayload = generatePolygonPartsPayload(1);
           const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload))
             .body as unknown as PolygonPartsResponse;
@@ -6483,28 +6556,16 @@ describe('polygonParts', () => {
           const response = await requestSender.findPolygonParts({
             params: { polygonPartsEntityName },
             body: {
-              filter: featureCollection([
-                multiPolygon([
-                  [
-                    [
-                      [0, 0],
-                      [2, 0],
-                      [2, 2],
-                      [0, 2],
-                      [0, 0],
-                    ],
-                  ],
-                  [
-                    [
-                      [0, 1],
-                      [2, 1],
-                      [2, 3],
-                      [0, 3],
-                      [0, 1],
-                    ],
-                  ],
-                ]),
-              ]),
+              filter: {
+                type: 'FeatureCollection',
+                features: [
+                  {
+                    type: 'Feature',
+                    properties: {},
+                    geometry: multiPolygon([coordinates]).geometry,
+                  },
+                ],
+              },
             },
           });
 
@@ -6512,1347 +6573,1256 @@ describe('polygonParts', () => {
           expect(response).toSatisfyApiSpec();
 
           expect.assertions(2);
-        });
+        }
+      );
 
-        it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - multi-polygon parts must not touch along a line', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload))
-            .body as unknown as PolygonPartsResponse;
-          const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
+      it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - multi-polygon parts must not overlap', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload)).body as unknown as PolygonPartsResponse;
+        const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
 
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName },
-            body: {
-              filter: featureCollection([
-                multiPolygon([
-                  [
-                    [
-                      [0, 0],
-                      [2, 0],
-                      [2, 2],
-                      [0, 2],
-                      [0, 0],
-                    ],
-                  ],
-                  [
-                    [
-                      [2, 0],
-                      [4, 0],
-                      [2, 1],
-                      [2, 0],
-                    ],
-                  ],
-                ]),
-              ]),
-            },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - polygon must have coordinates values in (-180,180) range', async () => {
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
-            body: {
-              filter: polygons([
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName },
+          body: {
+            filter: featureCollection([
+              multiPolygon([
                 [
                   [
                     [0, 0],
-                    [180, 0],
-                    [180 + Number.EPSILON, 90],
+                    [2, 0],
+                    [2, 2],
+                    [0, 2],
                     [0, 0],
                   ],
                 ],
+                [
+                  [
+                    [0, 1],
+                    [2, 1],
+                    [2, 3],
+                    [0, 3],
+                    [0, 1],
+                  ],
+                ],
               ]),
-            },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
+            ]),
+          },
         });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
       });
 
-      describe('POST /polygonParts/:polygonPartsEntityName/aggregate', () => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - multi-polygon parts must not touch along a line', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const createPolygonPartsResponseBody = (await requestSender.createPolygonParts(polygonPartsPayload)).body as unknown as PolygonPartsResponse;
+        const polygonPartsEntityName = createPolygonPartsResponseBody.polygonPartsEntityName;
 
-        it('should return 400 status code if polygonPartsEntityName is an invalid value', async () => {
-          const response = await requestSender.aggregateLayerMetadata({
-            params: { polygonPartsEntityName: 'invalid_name_without_right_suffix' as EntityIdentifier },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if feature collection in req body has invalid structure', async () => {
-          const response = await requestSender.aggregateLayerMetadata({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' },
-            body: { filter: { type: 'invalid', features: [] } as unknown as FeatureCollection<Polygon | MultiPolygon> },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if feature collection in req body is missing features', async () => {
-          const response = await requestSender.aggregateLayerMetadata({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' },
-            body: { filter: { type: 'FeatureCollection' } as unknown as FeatureCollection<Polygon | MultiPolygon> },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if feature has invalid geometry type', async () => {
-          const response = await requestSender.aggregateLayerMetadata({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' },
-            body: {
-              filter: {
-                type: 'FeatureCollection',
-                features: [
-                  {
-                    type: 'Feature',
-                    properties: {},
-                    geometry: {
-                      type: 'Point',
-                      coordinates: [0, 0],
-                    } as unknown as Polygon | MultiPolygon,
-                  },
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName },
+          body: {
+            filter: featureCollection([
+              multiPolygon([
+                [
+                  [
+                    [0, 0],
+                    [2, 0],
+                    [2, 2],
+                    [0, 2],
+                    [0, 0],
+                  ],
                 ],
-              },
-            },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        test.each(aggregationFeaturePropertiesValidationTestCases)('$name', async ({ properties }) => {
-          const response = await requestSender.aggregateLayerMetadata({
-            params: { polygonPartsEntityName: 'valid_name_orthophoto' },
-            body: {
-              filter: {
-                type: 'FeatureCollection',
-                features: [
-                  {
-                    type: 'Feature',
-                    properties,
-                    geometry: {
-                      coordinates: [
-                        [
-                          [-180, -90],
-                          [-180, 90],
-                          [180, 90],
-                          [180, -90],
-                          [-180, -90],
-                        ],
-                      ],
-                      type: 'Polygon',
-                    },
-                  },
+                [
+                  [
+                    [2, 0],
+                    [4, 0],
+                    [2, 1],
+                    [2, 0],
+                  ],
                 ],
-              },
-            },
-          });
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
+              ]),
+            ]),
+          },
         });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
       });
 
-      describe('POST /polygonParts', () => {
-        it('should return 400 status code if product type is an invalid value', async () => {
-          const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productType: 'bad value' };
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload as PolygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
+      it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - polygon must have coordinates values in (-180,180) range', async () => {
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: 'valid_name_raster' as EntityIdentifier },
+          body: {
+            filter: polygons([
+              [
+                [
+                  [0, 0],
+                  [180, 0],
+                  [180 + Number.EPSILON, 90],
+                  [0, 0],
+                ],
+              ],
+            ]),
+          },
         });
 
-        it('should return 400 status code if catalog id is an invalid value', async () => {
-          const polygonPartsPayload = { ...generatePolygonPartsPayload(1), catalogId: 'bad value' };
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
 
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if product id is an invalid value', async () => {
-          const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productId: 'bad value' };
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if product id has more than 38 characters', async () => {
-          const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productId: 'a123456789b123456789c123456789d12345678' };
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if product version is an invalid value', async () => {
-          const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productVersion: 'bad value' };
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if countries is an invalid value', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], countries: [123] } as unknown as PolygonPartType];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if cities is an invalid value', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], cities: [123] } as unknown as PolygonPartType];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if sensors is an invalid value', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sensors: 123 } as unknown as PolygonPartType];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if source name is an invalid value', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceName: 123 } as unknown as PolygonPartType];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if resolution degree is an invalid value', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: 0 }];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if resolution meter is an invalid value', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionMeter: 0 }];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if source resolution meter is an invalid value', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceResolutionMeter: 0 }];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if horizontal accuracy ce90 is an invalid value', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], horizontalAccuracyCE90: 0 }];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if imaging time begin utc is an invalid value', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], imagingTimeBeginUTC: 'bad value' } as unknown as PolygonPartType];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if imaging time end utc is an invalid value', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], imagingTimeEndUTC: 'bad value' } as unknown as PolygonPartType];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it.todo('should return 400 status code if imaging time begin utc is later than current datetime');
-        it.todo('should return 400 status code if imaging time end utc is later than current datetime');
-        it.todo('should return 400 status code if imaging time begin utc is later than imaging time end utc');
-        it.todo('should return 400 status code if footprint is an invalid value - first and last vertices are not equal');
-
-        it('should return 400 status code if footprint is an invalid value - polygon must have coordinates property', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          const { coordinates, ...badFootprint } = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
-          polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if footprint is an invalid value - polygon must have at least 3 vertices', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          const badFootprint = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
-          badFootprint.coordinates[0] = badFootprint.coordinates[0].filter((_, index) => (index === 1 ? false : true));
-          polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], footprint: badFootprint }];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if footprint is an invalid value - polygon must have coordinates values in (-180,180) range', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          const badFootprint = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
-          badFootprint.coordinates[0][0][1] = 181;
-          polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], footprint: badFootprint }];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if footprint is an invalid value - polygon must have type property', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          const { type, ...badFootprint } = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
-          polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if footprint is an invalid value - polygon must have type property set to Polygon', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          const badFootprint = { ...randomPolygon(1, { num_vertices: 3 }).features[0].geometry, type: 'Point' };
-          polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if source id is an invalid value', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceId: 123 } as unknown as PolygonPartType];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if description is an invalid value', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], description: 123 } as unknown as PolygonPartType];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if partsData has no items', async () => {
-          const polygonPartsPayload = generatePolygonPartsPayload(1);
-          polygonPartsPayload.partsData = [];
-
-          const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          expect(response.body).toMatchObject({ message: expect.any(String) });
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(3);
-        });
-      });
-
-      describe('PUT /polygonParts', () => {
-        beforeEach(async () => {
-          const insertPolygonPartsPayload = createInitPayloadRequest;
-          await requestSender.createPolygonParts(insertPolygonPartsPayload);
-        });
-
-        it('should return 400 status code if product type is an invalid value', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, productType: 'bad value' };
-
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload as unknown as PolygonPartsPayload, false);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if catalog id is an invalid value', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, catalogId: 'bad value' };
-
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, false);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if product id is an invalid value', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, productId: 'bad value' };
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if product version is an invalid value', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, productVersion: 'bad value' };
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if countries is an invalid value', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
-          updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], countries: [123] } as unknown as PolygonPartType];
-
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if cities is an invalid value', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
-          updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], cities: [123] } as unknown as PolygonPartType];
-
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if sensors is an invalid value', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
-          updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sensors: 123 } as unknown as PolygonPartType];
-
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if source name is an invalid value', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
-          updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sourceName: 123 } as unknown as PolygonPartType];
-
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if resolution degree is an invalid value', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
-          updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], resolutionDegree: 123 } as unknown as PolygonPartType];
-
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if resolution meter is an invalid value', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
-          updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], resolutionMeter: 0 } as unknown as PolygonPartType];
-
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if source resolution meter is an invalid value', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
-          updatePolygonPartsPayload.partsData = [
-            { ...updatePolygonPartsPayload.partsData[0], sourceResolutionMeter: 0 } as unknown as PolygonPartType,
-          ];
-
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if horizontal accuracy ce90 is an invalid value', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
-          updatePolygonPartsPayload.partsData = [
-            { ...updatePolygonPartsPayload.partsData[0], horizontalAccuracyCE90: 5000 } as unknown as PolygonPartType,
-          ];
-
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if imaging time begin utc is an invalid value', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
-          updatePolygonPartsPayload.partsData = [
-            { ...updatePolygonPartsPayload.partsData[0], imagingTimeBeginUTC: 'bad value' } as unknown as PolygonPartType,
-          ];
-
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if imaging time end utc is an invalid value', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
-          updatePolygonPartsPayload.partsData = [
-            { ...updatePolygonPartsPayload.partsData[0], imagingTimeEndUTC: 'bad value' } as unknown as PolygonPartType,
-          ];
-
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if footprint is an invalid value - polygon must have coordinates property', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          const { coordinates, ...badFootprint } = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
-          updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
-
-          const response = await requestSender.createPolygonParts(updatePolygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if footprint is an invalid value - polygon must have at least 3 vertices', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          const badFootprint = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
-          badFootprint.coordinates[0] = badFootprint.coordinates[0].filter((_, index) => (index === 1 ? false : true));
-          updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint }];
-
-          const response = await requestSender.createPolygonParts(updatePolygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if footprint is an invalid value - polygon must have coordinates values in (-180,180) range', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          const badFootprint = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
-          badFootprint.coordinates[0][0][1] = 181;
-          updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint }];
-
-          const response = await requestSender.createPolygonParts(updatePolygonPartsPayload);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if footprint is an invalid value - polygon must have type property', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          const { type, ...badFootprint } = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
-          updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
-
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, false);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if footprint is an invalid value - polygon must have type property set to Polygon', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          const badFootprint = { ...randomPolygon(1, { num_vertices: 3 }).features[0].geometry, type: 'Point' };
-          updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
-
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if source id is an invalid value', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
-          updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sourceId: 123 } as unknown as PolygonPartType];
-
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if description is an invalid value', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
-          updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], description: 123 } as unknown as PolygonPartType];
-
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(2);
-        });
-
-        it('should return 400 status code if partsData has no items', async () => {
-          const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
-          updatePolygonPartsPayload.partsData = [];
-
-          const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
-
-          expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-          expect(response.body).toMatchObject({ message: `request/body/partsData must NOT have fewer than 1 items` });
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(3);
-        });
+        expect.assertions(2);
       });
     });
 
-    describe('Sad Path', () => {
-      describe('POST /polygonParts/:polygonPartsEntityName/find', () => {
-        it('should return 404 status code if a polygon part resource does not exists', async () => {
-          const polygonPartsEntityName = 'very_long_valid_name_orthophoto';
+    describe('POST /polygonParts', () => {
+      it('should return 400 status code if product type is an invalid value', async () => {
+        const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productType: 'bad value' };
 
-          const response = await requestSender.findPolygonParts({
-            params: { polygonPartsEntityName },
-            body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
-          });
+        const response = await requestSender.createPolygonParts(polygonPartsPayload as PolygonPartsPayload);
 
-          expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
-          expect(response.body).toMatchObject({ message: `Table with the name '${polygonPartsEntityName}' doesn't exists` });
-          expect(response).toSatisfyApiSpec();
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
 
-          expect.assertions(3);
-        });
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if catalog id is an invalid value', async () => {
+        const polygonPartsPayload = { ...generatePolygonPartsPayload(1), catalogId: 'bad value' };
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if product id is an invalid value', async () => {
+        const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productId: 'bad value' };
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if product id has more than 38 characters', async () => {
+        const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productId: 'a123456789b123456789c123456789d12345678' };
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if product version is an invalid value', async () => {
+        const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productVersion: 'bad value' };
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if countries is an invalid value', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], countries: [123] } as unknown as PolygonPartType];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if cities is an invalid value', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], cities: [123] } as unknown as PolygonPartType];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if sensors is an invalid value', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sensors: 123 } as unknown as PolygonPartType];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if source name is an invalid value', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceName: 123 } as unknown as PolygonPartType];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if resolution degree is an invalid value', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionDegree: 0 }];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if resolution meter is an invalid value', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], resolutionMeter: 0 }];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if source resolution meter is an invalid value', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceResolutionMeter: 0 }];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if horizontal accuracy ce90 is an invalid value', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], horizontalAccuracyCE90: 0 }];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if imaging time begin utc is an invalid value', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], imagingTimeBeginUTC: 'bad value' } as unknown as PolygonPartType];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if imaging time end utc is an invalid value', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], imagingTimeEndUTC: 'bad value' } as unknown as PolygonPartType];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it.todo('should return 400 status code if imaging time begin utc is later than current datetime');
+      it.todo('should return 400 status code if imaging time end utc is later than current datetime');
+      it.todo('should return 400 status code if imaging time begin utc is later than imaging time end utc');
+      it.todo('should return 400 status code if footprint is an invalid value - first and last vertices are not equal');
+
+      it('should return 400 status code if footprint is an invalid value - polygon must have coordinates property', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const { coordinates, ...badFootprint } = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if footprint is an invalid value - polygon must have at least 3 vertices', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const badFootprint = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
+        badFootprint.coordinates[0] = badFootprint.coordinates[0].filter((_, index) => (index === 1 ? false : true));
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], footprint: badFootprint }];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if footprint is an invalid value - polygon must have coordinates values in (-180,180) range', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const badFootprint = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
+        badFootprint.coordinates[0][0][1] = 181;
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], footprint: badFootprint }];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if footprint is an invalid value - polygon must have type property', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const { type, ...badFootprint } = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if footprint is an invalid value - polygon must have type property set to Polygon', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const badFootprint = { ...randomPolygon(1, { num_vertices: 3 }).features[0].geometry, type: 'Point' };
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if source id is an invalid value', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], sourceId: 123 } as unknown as PolygonPartType];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if description is an invalid value', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [{ ...polygonPartsPayload.partsData[0], description: 123 } as unknown as PolygonPartType];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if partsData has no items', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        polygonPartsPayload.partsData = [];
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
       });
     });
 
-    it('should return 500 status code for a database error - geometry validity check query error', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entityIdentifier,
-        entitiesNames: { polygonParts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      await helperDB.createTable(polygonParts.entityName, schema);
-      const expectedErrorMessage = 'query error';
-      const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error(expectedErrorMessage));
-
-      const response = await requestSender.findPolygonParts({
-        params: { polygonPartsEntityName: entityIdentifier },
-        body: { filter: featureCollection<Polygon | MultiPolygon>([{ type: 'Feature', geometry: generatePolygon(), properties: {} }]) },
+    describe('PUT /polygonParts', () => {
+      beforeEach(async () => {
+        const insertPolygonPartsPayload = createInitPayloadRequest;
+        await requestSender.createPolygonParts(insertPolygonPartsPayload);
       });
 
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spyQuery).toHaveBeenCalledTimes(1);
+      it('should return 400 status code if product type is an invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, productType: 'bad value' };
 
-      spyQuery.mockRestore();
-      expect.assertions(4);
-    });
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload as unknown as PolygonPartsPayload, false);
 
-    it('should return 500 status code for a database error - find polygon parts query error', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entityIdentifier,
-        entitiesNames: { polygonParts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      await helperDB.createTable(polygonParts.entityName, schema);
-      const expectedErrorMessage = 'find query error';
-      const spyGetRawOne = jest.spyOn(SelectQueryBuilder.prototype, 'getRawOne').mockRejectedValueOnce(new Error(expectedErrorMessage));
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
 
-      const response = await requestSender.findPolygonParts({
-        params: { polygonPartsEntityName: entityIdentifier },
-        body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
+        expect.assertions(2);
       });
 
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spyGetRawOne).toHaveBeenCalledTimes(1);
+      it('should return 400 status code if catalog id is an invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, catalogId: 'bad value' };
 
-      spyGetRawOne.mockRestore();
-      expect.assertions(4);
-    });
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, false);
 
-    it('should return 500 status code for a database error - find polygon parts query unexpected empty response', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entityIdentifier,
-        entitiesNames: { polygonParts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      await helperDB.createTable(polygonParts.entityName, schema);
-      const expectedErrorMessage = 'Could not generate response';
-      const spyGetRawOne = jest.spyOn(SelectQueryBuilder.prototype, 'getRawOne').mockResolvedValueOnce(undefined);
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
 
-      const response = await requestSender.findPolygonParts({
-        params: { polygonPartsEntityName: entityIdentifier },
-        body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
+        expect.assertions(2);
       });
 
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spyGetRawOne).toHaveBeenCalledTimes(1);
+      it('should return 400 status code if product id is an invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, productId: 'bad value' };
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
 
-      spyGetRawOne.mockRestore();
-      expect.assertions(4);
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if product version is an invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest, productVersion: 'bad value' };
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if countries is an invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], countries: [123] } as unknown as PolygonPartType];
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if cities is an invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], cities: [123] } as unknown as PolygonPartType];
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if sensors is an invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sensors: 123 } as unknown as PolygonPartType];
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if source name is an invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sourceName: 123 } as unknown as PolygonPartType];
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if resolution degree is an invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], resolutionDegree: 123 } as unknown as PolygonPartType];
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if resolution meter is an invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], resolutionMeter: 0 } as unknown as PolygonPartType];
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if source resolution meter is an invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sourceResolutionMeter: 0 } as unknown as PolygonPartType];
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if horizontal accuracy ce90 is an invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [
+          { ...updatePolygonPartsPayload.partsData[0], horizontalAccuracyCE90: 5000 } as unknown as PolygonPartType,
+        ];
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if imaging time begin utc is an invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [
+          { ...updatePolygonPartsPayload.partsData[0], imagingTimeBeginUTC: 'bad value' } as unknown as PolygonPartType,
+        ];
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if imaging time end utc is an invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [
+          { ...updatePolygonPartsPayload.partsData[0], imagingTimeEndUTC: 'bad value' } as unknown as PolygonPartType,
+        ];
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if footprint is an invalid value - polygon must have coordinates property', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const { coordinates, ...badFootprint } = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
+
+        const response = await requestSender.createPolygonParts(updatePolygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if footprint is an invalid value - polygon must have at least 3 vertices', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const badFootprint = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
+        badFootprint.coordinates[0] = badFootprint.coordinates[0].filter((_, index) => (index === 1 ? false : true));
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint }];
+
+        const response = await requestSender.createPolygonParts(updatePolygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if footprint is an invalid value - polygon must have coordinates values in (-180,180) range', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const badFootprint = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
+        badFootprint.coordinates[0][0][1] = 181;
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint }];
+
+        const response = await requestSender.createPolygonParts(updatePolygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if footprint is an invalid value - polygon must have type property', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const { type, ...badFootprint } = randomPolygon(1, { num_vertices: 3 }).features[0].geometry;
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, false);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if footprint is an invalid value - polygon must have type property set to Polygon', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const badFootprint = { ...randomPolygon(1, { num_vertices: 3 }).features[0].geometry, type: 'Point' };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], footprint: badFootprint as unknown as Polygon }];
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if source id is an invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], sourceId: 123 } as unknown as PolygonPartType];
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if description is an invalid value', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [{ ...updatePolygonPartsPayload.partsData[0], description: 123 } as unknown as PolygonPartType];
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if partsData has no items', async () => {
+        const updatePolygonPartsPayload = { ...intersectionWithItalyRequest };
+        updatePolygonPartsPayload.partsData = [];
+
+        const response = await requestSender.updatePolygonParts(updatePolygonPartsPayload, true);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response.body).toMatchObject({ message: `request/body/partsData must NOT have fewer than 1 items` });
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
     });
   });
 
-  describe('POST /polygonParts/:polygonPartsEntityName/aggregate', () => {
-    it('should return 404 status code if polygon part resource does not exist', async () => {
-      const polygonPartsPayload = createInitPayloadRequest;
-      await requestSender.createPolygonParts(polygonPartsPayload);
-      const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-      const notExistingEntityName = 'not_existing_orthophoto';
+  describe('Sad Path', () => {
+    describe('POST /polygonParts/:polygonPartsEntityName/aggregate', () => {
+      it('should return 404 status code if polygon part resource does not exist', async () => {
+        const polygonPartsPayload = createInitPayloadRequest;
+        await requestSender.createPolygonParts(polygonPartsPayload);
+        const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+        const notExistingEntityName = 'not_existing_orthophoto';
 
-      const response = await requestSender.aggregateLayerMetadata({
-        params: { polygonPartsEntityName: notExistingEntityName },
-        body: { filter: null },
+        const response = await requestSender.aggregateLayerMetadata({
+          params: { polygonPartsEntityName: notExistingEntityName },
+          body: { filter: null },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
+        expect(response).toSatisfyApiSpec();
+        expect(entityIdentifier).not.toBe(notExistingEntityName);
+
+        expect.assertions(3);
       });
 
-      expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
-      expect(response).toSatisfyApiSpec();
-      expect(entityIdentifier).not.toBe(notExistingEntityName);
+      it('should return 500 status code for a database error during aggregation', async () => {
+        const polygonPartsPayload = createInitPayloadRequest;
+        await requestSender.createPolygonParts(polygonPartsPayload);
+        const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
 
-      expect.assertions(3);
+        const expectedErrorMessage = 'aggregation query error';
+        const spyGetRawOne = jest.spyOn(SelectQueryBuilder.prototype, 'getRawOne').mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.aggregateLayerMetadata({
+          params: { polygonPartsEntityName: entityIdentifier },
+          body: { filter: null },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
+        expect(response).toSatisfyApiSpec();
+        expect(spyGetRawOne).toHaveBeenCalledTimes(1);
+
+        spyGetRawOne.mockRestore();
+        expect.assertions(4);
+      });
     });
 
-    it('should return 500 status code for a database error during aggregation', async () => {
-      const polygonPartsPayload = createInitPayloadRequest;
-      await requestSender.createPolygonParts(polygonPartsPayload);
-      const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+    describe('POST /polygonParts/:polygonPartsEntityName/find', () => {
+      it('should return 404 status code if a polygon part resource does not exists', async () => {
+        const polygonPartsEntityName = 'very_long_valid_name_orthophoto';
 
-      const expectedErrorMessage = 'aggregation query error';
-      const spyGetRawOne = jest.spyOn(SelectQueryBuilder.prototype, 'getRawOne').mockRejectedValueOnce(new Error(expectedErrorMessage));
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName },
+          body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
+        });
 
-      const response = await requestSender.aggregateLayerMetadata({
-        params: { polygonPartsEntityName: entityIdentifier },
-        body: { filter: null },
+        expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
+        expect(response.body).toMatchObject({ message: `Table with the name '${polygonPartsEntityName}' doesn't exists` });
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
       });
 
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spyGetRawOne).toHaveBeenCalledTimes(1);
+      it('should return 500 status code for a database error - geometry validity check query error', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const {
+          entityIdentifier,
+          entitiesNames: { polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
+        await helperDB.createTable(polygonParts.entityName, schema);
+        const expectedErrorMessage = 'query error';
+        const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error(expectedErrorMessage));
 
-      spyGetRawOne.mockRestore();
-      expect.assertions(4);
-    });
-  });
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: entityIdentifier },
+          body: { filter: featureCollection<Polygon | MultiPolygon>([{ type: 'Feature', geometry: generatePolygon(), properties: {} }]) },
+        });
 
-  describe('POST /polygonParts', () => {
-    it('should return 409 status code if a part resource already exists', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entitiesNames: { parts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      await helperDB.createTable(parts.entityName, schema);
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
+        expect(response).toSatisfyApiSpec();
+        expect(spyQuery).toHaveBeenCalledTimes(1);
 
-      const response = await requestSender.createPolygonParts(polygonPartsPayload);
+        spyQuery.mockRestore();
+        expect.assertions(4);
+      });
 
-      expect(response.status).toBe(httpStatusCodes.CONFLICT);
-      expect(response.body).toMatchObject({ message: `Table with the name '${parts.databaseObjectQualifiedName}' already exists` });
-      expect(response).toSatisfyApiSpec();
+      it('should return 500 status code for a database error - find polygon parts query error', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const {
+          entityIdentifier,
+          entitiesNames: { polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
+        await helperDB.createTable(polygonParts.entityName, schema);
+        const expectedErrorMessage = 'find query error';
+        const spyGetRawOne = jest.spyOn(SelectQueryBuilder.prototype, 'getRawOne').mockRejectedValueOnce(new Error(expectedErrorMessage));
 
-      expect.assertions(3);
-    });
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: entityIdentifier },
+          body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
+        });
 
-    it('should return 409 status code if a polygon part resource already exists', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entitiesNames: { polygonParts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      await helperDB.createTable(polygonParts.entityName, schema);
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
+        expect(response).toSatisfyApiSpec();
+        expect(spyGetRawOne).toHaveBeenCalledTimes(1);
 
-      const response = await requestSender.createPolygonParts(polygonPartsPayload);
+        spyGetRawOne.mockRestore();
+        expect.assertions(4);
+      });
 
-      expect(response.status).toBe(httpStatusCodes.CONFLICT);
-      expect(response.body).toMatchObject({ message: `Table with the name '${polygonParts.databaseObjectQualifiedName}' already exists` });
-      expect(response).toSatisfyApiSpec();
+      it('should return 500 status code for a database error - find polygon parts query unexpected empty response', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const {
+          entityIdentifier,
+          entitiesNames: { polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
+        await helperDB.createTable(polygonParts.entityName, schema);
+        const expectedErrorMessage = 'Could not generate response';
+        const spyGetRawOne = jest.spyOn(SelectQueryBuilder.prototype, 'getRawOne').mockResolvedValueOnce(undefined);
 
-      expect.assertions(3);
-    });
+        const response = await requestSender.findPolygonParts({
+          params: { polygonPartsEntityName: entityIdentifier },
+          body: { filter: featureCollection<Polygon | MultiPolygon>([]) },
+        });
 
-    it('should return 500 status code for a database error - set search_path error', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      const expectedErrorMessage = 'search_path error';
-      const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error(expectedErrorMessage));
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
+        expect(response).toSatisfyApiSpec();
+        expect(spyGetRawOne).toHaveBeenCalledTimes(1);
 
-      const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spyQuery).toHaveBeenCalledTimes(1);
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeFalse();
-      expect(existsPolygonParts).toBeFalse();
-
-      expect.assertions(6);
-    });
-
-    it('should return 500 status code for a database error - verify available tables (first table) error', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      const expectedErrorMessage = 'exists error';
-      const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValueOnce(new Error(expectedErrorMessage));
-
-      const response = await requestSender.createPolygonParts(polygonPartsPayload);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spyGetExists).toHaveBeenCalledTimes(2);
-
-      spyGetExists.mockRestore();
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeFalse();
-      expect(existsPolygonParts).toBeFalse();
-
-      expect.assertions(6);
+        spyGetRawOne.mockRestore();
+        expect.assertions(4);
+      });
     });
 
-    it('should return 500 status code for a database error - verify available tables (second table) error', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      const expectedErrorMessage = 'exists error';
-      const spyGetExists = jest
-        .spyOn(SelectQueryBuilder.prototype, 'getExists')
-        .mockResolvedValueOnce(false)
-        .mockRejectedValueOnce(new Error(expectedErrorMessage));
+    describe('POST /polygonParts', () => {
+      it('should return 409 status code if a part resource already exists', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const {
+          entitiesNames: { parts },
+        } = getEntitiesMetadata(polygonPartsPayload);
+        await helperDB.createTable(parts.entityName, schema);
 
-      const response = await requestSender.createPolygonParts(polygonPartsPayload);
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spyGetExists).toHaveBeenCalledTimes(2);
+        expect(response.status).toBe(httpStatusCodes.CONFLICT);
+        expect(response.body).toMatchObject({ message: `Table with the name '${parts.databaseObjectQualifiedName}' already exists` });
+        expect(response).toSatisfyApiSpec();
 
-      spyGetExists.mockRestore();
+        expect.assertions(3);
+      });
 
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeFalse();
-      expect(existsPolygonParts).toBeFalse();
+      it('should return 409 status code if a polygon part resource already exists', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const {
+          entitiesNames: { polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
+        await helperDB.createTable(polygonParts.entityName, schema);
 
-      expect.assertions(6);
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.CONFLICT);
+        expect(response.body).toMatchObject({ message: `Table with the name '${polygonParts.databaseObjectQualifiedName}' already exists` });
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 500 status code for a database error - set search_path error', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
+        const expectedErrorMessage = 'search_path error';
+        const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
+        expect(response).toSatisfyApiSpec();
+        expect(spyQuery).toHaveBeenCalledTimes(1);
+
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeFalse();
+        expect(existsPolygonParts).toBeFalse();
+
+        expect.assertions(6);
+      });
+
+      it('should return 500 status code for a database error - verify available tables (first table) error', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
+        const expectedErrorMessage = 'exists error';
+        const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
+        expect(response).toSatisfyApiSpec();
+        expect(spyGetExists).toHaveBeenCalledTimes(2);
+
+        spyGetExists.mockRestore();
+
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeFalse();
+        expect(existsPolygonParts).toBeFalse();
+
+        expect.assertions(6);
+      });
+
+      it('should return 500 status code for a database error - verify available tables (second table) error', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
+        const expectedErrorMessage = 'exists error';
+        const spyGetExists = jest
+          .spyOn(SelectQueryBuilder.prototype, 'getExists')
+          .mockResolvedValueOnce(false)
+          .mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
+        expect(response).toSatisfyApiSpec();
+        expect(spyGetExists).toHaveBeenCalledTimes(2);
+
+        spyGetExists.mockRestore();
+
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeFalse();
+        expect(existsPolygonParts).toBeFalse();
+
+        expect.assertions(6);
+      });
+
+      it('should return 500 status code for a database error - create tables error', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalQuery = EntityManager.prototype.query;
+        const expectedErrorMessage = 'query error';
+        const spyQuery = jest
+          .spyOn(EntityManager.prototype, 'query')
+          .mockImplementationOnce(originalQuery)
+          .mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
+        expect(response).toSatisfyApiSpec();
+        expect(spyQuery).toHaveBeenCalledTimes(2);
+
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeFalse();
+        expect(existsPolygonParts).toBeFalse();
+
+        expect.assertions(6);
+      });
+
+      it('should return 500 status code for a database error - save error', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
+        const expectedErrorMessage = 'save error';
+        const spySave = jest.spyOn(Repository.prototype, 'save').mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
+        expect(response).toSatisfyApiSpec();
+        expect(spySave).toHaveBeenCalledTimes(1);
+
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeFalse();
+        expect(existsPolygonParts).toBeFalse();
+
+        expect.assertions(6);
+      });
+
+      it('should return 500 status code for a database error - calculate polygon parts error', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalQuery = EntityManager.prototype.query;
+        const expectedErrorMessage = 'query error';
+        const spyQuery = jest
+          .spyOn(EntityManager.prototype, 'query')
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.createPolygonParts(polygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
+        expect(response).toSatisfyApiSpec();
+        expect(spyQuery).toHaveBeenCalledTimes(3);
+
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeFalse();
+        expect(existsPolygonParts).toBeFalse();
+
+        expect.assertions(6);
+      });
+
+      it.todo('should return 500 status code for a database error - no connection');
+      it.todo('should return 500 status code for a database error - timeout');
     });
 
-    it('should return 500 status code for a database error - create tables error', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const originalQuery = EntityManager.prototype.query;
-      const expectedErrorMessage = 'query error';
-      const spyQuery = jest
-        .spyOn(EntityManager.prototype, 'query')
-        .mockImplementationOnce(originalQuery)
-        .mockRejectedValueOnce(new Error(expectedErrorMessage));
+    describe('PUT /polygonParts', () => {
+      afterEach(() => {
+        jest.restoreAllMocks(); // Restore original implementations
+      });
+      it("should return 404 status code if a part resource doesn't exist", async () => {
+        const updatePayload = separatePolygonsRequest;
+        const {
+          entitiesNames: { parts },
+        } = getEntitiesMetadata(updatePayload);
 
-      const response = await requestSender.createPolygonParts(polygonPartsPayload);
+        const response = await requestSender.updatePolygonParts(updatePayload, false);
 
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spyQuery).toHaveBeenCalledTimes(2);
+        expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
+        expect(response.body).toMatchObject({ message: `Table with the name '${parts.databaseObjectQualifiedName}' doesn't exists` });
+        expect(response).toSatisfyApiSpec();
 
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeFalse();
-      expect(existsPolygonParts).toBeFalse();
+        expect.assertions(3);
+      });
 
-      expect.assertions(6);
-    });
+      it("should return 404 status code if a polygon part resource doesn't exist", async () => {
+        const updatePayload = separatePolygonsRequest;
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
+        await helperDB.createTable(parts.entityName, schema);
 
-    it('should return 500 status code for a database error - save error', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      const expectedErrorMessage = 'save error';
-      const spySave = jest.spyOn(Repository.prototype, 'save').mockRejectedValueOnce(new Error(expectedErrorMessage));
+        const response = await requestSender.updatePolygonParts(updatePayload, false);
 
-      const response = await requestSender.createPolygonParts(polygonPartsPayload);
+        expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
+        expect(response.body).toMatchObject({ message: `Table with the name '${polygonParts.databaseObjectQualifiedName}' doesn't exists` });
+        expect(response).toSatisfyApiSpec();
 
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spySave).toHaveBeenCalledTimes(1);
+        expect.assertions(3);
+      });
 
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeFalse();
-      expect(existsPolygonParts).toBeFalse();
+      it('should return 500 status code for a database error - set search_path error', async () => {
+        await requestSender.createPolygonParts(createInitPayloadRequest);
+        const updatePayload = separatePolygonsRequest;
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
+        const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error('Transaction failed'));
 
-      expect.assertions(6);
-    });
+        const response = await requestSender.updatePolygonParts(updatePayload, true);
 
-    it('should return 500 status code for a database error - calculate polygon parts error', async () => {
-      const polygonPartsPayload = generatePolygonPartsPayload(1);
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(polygonPartsPayload);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const originalQuery = EntityManager.prototype.query;
-      const expectedErrorMessage = 'query error';
-      const spyQuery = jest
-        .spyOn(EntityManager.prototype, 'query')
-        .mockImplementationOnce(originalQuery)
-        .mockImplementationOnce(originalQuery)
-        .mockRejectedValueOnce(new Error(expectedErrorMessage));
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: 'Transaction failed' });
+        expect(spyQuery).toHaveBeenCalledTimes(1);
+        expect(response).toSatisfyApiSpec();
 
-      const response = await requestSender.createPolygonParts(polygonPartsPayload);
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeTrue();
+        expect(existsPolygonParts).toBeTrue();
 
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spyQuery).toHaveBeenCalledTimes(3);
+        expect.assertions(6);
+      });
 
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeFalse();
-      expect(existsPolygonParts).toBeFalse();
+      it('should return 500 status code if when truncate parts fails', async () => {
+        await requestSender.createPolygonParts(createInitPayloadRequest);
+        const updatePayload = separatePolygonsRequest;
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalQuery = EntityManager.prototype.query;
+        const spyQuery = jest
+          .spyOn(EntityManager.prototype, 'query')
+          .mockImplementationOnce(originalQuery)
+          .mockRejectedValueOnce(new Error('Failed to truncate table'))
+          .mockImplementationOnce(originalQuery);
 
-      expect.assertions(6);
-    });
+        const response = await requestSender.updatePolygonParts(updatePayload, true);
 
-    it.todo('should return 500 status code for a database error - no connection');
-    it.todo('should return 500 status code for a database error - timeout');
-  });
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: 'Failed to truncate table' });
+        expect(spyQuery).toHaveBeenCalledTimes(3);
+        expect(response).toSatisfyApiSpec();
 
-  describe('PUT /polygonParts', () => {
-    afterEach(() => {
-      jest.restoreAllMocks(); // Restore original implementations
-    });
-    it("should return 404 status code if a part resource doesn't exist", async () => {
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts },
-      } = getEntitiesMetadata(updatePayload);
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeTrue();
+        expect(existsPolygonParts).toBeTrue();
 
-      const response = await requestSender.updatePolygonParts(updatePayload, false);
+        expect.assertions(6);
+      });
 
-      expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
-      expect(response.body).toMatchObject({ message: `Table with the name '${parts.databaseObjectQualifiedName}' doesn't exists` });
-      expect(response).toSatisfyApiSpec();
+      it('should return 500 status code if when truncate polygon parts fails', async () => {
+        await requestSender.createPolygonParts(createInitPayloadRequest);
+        const updatePayload = separatePolygonsRequest;
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalQuery = EntityManager.prototype.query;
+        const spyQuery = jest
+          .spyOn(EntityManager.prototype, 'query')
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockRejectedValueOnce(new Error('Failed to truncate table'));
 
-      expect.assertions(3);
-    });
+        const response = await requestSender.updatePolygonParts(updatePayload, true);
 
-    it("should return 404 status code if a polygon part resource doesn't exist", async () => {
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(updatePayload);
-      await helperDB.createTable(parts.entityName, schema);
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: 'Failed to truncate table' });
+        expect(spyQuery).toHaveBeenCalledTimes(3);
+        expect(response).toSatisfyApiSpec();
 
-      const response = await requestSender.updatePolygonParts(updatePayload, false);
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeTrue();
+        expect(existsPolygonParts).toBeTrue();
 
-      expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
-      expect(response.body).toMatchObject({ message: `Table with the name '${polygonParts.databaseObjectQualifiedName}' doesn't exists` });
-      expect(response).toSatisfyApiSpec();
+        expect.assertions(6);
+      });
 
-      expect.assertions(3);
-    });
+      it('should return 500 status code for a database error - verify tables exists (first table) error', async () => {
+        await requestSender.createPolygonParts(createInitPayloadRequest);
+        const updatePayload = separatePolygonsRequest;
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
+        const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValueOnce(new Error('Failed to execute query'));
 
-    it('should return 500 status code for a database error - set search_path error', async () => {
-      await requestSender.createPolygonParts(createInitPayloadRequest);
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(updatePayload);
-      const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error('Transaction failed'));
+        const response = await requestSender.updatePolygonParts(updatePayload, true);
 
-      const response = await requestSender.updatePolygonParts(updatePayload, true);
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: 'Failed to execute query' });
+        expect(response).toSatisfyApiSpec();
+        expect(spyGetExists).toHaveBeenCalledTimes(2);
 
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: 'Transaction failed' });
-      expect(spyQuery).toHaveBeenCalledTimes(1);
-      expect(response).toSatisfyApiSpec();
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeTrue();
+        expect(existsPolygonParts).toBeTrue();
 
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeTrue();
-      expect(existsPolygonParts).toBeTrue();
+        expect.assertions(6);
+      });
 
-      expect.assertions(6);
-    });
+      it('should return 500 status code for a database error - verify tables exists(second table) error', async () => {
+        await requestSender.createPolygonParts(createInitPayloadRequest);
+        const updatePayload = separatePolygonsRequest;
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
+        const spyGetExists = jest
+          .spyOn(SelectQueryBuilder.prototype, 'getExists')
+          .mockResolvedValueOnce(true)
+          .mockRejectedValueOnce(new Error('Failed to execute query'));
 
-    it('should return 500 status code if when truncate parts fails', async () => {
-      await requestSender.createPolygonParts(createInitPayloadRequest);
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(updatePayload);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const originalQuery = EntityManager.prototype.query;
-      const spyQuery = jest
-        .spyOn(EntityManager.prototype, 'query')
-        .mockImplementationOnce(originalQuery)
-        .mockRejectedValueOnce(new Error('Failed to truncate table'))
-        .mockImplementationOnce(originalQuery);
+        const response = await requestSender.updatePolygonParts(updatePayload, true);
 
-      const response = await requestSender.updatePolygonParts(updatePayload, true);
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: 'Failed to execute query' });
+        expect(response).toSatisfyApiSpec();
+        expect(spyGetExists).toHaveBeenCalledTimes(2);
 
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: 'Failed to truncate table' });
-      expect(spyQuery).toHaveBeenCalledTimes(3);
-      expect(response).toSatisfyApiSpec();
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeTrue();
+        expect(existsPolygonParts).toBeTrue();
 
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeTrue();
-      expect(existsPolygonParts).toBeTrue();
+        expect.assertions(6);
+      });
 
-      expect.assertions(6);
-    });
+      it('should return 500 status code for a database error - save error', async () => {
+        await requestSender.createPolygonParts(createInitPayloadRequest);
+        const updatePayload = separatePolygonsRequest;
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
+        const expectedErrorMessage = `Failed to save to ${parts.entityName}`;
+        const spySave = jest.spyOn(Repository.prototype, 'save').mockRejectedValueOnce(new Error(expectedErrorMessage));
 
-    it('should return 500 status code if when truncate polygon parts fails', async () => {
-      await requestSender.createPolygonParts(createInitPayloadRequest);
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(updatePayload);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const originalQuery = EntityManager.prototype.query;
-      const spyQuery = jest
-        .spyOn(EntityManager.prototype, 'query')
-        .mockImplementationOnce(originalQuery)
-        .mockImplementationOnce(originalQuery)
-        .mockRejectedValueOnce(new Error('Failed to truncate table'));
+        const response = await requestSender.updatePolygonParts(updatePayload, true);
 
-      const response = await requestSender.updatePolygonParts(updatePayload, true);
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
+        expect(response).toSatisfyApiSpec();
+        expect(spySave).toHaveBeenCalledTimes(1);
 
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: 'Failed to truncate table' });
-      expect(spyQuery).toHaveBeenCalledTimes(3);
-      expect(response).toSatisfyApiSpec();
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeTrue();
+        expect(existsPolygonParts).toBeTrue();
 
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeTrue();
-      expect(existsPolygonParts).toBeTrue();
+        expect.assertions(6);
+      });
 
-      expect.assertions(6);
-    });
+      it('should return 500 status code for a database error - calculate polygon parts error on regular update', async () => {
+        await requestSender.createPolygonParts(createInitPayloadRequest);
+        const updatePayload = separatePolygonsRequest;
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalQuery = EntityManager.prototype.query;
+        const spyQuery = jest
+          .spyOn(EntityManager.prototype, 'query')
+          .mockImplementationOnce(originalQuery)
+          .mockRejectedValueOnce(new Error(`Failed to calculate polygon parts on  ${polygonParts.entityName}`));
 
-    it('should return 500 status code for a database error - verify tables exists (first table) error', async () => {
-      await requestSender.createPolygonParts(createInitPayloadRequest);
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(updatePayload);
-      const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValueOnce(new Error('Failed to execute query'));
+        const response = await requestSender.updatePolygonParts(updatePayload, false);
 
-      const response = await requestSender.updatePolygonParts(updatePayload, true);
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: `Failed to calculate polygon parts on  ${polygonParts.entityName}` });
+        expect(response).toSatisfyApiSpec();
+        expect(spyQuery).toHaveBeenCalledTimes(2);
 
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: 'Failed to execute query' });
-      expect(response).toSatisfyApiSpec();
-      expect(spyGetExists).toHaveBeenCalledTimes(2);
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeTrue();
+        expect(existsPolygonParts).toBeTrue();
 
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeTrue();
-      expect(existsPolygonParts).toBeTrue();
+        expect.assertions(6);
+      });
 
-      expect.assertions(6);
-    });
+      it('should return 500 status code for a database error - calculate polygon parts error on swap update', async () => {
+        await requestSender.createPolygonParts(createInitPayloadRequest);
+        const updatePayload = separatePolygonsRequest;
+        const {
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalQuery = EntityManager.prototype.query;
+        const spyQuery = jest
+          .spyOn(EntityManager.prototype, 'query')
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockRejectedValueOnce(new Error(`Failed to calculate polygon parts on  ${polygonParts.entityName}`));
 
-    it('should return 500 status code for a database error - verify tables exists(second table) error', async () => {
-      await requestSender.createPolygonParts(createInitPayloadRequest);
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(updatePayload);
-      const spyGetExists = jest
-        .spyOn(SelectQueryBuilder.prototype, 'getExists')
-        .mockResolvedValueOnce(true)
-        .mockRejectedValueOnce(new Error('Failed to execute query'));
+        const response = await requestSender.updatePolygonParts(updatePayload, true);
 
-      const response = await requestSender.updatePolygonParts(updatePayload, true);
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: `Failed to calculate polygon parts on  ${polygonParts.entityName}` });
+        expect(response).toSatisfyApiSpec();
+        expect(spyQuery).toHaveBeenCalledTimes(4);
 
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: 'Failed to execute query' });
-      expect(response).toSatisfyApiSpec();
-      expect(spyGetExists).toHaveBeenCalledTimes(2);
+        const existsParts = await helperDB.tableExists(parts.entityName, schema);
+        const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
+        expect(existsParts).toBeTrue();
+        expect(existsPolygonParts).toBeTrue();
 
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeTrue();
-      expect(existsPolygonParts).toBeTrue();
-
-      expect.assertions(6);
-    });
-
-    it('should return 500 status code for a database error - save error', async () => {
-      await requestSender.createPolygonParts(createInitPayloadRequest);
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(updatePayload);
-      const expectedErrorMessage = `Failed to save to ${parts.entityName}`;
-      const spySave = jest.spyOn(Repository.prototype, 'save').mockRejectedValueOnce(new Error(expectedErrorMessage));
-
-      const response = await requestSender.updatePolygonParts(updatePayload, true);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: expectedErrorMessage });
-      expect(response).toSatisfyApiSpec();
-      expect(spySave).toHaveBeenCalledTimes(1);
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeTrue();
-      expect(existsPolygonParts).toBeTrue();
-
-      expect.assertions(6);
-    });
-
-    it('should return 500 status code for a database error - calculate polygon parts error on regular update', async () => {
-      await requestSender.createPolygonParts(createInitPayloadRequest);
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(updatePayload);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const originalQuery = EntityManager.prototype.query;
-      const spyQuery = jest
-        .spyOn(EntityManager.prototype, 'query')
-        .mockImplementationOnce(originalQuery)
-        .mockRejectedValueOnce(new Error(`Failed to calculate polygon parts on  ${polygonParts.entityName}`));
-
-      const response = await requestSender.updatePolygonParts(updatePayload, false);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: `Failed to calculate polygon parts on  ${polygonParts.entityName}` });
-      expect(response).toSatisfyApiSpec();
-      expect(spyQuery).toHaveBeenCalledTimes(2);
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeTrue();
-      expect(existsPolygonParts).toBeTrue();
-
-      expect.assertions(6);
-    });
-
-    it('should return 500 status code for a database error - calculate polygon parts error on swap update', async () => {
-      await requestSender.createPolygonParts(createInitPayloadRequest);
-      const updatePayload = separatePolygonsRequest;
-      const {
-        entitiesNames: { parts, polygonParts },
-      } = getEntitiesMetadata(updatePayload);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const originalQuery = EntityManager.prototype.query;
-      const spyQuery = jest
-        .spyOn(EntityManager.prototype, 'query')
-        .mockImplementationOnce(originalQuery)
-        .mockImplementationOnce(originalQuery)
-        .mockImplementationOnce(originalQuery)
-        .mockRejectedValueOnce(new Error(`Failed to calculate polygon parts on  ${polygonParts.entityName}`));
-
-      const response = await requestSender.updatePolygonParts(updatePayload, true);
-
-      expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
-      expect(response.body).toMatchObject({ message: `Failed to calculate polygon parts on  ${polygonParts.entityName}` });
-      expect(response).toSatisfyApiSpec();
-      expect(spyQuery).toHaveBeenCalledTimes(4);
-
-      const existsParts = await helperDB.tableExists(parts.entityName, schema);
-      const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
-      expect(existsParts).toBeTrue();
-      expect(existsPolygonParts).toBeTrue();
-
-      expect.assertions(6);
+        expect.assertions(6);
+      });
     });
   });
 });

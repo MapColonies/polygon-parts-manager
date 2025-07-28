@@ -19,7 +19,7 @@ import { ConnectionManager } from '../../../src/common/connectionManager';
 import { SERVICES } from '../../../src/common/constants';
 import type { ApplicationConfig, DbConfig } from '../../../src/common/interfaces';
 import { Transformer } from '../../../src/common/middlewares/transformer';
-import type { AggregatePolygonPartsRequestBody, FindPolygonPartsResponseBody } from '../../../src/polygonParts/controllers/interfaces';
+import type { AggregateLayerMetadataRequestBody, FindPolygonPartsResponseBody } from '../../../src/polygonParts/controllers/interfaces';
 import { Part } from '../../../src/polygonParts/DAL/part';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
 import type {
@@ -166,7 +166,7 @@ describe('polygonParts', () => {
         await requestSender.createPolygonParts(polygonPartsPayload);
         const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
 
-        const filterBody: AggregatePolygonPartsRequestBody = {
+        const filterBody: AggregateLayerMetadataRequestBody = {
           filter: {
             type: 'FeatureCollection',
             features: [
@@ -203,7 +203,7 @@ describe('polygonParts', () => {
         await requestSender.createPolygonParts(polygonPartsPayload);
         const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
 
-        const filterBody: AggregatePolygonPartsRequestBody = {
+        const filterBody: AggregateLayerMetadataRequestBody = {
           filter: {
             type: 'FeatureCollection',
             features: [

@@ -22,7 +22,6 @@ export interface FindPolygonPartsQueryParams extends Readonly<Pick<FindPolygonPa
  * Find polygon parts request body
  */
 export type FindPolygonPartsRequestBody = Pick<FindPolygonPartsOptions, 'filter'>;
-export type AggregatePolygonPartsRequestBody = Pick<AggregateLayerMetadataOptions, 'filter'>;
 
 /**
  * Find polygon parts response body
@@ -35,6 +34,11 @@ export interface FindPolygonPartsResponseBody<ShouldClip extends boolean = boole
 export interface AggregateLayerMetadataParams {
   readonly polygonPartsEntityName: EntityIdentifier;
 }
+
+/**
+ * Get aggregation layer metadata request body
+ */
+export type AggregateLayerMetadataRequestBody = Pick<AggregateLayerMetadataOptions, 'filter'>;
 
 /**
  * Get aggregation layer metadata response body

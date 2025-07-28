@@ -6,8 +6,8 @@ import { PolygonPartsManager } from '../models/polygonPartsManager';
 import type {
   AggregateLayerMetadataParams,
   AggregateLayerMetadataQueryParams,
+  AggregateLayerMetadataRequestBody,
   AggregateLayerMetadataResponseBody,
-  AggregatePolygonPartsRequestBody,
   FindPolygonPartsParams,
   FindPolygonPartsQueryParams,
   FindPolygonPartsRequestBody,
@@ -38,10 +38,10 @@ type UpdatePolygonPartsHandler = RequestHandler<undefined, PolygonPartsResponse,
 /**
  * Get aggregation layer metadata handler
  */
-export type AggregationLayerMetadataHandler = RequestHandler<
+export type AggregateLayerMetadataHandler = RequestHandler<
   AggregateLayerMetadataParams,
   AggregateLayerMetadataResponseBody,
-  AggregatePolygonPartsRequestBody,
+  AggregateLayerMetadataRequestBody,
   AggregateLayerMetadataQueryParams,
   EntitiesMetadata
 >;
@@ -72,7 +72,7 @@ export class PolygonPartsController {
     }
   };
 
-  public aggregateLayerMetadata: AggregationLayerMetadataHandler = async (req, res, next) => {
+  public aggregateLayerMetadata: AggregateLayerMetadataHandler = async (req, res, next) => {
     try {
       const response = await this.polygonPartsManager.aggregateLayerMetadata({
         polygonPartsEntityName: res.locals.entitiesNames.polygonParts,

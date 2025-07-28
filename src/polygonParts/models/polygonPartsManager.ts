@@ -185,13 +185,13 @@ export class PolygonPartsManager {
           throw new NotFoundError(`Table with the name '${polygonPartsEntityName.entityName}' doesn't exists`);
         }
 
-        const { filterQueryMetadata, filteredPolygonPartsQuery } = await this.prepareAggregationFilterQuery(
+        const { filterQueryMetadata, filteredPolygonPartsQuery } = await this.buildAggregateFilterQuery(
           entityManager,
           polygonPartsEntityName,
           filter
         );
 
-        const aggregationQueryToExecute = this.buildAggregationLayerMetadataQuery({
+        const aggregationQuery = this.buildAggregateLayerMetadataQuery({
           entityManager,
           options,
           filterQueryMetadata,
@@ -199,7 +199,7 @@ export class PolygonPartsManager {
         });
 
         try {
-          const result = await aggregationQueryToExecute.getRawOne<{ feature: AggregationFeature }>();
+          const result = await aggregationQuery.getRawOne<{ feature: AggregationFeature }>();
           return result;
         } catch (error) {
           let errorMessage: string;
@@ -229,7 +229,7 @@ export class PolygonPartsManager {
     }
   }
 
-  private async prepareAggregationFilterQuery(
+  private async buildAggregateFilterQuery(
     entityManager: EntityManager,
     polygonPartsEntityName: EntityNames,
     filter: FindPolygonPartsOptions<true>['filter']
@@ -264,7 +264,7 @@ export class PolygonPartsManager {
     return { filterQueryMetadata, filteredPolygonPartsQuery };
   }
 
-  private buildAggregationLayerMetadataQuery(context: {
+  private buildAggregateLayerMetadataQuery(context: {
     entityManager: EntityManager;
     options: AggregateLayerMetadataOptions;
     filterQueryMetadata?: FilterQueryMetadata;

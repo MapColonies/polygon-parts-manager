@@ -105,7 +105,7 @@ paths:
           - Returns polygon parts intersecting with input search geometries
           - Resolution filters (`maxResolutionDeg`/`minResolutionDeg`) can be specified in feature properties
           - Input feature IDs are tracked in response via `requestFeatureId`
-          - Empty request or empty features array perform unfiltered search
+          - Empty filter or empty features array perform unfiltered search
           - With `shouldClip=true` (default):
             - Geometries clipped to search geometries
             - Feature ID maps 1:1 between input and output features via `requestFeatureId`

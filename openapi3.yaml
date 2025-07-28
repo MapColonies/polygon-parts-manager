@@ -181,6 +181,7 @@ paths:
             - Footprint is used for filtering and aggregation calculation
             - Footprint is included in output
             - Geometric metadata based on footprint is included in the response (i.e. productBoundingBox)
+      operationId: aggregateLayerMetadata
       parameters:
         - in: path
           name: polygonPartsEntityName

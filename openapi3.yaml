@@ -363,34 +363,6 @@ components:
     Description:
       type: string
       nullable: true
-    RoiFeaturePayload:
-      required:
-        - type
-        - properties
-        - geometry
-      properties:
-        type:
-          type: string
-          enum:
-            - Feature
-        id:
-          $ref: '#/components/schemas/FeatureId'
-        properties:
-          type: object
-          nullable: true
-          properties:
-            maxResolutionDeg:
-              $ref: '#/components/schemas/ResolutionDegree'
-            minResolutionDeg:
-              $ref: '#/components/schemas/ResolutionDegree'
-        geometry:
-          type: object
-          oneOf:
-            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
-            - $ref: >-
-                ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
-        bbox:
-          $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
     FeatureFindResponse:
       required:
         - type
@@ -595,6 +567,34 @@ components:
       maximum: 78271.52
       format: double
       description: Resolution of layer in meters
+    RoiFeaturePayload:
+      required:
+        - type
+        - properties
+        - geometry
+      properties:
+        type:
+          type: string
+          enum:
+            - Feature
+        id:
+          $ref: '#/components/schemas/FeatureId'
+        properties:
+          type: object
+          nullable: true
+          properties:
+            maxResolutionDeg:
+              $ref: '#/components/schemas/ResolutionDegree'
+            minResolutionDeg:
+              $ref: '#/components/schemas/ResolutionDegree'
+        geometry:
+          type: object
+          oneOf:
+            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
+            - $ref: >-
+                ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
+        bbox:
+          $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
     Sensors:
       type: array
       items:

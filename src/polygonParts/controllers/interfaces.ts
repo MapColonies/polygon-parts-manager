@@ -1,9 +1,9 @@
 import type {
+  AggregateLayerMetadataOptions,
+  AggregateLayerMetadataResponse,
   EntityIdentifier,
   FindPolygonPartsOptions,
   FindPolygonPartsResponse,
-  AggregateLayerMetadataOptions,
-  AggregationLayerMetadataResponse,
 } from '../models/interfaces';
 
 /**
@@ -32,11 +32,16 @@ export interface FindPolygonPartsResponseBody<ShouldClip extends boolean = boole
 /**
  * Get aggregation layer metadata params
  */
-export interface AggregationLayerMetadataParams {
+export interface AggregateLayerMetadataParams {
   readonly polygonPartsEntityName: EntityIdentifier;
 }
 
 /**
  * Get aggregation layer metadata response body
  */
-export interface AggregationLayerMetadataResponseBody extends AggregationLayerMetadataResponse {}
+export interface AggregateLayerMetadataResponseBody extends AggregateLayerMetadataResponse {}
+
+/**
+ * Get aggregation layer metadata query params
+ */
+export interface AggregateLayerMetadataQueryParams extends Readonly<Pick<AggregateLayerMetadataOptions, 'shouldIgnoreFootprint'>> {}

@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { AggregationLayerMetadataResponse } from '../../src/polygonParts/models/interfaces';
+import type { AggregateLayerMetadataResponse } from '../../src/polygonParts/models/interfaces';
 
-export const emptyFeature: AggregationLayerMetadataResponse = {
+export const emptyFeature: AggregateLayerMetadataResponse = {
   type: 'Feature',
   geometry: null,
   properties: null,
 };
 
-export const customAggregationNoFilter: AggregationLayerMetadataResponse = {
+export const customAggregationNoFilter: AggregateLayerMetadataResponse = {
   type: 'Feature',
   geometry: {
     bbox: [34.851494459228, 31.764309584483, 35.231494406371, 32.305431896406],
@@ -47,7 +47,7 @@ export const customAggregationNoFilter: AggregationLayerMetadataResponse = {
   },
 };
 
-export const customAggregationWithFilter: AggregationLayerMetadataResponse = {
+export const customAggregationWithFilter: AggregateLayerMetadataResponse = {
   type: 'Feature',
   geometry: {
     bbox: [35.210121597558, 31.764309584483, 35.231494406371, 31.782431896406],

@@ -1,13 +1,13 @@
 import type { Application } from 'express';
 import * as supertest from 'supertest';
-import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 import type {
+  AggregateLayerMetadataParams,
+  AggregatePolygonPartsRequestBody,
   FindPolygonPartsParams,
   FindPolygonPartsQueryParams,
   FindPolygonPartsRequestBody,
-  AggregationLayerMetadataParams,
-  AggregatePolygonPartsRequestBody,
 } from '../../../../src/polygonParts/controllers/interfaces';
+import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 
 interface FindPolygonParts {
   params: FindPolygonPartsParams;
@@ -35,7 +35,7 @@ export class PolygonPartsRequestSender {
   }
 
   public async aggregateLayerMetadata(options: {
-    params: AggregationLayerMetadataParams;
+    params: AggregateLayerMetadataParams;
     body?: AggregatePolygonPartsRequestBody;
   }): Promise<supertest.Response> {
     return supertest.agent(this.app).post(`/polygonParts/${options.params.polygonPartsEntityName}/aggregate`).send(options.body);

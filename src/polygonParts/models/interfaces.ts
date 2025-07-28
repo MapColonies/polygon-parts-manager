@@ -140,6 +140,7 @@ export interface IsSwapQueryParams {
 export interface AggregateLayerMetadataOptions {
   readonly polygonPartsEntityName: EntityNames;
   readonly filter: FeatureCollectionFilter | null;
+  readonly shouldIgnoreFootprint: boolean;
 }
 
 export interface FilterQueryMetadata {
@@ -151,8 +152,7 @@ export interface FilterQueryMetadata {
 /**
  * Get aggregation layer metadata response
  */
-
-export interface AggregationLayerMetadataResponse extends AggregationFeature {}
+export interface AggregateLayerMetadataResponse extends AggregationFeature {}
 //#endregion
 
 //#region private

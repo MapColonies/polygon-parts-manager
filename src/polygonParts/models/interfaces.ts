@@ -61,6 +61,7 @@ export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = Fea
     requestFeatureId?: NonNullable<Feature['id']> | (ShouldClip extends true ? never : NonNullable<Feature['id']>[]);
   }
 >;
+
 /**
  * Polygon parts ingestion payload
  */
@@ -136,7 +137,6 @@ export interface IsSwapQueryParams {
 /**
  * Get aggregation layer metadata options
  */
-
 export interface AggregateLayerMetadataOptions {
   readonly polygonPartsEntityName: EntityNames;
   readonly filter: FeatureCollectionFilter | null;

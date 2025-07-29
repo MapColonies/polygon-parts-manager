@@ -2,6 +2,7 @@ import type { Application } from 'express';
 import * as supertest from 'supertest';
 import type {
   AggregateLayerMetadataParams,
+  AggregateLayerMetadataQueryParams,
   AggregateLayerMetadataRequestBody,
   FindPolygonPartsParams,
   FindPolygonPartsQueryParams,
@@ -37,6 +38,7 @@ export class PolygonPartsRequestSender {
   public async aggregateLayerMetadata(options: {
     params: AggregateLayerMetadataParams;
     body?: AggregateLayerMetadataRequestBody;
+    query?: AggregateLayerMetadataQueryParams;
   }): Promise<supertest.Response> {
     return supertest.agent(this.app).post(`/polygonParts/${options.params.polygonPartsEntityName}/aggregate`).send(options.body);
   }

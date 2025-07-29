@@ -158,7 +158,13 @@ describe('polygonParts', () => {
         expect(result.success).toBe(true);
         expect(result.data).toEqual(customAggregationNoFilter);
 
-        expect.assertions(4);
+        const coordinates = result.data?.geometry?.coordinates.flat(3) ?? [];
+        for (const coordinate of coordinates) {
+          const coordinatePrecision = coordinate.toString().split('.').at(1)?.length ?? 0;
+          expect(coordinatePrecision).toBeLessThanOrEqual(applicationConfig.aggregation.maxDecimalDigits);
+        }
+
+        expect.assertions(24);
       });
 
       it('should return 200 status code and filtered aggregated metadata with a valid feature collection filter (random data)', async () => {
@@ -241,10 +247,16 @@ describe('polygonParts', () => {
         expect(result.success).toBe(true);
         expect(result.data).toEqual(customAggregationWithFilter);
 
+        const coordinates = result.data?.geometry?.coordinates.flat(3) ?? [];
+        for (const coordinate of coordinates) {
+          const coordinatePrecision = coordinate.toString().split('.').at(1)?.length ?? 0;
+          expect(coordinatePrecision).toBeLessThanOrEqual(applicationConfig.aggregation.maxDecimalDigits);
+        }
+
         const isContained = booleanContains(filterBody.filter?.features[0].geometry as Geometry, result.data?.geometry as Geometry);
         expect(isContained).toBe(true);
 
-        expect.assertions(5);
+        expect.assertions(15);
       });
     });
 

@@ -210,8 +210,9 @@ paths:
             application/json:
               schema:
                 oneOf:
-                  - $ref: '#/components/schemas/AggregationFeature'
-                  - $ref: '#/components/schemas/AggregationFeatureMetadata'
+                  - $ref: '#/components/schemas/AggregationSpatialFeature'
+                  - $ref: '#/components/schemas/AggregationNonSpatialFeature'
+                  - $ref: '#/components/schemas/AggregationEmptyFeature'
         '400':
           description: Bad Request
           content:
@@ -232,9 +233,9 @@ paths:
                 $ref: '#/components/schemas/ErrorMessage'
 components:
   schemas:
-    AggregationFeature:
+    AggregationEmptyFeature:
       type: object
-      description: Aggregation of spatial and non-spatial feature
+      description: Aggregation of an empty feature
       required:
         - type
         - properties
@@ -246,17 +247,14 @@ components:
           enum:
             - Feature
         geometry:
-          type: object
+          type: string
           nullable: true
-          anyOf:
-            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
-            - $ref: >-
-                ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
-            - type: object
-              nullable: true
+          enum: [null]
         properties:
-          $ref: '#/components/schemas/AggregateFeatureProperties'
-    AggregationFeatureMetadata:
+          type: string
+          nullable: true
+          enum: [null]
+    AggregationNonSpatialFeature:
       type: object
       description: Aggregation of non-spatial feature
       required:
@@ -274,22 +272,13 @@ components:
           nullable: true
           enum: [null]
         properties:
-          $ref: '#/components/schemas/AggregateFeatureMetadataProperties'
-    AggregateFeatureProperties:
-      description: Aggregation metadata of spatial and non-spatial feature properties
+          $ref: '#/components/schemas/AggregationNonSpatialFeatureProperties'
+    AggregationNonSpatialFeatureProperties:
       allOf:
-        - $ref: '#/components/schemas/AggregateFeatureMetadataProperties'
-        - type: object
-          nullable: true
-          required:
-            - productBoundingBox
-          properties:
-            productBoundingBox:
-              $ref: '#/components/schemas/BoundingBox'
-    AggregateFeatureMetadataProperties:
+        - description: Aggregation metadata of non-spatial feature properties
+        - $ref: '#/components/schemas/AggregationProperties'
+    AggregationProperties:
       type: object
-      description: Aggregation metadata of non-spatial feature properties
-      nullable: true
       required:
         - imagingTimeBeginUTC
         - imagingTimeEndUTC
@@ -331,6 +320,38 @@ components:
             - description: Minimal horizontal accuracy
         sensors:
           $ref: '#/components/schemas/Sensors'
+    AggregationSpatialFeature:
+      type: object
+      description: Aggregation of spatial and non-spatial feature
+      required:
+        - type
+        - properties
+        - geometry
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          enum:
+            - Feature
+        geometry:
+          type: object
+          oneOf:
+            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
+            - $ref: >-
+                ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
+        properties:
+          $ref: '#/components/schemas/AggregationSpatialFeatureProperties'
+    AggregationSpatialFeatureProperties:
+      type: object
+      description: Aggregation metadata of spatial and non-spatial feature properties
+      allOf:
+        - $ref: '#/components/schemas/AggregationProperties'
+        - type: object
+          required:
+            - productBoundingBox
+          properties:
+            productBoundingBox:
+              $ref: '#/components/schemas/BoundingBox'
     AggregationFilterPayload:
       type: object
       properties:

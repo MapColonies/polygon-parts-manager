@@ -1,12 +1,11 @@
 import { BadRequestError, ConflictError, InternalServerError, NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
-import { AggregationFeature, CORE_VALIDATIONS } from '@map-colonies/raster-shared';
+import { CORE_VALIDATIONS, type AggregationEmptyFeature } from '@map-colonies/raster-shared';
 import { geometryCollection } from '@turf/helpers';
 import { inject, injectable } from 'tsyringe';
 import type { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
-import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
 import { Part } from '../DAL/part';
 import { PolygonPart } from '../DAL/polygonPart';
@@ -171,8 +170,10 @@ export class PolygonPartsManager {
     }
   }
 
-  public async aggregateLayerMetadata(options: AggregateLayerMetadataOptions): Promise<AggregateLayerMetadataResponse> {
-    const { polygonPartsEntityName, filter } = options;
+  public async aggregateLayerMetadata<T extends boolean = false>(
+    options: AggregateLayerMetadataOptions<T>
+  ): Promise<AggregateLayerMetadataResponse<T>> {
+    const { filter, polygonPartsEntityName } = options;
 
     const logger = this.logger.child({ polygonPartsEntityName });
     logger.info({ msg: 'Metadata aggregation request' });
@@ -199,27 +200,25 @@ export class PolygonPartsManager {
         });
 
         try {
-          const result = await aggregationQuery.getRawOne<{ feature: AggregationFeature }>();
-          return result;
+          const result = await aggregationQuery.getRawOne<{
+            feature: Exclude<AggregateLayerMetadataResponse<T>, AggregationEmptyFeature>;
+          }>();
+
+          return (
+            result ?? {
+              feature: {
+                type: 'Feature',
+                geometry: null,
+                properties: null,
+              } satisfies AggregationEmptyFeature,
+            }
+          );
         } catch (error) {
-          let errorMessage: string;
-          if (error instanceof ValidationError) {
-            errorMessage = 'Invalid aggregation metadata response';
-          } else {
-            errorMessage = 'Could not aggregate polygon parts';
-          }
+          const errorMessage = 'Could not aggregate polygon parts';
           logger.error({ msg: errorMessage, error });
           throw error;
         }
       });
-
-      if (!response) {
-        return {
-          type: 'Feature',
-          geometry: null,
-          properties: null,
-        };
-      }
 
       return response.feature;
     } catch (error) {
@@ -280,23 +279,25 @@ export class PolygonPartsManager {
       filteredPolygonPartsQuery,
     } = context;
 
-    const baseTable = filterQueryMetadata?.filterQueryAlias ?? polygonPartsEntityName.databaseObjectQualifiedName;
+    const baseTable = shouldIgnoreFootprint
+      ? polygonPartsEntityName.databaseObjectQualifiedName
+      : filterQueryMetadata?.filterQueryAlias ?? polygonPartsEntityName.databaseObjectQualifiedName;
     const queryBuilder = filteredPolygonPartsQuery ?? entityManager.createQueryBuilder();
 
     const metadataAggregationCTE = entityManager
       .createQueryBuilder()
-      .select('min("polygon_part".imaging_time_begin_utc)::timestamptz', 'imagingTimeBeginUTC')
-      .addSelect('max("polygon_part".imaging_time_end_utc)::timestamptz', 'imagingTimeEndUTC')
-      .addSelect('min("polygon_part".resolution_degree)::numeric', 'maxResolutionDeg') // maxResolutionDeg - refers to the best value (lower is better)
-      .addSelect('max("polygon_part".resolution_degree)::numeric', 'minResolutionDeg') // minResolutionDeg - refers to the worst value (higher is worse)
-      .addSelect('min("polygon_part".resolution_meter)::numeric', 'maxResolutionMeter') // maxResolutionMeter - refers to the best value (lower is better)
-      .addSelect('max("polygon_part".resolution_meter)::numeric', 'minResolutionMeter') // minResolutionMeter - refers to the worst value (higher is worse)
-      .addSelect('min("polygon_part".horizontal_accuracy_ce90)::numeric', 'maxHorizontalAccuracyCE90') // maxHorizontalAccuracyCE90 - refers to the best value (lower is better)
-      .addSelect('max("polygon_part".horizontal_accuracy_ce90)::numeric', 'minHorizontalAccuracyCE90') // minHorizontalAccuracyCE90 - refers to the worst value (higher is worse)
+      .select(`to_char(min(imaging_time_begin_utc)::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`, 'imagingTimeBeginUTC')
+      .addSelect(`to_char(max(imaging_time_end_utc)::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`, 'imagingTimeEndUTC')
+      .addSelect('min(resolution_degree)::numeric', 'maxResolutionDeg') // maxResolutionDeg - refers to the best value (lower is better)
+      .addSelect('max(resolution_degree)::numeric', 'minResolutionDeg') // minResolutionDeg - refers to the worst value (higher is worse)
+      .addSelect('min(resolution_meter)::numeric', 'maxResolutionMeter') // maxResolutionMeter - refers to the best value (lower is better)
+      .addSelect('max(resolution_meter)::numeric', 'minResolutionMeter') // minResolutionMeter - refers to the worst value (higher is worse)
+      .addSelect('min(horizontal_accuracy_ce90)::numeric', 'maxHorizontalAccuracyCE90') // maxHorizontalAccuracyCE90 - refers to the best value (lower is better)
+      .addSelect('max(horizontal_accuracy_ce90)::numeric', 'minHorizontalAccuracyCE90') // minHorizontalAccuracyCE90 - refers to the worst value (higher is worse)
       .addSelect((subQuery) => {
-        return subQuery.select(`array_agg("sensors_sub_query".sensors_records)`).from((innerSubQuery) => {
+        return subQuery.select(`array_agg(sensors_records)`).from((innerSubQuery) => {
           const query = innerSubQuery
-            .select(`unnest(string_to_array("polygon_part".sensors, '${this.applicationConfig.arraySeparator}'))`, 'sensors_records')
+            .select(`unnest(string_to_array(sensors, '${this.applicationConfig.arraySeparator}'))`, 'sensors_records')
             .distinct(true)
             .from(baseTable, 'polygon_part')
             .orderBy('sensors_records', 'ASC');
@@ -314,15 +315,15 @@ export class PolygonPartsManager {
             'type', 'Feature',
             'geometry', null,
             'properties', jsonb_build_object(
-              'imagingTimeBeginUTC', metadata_aggregation."imagingTimeBeginUTC",
-              'imagingTimeEndUTC', metadata_aggregation."imagingTimeEndUTC",
-              'maxResolutionDeg', metadata_aggregation."maxResolutionDeg",
-              'minResolutionDeg', metadata_aggregation."minResolutionDeg",
-              'maxResolutionMeter', metadata_aggregation."maxResolutionMeter",
-              'minResolutionMeter', metadata_aggregation."minResolutionMeter",
-              'maxHorizontalAccuracyCE90', metadata_aggregation."maxHorizontalAccuracyCE90",
-              'minHorizontalAccuracyCE90', metadata_aggregation."minHorizontalAccuracyCE90",
-              'sensors', metadata_aggregation."sensors"
+              'imagingTimeBeginUTC', "imagingTimeBeginUTC",
+              'imagingTimeEndUTC', "imagingTimeEndUTC",
+              'maxResolutionDeg', "maxResolutionDeg",
+              'minResolutionDeg', "minResolutionDeg",
+              'maxResolutionMeter', "maxResolutionMeter",
+              'minResolutionMeter', "minResolutionMeter",
+              'maxHorizontalAccuracyCE90', "maxHorizontalAccuracyCE90",
+              'minHorizontalAccuracyCE90', "minHorizontalAccuracyCE90",
+              'sensors', "sensors"
             )
           )`,
           'feature'
@@ -332,24 +333,24 @@ export class PolygonPartsManager {
 
     const footprintUnionCTE = entityManager
       .createQueryBuilder()
-      .select('st_union("polygon_part".footprint)', 'footprint_union')
+      .select('st_union(footprint)', 'footprint_union')
       .from(baseTable, 'polygon_part');
 
     const footprintSmoothCTE = entityManager
       .createQueryBuilder()
       .select(
         fixGeometry.enabled
-          ? `st_buffer(st_buffer("footprint_union".footprint_union, ${fixGeometry.bufferSizeDeg}, ${fixGeometry.bufferStyleParameters}), -${fixGeometry.bufferSizeDeg}, ${fixGeometry.bufferStyleParameters})`
+          ? `st_buffer(st_buffer(footprint_union, ${fixGeometry.bufferSizeDeg}, ${fixGeometry.bufferStyleParameters}), -${fixGeometry.bufferSizeDeg}, ${fixGeometry.bufferStyleParameters})`
           : `'POLYGON EMPTY'::geometry`,
         'footprint_buffer'
       )
-      .addSelect('"footprint_union".footprint_union', 'footprint_union')
+      .addSelect('footprint_union', 'footprint_union')
       .from('footprint_union', 'footprint_union');
 
     const footprintFixEmptyCTE = entityManager
       .createQueryBuilder()
       .select(
-        `case when st_isempty("footprint_smooth".footprint_buffer) then "footprint_smooth".footprint_union else "footprint_smooth".footprint_buffer end`,
+        `case when st_isempty(footprint_buffer) then footprint_union else footprint_buffer end`,
         'footprint'
       )
       .from('footprint_smooth', 'footprint_smooth');
@@ -358,8 +359,8 @@ export class PolygonPartsManager {
       .createQueryBuilder()
       .select(
         simplifyGeometry.enabled
-          ? `st_union(st_simplifypreservetopology("footprint_fix_empty".footprint, ${simplifyGeometry.toleranceDeg}))`
-          : '"footprint_fix_empty".footprint',
+          ? `st_union(st_simplifypreservetopology(footprint, ${simplifyGeometry.toleranceDeg}))`
+          : 'footprint',
         'footprint'
       )
       .from('footprint_fix_empty', 'footprint_fix_empty');
@@ -367,14 +368,14 @@ export class PolygonPartsManager {
     const footprintAggregationCTE = entityManager
       .createQueryBuilder()
       .select(
-        `st_asgeojson(st_geometryn(st_collect("footprint_simplify".footprint), 1), maxdecimaldigits => ${maxDecimalDigits}, options => 1)::json`,
+        `st_asgeojson(st_geometryn(st_collect(footprint), 1), maxdecimaldigits => ${maxDecimalDigits}, options => 1)::json`,
         'geometry'
       )
       .addSelect(
-        `trim(both '[]' from (st_asgeojson(st_geometryn(st_collect("footprint_simplify".footprint), 1), maxdecimaldigits => ${maxDecimalDigits}, options => 1)::json ->> 'bbox'))`,
+        `trim(both '[]' from (st_asgeojson(st_geometryn(st_collect(footprint), 1), maxdecimaldigits => ${maxDecimalDigits}, options => 1)::json ->> 'bbox'))`,
         'bbox'
       )
-      .addSelect(`st_isempty(st_geometryn(st_collect("footprint_simplify".footprint), 1))`, 'is_empty')
+      .addSelect(`st_isempty(st_geometryn(st_collect(footprint), 1))`, 'is_empty')
       .from('footprint_simplify', 'footprint_simplify');
 
     const aggregateLayerMetadataQuery = queryBuilder

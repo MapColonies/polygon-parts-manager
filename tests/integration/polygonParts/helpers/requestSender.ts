@@ -10,6 +10,12 @@ import type {
 } from '../../../../src/polygonParts/controllers/interfaces';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 
+interface AggregatePolygonParts {
+  params: AggregateLayerMetadataParams;
+  body: AggregateLayerMetadataRequestBody;
+  query?: AggregateLayerMetadataQueryParams;
+}
+
 interface FindPolygonParts {
   params: FindPolygonPartsParams;
   body: FindPolygonPartsRequestBody;
@@ -35,11 +41,11 @@ export class PolygonPartsRequestSender {
     return supertest.agent(this.app).put('/polygonParts').query({ isSwap }).set('Content-Type', 'application/json').send(body);
   }
 
-  public async aggregateLayerMetadata(options: {
-    params: AggregateLayerMetadataParams;
-    body?: AggregateLayerMetadataRequestBody;
-    query?: AggregateLayerMetadataQueryParams;
-  }): Promise<supertest.Response> {
-    return supertest.agent(this.app).post(`/polygonParts/${options.params.polygonPartsEntityName}/aggregate`).send(options.body);
+  public async aggregateLayerMetadata({ params, body, query }: AggregatePolygonParts): Promise<supertest.Response> {
+    return supertest
+      .agent(this.app)
+      .post(`/polygonParts/${params.polygonPartsEntityName}/aggregate`)
+      .query(query ?? {})
+      .send(body);
   }
 }

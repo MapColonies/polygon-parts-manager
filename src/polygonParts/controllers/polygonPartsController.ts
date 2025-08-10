@@ -38,11 +38,11 @@ type UpdatePolygonPartsHandler = RequestHandler<undefined, PolygonPartsResponse,
 /**
  * Get aggregation layer metadata handler
  */
-export type AggregateLayerMetadataHandler = RequestHandler<
+export type AggregateLayerMetadataHandler<T extends boolean = boolean> = RequestHandler<
   AggregateLayerMetadataParams,
-  AggregateLayerMetadataResponseBody,
+  AggregateLayerMetadataResponseBody<T>,
   AggregateLayerMetadataRequestBody,
-  AggregateLayerMetadataQueryParams,
+  AggregateLayerMetadataQueryParams<T>,
   EntitiesMetadata
 >;
 

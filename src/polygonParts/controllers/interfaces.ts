@@ -43,9 +43,10 @@ export type AggregateLayerMetadataRequestBody = Pick<AggregateLayerMetadataOptio
 /**
  * Get aggregation layer metadata response body
  */
-export interface AggregateLayerMetadataResponseBody extends AggregateLayerMetadataResponse {}
+export type AggregateLayerMetadataResponseBody<T extends boolean = false> = AggregateLayerMetadataResponse<T>;
 
 /**
  * Get aggregation layer metadata query params
  */
-export interface AggregateLayerMetadataQueryParams extends Readonly<Pick<AggregateLayerMetadataOptions, 'shouldIgnoreFootprint'>> {}
+export interface AggregateLayerMetadataQueryParams<T extends boolean = boolean>
+  extends Readonly<Pick<AggregateLayerMetadataOptions<T>, 'shouldIgnoreFootprint'>> {}

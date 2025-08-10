@@ -1,14 +1,14 @@
 import { faker } from '@faker-js/faker';
 import jsLogger from '@map-colonies/js-logger';
 import { zoomLevelToResolutionDeg } from '@map-colonies/mc-utils';
-import { aggregationFeatureSchema, CORE_VALIDATIONS, INGESTION_VALIDATIONS, PolygonPart as PolygonPartType } from '@map-colonies/raster-shared';
+import { CORE_VALIDATIONS, INGESTION_VALIDATIONS, PolygonPart as PolygonPartType } from '@map-colonies/raster-shared';
 import { trace } from '@opentelemetry/api';
 import { booleanContains } from '@turf/boolean-contains';
 import { booleanEqual } from '@turf/boolean-equal';
 import { feature, featureCollection, multiPolygon, polygon, polygons } from '@turf/helpers';
 import { randomPolygon } from '@turf/random';
 import config from 'config';
-import type { BBox, FeatureCollection, MultiPolygon, Polygon } from 'geojson';
+import type { BBox, Feature, FeatureCollection, MultiPolygon, Polygon } from 'geojson';
 import { StatusCodes as httpStatusCodes } from 'http-status-codes';
 import { get as getValue, merge } from 'lodash';
 import { xor } from 'martinez-polygon-clipping';
@@ -19,9 +19,14 @@ import { ConnectionManager } from '../../../src/common/connectionManager';
 import { SERVICES } from '../../../src/common/constants';
 import type { ApplicationConfig, DbConfig } from '../../../src/common/interfaces';
 import { Transformer } from '../../../src/common/middlewares/transformer';
-import type { AggregateLayerMetadataRequestBody, FindPolygonPartsResponseBody } from '../../../src/polygonParts/controllers/interfaces';
 import { Part } from '../../../src/polygonParts/DAL/part';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
+import type {
+  AggregateLayerMetadataParams,
+  AggregateLayerMetadataRequestBody,
+  AggregateLayerMetadataResponseBody,
+  FindPolygonPartsResponseBody,
+} from '../../../src/polygonParts/controllers/interfaces';
 import type {
   EntitiesMetadata,
   EntityIdentifier,
@@ -43,14 +48,19 @@ import {
   worldFootprint,
   worldMinusSeparateCountries,
 } from '../../mocks/requestsMocks';
-import { customAggregationNoFilter, customAggregationWithFilter } from '../../mocks/responseMocks';
+import {
+  aggregationWithFilterMultiPolygonResponse,
+  customAggregationNoFilter,
+  customAggregationWithFilter,
+  customAggregationWithIgnoredFilter,
+} from '../../mocks/responseMocks';
 import polygonEarth from './data/polygonEarth.json';
 import polygonEasternHemisphere from './data/polygonEasternHemisphere.json';
 import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
 import polygonWesternHemisphere from './data/polygonWesternHemisphere.json';
 import { INITIAL_DB, INTERNAL_DB_GEOM_PRECISION } from './helpers/constants';
-import { createDB, generateFeatureId, generatePolygon, generatePolygonPartsPayload, HelperDB } from './helpers/db';
+import { HelperDB, createDB, generateFeatureId, generatePolygon, generatePolygonPartsPayload } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import type { DeepPartial } from './helpers/types';
 import { allFindFeaturesEqual, toExpectedFindPolygonPartsResponse, toExpectedPostgresResponse } from './helpers/utils';
@@ -124,127 +134,336 @@ describe('polygonParts', () => {
 
   describe('Happy Path', () => {
     describe('POST /polygonParts/:polygonPartsEntityName/aggregate', () => {
-      it('should return 200 status code and aggregated metadata with an empty request body (random data)', async () => {
-        const polygonPartsPayload = createInitPayloadRequest;
-        await requestSender.createPolygonParts(polygonPartsPayload);
-        const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-
-        const response = await requestSender.aggregateLayerMetadata({
-          params: { polygonPartsEntityName: entityIdentifier },
-          body: { filter: null },
-        });
-
-        const result = aggregationFeatureSchema.safeParse(response.body);
-        expect(response.status).toBe(httpStatusCodes.OK);
-        expect(response).toSatisfyApiSpec();
-        expect(result.success).toBe(true);
-
-        expect.assertions(3);
-      });
-
-      it('should return 200 status code and aggregated metadata with an empty request body (custom data)', async () => {
-        const polygonPartsPayload = createCustomInitPayloadRequestForAggregation;
-        await requestSender.createPolygonParts(polygonPartsPayload);
-        const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-
-        const response = await requestSender.aggregateLayerMetadata({
-          params: { polygonPartsEntityName: entityIdentifier },
-          body: { filter: null },
-        });
-
-        const result = aggregationFeatureSchema.safeParse(response.body);
-        expect(response.status).toBe(httpStatusCodes.OK);
-        expect(response).toSatisfyApiSpec();
-        expect(result.success).toBe(true);
-        expect(result.data).toEqual(customAggregationNoFilter);
-
-        expect.assertions(4);
-      });
-
-      it('should return 200 status code and filtered aggregated metadata with a valid feature collection filter (random data)', async () => {
-        const polygonPartsPayload = createInitPayloadRequest;
-        await requestSender.createPolygonParts(polygonPartsPayload);
-        const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-
-        const filterBody: AggregateLayerMetadataRequestBody = {
-          filter: {
-            type: 'FeatureCollection',
-            features: [
-              {
-                type: 'Feature',
-                properties: {
-                  minResolutionDeg: 0.703125,
-                  maxResolutionDeg: 0.703125,
-                },
-                geometry: italyFootprint,
-              },
-            ],
-          },
-        };
-
-        const response = await requestSender.aggregateLayerMetadata({
-          params: { polygonPartsEntityName: entityIdentifier },
-          body: filterBody,
-        });
-
-        const result = aggregationFeatureSchema.safeParse(response.body);
-        expect(response.status).toBe(httpStatusCodes.OK);
-        expect(response).toSatisfyApiSpec();
-        expect(result.success).toBe(true);
-
-        const isContained = booleanContains(filterBody.filter?.features[0].geometry as Geometry, result.data?.geometry as Geometry);
-        expect(isContained).toBe(true);
-
-        expect.assertions(4);
-      });
-
-      it('should return 200 status code and filtered aggregated metadata with a valid feature collection filter (custom data)', async () => {
-        const polygonPartsPayload = createCustomInitPayloadRequestForAggregation;
-        await requestSender.createPolygonParts(polygonPartsPayload);
-        const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
-
-        const filterBody: AggregateLayerMetadataRequestBody = {
-          filter: {
-            type: 'FeatureCollection',
-            features: [
-              {
-                type: 'Feature',
-                properties: {
-                  minResolutionDeg: 0.0001,
-                  maxResolutionDeg: 0.0001,
-                },
-                geometry: {
-                  type: 'Polygon',
-                  coordinates: [
-                    [
-                      [35.2, 31.75],
-                      [35.25, 31.75],
-                      [35.25, 31.8],
-                      [35.2, 31.8],
-                      [35.2, 31.75],
+      describe('should not ignore footprint (shouldIgnoreFootprint)', () => {
+        const shouldIgnoreFootprint = false;
+        it('should return 200 status code and empty aggregated metadata with a polygon filter not intersecting existing polygon parts', async () => {
+          const polygonPartsPayload = createCustomInitPayloadRequestForAggregation;
+          await requestSender.createPolygonParts(polygonPartsPayload);
+          const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+          const filterBody: AggregateLayerMetadataRequestBody = {
+            filter: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  properties: {
+                    minResolutionDeg: 0.0001,
+                    maxResolutionDeg: 0.0001,
+                  },
+                  geometry: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [35.2, 31.75],
+                        [35.21, 31.75],
+                        [35.21, 31.8],
+                        [35.2, 31.8],
+                        [35.2, 31.75],
+                      ],
                     ],
-                  ],
+                  },
                 },
-              },
-            ],
-          },
-        };
+              ],
+            },
+          };
+          const expectedFeature = {
+            type: 'Feature',
+            geometry: null,
+            properties: null,
+          } satisfies Feature<null>;
 
-        const response = await requestSender.aggregateLayerMetadata({
-          params: { polygonPartsEntityName: entityIdentifier },
-          body: filterBody,
+          const response = await requestSender.aggregateLayerMetadata({
+            params: { polygonPartsEntityName: entityIdentifier },
+            body: filterBody,
+            query: { shouldIgnoreFootprint },
+          });
+
+          const responseBody = response.body as AggregateLayerMetadataResponseBody<typeof shouldIgnoreFootprint>;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody).toStrictEqual(expectedFeature);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(3);
         });
 
-        const result = aggregationFeatureSchema.safeParse(response.body);
-        expect(response.status).toBe(httpStatusCodes.OK);
-        expect(response).toSatisfyApiSpec();
-        expect(result.success).toBe(true);
-        expect(result.data).toEqual(customAggregationWithFilter);
+        it('should return 200 status code and empty aggregated metadata with a resolution filter not containing polygon parts', async () => {
+          const polygonPartsPayload = createCustomInitPayloadRequestForAggregation;
+          await requestSender.createPolygonParts(polygonPartsPayload);
+          const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+          const filterBody: AggregateLayerMetadataRequestBody = {
+            filter: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  properties: {
+                    minResolutionDeg: 0.00026,
+                    maxResolutionDeg: 0.00026,
+                  },
+                  geometry: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [35.2, 31.75],
+                        [35.21, 31.75],
+                        [35.21, 31.8],
+                        [35.2, 31.8],
+                        [35.2, 31.75],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            },
+          };
+          const expectedFeature = {
+            type: 'Feature',
+            geometry: null,
+            properties: null,
+          } satisfies Feature<null>;
 
-        const isContained = booleanContains(filterBody.filter?.features[0].geometry as Geometry, result.data?.geometry as Geometry);
-        expect(isContained).toBe(true);
+          const response = await requestSender.aggregateLayerMetadata({
+            params: { polygonPartsEntityName: entityIdentifier },
+            body: filterBody,
+            query: { shouldIgnoreFootprint },
+          });
 
-        expect.assertions(5);
+          const responseBody = response.body as AggregateLayerMetadataResponseBody<typeof shouldIgnoreFootprint>;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody).toStrictEqual(expectedFeature);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(3);
+        });
+
+        it('should return 200 status code and aggregated metadata with an empty filter', async () => {
+          const polygonPartsPayload = createCustomInitPayloadRequestForAggregation;
+          await requestSender.createPolygonParts(polygonPartsPayload);
+          const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+
+          const response = await requestSender.aggregateLayerMetadata({
+            params: { polygonPartsEntityName: entityIdentifier },
+            body: { filter: null },
+            query: { shouldIgnoreFootprint },
+          });
+
+          const responseBody = response.body as AggregateLayerMetadataResponseBody<typeof shouldIgnoreFootprint>;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody).toStrictEqual(customAggregationNoFilter);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(3);
+        });
+
+        it('should return 200 status code and aggregated metadata with an empty features array in filter', async () => {
+          const polygonPartsPayload = createCustomInitPayloadRequestForAggregation;
+          await requestSender.createPolygonParts(polygonPartsPayload);
+          const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+
+          const response = await requestSender.aggregateLayerMetadata({
+            params: { polygonPartsEntityName: entityIdentifier },
+            body: { filter: { features: [], type: 'FeatureCollection' } },
+            query: { shouldIgnoreFootprint },
+          });
+
+          const responseBody = response.body as AggregateLayerMetadataResponseBody<typeof shouldIgnoreFootprint>;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody).toStrictEqual(customAggregationNoFilter);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(3);
+        });
+
+        it('should return 200 status code and filtered aggregated metadata with a polygon filter - containing the polygon parts', async () => {
+          const polygonPartsPayload = createCustomInitPayloadRequestForAggregation;
+          await requestSender.createPolygonParts(polygonPartsPayload);
+          const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+          const filterBody: AggregateLayerMetadataRequestBody = {
+            filter: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  properties: {
+                    minResolutionDeg: 0.0001,
+                    maxResolutionDeg: 0.0001,
+                  },
+                  geometry: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [35.2, 31.75],
+                        [35.25, 31.75],
+                        [35.25, 31.8],
+                        [35.2, 31.8],
+                        [35.2, 31.75],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            },
+          };
+
+          const response = await requestSender.aggregateLayerMetadata({
+            params: { polygonPartsEntityName: entityIdentifier },
+            body: filterBody,
+            query: { shouldIgnoreFootprint },
+          });
+
+          const responseBody = response.body as AggregateLayerMetadataResponseBody<typeof shouldIgnoreFootprint>;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody).toStrictEqual(customAggregationWithFilter);
+          expect(response).toSatisfyApiSpec();
+
+          const isContained = booleanContains(filterBody.filter?.features[0].geometry as Geometry, responseBody.geometry as Geometry);
+          expect(isContained).toBe(true);
+
+          expect.assertions(4);
+        });
+
+        it('should return 200 status code and filtered aggregated metadata with a multi-polygon filter', async () => {
+          const polygonPartsPayload = createCustomInitPayloadRequestForAggregation;
+          await requestSender.createPolygonParts(polygonPartsPayload);
+          const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+          const filterBody: AggregateLayerMetadataRequestBody = {
+            filter: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  properties: {
+                    minResolutionDeg: 0.0001,
+                    maxResolutionDeg: 0.0001,
+                  },
+                  geometry: {
+                    type: 'MultiPolygon',
+                    coordinates: [
+                      [
+                        [
+                          [35.2, 31.75],
+                          [35.22, 31.75],
+                          [35.22, 31.8],
+                          [35.2, 31.8],
+                          [35.2, 31.75],
+                        ],
+                      ],
+                      [
+                        [
+                          [35.23, 31.75],
+                          [35.25, 31.75],
+                          [35.25, 31.8],
+                          [35.23, 31.8],
+                          [35.23, 31.75],
+                        ],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            },
+          };
+          const expectedResponse = structuredClone(aggregationWithFilterMultiPolygonResponse);
+          const expectedGeometry = aggregationWithFilterMultiPolygonResponse.geometry;
+          const expectedBbox = structuredClone(aggregationWithFilterMultiPolygonResponse.geometry.bbox);
+          const expectedProductBoundingBox = aggregationWithFilterMultiPolygonResponse.properties.productBoundingBox;
+          expectedResponse.geometry.coordinates = expect.any(Array<Number[][]>);
+          expectedResponse.geometry.bbox = expect.any(Array<Number>);
+          expectedResponse.properties.productBoundingBox = expect.stringMatching(new RegExp(INGESTION_VALIDATIONS.boundingBox.pattern));
+
+          const response = await requestSender.aggregateLayerMetadata({
+            params: { polygonPartsEntityName: entityIdentifier },
+            body: filterBody,
+            query: { shouldIgnoreFootprint },
+          });
+
+          const responseBody = response.body as AggregateLayerMetadataResponseBody<typeof shouldIgnoreFootprint>;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(response.body).toMatchObject(expectedResponse);
+          const precision = -Math.log10(applicationConfig.aggregation.fixGeometry.bufferSizeDeg);
+          expect(
+            booleanEqual(expectedGeometry, responseBody.geometry as Geometry, {
+              precision,
+            })
+          ).toBeTrue();
+          const bbox = expectedBbox?.reverse() as BBox;
+          expect(responseBody.geometry?.bbox).toSatisfyAll<number>((value) => {
+            const coordinate = bbox.pop();
+            if (coordinate) {
+              return (
+                value + applicationConfig.aggregation.fixGeometry.bufferSizeDeg > coordinate &&
+                coordinate > value - applicationConfig.aggregation.fixGeometry.bufferSizeDeg
+              );
+            }
+
+            return false;
+          });
+          expect(responseBody.properties?.productBoundingBox).toSatisfy<NonNullable<(typeof responseBody)['properties']>['productBoundingBox']>(
+            (productBoundingBox) => {
+              const expectedProductBoundingBoxCoords = expectedProductBoundingBox.split(',');
+              return productBoundingBox
+                .split(',')
+                .every(
+                  (coordinate, index) =>
+                    parseFloat(expectedProductBoundingBoxCoords[index]) + applicationConfig.aggregation.fixGeometry.bufferSizeDeg >
+                      parseFloat(coordinate) &&
+                    parseFloat(coordinate) >
+                      parseFloat(expectedProductBoundingBoxCoords[index]) - applicationConfig.aggregation.fixGeometry.bufferSizeDeg
+                );
+            }
+          );
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(6);
+        });
+      });
+
+      describe('should ignore footprint (shouldIgnoreFootprint)', () => {
+        const shouldIgnoreFootprint = true;
+        it('should return 200 status code and aggregated metadata with ignored filter', async () => {
+          const polygonPartsPayload = createCustomInitPayloadRequestForAggregation;
+          await requestSender.createPolygonParts(polygonPartsPayload);
+          const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+          const filterBody: AggregateLayerMetadataRequestBody = {
+            filter: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  properties: {
+                    minResolutionDeg: 0.0001,
+                    maxResolutionDeg: 0.0001,
+                  },
+                  geometry: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [35.2, 31.75],
+                        [35.21, 31.75],
+                        [35.21, 31.8],
+                        [35.2, 31.8],
+                        [35.2, 31.75],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            },
+          };
+
+          const response = await requestSender.aggregateLayerMetadata({
+            params: { polygonPartsEntityName: entityIdentifier },
+            body: filterBody,
+            query: { shouldIgnoreFootprint },
+          });
+
+          const responseBody = response.body as AggregateLayerMetadataResponseBody<typeof shouldIgnoreFootprint>;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody).toStrictEqual<AggregateLayerMetadataResponseBody<typeof shouldIgnoreFootprint>>(customAggregationWithIgnoredFilter);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(3);
+        });
       });
     });
 
@@ -5694,11 +5913,47 @@ describe('polygonParts', () => {
 
   describe('Bad Path', () => {
     describe('POST /polygonParts/:polygonPartsEntityName/aggregate', () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      it('should return 400 status code if polygonPartsEntityName is missing', async () => {
+        const response = await requestSender.aggregateLayerMetadata({
+          params: {} as unknown as AggregateLayerMetadataParams,
+          body: { filter: null },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
 
       it('should return 400 status code if polygonPartsEntityName is an invalid value', async () => {
         const response = await requestSender.aggregateLayerMetadata({
           params: { polygonPartsEntityName: 'invalid_name_without_right_suffix' as EntityIdentifier },
+          body: { filter: null },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if shouldIgnoreFootprint in req query is an invalid value', async () => {
+        const response = await requestSender.aggregateLayerMetadata({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          body: { filter: null },
+          query: { shouldIgnoreFootprint: 'bad value' as unknown as boolean },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if filter in req body is missing', async () => {
+        const response = await requestSender.aggregateLayerMetadata({
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
+          body: {} as unknown as AggregateLayerMetadataRequestBody,
         });
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);

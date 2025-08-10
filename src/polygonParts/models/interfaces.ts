@@ -1,5 +1,7 @@
 import type {
-  AggregationFeature,
+  AggregationEmptyFeature,
+  AggregationNonSpatialFeature,
+  AggregationSpatialFeature,
   PolygonPart,
   PolygonPartsEntityName,
   PolygonPartsEntityNameObject,
@@ -8,7 +10,7 @@ import type {
 } from '@map-colonies/raster-shared';
 import type { Feature, FeatureCollection, GeoJsonProperties, Geometry, MultiPolygon, Polygon } from 'geojson';
 import { EntityManager, SelectQueryBuilder } from 'typeorm';
-import type { OptionalToNullableRecordValues, ReplaceValuesOfType } from '../../common/types';
+import type { OptionalToNullableRecordValues, ReplaceSpecificPropertyTypes, ReplaceValuesOfType } from '../../common/types';
 
 //#region public
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
@@ -137,22 +139,24 @@ export interface IsSwapQueryParams {
 /**
  * Get aggregation layer metadata options
  */
-export interface AggregateLayerMetadataOptions {
+export interface AggregateLayerMetadataOptions<T extends boolean = boolean> {
   readonly polygonPartsEntityName: EntityNames;
   readonly filter: FeatureCollectionFilter | null;
-  readonly shouldIgnoreFootprint: boolean;
+  readonly shouldIgnoreFootprint: T;
 }
+
+/**
+ * Get aggregation layer metadata response
+ */
+export type AggregateLayerMetadataResponse<T extends boolean = false> =
+  | ReplaceSpecificPropertyTypes<T extends true ? AggregationNonSpatialFeature : AggregationSpatialFeature, 'properties', Date, string>
+  | AggregationEmptyFeature;
 
 export interface FilterQueryMetadata {
   filterQueryAlias: string;
   filterRequestFeatureIds: string;
   selectOutputColumns: string[];
 }
-
-/**
- * Get aggregation layer metadata response
- */
-export interface AggregateLayerMetadataResponse extends AggregationFeature {}
 //#endregion
 
 //#region private

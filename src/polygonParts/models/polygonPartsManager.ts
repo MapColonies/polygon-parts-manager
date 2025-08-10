@@ -331,10 +331,7 @@ export class PolygonPartsManager {
         .from('metadata_aggregation', 'metadata_aggregation');
     }
 
-    const footprintUnionCTE = entityManager
-      .createQueryBuilder()
-      .select('st_union(footprint)', 'footprint_union')
-      .from(baseTable, 'polygon_part');
+    const footprintUnionCTE = entityManager.createQueryBuilder().select('st_union(footprint)', 'footprint_union').from(baseTable, 'polygon_part');
 
     const footprintSmoothCTE = entityManager
       .createQueryBuilder()
@@ -349,28 +346,20 @@ export class PolygonPartsManager {
 
     const footprintFixEmptyCTE = entityManager
       .createQueryBuilder()
-      .select(
-        `case when st_isempty(footprint_buffer) then footprint_union else footprint_buffer end`,
-        'footprint'
-      )
+      .select(`case when st_isempty(footprint_buffer) then footprint_union else footprint_buffer end`, 'footprint')
       .from('footprint_smooth', 'footprint_smooth');
 
     const footprintSimplifyCTE = entityManager
       .createQueryBuilder()
       .select(
-        simplifyGeometry.enabled
-          ? `st_union(st_simplifypreservetopology(footprint, ${simplifyGeometry.toleranceDeg}))`
-          : 'footprint',
+        simplifyGeometry.enabled ? `st_union(st_simplifypreservetopology(footprint, ${simplifyGeometry.toleranceDeg}))` : 'footprint',
         'footprint'
       )
       .from('footprint_fix_empty', 'footprint_fix_empty');
 
     const footprintAggregationCTE = entityManager
       .createQueryBuilder()
-      .select(
-        `st_asgeojson(st_geometryn(st_collect(footprint), 1), maxdecimaldigits => ${maxDecimalDigits}, options => 1)::json`,
-        'geometry'
-      )
+      .select(`st_asgeojson(st_geometryn(st_collect(footprint), 1), maxdecimaldigits => ${maxDecimalDigits}, options => 1)::json`, 'geometry')
       .addSelect(
         `trim(both '[]' from (st_asgeojson(st_geometryn(st_collect(footprint), 1), maxdecimaldigits => ${maxDecimalDigits}, options => 1)::json ->> 'bbox'))`,
         'bbox'

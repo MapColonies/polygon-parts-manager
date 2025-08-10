@@ -178,7 +178,7 @@ describe('polygonParts', () => {
             query: { shouldIgnoreFootprint },
           });
 
-          const responseBody = response.body as AggregateLayerMetadataResponseBody<typeof shouldIgnoreFootprint>;
+          const responseBody = response.body as AggregateLayerMetadataResponseBody;
           expect(response.status).toBe(httpStatusCodes.OK);
           expect(responseBody).toStrictEqual(expectedFeature);
           expect(response).toSatisfyApiSpec();
@@ -228,7 +228,7 @@ describe('polygonParts', () => {
             query: { shouldIgnoreFootprint },
           });
 
-          const responseBody = response.body as AggregateLayerMetadataResponseBody<typeof shouldIgnoreFootprint>;
+          const responseBody = response.body as AggregateLayerMetadataResponseBody;
           expect(response.status).toBe(httpStatusCodes.OK);
           expect(responseBody).toStrictEqual(expectedFeature);
           expect(response).toSatisfyApiSpec();
@@ -247,7 +247,7 @@ describe('polygonParts', () => {
             query: { shouldIgnoreFootprint },
           });
 
-          const responseBody = response.body as AggregateLayerMetadataResponseBody<typeof shouldIgnoreFootprint>;
+          const responseBody = response.body as AggregateLayerMetadataResponseBody;
           expect(response.status).toBe(httpStatusCodes.OK);
           expect(responseBody).toStrictEqual(customAggregationNoFilter);
           expect(response).toSatisfyApiSpec();
@@ -266,7 +266,7 @@ describe('polygonParts', () => {
             query: { shouldIgnoreFootprint },
           });
 
-          const responseBody = response.body as AggregateLayerMetadataResponseBody<typeof shouldIgnoreFootprint>;
+          const responseBody = response.body as AggregateLayerMetadataResponseBody;
           expect(response.status).toBe(httpStatusCodes.OK);
           expect(responseBody).toStrictEqual(customAggregationNoFilter);
           expect(response).toSatisfyApiSpec();
@@ -311,7 +311,7 @@ describe('polygonParts', () => {
             query: { shouldIgnoreFootprint },
           });
 
-          const responseBody = response.body as AggregateLayerMetadataResponseBody<typeof shouldIgnoreFootprint>;
+          const responseBody = response.body as AggregateLayerMetadataResponseBody;
           expect(response.status).toBe(httpStatusCodes.OK);
           expect(responseBody).toStrictEqual(customAggregationWithFilter);
           expect(response).toSatisfyApiSpec();
@@ -367,8 +367,11 @@ describe('polygonParts', () => {
           const expectedGeometry = aggregationWithFilterMultiPolygonResponse.geometry;
           const expectedBbox = structuredClone(aggregationWithFilterMultiPolygonResponse.geometry.bbox);
           const expectedProductBoundingBox = aggregationWithFilterMultiPolygonResponse.properties.productBoundingBox;
-          expectedResponse.geometry.coordinates = expect.any(Array<Number[][]>);
-          expectedResponse.geometry.bbox = expect.any(Array<Number>);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+          expectedResponse.geometry.coordinates = expect.any(Array<number[][]>);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
+          expectedResponse.geometry.bbox = expect.any(Array<number>);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/ban-types
           expectedResponse.properties.productBoundingBox = expect.stringMatching(new RegExp(INGESTION_VALIDATIONS.boundingBox.pattern));
 
           const response = await requestSender.aggregateLayerMetadata({
@@ -377,7 +380,7 @@ describe('polygonParts', () => {
             query: { shouldIgnoreFootprint },
           });
 
-          const responseBody = response.body as AggregateLayerMetadataResponseBody<typeof shouldIgnoreFootprint>;
+          const responseBody = response.body as AggregateLayerMetadataResponseBody;
           expect(response.status).toBe(httpStatusCodes.OK);
           expect(response.body).toMatchObject(expectedResponse);
           const precision = -Math.log10(applicationConfig.aggregation.fixGeometry.bufferSizeDeg);
@@ -389,7 +392,7 @@ describe('polygonParts', () => {
           const bbox = expectedBbox?.reverse() as BBox;
           expect(responseBody.geometry?.bbox).toSatisfyAll<number>((value) => {
             const coordinate = bbox.pop();
-            if (coordinate) {
+            if (coordinate !== undefined) {
               return (
                 value + applicationConfig.aggregation.fixGeometry.bufferSizeDeg > coordinate &&
                 coordinate > value - applicationConfig.aggregation.fixGeometry.bufferSizeDeg

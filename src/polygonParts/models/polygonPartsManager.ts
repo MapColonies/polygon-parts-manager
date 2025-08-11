@@ -331,7 +331,9 @@ export class PolygonPartsManager {
         .from('metadata_aggregation', 'metadata_aggregation');
     }
 
-    const footprintUnionCTE = entityManager.createQueryBuilder().select('st_union(footprint)', 'footprint_union').from(baseTable, 'polygon_part');
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    const precision = Math.pow(10, -maxDecimalDigits);
+    const footprintUnionCTE = entityManager.createQueryBuilder().select(`st_union(st_reduceprecision("polygon_part".footprint, ${precision}), ${precision})`, 'footprint_union').from(baseTable, 'polygon_part');
 
     const footprintSmoothCTE = entityManager
       .createQueryBuilder()

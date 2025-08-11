@@ -12,25 +12,25 @@ export const emptyFeature: AggregateLayerMetadataResponse = {
 export const customAggregationNoFilter: AggregateLayerMetadataResponse = {
   type: 'Feature',
   geometry: {
-    bbox: [34.851494459228, 31.764309584483, 35.231494406371, 32.305431896406],
+    bbox: [34.851494459228, 31.764309584482, 35.231494406372, 32.305431896406],
     type: 'MultiPolygon',
     coordinates: [
       [
         [
           [34.851494459228, 32.305431896406],
           [34.868241544701, 32.305431896406],
-          [34.868241544701, 32.294309584483],
-          [34.851494459228, 32.294309584483],
+          [34.868241544701, 32.294309584482],
+          [34.851494459228, 32.294309584482],
           [34.851494459228, 32.305431896406],
         ],
       ],
       [
         [
-          [35.210121597558, 31.782431896406],
-          [35.231494406371, 31.782431896406],
-          [35.231494406371, 31.764309584483],
-          [35.210121597558, 31.764309584483],
-          [35.210121597558, 31.782431896406],
+          [35.210121597557, 31.782431896406],
+          [35.231494406372, 31.782431896406],
+          [35.231494406372, 31.764309584482],
+          [35.210121597557, 31.764309584482],
+          [35.210121597557, 31.782431896406],
         ],
       ],
     ],
@@ -42,7 +42,7 @@ export const customAggregationNoFilter: AggregateLayerMetadataResponse = {
     imagingTimeEndUTC: new Date('2024-01-16T10:15:00+00:00').toISOString(),
     maxResolutionMeter: 10.2,
     minResolutionMeter: 25.5,
-    productBoundingBox: '34.851494459228,31.764309584483,35.231494406371,32.305431896406',
+    productBoundingBox: '34.851494459228,31.764309584482,35.231494406372,32.305431896406',
     imagingTimeBeginUTC: new Date('2024-01-15T10:30:00+00:00').toISOString(),
     maxHorizontalAccuracyCE90: 2.1,
     minHorizontalAccuracyCE90: 3.5,
@@ -52,15 +52,15 @@ export const customAggregationNoFilter: AggregateLayerMetadataResponse = {
 export const customAggregationWithFilter: AggregateLayerMetadataResponse = {
   type: 'Feature',
   geometry: {
-    bbox: [35.210121597558, 31.764309584483, 35.231494406371, 31.782431896406],
+    bbox: [35.210121597557, 31.764309584482, 35.231494406372, 31.782431896406],
     type: 'Polygon',
     coordinates: [
       [
-        [35.210121597558, 31.764309584483],
-        [35.210121597558, 31.782431896406],
-        [35.231494406371, 31.782431896406],
-        [35.231494406371, 31.764309584483],
-        [35.210121597558, 31.764309584483],
+        [35.210121597557, 31.764309584482],
+        [35.210121597557, 31.782431896406],
+        [35.231494406372, 31.782431896406],
+        [35.231494406372, 31.764309584482],
+        [35.210121597557, 31.764309584482],
       ],
     ],
   },
@@ -71,7 +71,7 @@ export const customAggregationWithFilter: AggregateLayerMetadataResponse = {
     imagingTimeEndUTC: new Date('2024-01-16T10:15:00+00:00').toISOString(),
     maxResolutionMeter: 10.2,
     minResolutionMeter: 10.2,
-    productBoundingBox: '35.210121597558,31.764309584483,35.231494406371,31.782431896406',
+    productBoundingBox: '35.210121597557,31.764309584482,35.231494406372,31.782431896406',
     imagingTimeBeginUTC: new Date('2024-01-16T09:20:00+00:00').toISOString(),
     maxHorizontalAccuracyCE90: 2.1,
     minHorizontalAccuracyCE90: 2.1,

@@ -252,7 +252,13 @@ describe('polygonParts', () => {
           expect(responseBody).toStrictEqual(customAggregationNoFilter);
           expect(response).toSatisfyApiSpec();
 
-          expect.assertions(3);
+          const coordinates = responseBody.geometry?.coordinates.flat(3) ?? [];
+          for (const coordinate of coordinates) {
+            const coordinatePrecision = coordinate.toString().split('.').at(1)?.length ?? 0;
+            expect(coordinatePrecision).toBeLessThanOrEqual(applicationConfig.aggregation.maxDecimalDigits);
+          }
+
+          expect.assertions(23);
         });
 
         it('should return 200 status code and aggregated metadata with an empty features array in filter', async () => {

@@ -2,10 +2,10 @@ import type { Logger } from '@map-colonies/js-logger';
 import { RequestHandler } from 'express';
 import { inject, singleton } from 'tsyringe';
 import { SERVICES } from '../../common/constants';
-import type { IsSwapQueryParams, PolygonPartsPayload } from '../models/interfaces';
 import { Transformer } from '../../common/middlewares/transformer';
-import type { AggregationLayerMetadataHandler } from './polygonPartsController';
+import type { IsSwapQueryParams, PolygonPartsPayload } from '../models/interfaces';
 import type { FindPolygonPartsParams, FindPolygonPartsQueryParams, FindPolygonPartsRequestBody } from './interfaces';
+import type { AggregateLayerMetadataHandler } from './polygonPartsController';
 
 /**
  * Create polygon parts transformer handler
@@ -64,7 +64,7 @@ export class TransformerController {
     }
   };
 
-  public readonly parseAggregateLayerMetadata: AggregationLayerMetadataHandler = (req, res, next) => {
+  public readonly parseAggregateLayerMetadata: AggregateLayerMetadataHandler = (req, res, next) => {
     try {
       const entitiesMetadata = this.transformer.parseEntitiesMetadata(req.params);
       res.locals = entitiesMetadata;

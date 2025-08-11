@@ -12,7 +12,7 @@ import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig } from '../../common/interfaces';
 import { Transformer } from '../../common/middlewares/transformer';
 import type { DeepMapValues } from '../../common/types';
-import type { FindPolygonPartsQueryParams } from '../controllers/interfaces';
+import type { AggregateLayerMetadataQueryParams, FindPolygonPartsQueryParams } from '../controllers/interfaces';
 import type { EntitiesMetadata, EntityNames, IsSwapQueryParams } from '../models/interfaces';
 
 const aggregatePolygonPartsFeatureSchema = featureSchema(polygonSchema.or(multiPolygonSchema), roiPropertiesSchema);
@@ -24,7 +24,11 @@ const polygonPartsEntityNamePatternSchema = z
 const findPolygonPartsFeatureSchema = featureSchema(polygonSchema.or(multiPolygonSchema), roiPropertiesSchema.partial().passthrough().nullable());
 const findPolygonPartsFeatureCollectionSchema = featureCollectionSchema(findPolygonPartsFeatureSchema);
 
-export const aggregationPolygonPartsRequestBodySchema = z.object({
+export const aggregatePolygonPartsQueryParamsSchema: ZodType<AggregateLayerMetadataQueryParams> = z.object({
+  shouldIgnoreFootprint: z.boolean(),
+});
+
+export const aggregatePolygonPartsRequestBodySchema = z.object({
   filter: aggregatePolygonPartsFeatureCollectionSchema.nullable(),
 });
 

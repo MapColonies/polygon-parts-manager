@@ -4,13 +4,14 @@ import { inject, injectable } from 'tsyringe';
 import type { EntitiesMetadata, IsSwapQueryParams, PolygonPartsPayload, PolygonPartsResponse } from '../models/interfaces';
 import { PolygonPartsManager } from '../models/polygonPartsManager';
 import type {
-  AggregatePolygonPartsRequestBody,
+  AggregateLayerMetadataParams,
+  AggregateLayerMetadataQueryParams,
+  AggregateLayerMetadataRequestBody,
+  AggregateLayerMetadataResponseBody,
   FindPolygonPartsParams,
   FindPolygonPartsQueryParams,
   FindPolygonPartsRequestBody,
   FindPolygonPartsResponseBody,
-  AggregationLayerMetadataParams,
-  AggregationLayerMetadataResponseBody,
 } from './interfaces';
 
 /**
@@ -37,11 +38,11 @@ type UpdatePolygonPartsHandler = RequestHandler<undefined, PolygonPartsResponse,
 /**
  * Get aggregation layer metadata handler
  */
-export type AggregationLayerMetadataHandler = RequestHandler<
-  AggregationLayerMetadataParams,
-  AggregationLayerMetadataResponseBody,
-  AggregatePolygonPartsRequestBody,
-  undefined,
+export type AggregateLayerMetadataHandler<T extends boolean = boolean> = RequestHandler<
+  AggregateLayerMetadataParams,
+  AggregateLayerMetadataResponseBody<T>,
+  AggregateLayerMetadataRequestBody,
+  AggregateLayerMetadataQueryParams<T>,
   EntitiesMetadata
 >;
 
@@ -71,11 +72,12 @@ export class PolygonPartsController {
     }
   };
 
-  public aggregateLayerMetadata: AggregationLayerMetadataHandler = async (req, res, next) => {
+  public aggregateLayerMetadata: AggregateLayerMetadataHandler = async (req, res, next) => {
     try {
       const response = await this.polygonPartsManager.aggregateLayerMetadata({
         polygonPartsEntityName: res.locals.entitiesNames.polygonParts,
         filter: req.body.filter,
+        shouldIgnoreFootprint: req.query.shouldIgnoreFootprint,
       });
       return res.status(httpStatus.OK).json(response);
     } catch (error) {

@@ -105,7 +105,7 @@ paths:
           - Returns polygon parts intersecting with input search geometries
           - Resolution filters (`maxResolutionDeg`/`minResolutionDeg`) can be specified in feature properties
           - Input feature IDs are tracked in response via `requestFeatureId`
-          - Empty request or empty features array perform unfiltered search
+          - Empty filter or empty features array perform unfiltered search
           - With `shouldClip=true` (default):
             - Geometries clipped to search geometries
             - Feature ID maps 1:1 between input and output features via `requestFeatureId`
@@ -165,12 +165,23 @@ paths:
       tags:
         - polygon-parts
       summary: >-
-        Get aggregated polygon parts data by polygon parts entity name and
-        polygon parts filter (optional)
+        Aggregate polygon parts by an optional filter
       description: >-
-        Get aggregated polygon parts data by polygon parts entity name and
-        polygon parts filter (optional)
-      operationId: aggregationLayerMetadata
+        Aggregate polygon parts, optionally filtered by resolution and spatial intersection with search
+        geometries.
+
+          **Filter Logic**
+          - Returns aggregated polygon parts metadata intersecting with input search geometries
+          - Resolution filters (`maxResolutionDeg`/`minResolutionDeg`) can be specified in feature properties
+          - Empty filter or empty features array perform unfiltered search
+          - With `shouldIgnoreFootprint=true`:
+            - Footprint is ignored both in calculation and response
+            - Geometric metadata based on footprint is omitted from the response (i.e. productBoundingBox)
+          - With `shouldIgnoreFootprint=false` (default):
+            - Footprint is used for filtering and aggregation calculation
+            - Footprint is included in output
+            - Geometric metadata based on footprint is included in the response (i.e. productBoundingBox)
+      operationId: aggregateLayerMetadata
       parameters:
         - in: path
           name: polygonPartsEntityName
@@ -178,6 +189,13 @@ paths:
           schema:
             $ref: '#/components/schemas/PolygonPartsEntityName'
           required: true
+        - in: query
+          name: shouldIgnoreFootprint
+          description: >-
+            Ignores footprint from calculation and response if true, otherwise it is considered and added to the response
+          schema:
+            type: boolean
+            default: false
       requestBody:
         description: Aggregation filter (feature collection)
         content:
@@ -191,7 +209,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AggregationFeature'
+                oneOf:
+                  - $ref: '#/components/schemas/AggregationSpatialFeature'
+                  - $ref: '#/components/schemas/AggregationNonSpatialFeature'
+                  - $ref: '#/components/schemas/AggregationEmptyFeature'
         '400':
           description: Bad Request
           content:
@@ -212,9 +233,96 @@ paths:
                 $ref: '#/components/schemas/ErrorMessage'
 components:
   schemas:
-    AggregationFeature:
+    AggregationEmptyFeature:
       type: object
-      description: Aggregation feature
+      description: Aggregation of an empty feature
+      required:
+        - type
+        - properties
+        - geometry
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          enum:
+            - Feature
+        geometry:
+          type: string
+          nullable: true
+          enum: [null]
+        properties:
+          type: string
+          nullable: true
+          enum: [null]
+    AggregationNonSpatialFeature:
+      type: object
+      description: Aggregation of non-spatial feature
+      required:
+        - type
+        - properties
+        - geometry
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          enum:
+            - Feature
+        geometry:
+          type: string
+          nullable: true
+          enum: [null]
+        properties:
+          $ref: '#/components/schemas/AggregationNonSpatialFeatureProperties'
+    AggregationNonSpatialFeatureProperties:
+      allOf:
+        - description: Aggregation metadata of non-spatial feature properties
+        - $ref: '#/components/schemas/AggregationProperties'
+    AggregationProperties:
+      type: object
+      required:
+        - imagingTimeBeginUTC
+        - imagingTimeEndUTC
+        - maxHorizontalAccuracyCE90
+        - maxResolutionDeg
+        - maxResolutionMeter
+        - minHorizontalAccuracyCE90
+        - minResolutionDeg
+        - minResolutionMeter
+        - sensors
+      properties:
+        imagingTimeBeginUTC:
+          $ref: '#/components/schemas/ImagingTimeBeginUTC'
+        imagingTimeEndUTC:
+          $ref: '#/components/schemas/ImagingTimeEndUTC'
+        maxResolutionDeg:
+          allOf:
+            - $ref: '#/components/schemas/ResolutionDegree'
+            - description: Maximal resolution of layer in degrees/pixel
+        minResolutionDeg:
+          allOf:
+            - $ref: '#/components/schemas/ResolutionDegree'
+            - description: Minimal resolution of layer in degrees/pixel
+        maxResolutionMeter:
+          allOf:
+            - $ref: '#/components/schemas/ResolutionMeter'
+            - description: Maximal resolution of layer in meters
+        minResolutionMeter:
+          allOf:
+            - $ref: '#/components/schemas/ResolutionMeter'
+            - description: Minimal resolution of layer in meters
+        maxHorizontalAccuracyCE90:
+          allOf:
+            - $ref: '#/components/schemas/HorizontalAccuracyCE90'
+            - description: Maximal horizontal accuracy
+        minHorizontalAccuracyCE90:
+          allOf:
+            - $ref: '#/components/schemas/HorizontalAccuracyCE90'
+            - description: Minimal horizontal accuracy
+        sensors:
+          $ref: '#/components/schemas/Sensors'
+    AggregationSpatialFeature:
+      type: object
+      description: Aggregation of spatial and non-spatial feature
       required:
         - type
         - properties
@@ -227,61 +335,31 @@ components:
             - Feature
         geometry:
           type: object
-          nullable: true
-          anyOf:
+          oneOf:
             - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
             - $ref: >-
                 ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
-            - type: object
-              nullable: true
         properties:
-          type: object
-          description: Aggregation feature properties
-          nullable: true
+          $ref: '#/components/schemas/AggregationSpatialFeatureProperties'
+    AggregationSpatialFeatureProperties:
+      type: object
+      description: Aggregation metadata of spatial and non-spatial feature properties
+      allOf:
+        - $ref: '#/components/schemas/AggregationProperties'
+        - type: object
           required:
-            - imagingTimeBeginUTC
-            - imagingTimeEndUTC
-            - maxHorizontalAccuracyCE90
-            - maxResolutionDeg
-            - maxResolutionMeter
-            - minHorizontalAccuracyCE90
-            - minResolutionDeg
-            - minResolutionMeter
             - productBoundingBox
-            - sensors
           properties:
-            imagingTimeBeginUTC:
-              $ref: '#/components/schemas/ImagingTimeBeginUTC'
-            imagingTimeEndUTC:
-              $ref: '#/components/schemas/ImagingTimeEndUTC'
-            maxResolutionDeg:
-              allOf:
-                - $ref: '#/components/schemas/ResolutionDegree'
-                - description: Maximal resolution of layer in degrees/pixel
-            minResolutionDeg:
-              allOf:
-                - $ref: '#/components/schemas/ResolutionDegree'
-                - description: Minimal resolution of layer in degrees/pixel
-            maxResolutionMeter:
-              allOf:
-                - $ref: '#/components/schemas/ResolutionMeter'
-                - description: Maximal resolution of layer in meters
-            minResolutionMeter:
-              allOf:
-                - $ref: '#/components/schemas/ResolutionMeter'
-                - description: Minimal resolution of layer in meters
-            maxHorizontalAccuracyCE90:
-              allOf:
-                - $ref: '#/components/schemas/HorizontalAccuracyCE90'
-                - description: Maximal horizontal accuracy
-            minHorizontalAccuracyCE90:
-              allOf:
-                - $ref: '#/components/schemas/HorizontalAccuracyCE90'
-                - description: Minimal horizontal accuracy
             productBoundingBox:
               $ref: '#/components/schemas/BoundingBox'
-            sensors:
-              $ref: '#/components/schemas/Sensors'
+    AggregationFilterPayload:
+      type: object
+      properties:
+        filter:
+          $ref: '#/components/schemas/RoiFeatureCollection'
+      required:
+        - filter
+      description: Aggregation filter payload by feature collection
     BoundingBox:
       type: string
       pattern: >-
@@ -306,34 +384,6 @@ components:
     Description:
       type: string
       nullable: true
-    RoiFeaturePayload:
-      required:
-        - type
-        - properties
-        - geometry
-      properties:
-        type:
-          type: string
-          enum:
-            - Feature
-        id:
-          $ref: '#/components/schemas/FeatureId'
-        properties:
-          type: object
-          nullable: true
-          properties:
-            maxResolutionDeg:
-              $ref: '#/components/schemas/ResolutionDegree'
-            minResolutionDeg:
-              $ref: '#/components/schemas/ResolutionDegree'
-        geometry:
-          type: object
-          oneOf:
-            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
-            - $ref: >-
-                ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
-        bbox:
-          $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
     FeatureFindResponse:
       required:
         - type
@@ -513,14 +563,6 @@ components:
           $ref: '#/components/schemas/SourceName'
         sourceResolutionMeter:
           $ref: '#/components/schemas/SourceResolutionMeter'
-    AggregationFilterPayload:
-      type: object
-      properties:
-        filter:
-          $ref: '#/components/schemas/RoiFeatureCollection'
-      required:
-        - filter
-      description: Aggregation filter payload by feature collection
     PolygonPartsPayload:
       $ref: >-
         ./Schema/polygonPartsManager/payload.yaml#/components/schemas/PolygonPartsPayload
@@ -546,6 +588,34 @@ components:
       maximum: 78271.52
       format: double
       description: Resolution of layer in meters
+    RoiFeaturePayload:
+      required:
+        - type
+        - properties
+        - geometry
+      properties:
+        type:
+          type: string
+          enum:
+            - Feature
+        id:
+          $ref: '#/components/schemas/FeatureId'
+        properties:
+          type: object
+          nullable: true
+          properties:
+            maxResolutionDeg:
+              $ref: '#/components/schemas/ResolutionDegree'
+            minResolutionDeg:
+              $ref: '#/components/schemas/ResolutionDegree'
+        geometry:
+          type: object
+          oneOf:
+            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
+            - $ref: >-
+                ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
+        bbox:
+          $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
     Sensors:
       type: array
       items:

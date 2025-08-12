@@ -1,6 +1,5 @@
 /* eslint-disable  @typescript-eslint/no-magic-numbers */
 import { RasterProductTypes } from '@map-colonies/raster-shared';
-import { ProductType } from '@map-colonies/mc-model-types';
 import type { Polygon } from 'geojson';
 import type { PolygonPartsPayload } from '../../src/polygonParts/models/interfaces';
 import { generatePolygonPartsPayload } from '../integration/polygonParts/helpers/db';
@@ -173,7 +172,7 @@ export const outsideEuropePolygon: Polygon = {
 export const createCustomInitPayloadRequestForAggregation: PolygonPartsPayload = {
   catalogId: 'c52d8189-7e07-456a-8c6b-53859523c3e9',
   productId: 'AGGREGATED_EXAMPLE',
-  productType: ProductType.ORTHOPHOTO,
+  productType: RasterProductTypes.ORTHOPHOTO,
   productVersion: '1.5',
   partsData: [
     {

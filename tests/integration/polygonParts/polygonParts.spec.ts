@@ -13,13 +13,18 @@ import { StatusCodes as httpStatusCodes } from 'http-status-codes';
 import { get as getValue, merge } from 'lodash';
 import { xor } from 'martinez-polygon-clipping';
 import { container } from 'tsyringe';
-import { EntityManager, Geometry, Repository, SelectQueryBuilder, type DataSourceOptions } from 'typeorm';
+import { EntityManager, Geometry, Repository, SelectQueryBuilder, type DataSourceOptions, DataSource } from 'typeorm';
 import { getApp } from '../../../src/app';
 import { ConnectionManager } from '../../../src/common/connectionManager';
 import { SERVICES } from '../../../src/common/constants';
 import type { ApplicationConfig, DbConfig } from '../../../src/common/interfaces';
 import { Transformer } from '../../../src/common/middlewares/transformer';
-import type { AggregatePolygonPartsRequestBody, FindPolygonPartsResponseBody } from '../../../src/polygonParts/controllers/interfaces';
+import type {
+  AggregatePolygonPartsRequestBody,
+  ExistsRequestBody,
+  ExistsResponseBody,
+  FindPolygonPartsResponseBody,
+} from '../../../src/polygonParts/controllers/interfaces';
 import { Part } from '../../../src/polygonParts/DAL/part';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
 import type {
@@ -50,7 +55,7 @@ import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
 import polygonWesternHemisphere from './data/polygonWesternHemisphere.json';
 import { INITIAL_DB, INTERNAL_DB_GEOM_PRECISION } from './helpers/constants';
-import { createDB, generateFeatureId, generatePolygon, generatePolygonPartsPayload, HelperDB } from './helpers/db';
+import { HelperDB, createDB, generateFeatureId, generatePolygon, generatePolygonPartsPayload } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import type { DeepPartial } from './helpers/types';
 import { allFindFeaturesEqual, toExpectedFindPolygonPartsResponse, toExpectedPostgresResponse } from './helpers/utils';
@@ -4192,6 +4197,26 @@ describe('polygonParts', () => {
       });
     });
 
+    describe('POST /polygonParts/exists', () => {
+      it('should return 200 status code and return existing polygon parts entity name', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        await requestSender.createPolygonParts(polygonPartsPayload);
+        const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
+        const expectedResponse = { polygonPartsEntityName: entityIdentifier };
+        const { partsData, productVersion, ...existsPayload } = polygonPartsPayload;
+
+        const response = await requestSender.existsPolygonParts({
+          body: existsPayload,
+        });
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response.body).toMatchObject<ExistsResponseBody>(expectedResponse);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+    });
+
     describe('POST /polygonParts', () => {
       // TODO: check for tracing is sent side effect
       it('should return 201 status code and create the resources for a single part', async () => {
@@ -6689,6 +6714,100 @@ describe('polygonParts', () => {
       });
     });
 
+    describe('POST /polygonParts/exists', () => {
+      it('should return 400 status code if requset body is empty', async () => {
+        const response = await requestSender.existsPolygonParts({
+          body: undefined as unknown as ExistsRequestBody,
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if product type is an invalid value', async () => {
+        const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productType: 'bad value' };
+
+        const response = await requestSender.existsPolygonParts({
+          body: polygonPartsPayload as unknown as ExistsRequestBody,
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if catalog id is an invalid value', async () => {
+        const polygonPartsPayload = { ...generatePolygonPartsPayload(1), catalogId: 'bad value' };
+
+        const response = await requestSender.existsPolygonParts({
+          body: polygonPartsPayload as unknown as ExistsRequestBody,
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if product id is an invalid value', async () => {
+        const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productId: 'bad value' };
+
+        const response = await requestSender.existsPolygonParts({
+          body: polygonPartsPayload as unknown as ExistsRequestBody,
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if product id has more than 38 characters', async () => {
+        const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productId: 'a123456789b123456789c123456789d12345678' };
+
+        const response = await requestSender.existsPolygonParts({
+          body: polygonPartsPayload as unknown as ExistsRequestBody,
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code if request body could not resolve to a valid resource identifier (no longer than 63 chars)', async () => {
+        mockGetConfig.mockImplementation((setting: string) => {
+          return setting === 'application'
+            ? { application: { entities: { parts: { namePrefix: 'very_long_prefix_', nameSuffix: '_very_long_suffix' } } } }
+            : undefined;
+        });
+        const connectionManager = container.resolve<ConnectionManager>(ConnectionManager);
+        await connectionManager.destroy();
+        container.clearInstances();
+        const app = await getApp({
+          override: [
+            { token: SERVICES.LOGGER, provider: { useValue: jsLogger({ enabled: false }) } },
+            { token: SERVICES.TRACER, provider: { useValue: trace.getTracer('testTracer') } },
+          ],
+          useChild: true,
+        });
+        requestSender = new PolygonPartsRequestSender(app);
+        const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productId: 'very_long_valid_name_orthophoto' };
+
+        const response = await requestSender.existsPolygonParts({
+          body: polygonPartsPayload as unknown as ExistsRequestBody,
+        });
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+    });
+
     describe('POST /polygonParts', () => {
       it('should return 400 status code if product type is an invalid value', async () => {
         const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productType: 'bad value' };
@@ -7396,6 +7515,109 @@ describe('polygonParts', () => {
       });
     });
 
+    describe('POST /polygonParts/exists', () => {
+      it('should return 404 status code if polygon part entities do not exist', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+
+        const response = await requestSender.existsPolygonParts({
+          body: { ...polygonPartsPayload },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
+        expect(response.body).toMatchObject({ message: 'Entities do not exist(s)' });
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 500 status code if polygon part entities partially exist', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const {
+          entitiesNames: { polygonParts },
+        } = getEntitiesMetadata(polygonPartsPayload);
+        await helperDB.createTable(polygonParts.entityName, schema);
+
+        const response = await requestSender.existsPolygonParts({
+          body: { ...polygonPartsPayload },
+        });
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: 'Some entities are missing' });
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 500 status code for a database error - set search_path error', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const expectedErrorMessage = 'search_path error';
+        const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.existsPolygonParts({ body: polygonPartsPayload });
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
+        expect(response).toSatisfyApiSpec();
+        expect(spyQuery).toHaveBeenCalledTimes(1);
+
+        expect.assertions(4);
+      });
+
+      it('should return 500 status code for a database error - verify available tables (first table) error', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const expectedErrorMessage = 'exists error';
+        const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.existsPolygonParts({ body: polygonPartsPayload });
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
+        expect(response).toSatisfyApiSpec();
+        expect(spyGetExists).toHaveBeenCalledTimes(2);
+
+        spyGetExists.mockRestore();
+
+        expect.assertions(4);
+      });
+
+      it('should return 500 status code for a database error - verify available tables (second table) error', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const expectedErrorMessage = 'exists error';
+        const spyGetExists = jest
+          .spyOn(SelectQueryBuilder.prototype, 'getExists')
+          .mockResolvedValueOnce(false)
+          .mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.existsPolygonParts({ body: polygonPartsPayload });
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
+        expect(response).toSatisfyApiSpec();
+        expect(spyGetExists).toHaveBeenCalledTimes(2);
+
+        spyGetExists.mockRestore();
+
+        expect.assertions(4);
+      });
+
+      it('should return 500 status code for a database error - transaction error', async () => {
+        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const expectedErrorMessage = 'transaction error';
+        const spyTransaction = jest.spyOn(DataSource.prototype, 'transaction').mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.existsPolygonParts({ body: polygonPartsPayload });
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
+        expect(response).toSatisfyApiSpec();
+        expect(spyTransaction).toHaveBeenCalledTimes(1);
+
+        spyTransaction.mockRestore();
+
+        expect.assertions(4);
+      });
+    });
+
     describe('POST /polygonParts', () => {
       it('should return 409 status code if a part resource already exists', async () => {
         const polygonPartsPayload = generatePolygonPartsPayload(1);
@@ -7407,7 +7629,7 @@ describe('polygonParts', () => {
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.CONFLICT);
-        expect(response.body).toMatchObject({ message: `Table with the name '${parts.databaseObjectQualifiedName}' already exists` });
+        expect(response.body).toMatchObject({ message: `Table(s) with the name '${parts.databaseObjectQualifiedName}' already exist(s)` });
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);
@@ -7423,7 +7645,7 @@ describe('polygonParts', () => {
         const response = await requestSender.createPolygonParts(polygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.CONFLICT);
-        expect(response.body).toMatchObject({ message: `Table with the name '${polygonParts.databaseObjectQualifiedName}' already exists` });
+        expect(response.body).toMatchObject({ message: `Table(s) with the name '${polygonParts.databaseObjectQualifiedName}' already exist(s)` });
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);

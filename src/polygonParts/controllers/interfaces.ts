@@ -1,10 +1,22 @@
 import type {
-  EntityIdentifier,
-  FindPolygonPartsOptions,
-  FindPolygonPartsResponse,
   AggregateLayerMetadataOptions,
   AggregationLayerMetadataResponse,
+  EntityIdentifier,
+  ExistsOptions,
+  ExistsResponse,
+  FindPolygonPartsOptions,
+  FindPolygonPartsResponse,
 } from '../models/interfaces';
+
+/**
+ * Exists request body
+ */
+export type ExistsRequestBody = Pick<ExistsOptions, 'payload'>['payload'];
+
+/**
+ * Exists response body
+ */
+export interface ExistsResponseBody extends ExistsResponse {}
 
 /**
  * Find polygon parts params

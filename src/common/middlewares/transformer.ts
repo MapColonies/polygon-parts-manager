@@ -1,6 +1,7 @@
 import { BadRequestError } from '@map-colonies/error-types';
 import { inject, singleton } from 'tsyringe';
 import { ZodType, type ZodTypeDef } from 'zod';
+import type { ExistsRequestBody } from '../../polygonParts/controllers/interfaces';
 import type {
   EntitiesMetadata,
   EntityIdentifier,
@@ -10,9 +11,9 @@ import type {
 } from '../../polygonParts/models/interfaces';
 import { getEntitiesMetadataSchemaFactory, schemaParser } from '../../polygonParts/schemas';
 import { SERVICES } from '../constants';
+import { ValidationError } from '../errors';
 import type { ApplicationConfig, DbConfig, IConfig } from '../interfaces';
 import type { DeepMapValues } from '../types';
-import { ValidationError } from '../errors';
 
 @singleton()
 export class Transformer {
@@ -65,7 +66,7 @@ export class Transformer {
     };
   };
 
-  public readonly parseEntitiesMetadata = (input: EntityIdentifierObject | PolygonPartsPayload): EntitiesMetadata => {
+  public readonly parseEntitiesMetadata = (input: EntityIdentifierObject | PolygonPartsPayload | ExistsRequestBody): EntitiesMetadata => {
     try {
       const entitiesMetadata = this.getEntitiesMetadata(input);
       return schemaParser({

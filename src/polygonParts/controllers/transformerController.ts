@@ -2,15 +2,20 @@ import type { Logger } from '@map-colonies/js-logger';
 import { RequestHandler } from 'express';
 import { inject, singleton } from 'tsyringe';
 import { SERVICES } from '../../common/constants';
-import type { IsSwapQueryParams, PolygonPartsPayload } from '../models/interfaces';
 import { Transformer } from '../../common/middlewares/transformer';
+import type { IsSwapQueryParams, PolygonPartsPayload } from '../models/interfaces';
+import type { ExistsRequestBody, FindPolygonPartsParams, FindPolygonPartsQueryParams, FindPolygonPartsRequestBody } from './interfaces';
 import type { AggregationLayerMetadataHandler } from './polygonPartsController';
-import type { FindPolygonPartsParams, FindPolygonPartsQueryParams, FindPolygonPartsRequestBody } from './interfaces';
 
 /**
  * Create polygon parts transformer handler
  */
 type CreatePolygonPartsTransformerHandler = RequestHandler<undefined, undefined, PolygonPartsPayload, undefined>;
+
+/**
+ * Exists polygon parts transformer handler
+ */
+type ExistsPolygonPartsTransformerHandler = RequestHandler<undefined, undefined, ExistsRequestBody, undefined>;
 
 /**
  * Find polygon parts transformer handler
@@ -38,6 +43,17 @@ export class TransformerController {
       next();
     } catch (error) {
       this.logger.error({ msg: 'create polygon parts transformer failed', error });
+      next(error);
+    }
+  };
+
+  public readonly parseExistsPolygonParts: ExistsPolygonPartsTransformerHandler = (req, res, next) => {
+    try {
+      const entitiesMetadata = this.transformer.parseEntitiesMetadata(req.body);
+      res.locals = entitiesMetadata;
+      next();
+    } catch (error) {
+      this.logger.error({ msg: 'exists polygon parts transformer failed', error });
       next(error);
     }
   };

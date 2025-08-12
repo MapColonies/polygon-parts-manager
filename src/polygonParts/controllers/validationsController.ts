@@ -21,6 +21,11 @@ import {
 type CreatePolygonPartsValidationHandler = RequestHandler<undefined, undefined, unknown, undefined>;
 
 /**
+ * Exists polygon parts validation handler
+ */
+type ExistsPolygonPartsValidationHandler = RequestHandler<undefined, undefined, unknown, undefined>;
+
+/**
  * Find polygon parts validation handler
  */
 type FindPolygonPartsValidationHandler = RequestHandler<unknown, undefined, unknown, unknown>;
@@ -61,6 +66,23 @@ export class ValidationsController {
       next();
     } catch (error) {
       this.logger.error({ msg: 'update polygon parts validation failed', error });
+      if (error instanceof ValidationError) {
+        throw new BadRequestError(error.message);
+      }
+      next(error);
+    }
+  };
+
+  public readonly validateExistsPolygonParts: ExistsPolygonPartsValidationHandler = (req, _, next) => {
+    try {
+      schemaParser({
+        schema: polygonPartsPayloadSchema.omit({ partsData: true, productVersion: true }),
+        value: req.body,
+        errorMessagePrefix: 'Invalid request body',
+      });
+      next();
+    } catch (error) {
+      this.logger.error({ msg: 'exists polygon parts validation failed', error });
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }

@@ -91,6 +91,45 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
+  /polygonParts/exists:
+    post:
+      tags:
+        - polygon-parts
+      summary: Check polygon parts entity exists
+      description: Check polygon parts entity exists
+      operationId: existsPolygonParts
+      requestBody:
+        description: Polygon parts exists payload
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExistsPayload'
+        required: true
+      responses:
+        '200':
+          description: Polygon parts entity exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolygonPartsEntityResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '404':
+          description: Polygon parts entity not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
   /polygonParts/{polygonPartsEntityName}/find:
     post:
       tags:
@@ -118,7 +157,7 @@ paths:
           name: polygonPartsEntityName
           description: Polygon parts entity name
           schema:
-            $ref: '#/components/schemas/PolygonPartsEntityName'
+            $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/PolygonPartsEntityName
           required: true
         - in: query
           name: shouldClip
@@ -176,7 +215,7 @@ paths:
           name: polygonPartsEntityName
           description: Polygon parts entity name
           schema:
-            $ref: '#/components/schemas/PolygonPartsEntityName'
+            $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/PolygonPartsEntityName
           required: true
       requestBody:
         description: Aggregation filter (feature collection)
@@ -251,87 +290,73 @@ components:
             - sensors
           properties:
             imagingTimeBeginUTC:
-              $ref: '#/components/schemas/ImagingTimeBeginUTC'
+              $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ImagingTimeBeginUTC
             imagingTimeEndUTC:
-              $ref: '#/components/schemas/ImagingTimeEndUTC'
+              $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ImagingTimeEndUTC
             maxResolutionDeg:
               allOf:
-                - $ref: '#/components/schemas/ResolutionDegree'
+                - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
                 - description: Maximal resolution of layer in degrees/pixel
             minResolutionDeg:
               allOf:
-                - $ref: '#/components/schemas/ResolutionDegree'
+                - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
                 - description: Minimal resolution of layer in degrees/pixel
             maxResolutionMeter:
               allOf:
-                - $ref: '#/components/schemas/ResolutionMeter'
+                - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionMeter
                 - description: Maximal resolution of layer in meters
             minResolutionMeter:
               allOf:
-                - $ref: '#/components/schemas/ResolutionMeter'
+                - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionMeter
                 - description: Minimal resolution of layer in meters
             maxHorizontalAccuracyCE90:
               allOf:
-                - $ref: '#/components/schemas/HorizontalAccuracyCE90'
+                - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/HorizontalAccuracyCE90
                 - description: Maximal horizontal accuracy
             minHorizontalAccuracyCE90:
               allOf:
-                - $ref: '#/components/schemas/HorizontalAccuracyCE90'
+                - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/HorizontalAccuracyCE90
                 - description: Minimal horizontal accuracy
             productBoundingBox:
-              $ref: '#/components/schemas/BoundingBox'
+              $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductBBox
             sensors:
-              $ref: '#/components/schemas/Sensors'
-    BoundingBox:
-      type: string
-      pattern: >-
-        ^-?(0|[1-9]\d*)(\.\d*)?,-?(0|[1-9]\d*)(\.\d*)?,-?(0|[1-9]\d*)(\.\d*)?,-?(0|[1-9]\d*)(\.\d*)?$
-    CatalogId:
-      type: string
-      format: uuid
-      description: Layer's identifier
-      example: c52d8189-7e07-456a-8c6b-53859523c3e9
-    Cities:
-      type: array
-      items:
-        type: string
-      description: Cities included in the part
-      nullable: true
-    Countries:
-      type: array
-      items:
-        type: string
-      description: Countries included in the part
-      nullable: true
-    Description:
-      type: string
-      nullable: true
-    RoiFeaturePayload:
+              $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Sensors
+    AggregationFilterPayload:
+      type: object
+      properties:
+        filter:
+          $ref: '#/components/schemas/RoiFeatureCollection'
+      required:
+        - filter
+      description: Aggregation filter payload by feature collection
+    ExistsPayload:
+      type: object
+      required:
+        - catalogId
+        - productId
+        - productType
+      properties:
+        catalogId:
+          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/LayerId
+        productId:
+          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductId
+        productType:
+          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductType
+    FeatureCollectionFindResponse:
+      type: object
+      description: GeoJSON Feature collection
       required:
         - type
-        - properties
-        - geometry
+        - features
       properties:
         type:
           type: string
           enum:
-            - Feature
-        id:
-          $ref: '#/components/schemas/FeatureId'
-        properties:
-          type: object
-          nullable: true
-          properties:
-            maxResolutionDeg:
-              $ref: '#/components/schemas/ResolutionDegree'
-            minResolutionDeg:
-              $ref: '#/components/schemas/ResolutionDegree'
-        geometry:
-          type: object
-          oneOf:
-            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
-            - $ref: >-
-                ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
+            - FeatureCollection
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureFindResponse'
         bbox:
           $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
     FeatureFindResponse:
@@ -374,51 +399,80 @@ components:
             $ref: '#/components/schemas/RoiFeaturePayload'
         bbox:
           $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
-    FeatureCollectionFindResponse:
-      type: object
-      description: GeoJSON Feature collection
+    RoiFeaturePayload:
       required:
         - type
-        - features
+        - properties
+        - geometry
       properties:
         type:
           type: string
           enum:
-            - FeatureCollection
-        features:
-          type: array
-          items:
-            $ref: '#/components/schemas/FeatureFindResponse'
+            - Feature
+        id:
+          $ref: '#/components/schemas/FeatureId'
+        properties:
+          type: object
+          nullable: true
+          properties:
+            maxResolutionDeg:
+              $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
+            minResolutionDeg:
+              $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
+        geometry:
+          type: object
+          oneOf:
+            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
+            - $ref: >-
+                ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
         bbox:
           $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
-    Id:
-      type: string
-      format: uuid
-      description: Polygon part's identifier
-      example: d56b406d-e5f2-4818-a525-bd996cae60b5
-    HorizontalAccuracyCE90:
-      type: number
-      minimum: 0.01
-      maximum: 4000
-      format: double
-      description: Horizontal accuracy
-    ImagingTimeBeginUTC:
-      type: string
-      description: Oldest imaging date (UTC)
-      format: date-time
-    ImagingTimeEndUTC:
-      type: string
-      description: Latest imaging date (UTC)
-      format: date-time
-    IngestionDateUTC:
-      type: string
-      description: Ingestion date (UTC)
-      format: date-time
-    PolygonPartsEntityName:
-      type: string
-      description: Polygon parts entity name
-      pattern: ^[a-z][a-z0-9_]{0,61}[a-z0-9]$
-      example: world_orthophoto
+    PartData:
+      type: object
+      description: Part data
+      required:
+        - sourceName
+        - imagingTimeBeginUTC
+        - imagingTimeEndUTC
+        - footprint
+        - resolutionDegree
+        - resolutionMeter
+        - sourceResolutionMeter
+        - horizontalAccuracyCE90
+        - sensors
+      properties:
+        sourceId:
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/SourceId
+        sourceName:
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/SourceName
+        imagingTimeBeginUTC:
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ImagingTimeBeginUTC
+        imagingTimeEndUTC:
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ImagingTimeEndUTC
+        resolutionDegree:
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
+        resolutionMeter:
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionMeter
+        sourceResolutionMeter:
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/SourceResolutionMeter
+        horizontalAccuracyCE90:
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/HorizontalAccuracyCE90
+        sensors:
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Sensors
+        countries:
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Countries
+        cities:
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Cities
+        description:
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Description
+        footprint:
+          $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
+    PartsData:
+      type: array
+      items:
+        $ref: '#/components/schemas/PartData'
+      minItems: 1
+      description: parts data
     PolygonPartsEntityResponse:
       type: object
       description: Polygon parts entity response
@@ -426,7 +480,7 @@ components:
         - polygonPartsEntityName
       properties:
         polygonPartsEntityName:
-          $ref: '#/components/schemas/PolygonPartsEntityName'
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/PolygonPartsEntityName
     PolygonPartsFindPayload:
       type: object
       properties:
@@ -463,34 +517,44 @@ components:
         - sourceResolutionMeter
       properties:
         catalogId:
-          $ref: '#/components/schemas/CatalogId'
+          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/LayerId
         cities:
-          $ref: '#/components/schemas/Cities'
+          oneOf:
+            - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Cities
+            - type: object
+              nullable: true
         countries:
-          $ref: '#/components/schemas/Countries'
+          oneOf:
+            - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Countries
+            - type: object
+              nullable: true
         description:
-          $ref: '#/components/schemas/Description'
+          oneOf:
+            - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Description
+            - type: object
+              nullable: true
         horizontalAccuracyCE90:
-          $ref: '#/components/schemas/HorizontalAccuracyCE90'
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/HorizontalAccuracyCE90
         id:
-          $ref: '#/components/schemas/Id'
+          allOf:
+            - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Id
+            - description: Polygon part's identifier
         imagingTimeBeginUTC:
-          $ref: '#/components/schemas/ImagingTimeBeginUTC'
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ImagingTimeBeginUTC
         imagingTimeEndUTC:
-          $ref: '#/components/schemas/ImagingTimeEndUTC'
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ImagingTimeEndUTC
         ingestionDateUTC:
-          $ref: '#/components/schemas/IngestionDateUTC'
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/IngestionDateUTC
         partId:
           allOf:
-            - $ref: '#/components/schemas/Id'
+            - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Id
             - description: Part identifier
         productId:
-          $ref: '#/components/schemas/ProductId'
+          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductId
         productType:
-          $ref: >-
-            ./Schema/ingestionTrigger/metadata/rasterLayerMetadata.yaml#/components/schemas/productType
+          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductType
         productVersion:
-          $ref: '#/components/schemas/ProductVersion'
+          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductVersion
         requestFeatureId:
           description: >-
             If shouldClip is set to true, only a single FeatureId is returned
@@ -502,70 +566,39 @@ components:
               items:
                 $ref: '#/components/schemas/FeatureId'
         resolutionDegree:
-          $ref: '#/components/schemas/ResolutionDegree'
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
         resolutionMeter:
-          $ref: '#/components/schemas/ResolutionMeter'
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionMeter
         sensors:
-          $ref: '#/components/schemas/Sensors'
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Sensors
         sourceId:
-          $ref: '#/components/schemas/SourceId'
+          oneOf:
+            - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/SourceId
+            - type: object
+              nullable: true
         sourceName:
-          $ref: '#/components/schemas/SourceName'
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/SourceName
         sourceResolutionMeter:
-          $ref: '#/components/schemas/SourceResolutionMeter'
-    AggregationFilterPayload:
-      type: object
-      properties:
-        filter:
-          $ref: '#/components/schemas/RoiFeatureCollection'
-      required:
-        - filter
-      description: Aggregation filter payload by feature collection
+          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/SourceResolutionMeter
     PolygonPartsPayload:
-      $ref: >-
-        ./Schema/polygonPartsManager/payload.yaml#/components/schemas/PolygonPartsPayload
-    ProductId:
-      type: string
-      description: Layer's external identifier
-      pattern: ^[A-Za-z]{1}[A-Za-z0-9_]{0,37}$
-      example: BLUE_MARBLE
-    ProductVersion:
-      type: string
-      pattern: ^[1-9]\d*(\.(0|[1-9]\d?))?$
-      description: Layer's version
-      example: 1.23
-    ResolutionDegree:
-      type: number
-      minimum: 1.67638e-7
-      maximum: 0.703125
-      format: double
-      description: Resolution of layer in degrees/pixel
-    ResolutionMeter:
-      type: number
-      minimum: 0.0185
-      maximum: 78271.52
-      format: double
-      description: Resolution of layer in meters
-    Sensors:
-      type: array
-      items:
-        type: string
-        pattern: ^(?!\s).+(?<!\s)$
-      minItems: 1
-      description: Layer's sensors list
-    SourceId:
-      type: string
-      description: Layer's external identifier
-      nullable: true
-    SourceName:
-      type: string
-      description: Layer's external name
-    SourceResolutionMeter:
-      type: number
-      minimum: 0.0185
-      maximum: 78271.52
-      format: double
-      description: Resolution of layer in meters
+      type: object
+      required:
+        - catalogId
+        - productId
+        - productType
+        - productVersion
+        - partsData
+      properties:
+        catalogId:
+          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/LayerId
+        productId:
+          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductId
+        productType:
+          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductType
+        productVersion:
+          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductVersion
+        partsData:
+          $ref: '#/components/schemas/PartsData'
     ErrorMessage:
       type: object
       properties:

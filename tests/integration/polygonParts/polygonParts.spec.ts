@@ -4204,10 +4204,10 @@ describe('polygonParts', () => {
         await requestSender.createPolygonParts(polygonPartsPayload);
         const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
         const expectedResponse = { polygonPartsEntityName: entityIdentifier };
-        const { catalogId, partsData, productVersion, ...existsPayload } = polygonPartsPayload;
+        const { productId, productType } = polygonPartsPayload;
 
         const response = await requestSender.existsPolygonParts({
-          body: existsPayload,
+          body: { productId, productType },
         });
 
         expect(response.status).toBe(httpStatusCodes.OK);

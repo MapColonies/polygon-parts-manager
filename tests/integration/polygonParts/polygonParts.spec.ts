@@ -125,6 +125,7 @@ describe('polygonParts', () => {
     const connectionManager = container.resolve<ConnectionManager>(ConnectionManager);
     await connectionManager.destroy();
     await helperDB.dropSchema(schema);
+    jest.restoreAllMocks(); // Restore original implementations
   });
 
   describe('Happy Path', () => {
@@ -7799,9 +7800,6 @@ describe('polygonParts', () => {
     });
 
     describe('PUT /polygonParts', () => {
-      afterEach(() => {
-        jest.restoreAllMocks(); // Restore original implementations
-      });
       it("should return 404 status code if a part resource doesn't exist", async () => {
         const updatePayload = separatePolygonsRequest;
         const {

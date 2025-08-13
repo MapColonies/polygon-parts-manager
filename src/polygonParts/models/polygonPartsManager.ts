@@ -91,8 +91,8 @@ export class PolygonPartsManager {
   }
 
   public async existsPolygonParts(options: ExistsOptions): Promise<ExistsResponse> {
-    const { entitiesMetadata } = options;
-    this.logger.info({ msg: 'Checking polygon parts exists' });
+    const { entitiesMetadata, payload } = options;
+    this.logger.info({ msg: 'Checking polygon parts exists', payload });
 
     try {
       const polygonPartsEntityName = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
@@ -434,7 +434,7 @@ export class PolygonPartsManager {
   }): Promise<DatabaseObjectQualifiedName[]> {
     const { entityManager, logger, entitiesMetadata } = context;
     const { entitiesNames } = entitiesMetadata;
-    logger.debug({ msg: 'Checking polygon parts entities existence' });
+    logger.debug({ msg: 'Checking polygon parts entities existence', entitiesMetadata });
 
     const entitiesExist = await Promise.all<[DatabaseObjectQualifiedName, boolean]>(
       Object.values(entitiesNames).map(async ({ databaseObjectQualifiedName, entityName }) => {

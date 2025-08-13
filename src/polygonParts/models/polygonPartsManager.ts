@@ -91,18 +91,14 @@ export class PolygonPartsManager {
   }
 
   public async existsPolygonParts(options: ExistsOptions): Promise<ExistsResponse> {
-    const {
-      entitiesMetadata,
-      payload: { catalogId },
-    } = options;
-    const logger = this.logger.child({ catalogId });
-    logger.info({ msg: 'Checking polygon parts exists' });
+    const { entitiesMetadata } = options;
+    this.logger.info({ msg: 'Checking polygon parts exists' });
 
     try {
       const polygonPartsEntityName = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
         const baseIngestionContext = {
           entityManager,
-          logger,
+          logger: this.logger,
           entitiesMetadata,
         };
 
@@ -120,7 +116,7 @@ export class PolygonPartsManager {
       return { polygonPartsEntityName };
     } catch (error) {
       const errorMessage = 'Cheking polygon parts exists transaction failed';
-      logger.error({ msg: errorMessage, error });
+      this.logger.error({ msg: errorMessage, error });
       throw error;
     }
   }

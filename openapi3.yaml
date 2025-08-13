@@ -331,13 +331,11 @@ components:
       description: Aggregation filter payload by feature collection
     ExistsPayload:
       type: object
+      additionalProperties: false
       required:
-        - catalogId
         - productId
         - productType
       properties:
-        catalogId:
-          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/LayerId
         productId:
           $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductId
         productType:

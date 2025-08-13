@@ -162,7 +162,7 @@ export interface AggregationLayerMetadataResponse extends AggregationFeature {}
  * Get exists options
  */
 export interface ExistsOptions {
-  readonly payload: Pick<PolygonPartsPayload, 'catalogId' | 'productId' | 'productType'>;
+  readonly payload: Pick<PolygonPartsPayload, 'productId' | 'productType'>;
   readonly entitiesMetadata: EntitiesMetadata;
 }
 

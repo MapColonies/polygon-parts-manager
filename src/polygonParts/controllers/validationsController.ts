@@ -76,7 +76,7 @@ export class ValidationsController {
   public readonly validateExistsPolygonParts: ExistsPolygonPartsValidationHandler = (req, _, next) => {
     try {
       schemaParser({
-        schema: polygonPartsPayloadSchema.omit({ partsData: true, productVersion: true }),
+        schema: polygonPartsPayloadSchema.pick({ productId: true, productType: true }),
         value: req.body,
         errorMessagePrefix: 'Invalid request body',
       });

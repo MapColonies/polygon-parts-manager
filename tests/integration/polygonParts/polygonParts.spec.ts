@@ -4203,7 +4203,7 @@ describe('polygonParts', () => {
         await requestSender.createPolygonParts(polygonPartsPayload);
         const { entityIdentifier } = getEntitiesMetadata(polygonPartsPayload);
         const expectedResponse = { polygonPartsEntityName: entityIdentifier };
-        const { partsData, productVersion, ...existsPayload } = polygonPartsPayload;
+        const { catalogId, partsData, productVersion, ...existsPayload } = polygonPartsPayload;
 
         const response = await requestSender.existsPolygonParts({
           body: existsPayload,
@@ -6739,19 +6739,6 @@ describe('polygonParts', () => {
         expect.assertions(2);
       });
 
-      it('should return 400 status code if catalog id is an invalid value', async () => {
-        const polygonPartsPayload = { ...generatePolygonPartsPayload(1), catalogId: 'bad value' };
-
-        const response = await requestSender.existsPolygonParts({
-          body: polygonPartsPayload as unknown as ExistsRequestBody,
-        });
-
-        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
-        expect(response).toSatisfyApiSpec();
-
-        expect.assertions(2);
-      });
-
       it('should return 400 status code if product id is an invalid value', async () => {
         const polygonPartsPayload = { ...generatePolygonPartsPayload(1), productId: 'bad value' };
 
@@ -7517,10 +7504,10 @@ describe('polygonParts', () => {
 
     describe('POST /polygonParts/exists', () => {
       it('should return 404 status code if polygon part entities do not exist', async () => {
-        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const existsPayload = generateExistsPayload();
 
         const response = await requestSender.existsPolygonParts({
-          body: { ...polygonPartsPayload },
+          body: existsPayload,
         });
 
         expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
@@ -7531,14 +7518,14 @@ describe('polygonParts', () => {
       });
 
       it('should return 500 status code if polygon part entities partially exist', async () => {
-        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const existsPayload = generateExistsPayload();
         const {
           entitiesNames: { polygonParts },
-        } = getEntitiesMetadata(polygonPartsPayload);
+        } = getEntitiesMetadata(existsPayload);
         await helperDB.createTable(polygonParts.entityName, schema);
 
         const response = await requestSender.existsPolygonParts({
-          body: { ...polygonPartsPayload },
+          body: existsPayload,
         });
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
@@ -7549,11 +7536,11 @@ describe('polygonParts', () => {
       });
 
       it('should return 500 status code for a database error - set search_path error', async () => {
-        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const existsPayload = generateExistsPayload();
         const expectedErrorMessage = 'search_path error';
         const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValueOnce(new Error(expectedErrorMessage));
 
-        const response = await requestSender.existsPolygonParts({ body: polygonPartsPayload });
+        const response = await requestSender.existsPolygonParts({ body: existsPayload });
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
         expect(response.body).toMatchObject({ message: expectedErrorMessage });
@@ -7564,11 +7551,11 @@ describe('polygonParts', () => {
       });
 
       it('should return 500 status code for a database error - verify available tables (first table) error', async () => {
-        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const existsPayload = generateExistsPayload();
         const expectedErrorMessage = 'exists error';
         const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValueOnce(new Error(expectedErrorMessage));
 
-        const response = await requestSender.existsPolygonParts({ body: polygonPartsPayload });
+        const response = await requestSender.existsPolygonParts({ body: existsPayload });
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
         expect(response.body).toMatchObject({ message: expectedErrorMessage });
@@ -7581,14 +7568,14 @@ describe('polygonParts', () => {
       });
 
       it('should return 500 status code for a database error - verify available tables (second table) error', async () => {
-        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const existsPayload = generateExistsPayload();
         const expectedErrorMessage = 'exists error';
         const spyGetExists = jest
           .spyOn(SelectQueryBuilder.prototype, 'getExists')
           .mockResolvedValueOnce(false)
           .mockRejectedValueOnce(new Error(expectedErrorMessage));
 
-        const response = await requestSender.existsPolygonParts({ body: polygonPartsPayload });
+        const response = await requestSender.existsPolygonParts({ body: existsPayload });
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
         expect(response.body).toMatchObject({ message: expectedErrorMessage });
@@ -7601,11 +7588,11 @@ describe('polygonParts', () => {
       });
 
       it('should return 500 status code for a database error - transaction error', async () => {
-        const polygonPartsPayload = generatePolygonPartsPayload(1);
+        const existsPayload = generateExistsPayload();
         const expectedErrorMessage = 'transaction error';
         const spyTransaction = jest.spyOn(DataSource.prototype, 'transaction').mockRejectedValueOnce(new Error(expectedErrorMessage));
 
-        const response = await requestSender.existsPolygonParts({ body: polygonPartsPayload });
+        const response = await requestSender.existsPolygonParts({ body: existsPayload });
 
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
         expect(response.body).toMatchObject({ message: expectedErrorMessage });

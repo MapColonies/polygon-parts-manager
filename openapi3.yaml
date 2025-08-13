@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Polygon-Parts Manager
   description: CRUD operations to manage polygon parts
-  version: 1.7.3
+  version: 1.8.0
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -157,7 +157,8 @@ paths:
           name: polygonPartsEntityName
           description: Polygon parts entity name
           schema:
-            $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/PolygonPartsEntityName
+            $ref: >-
+              ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/PolygonPartsEntityName
           required: true
         - in: query
           name: shouldClip
@@ -215,7 +216,8 @@ paths:
           name: polygonPartsEntityName
           description: Polygon parts entity name
           schema:
-            $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/PolygonPartsEntityName
+            $ref: >-
+              ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/PolygonPartsEntityName
           required: true
       requestBody:
         description: Aggregation filter (feature collection)
@@ -290,37 +292,46 @@ components:
             - sensors
           properties:
             imagingTimeBeginUTC:
-              $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ImagingTimeBeginUTC
+              $ref: >-
+                ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ImagingTimeBeginUTC
             imagingTimeEndUTC:
-              $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ImagingTimeEndUTC
+              $ref: >-
+                ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ImagingTimeEndUTC
             maxResolutionDeg:
               allOf:
-                - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
+                - $ref: >-
+                    ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
                 - description: Maximal resolution of layer in degrees/pixel
             minResolutionDeg:
               allOf:
-                - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
+                - $ref: >-
+                    ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
                 - description: Minimal resolution of layer in degrees/pixel
             maxResolutionMeter:
               allOf:
-                - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionMeter
+                - $ref: >-
+                    ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionMeter
                 - description: Maximal resolution of layer in meters
             minResolutionMeter:
               allOf:
-                - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionMeter
+                - $ref: >-
+                    ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionMeter
                 - description: Minimal resolution of layer in meters
             maxHorizontalAccuracyCE90:
               allOf:
-                - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/HorizontalAccuracyCE90
+                - $ref: >-
+                    ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/HorizontalAccuracyCE90
                 - description: Maximal horizontal accuracy
             minHorizontalAccuracyCE90:
               allOf:
-                - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/HorizontalAccuracyCE90
+                - $ref: >-
+                    ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/HorizontalAccuracyCE90
                 - description: Minimal horizontal accuracy
             productBoundingBox:
               $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductBBox
             sensors:
-              $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Sensors
+              $ref: >-
+                ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Sensors
     AggregationFilterPayload:
       type: object
       properties:
@@ -414,9 +425,11 @@ components:
           nullable: true
           properties:
             maxResolutionDeg:
-              $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
+              $ref: >-
+                ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
             minResolutionDeg:
-              $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
+              $ref: >-
+                ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
         geometry:
           type: object
           oneOf:
@@ -442,19 +455,26 @@ components:
         sourceId:
           $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/SourceId
         sourceName:
-          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/SourceName
+          $ref: >-
+            ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/SourceName
         imagingTimeBeginUTC:
-          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ImagingTimeBeginUTC
+          $ref: >-
+            ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ImagingTimeBeginUTC
         imagingTimeEndUTC:
-          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ImagingTimeEndUTC
+          $ref: >-
+            ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ImagingTimeEndUTC
         resolutionDegree:
-          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
+          $ref: >-
+            ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
         resolutionMeter:
-          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionMeter
+          $ref: >-
+            ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionMeter
         sourceResolutionMeter:
-          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/SourceResolutionMeter
+          $ref: >-
+            ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/SourceResolutionMeter
         horizontalAccuracyCE90:
-          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/HorizontalAccuracyCE90
+          $ref: >-
+            ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/HorizontalAccuracyCE90
         sensors:
           $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Sensors
         countries:
@@ -462,7 +482,8 @@ components:
         cities:
           $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Cities
         description:
-          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Description
+          $ref: >-
+            ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Description
         footprint:
           $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
     PartsData:
@@ -478,7 +499,8 @@ components:
         - polygonPartsEntityName
       properties:
         polygonPartsEntityName:
-          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/PolygonPartsEntityName
+          $ref: >-
+            ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/PolygonPartsEntityName
     PolygonPartsFindPayload:
       type: object
       properties:
@@ -518,31 +540,38 @@ components:
           $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/LayerId
         cities:
           oneOf:
-            - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Cities
+            - $ref: >-
+                ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Cities
             - type: object
               nullable: true
         countries:
           oneOf:
-            - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Countries
+            - $ref: >-
+                ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Countries
             - type: object
               nullable: true
         description:
           oneOf:
-            - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Description
+            - $ref: >-
+                ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Description
             - type: object
               nullable: true
         horizontalAccuracyCE90:
-          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/HorizontalAccuracyCE90
+          $ref: >-
+            ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/HorizontalAccuracyCE90
         id:
           allOf:
             - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Id
             - description: Polygon part's identifier
         imagingTimeBeginUTC:
-          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ImagingTimeBeginUTC
+          $ref: >-
+            ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ImagingTimeBeginUTC
         imagingTimeEndUTC:
-          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ImagingTimeEndUTC
+          $ref: >-
+            ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ImagingTimeEndUTC
         ingestionDateUTC:
-          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/IngestionDateUTC
+          $ref: >-
+            ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/IngestionDateUTC
         partId:
           allOf:
             - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Id
@@ -564,20 +593,25 @@ components:
               items:
                 $ref: '#/components/schemas/FeatureId'
         resolutionDegree:
-          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
+          $ref: >-
+            ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
         resolutionMeter:
-          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionMeter
+          $ref: >-
+            ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionMeter
         sensors:
           $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Sensors
         sourceId:
           oneOf:
-            - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/SourceId
+            - $ref: >-
+                ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/SourceId
             - type: object
               nullable: true
         sourceName:
-          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/SourceName
+          $ref: >-
+            ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/SourceName
         sourceResolutionMeter:
-          $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/SourceResolutionMeter
+          $ref: >-
+            ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/SourceResolutionMeter
     PolygonPartsPayload:
       type: object
       required:

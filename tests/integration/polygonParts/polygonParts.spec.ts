@@ -7409,7 +7409,6 @@ describe('polygonParts', () => {
         expect(response).toSatisfyApiSpec();
         expect(spyGetRawOne).toHaveBeenCalledTimes(1);
 
-        spyGetRawOne.mockRestore();
         expect.assertions(4);
       });
     });
@@ -7450,8 +7449,6 @@ describe('polygonParts', () => {
         expect(response).toSatisfyApiSpec();
         expect(spyQuery).toHaveBeenCalledTimes(1);
 
-        spyQuery.mockRestore();
-        expect.assertions(4);
       });
 
       it('should return 500 status code for a database error - find polygon parts query error', async () => {
@@ -7474,7 +7471,6 @@ describe('polygonParts', () => {
         expect(response).toSatisfyApiSpec();
         expect(spyGetRawOne).toHaveBeenCalledTimes(1);
 
-        spyGetRawOne.mockRestore();
         expect.assertions(4);
       });
 
@@ -7498,7 +7494,6 @@ describe('polygonParts', () => {
         expect(response).toSatisfyApiSpec();
         expect(spyGetRawOne).toHaveBeenCalledTimes(1);
 
-        spyGetRawOne.mockRestore();
         expect.assertions(4);
       });
     });
@@ -7563,8 +7558,6 @@ describe('polygonParts', () => {
         expect(response).toSatisfyApiSpec();
         expect(spyGetExists).toHaveBeenCalledTimes(2);
 
-        spyGetExists.mockRestore();
-
         expect.assertions(4);
       });
 
@@ -7583,8 +7576,6 @@ describe('polygonParts', () => {
         expect(response).toSatisfyApiSpec();
         expect(spyGetExists).toHaveBeenCalledTimes(2);
 
-        spyGetExists.mockRestore();
-
         expect.assertions(4);
       });
 
@@ -7599,8 +7590,6 @@ describe('polygonParts', () => {
         expect(response.body).toMatchObject({ message: expectedErrorMessage });
         expect(response).toSatisfyApiSpec();
         expect(spyTransaction).toHaveBeenCalledTimes(1);
-
-        spyTransaction.mockRestore();
 
         expect.assertions(4);
       });
@@ -7677,8 +7666,6 @@ describe('polygonParts', () => {
         expect(response).toSatisfyApiSpec();
         expect(spyGetExists).toHaveBeenCalledTimes(2);
 
-        spyGetExists.mockRestore();
-
         const existsParts = await helperDB.tableExists(parts.entityName, schema);
         const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);
         expect(existsParts).toBeFalse();
@@ -7704,8 +7691,6 @@ describe('polygonParts', () => {
         expect(response.body).toMatchObject({ message: expectedErrorMessage });
         expect(response).toSatisfyApiSpec();
         expect(spyGetExists).toHaveBeenCalledTimes(2);
-
-        spyGetExists.mockRestore();
 
         const existsParts = await helperDB.tableExists(parts.entityName, schema);
         const existsPolygonParts = await helperDB.tableExists(polygonParts.entityName, schema);

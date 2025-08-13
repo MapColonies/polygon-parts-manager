@@ -7448,7 +7448,6 @@ describe('polygonParts', () => {
         expect(response.body).toMatchObject({ message: expectedErrorMessage });
         expect(response).toSatisfyApiSpec();
         expect(spyQuery).toHaveBeenCalledTimes(1);
-
       });
 
       it('should return 500 status code for a database error - find polygon parts query error', async () => {

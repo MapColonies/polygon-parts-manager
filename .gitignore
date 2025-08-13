@@ -6,7 +6,6 @@ helm/local.yaml
 local
 #generated files
 bundledApi.yaml
-Schema
 SchemaRaster
 
 # Logs

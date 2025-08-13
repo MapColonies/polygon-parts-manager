@@ -61,6 +61,7 @@ export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = Fea
     requestFeatureId?: NonNullable<Feature['id']> | (ShouldClip extends true ? never : NonNullable<Feature['id']>[]);
   }
 >;
+
 /**
  * Polygon parts ingestion payload
  */
@@ -106,16 +107,21 @@ export type EntityIdentifier = PolygonPartsEntityName;
 export type EntityIdentifierObject = PolygonPartsEntityNameObject;
 
 /**
- * Properties describing a name of an entity
+ * Name of an entity
  */
 export type EntityName = `${Lowercase<string>}${EntityIdentifier}${Lowercase<string>}`;
+
+/**
+ * Database object qualified name of an entity
+ */
+export type DatabaseObjectQualifiedName = `${Lowercase<string>}.${EntityName}`;
 
 /**
  * Properties describing names of an entity
  */
 export interface EntityNames {
   entityName: EntityName;
-  databaseObjectQualifiedName: `${Lowercase<string>}.${EntityName}`;
+  databaseObjectQualifiedName: DatabaseObjectQualifiedName;
 }
 
 /**
@@ -133,15 +139,6 @@ export interface IsSwapQueryParams {
   isSwap: boolean;
 }
 
-/**
- * Get aggregation layer metadata options
- */
-
-export interface AggregateLayerMetadataOptions {
-  readonly polygonPartsEntityName: EntityNames;
-  readonly filter: FeatureCollectionFilter | null;
-}
-
 export interface FilterQueryMetadata {
   filterQueryAlias: string;
   filterRequestFeatureIds: string;
@@ -149,10 +146,30 @@ export interface FilterQueryMetadata {
 }
 
 /**
+ * Get aggregation layer metadata options
+ */
+export interface AggregateLayerMetadataOptions {
+  readonly polygonPartsEntityName: EntityNames;
+  readonly filter: FeatureCollectionFilter | null;
+}
+
+/**
  * Get aggregation layer metadata response
  */
-
 export interface AggregationLayerMetadataResponse extends AggregationFeature {}
+
+/**
+ * Get exists options
+ */
+export interface ExistsOptions {
+  readonly payload: Pick<PolygonPartsPayload, 'productId' | 'productType'>;
+  readonly entitiesMetadata: EntitiesMetadata;
+}
+
+/**
+ * Get exists response
+ */
+export interface ExistsResponse extends EntityIdentifierObject {}
 //#endregion
 
 //#region private

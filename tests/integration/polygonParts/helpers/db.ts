@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
-import { DatabaseCreateContext, createDatabase, dropDatabase } from 'typeorm-extension';
 import { faker } from '@faker-js/faker';
 import { CORE_VALIDATIONS, INGESTION_VALIDATIONS, RASTER_PRODUCT_TYPE_LIST, RasterProductTypes, type PolygonPart } from '@map-colonies/raster-shared';
 import { randomPolygon } from '@turf/random';
 import type { Feature, Polygon } from 'geojson';
 import { randexp } from 'randexp';
+import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
+import { DatabaseCreateContext, createDatabase, dropDatabase } from 'typeorm-extension';
 import { setRepositoryTablePath } from '../../../../src/polygonParts/DAL/utils';
+import type { ExistsRequestBody } from '../../../../src/polygonParts/controllers/interfaces';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 import type { DeepPartial } from './types';
 
@@ -73,6 +74,13 @@ export const generatePolygonPart = (): PolygonPart => {
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     description: faker.helpers.maybe(() => faker.word.words({ count: { min: 0, max: 10 } })),
     sourceId: faker.helpers.maybe(() => faker.word.words()),
+  };
+};
+
+export const generateExistsPayload = (): ExistsRequestBody => {
+  return {
+    productId: generateProductId(),
+    productType: generateProductType(),
   };
 };
 

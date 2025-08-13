@@ -10,7 +10,7 @@ import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
 import { Part } from '../DAL/part';
 import { PolygonPart } from '../DAL/polygonPart';
-import { setRepositoryTablePath, payloadToInsertPartsData } from '../DAL/utils';
+import { payloadToInsertPartsData, setRepositoryTablePath } from '../DAL/utils';
 import {
   findSelectOutputColumns,
   geometryColumn,
@@ -23,9 +23,12 @@ import {
 import type {
   AggregateLayerMetadataOptions,
   AggregationLayerMetadataResponse,
+  DatabaseObjectQualifiedName,
   EntitiesMetadata,
   EntityName,
   EntityNames,
+  ExistsOptions,
+  ExistsResponse,
   FilterQueryMetadata,
   FindPolygonPartsOptions,
   FindPolygonPartsQueryResponse,
@@ -67,7 +70,10 @@ export class PolygonPartsManager {
         };
 
         await entityManager.query(`SET search_path TO ${this.schema},public`);
-        await this.verifyAvailableTableNames(baseIngestionContext);
+        const existingEntities = await this.checkExistingEntities(baseIngestionContext);
+        if (existingEntities.length > 0) {
+          throw new ConflictError(`Table(s) with the name '${existingEntities.join()}' already exist(s)`);
+        }
         const ingestionContext = { ...baseIngestionContext, polygonPartsPayload };
         await this.createTables(ingestionContext);
         await this.insertParts(ingestionContext);
@@ -80,6 +86,37 @@ export class PolygonPartsManager {
     } catch (error) {
       const errorMessage = 'Create polygon parts transaction failed';
       logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
+  public async existsPolygonParts(options: ExistsOptions): Promise<ExistsResponse> {
+    const { entitiesMetadata, payload } = options;
+    this.logger.info({ msg: 'Checking polygon parts exists', payload });
+
+    try {
+      const polygonPartsEntityName = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        const baseIngestionContext = {
+          entityManager,
+          logger: this.logger,
+          entitiesMetadata,
+        };
+
+        await entityManager.query(`SET search_path TO ${this.schema},public`);
+        const existingEntities = await this.checkExistingEntities(baseIngestionContext);
+        if (existingEntities.length === 0) {
+          throw new NotFoundError('Entities do not exist(s)');
+        } else if (existingEntities.length !== Object.keys(entitiesMetadata.entitiesNames).length) {
+          throw new InternalServerError('Some entities are missing');
+        }
+
+        return entitiesMetadata.entityIdentifier;
+      });
+
+      return { polygonPartsEntityName };
+    } catch (error) {
+      const errorMessage = 'Cheking polygon parts exists transaction failed';
+      this.logger.error({ msg: errorMessage, error });
       throw error;
     }
   }
@@ -390,22 +427,20 @@ export class PolygonPartsManager {
     return aggregationQueryBuilder;
   }
 
-  private async verifyAvailableTableNames(context: {
+  private async checkExistingEntities(context: {
     entityManager: EntityManager;
     logger: Logger;
     entitiesMetadata: EntitiesMetadata;
-  }): Promise<void> {
+  }): Promise<DatabaseObjectQualifiedName[]> {
     const { entityManager, logger, entitiesMetadata } = context;
     const { entitiesNames } = entitiesMetadata;
-    logger.debug({ msg: 'Verifying polygon parts table names are available' });
+    logger.debug({ msg: 'Checking polygon parts entities existence', entitiesMetadata });
 
-    await Promise.all(
-      Object.values<EntityNames>({ ...entitiesNames }).map(async ({ databaseObjectQualifiedName, entityName }) => {
+    const entitiesExist = await Promise.all<[DatabaseObjectQualifiedName, boolean]>(
+      Object.values(entitiesNames).map(async ({ databaseObjectQualifiedName, entityName }) => {
         try {
-          const exists = await this.connectionManager.entityExists(entityManager, entityName);
-          if (exists) {
-            throw new ConflictError(`Table with the name '${databaseObjectQualifiedName}' already exists`);
-          }
+          const entityExists = await this.connectionManager.entityExists(entityManager, entityName);
+          return [databaseObjectQualifiedName, entityExists] satisfies [DatabaseObjectQualifiedName, boolean];
         } catch (error) {
           const errorMessage = `Could not verify polygon parts table name '${databaseObjectQualifiedName}' is available`;
           logger.error({ msg: errorMessage, error });
@@ -413,6 +448,7 @@ export class PolygonPartsManager {
         }
       })
     );
+    return entitiesExist.filter(([, exists]) => exists).map(([databaseObjectQualifiedName]) => databaseObjectQualifiedName);
   }
 
   private buildFindQuery<ShouldClip extends boolean = boolean>(

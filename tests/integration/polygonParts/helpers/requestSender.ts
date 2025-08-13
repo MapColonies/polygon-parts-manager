@@ -1,13 +1,18 @@
 import type { Application } from 'express';
 import * as supertest from 'supertest';
-import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 import type {
+  AggregatePolygonPartsRequestBody,
+  AggregationLayerMetadataParams,
+  ExistsRequestBody,
   FindPolygonPartsParams,
   FindPolygonPartsQueryParams,
   FindPolygonPartsRequestBody,
-  AggregationLayerMetadataParams,
-  AggregatePolygonPartsRequestBody,
 } from '../../../../src/polygonParts/controllers/interfaces';
+import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
+
+interface ExistsPolygonParts {
+  body: ExistsRequestBody;
+}
 
 interface FindPolygonParts {
   params: FindPolygonPartsParams;
@@ -20,6 +25,10 @@ export class PolygonPartsRequestSender {
 
   public async createPolygonParts(body: PolygonPartsPayload): Promise<supertest.Response> {
     return supertest.agent(this.app).post('/polygonParts').set('Content-Type', 'application/json').send(body);
+  }
+
+  public async existsPolygonParts({ body }: ExistsPolygonParts): Promise<supertest.Response> {
+    return supertest.agent(this.app).post(`/polygonParts/exists`).set('Content-Type', 'application/json').send(body);
   }
 
   public async findPolygonParts({ params, body, query }: FindPolygonParts): Promise<supertest.Response> {

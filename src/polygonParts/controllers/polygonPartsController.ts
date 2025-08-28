@@ -5,18 +5,25 @@ import type { EntitiesMetadata, IsSwapQueryParams, PolygonPartsPayload, PolygonP
 import { PolygonPartsManager } from '../models/polygonPartsManager';
 import type {
   AggregatePolygonPartsRequestBody,
+  AggregationLayerMetadataParams,
+  AggregationLayerMetadataResponseBody,
+  ExistsRequestBody,
+  ExistsResponseBody,
   FindPolygonPartsParams,
   FindPolygonPartsQueryParams,
   FindPolygonPartsRequestBody,
   FindPolygonPartsResponseBody,
-  AggregationLayerMetadataParams,
-  AggregationLayerMetadataResponseBody,
 } from './interfaces';
 
 /**
  * Create polygon parts handler
  */
 type CreatePolygonPartsHandler = RequestHandler<undefined, PolygonPartsResponse, PolygonPartsPayload, undefined, EntitiesMetadata>;
+
+/**
+ * Exists polygon parts handler
+ */
+type ExistsPolygonPartsHandler = RequestHandler<undefined, ExistsResponseBody, ExistsRequestBody, undefined, EntitiesMetadata>;
 
 /**
  * Find polygon parts handler
@@ -53,6 +60,18 @@ export class PolygonPartsController {
     try {
       const response = await this.polygonPartsManager.createPolygonParts(req.body, res.locals);
       return res.status(httpStatus.CREATED).send(response);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public existsPolygonParts: ExistsPolygonPartsHandler = async (req, res, next) => {
+    try {
+      const response = await this.polygonPartsManager.existsPolygonParts({
+        entitiesMetadata: res.locals,
+        payload: req.body,
+      });
+      return res.status(httpStatus.OK).send(response);
     } catch (error) {
       next(error);
     }

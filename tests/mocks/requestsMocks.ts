@@ -1,9 +1,8 @@
 /* eslint-disable  @typescript-eslint/no-magic-numbers */
-import { RasterProductTypes, type PolygonPart } from '@map-colonies/raster-shared';
-import { ProductType } from '@map-colonies/mc-model-types';
+import { RasterProductTypes } from '@map-colonies/raster-shared';
 import type { Polygon } from 'geojson';
 import type { PolygonPartsPayload } from '../../src/polygonParts/models/interfaces';
-import { generatePolygonPart } from '../integration/polygonParts/helpers/db';
+import { generatePolygonPartsPayload } from '../integration/polygonParts/helpers/db';
 
 type LayerMetadata = Pick<PolygonPartsPayload, 'catalogId' | 'productId' | 'productType' | 'productVersion'>;
 
@@ -18,22 +17,6 @@ const updateLayerMetadata: LayerMetadata = {
   ...createLayerMetadata,
   productVersion: '2.0',
 };
-
-function generateRequest(layerMetadata: LayerMetadata, footprints: Polygon[]): PolygonPartsPayload {
-  return {
-    ...layerMetadata,
-    partsData: generatePolygonPartPayload(footprints),
-  };
-}
-
-function generatePolygonPartPayload(footprints: Polygon[]): PolygonPart[] {
-  return footprints.map((footprint) => {
-    return {
-      ...generatePolygonPart(),
-      footprint,
-    };
-  });
-}
 
 export const worldFootprint: Polygon = {
   type: 'Polygon',
@@ -150,19 +133,25 @@ export const italyWithoutIntersection: Polygon = {
   ],
 };
 
-export const createInitPayloadRequest: PolygonPartsPayload = generateRequest(createLayerMetadata, [worldFootprint]);
-export const separatePolygonsRequest: PolygonPartsPayload = generateRequest(updateLayerMetadata, [franceFootprint, germanyFootprint, italyFootprint]);
-export const intersectionWithItalyRequest: PolygonPartsPayload = generateRequest(updateLayerMetadata, [
-  italyFootprint,
-  intersectionWithItalyFootprint,
-]);
+export const createInitPayloadRequest: PolygonPartsPayload = generatePolygonPartsPayload({
+  ...createLayerMetadata,
+  partsData: [{ footprint: worldFootprint }],
+});
+export const separatePolygonsRequest: PolygonPartsPayload = generatePolygonPartsPayload({
+  ...updateLayerMetadata,
+  partsData: [{ footprint: franceFootprint }, { footprint: germanyFootprint }, { footprint: italyFootprint }],
+});
+export const intersectionWithItalyRequest: PolygonPartsPayload = generatePolygonPartsPayload({
+  ...updateLayerMetadata,
+  partsData: [{ footprint: italyFootprint }, { footprint: intersectionWithItalyFootprint }],
+});
 
 // Aggregation request
-export const createEuropeInitPayloadRequest: PolygonPartsPayload = generateRequest({ ...createLayerMetadata, productId: 'EUROPE' }, [
-  franceFootprint,
-  germanyFootprint,
-  italyFootprint,
-]);
+export const createEuropeInitPayloadRequest: PolygonPartsPayload = generatePolygonPartsPayload({
+  ...createLayerMetadata,
+  productId: 'EUROPE',
+  partsData: [{ footprint: franceFootprint }, { footprint: germanyFootprint }, { footprint: italyFootprint }],
+});
 
 export const outsideEuropePolygon: Polygon = {
   type: 'Polygon',
@@ -183,7 +172,7 @@ export const outsideEuropePolygon: Polygon = {
 export const createCustomInitPayloadRequestForAggregation: PolygonPartsPayload = {
   catalogId: 'c52d8189-7e07-456a-8c6b-53859523c3e9',
   productId: 'AGGREGATED_EXAMPLE',
-  productType: ProductType.ORTHOPHOTO,
+  productType: RasterProductTypes.ORTHOPHOTO,
   productVersion: '1.5',
   partsData: [
     {

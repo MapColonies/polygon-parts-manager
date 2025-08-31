@@ -111,7 +111,7 @@ export class FixSmallAreaFilteringPolygonPartsStoredProcedure1756370133773 imple
                     where inserts."id" is null
                     union all
                     -- selection of new unprocessed parts that are not modified through the update process
-                    select "id" as "part_id", "catalog_id", "product_id", "product_type", "source_id", "source_name", "product_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce90", sensors, countries, cities, description, (st_dump(footprint)).geom as footprint, "insertion_order"
+                    select "id" as "part_id", "catalog_id", "product_id", "product_type", "source_id", "source_name", "product_version", "ingestion_date_utc", "imaging_time_begin_utc", "imaging_time_end_utc", "resolution_degree", "resolution_meter", "source_resolution_meter", "horizontal_accuracy_ce90", sensors, countries, cities, description, footprint, "insertion_order"
                     from unprocessed
                     where "id" not in (select "part_id" from tbl)
                 ) inserting_parts';

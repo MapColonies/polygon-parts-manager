@@ -13,12 +13,12 @@ export class DataSourceLogger extends AbstractLogger {
       const { message: msg, ...ormMsgDetails } = message;
       switch (message.type ?? level) {
         case 'log':
-        case 'schema':
-        case 'schema-build':
-        case 'migration':
           this.logger.debug({ ormMsgDetails, msg });
           break;
         case 'info':
+        case 'schema':
+        case 'schema-build':
+        case 'migration':
         case 'query':
           this.logger.info({ ormMsgDetails, msg });
           break;

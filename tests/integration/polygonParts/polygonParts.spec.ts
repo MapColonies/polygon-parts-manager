@@ -13,12 +13,13 @@ import { StatusCodes as httpStatusCodes } from 'http-status-codes';
 import { get as getValue, merge } from 'lodash';
 import { xor } from 'martinez-polygon-clipping';
 import { container } from 'tsyringe';
-import { EntityManager, Geometry, Repository, SelectQueryBuilder, type DataSourceOptions, DataSource } from 'typeorm';
+import { DataSource, EntityManager, Geometry, Repository, SelectQueryBuilder, type DataSourceOptions } from 'typeorm';
 import { getApp } from '../../../src/app';
 import { ConnectionManager } from '../../../src/common/connectionManager';
 import { SERVICES } from '../../../src/common/constants';
 import type { ApplicationConfig, DbConfig } from '../../../src/common/interfaces';
 import { Transformer } from '../../../src/common/middlewares/transformer';
+import { createConnectionOptions } from '../../../src/common/utils';
 import type {
   AggregatePolygonPartsRequestBody,
   ExistsRequestBody,
@@ -27,6 +28,7 @@ import type {
 } from '../../../src/polygonParts/controllers/interfaces';
 import { Part } from '../../../src/polygonParts/DAL/part';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
+import { namingStrategy } from '../../../src/polygonParts/DAL/utils';
 import type {
   EntitiesMetadata,
   EntityIdentifier,
@@ -55,7 +57,7 @@ import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
 import polygonWesternHemisphere from './data/polygonWesternHemisphere.json';
 import { INITIAL_DB, INTERNAL_DB_GEOM_PRECISION } from './helpers/constants';
-import { HelperDB, createDB, generateExistsPayload, generateFeatureId, generatePolygon, generatePolygonPartsPayload } from './helpers/db';
+import { createDB, generateExistsPayload, generateFeatureId, generatePolygon, generatePolygonPartsPayload, HelperDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import type { DeepPartial } from './helpers/types';
 import { allFindFeaturesEqual, toExpectedFindPolygonPartsResponse, toExpectedPostgresResponse } from './helpers/utils';
@@ -91,7 +93,7 @@ describe('polygonParts', () => {
   ) => EntitiesMetadata;
 
   beforeAll(async () => {
-    testDataSourceOptions = ConnectionManager.createConnectionOptions(dbConfig);
+    testDataSourceOptions = { entities: [Part, PolygonPart], namingStrategy, ...createConnectionOptions(dbConfig) };
     await createDB({ options: testDataSourceOptions, initialDatabase: INITIAL_DB });
     helperDB = new HelperDB(testDataSourceOptions);
     await helperDB.initConnection();

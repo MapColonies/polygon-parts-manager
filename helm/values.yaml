@@ -13,7 +13,7 @@ enabled: true
 environment: development
 replicaCount: 1
 initialDelaySeconds: 60
-nodePort: 30030 #for minikube deployment only
+nodePort: 30030  # for minikube deployment only
 resetOnConfigChange: true
 imagePullPolicy: Always
 
@@ -31,7 +31,7 @@ tracing:
 metrics:
   enabled: false
   url: ''
-  interval: 15000 # default interval value of telemetry package
+  interval: 15000  # default interval value of telemetry package
   prometheus:
     scrape: false
     port: 8080
@@ -73,7 +73,6 @@ env:
       simplifyGeometry:
         enabled: true
         toleranceDeg: 0.000006
-
 # external
 db:
   host: ''
@@ -83,6 +82,7 @@ db:
   name: ''
   schema: polygon_parts
   logging: false
+  logNotifications: false
   applicationName: polygon_parts
   sslEnabled: false
   sslAuth:
@@ -108,8 +108,8 @@ route:
   enabled: false
   path: /
   timeout:
-    enabled: false # defaults to 30s by openshift
-    duration: 60s # supported units (us, ms, s, m, h, d)
+    enabled: false  # defaults to 30s by openshift
+    duration: 60s  # supported units (us, ms, s, m, h, d)
   tls:
     useCerts: false
     certificate: ''
@@ -118,7 +118,7 @@ route:
 
 ingress:
   enabled: false
-  type: 'nginx-org' # supported values: 'nginx-org' | 'nginx-kubernetes'
+  type: 'nginx-org'  # supported values: 'nginx-org' | 'nginx-kubernetes'
   path: /
   host: 'localhost'
   cors:

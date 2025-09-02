@@ -12,10 +12,10 @@ export class FixSmallAreaFilteringPolygonPartsStoredProcedure1756370133773 imple
             as $body$
             declare
                 unprocessed_count integer;
-                affected_polygon_parts integer;
+                affected_polygon_parts_count integer;
                 inserted_parts_count integer;
                 deleted_parts_count integer;
-                parts_marked_as_processed integer;
+                parts_marked_as_processed_count integer;
             begin
                 -- count unprocessed parts for initial notification
                 execute 'select count(*) from ' || parts || ' where not is_processed_part'
@@ -52,9 +52,9 @@ export class FixSmallAreaFilteringPolygonPartsStoredProcedure1756370133773 imple
 
                 -- get count of affected polygon parts after temp table creation
                 execute 'select count(*) from tbl'
-                into affected_polygon_parts;
+                into affected_polygon_parts_count;
 
-                raise notice 'found % new parts and existing polygon parts affected', affected_polygon_parts;
+                raise notice 'found % new parts and existing polygon parts affected', affected_polygon_parts_count;
 
                 raise notice 'inserting modified and new polygon parts';
                 execute 'with unprocessed as (
@@ -133,7 +133,9 @@ export class FixSmallAreaFilteringPolygonPartsStoredProcedure1756370133773 imple
                 execute 'update ' || parts || '
                 set "is_processed_part" = true
                 where "is_processed_part" = false';
-                get diagnostics parts_marked_as_processed = row_count;
+                get diagnostics parts_marked_as_processed_count = row_count;
+
+                raise notice 'marked % parts as processed', parts_marked_as_processed_count;
 
                 raise notice 'processing completed';
             end;

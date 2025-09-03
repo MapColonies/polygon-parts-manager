@@ -4847,7 +4847,9 @@ describe('polygonParts', () => {
       });
 
       it('should return 201 status code and create the resources for multiple parts, where incoming intersecting parts do not generate a small area polygon parts', async () => {
+        // a square with an area less than min area is calculated and used to generate a part excluding it's area
         const squareSideLength = applicationConfig.entities.polygonParts.minAreaSquareDeg ** 0.5;
+        const shortenedSquareSideLength = squareSideLength * 0.9;
         const partFootprints = [
           {
             type: 'Polygon',
@@ -4867,9 +4869,9 @@ describe('polygonParts', () => {
               [
                 [0.5, 0],
                 [1, 0],
-                [1, 1 - squareSideLength * 0.9],
-                [1 - squareSideLength * 0.9, 1 - squareSideLength * 0.9],
-                [1 - squareSideLength * 0.9, 1],
+                [1, 1 - shortenedSquareSideLength],
+                [1 - shortenedSquareSideLength, 1 - shortenedSquareSideLength],
+                [1 - shortenedSquareSideLength, 1],
                 [0.5, 1],
                 [0.5, 0],
               ],
@@ -4906,9 +4908,9 @@ describe('polygonParts', () => {
               [
                 [0.5, 0],
                 [1, 0],
-                [1, 1 - squareSideLength * 0.9],
-                [1 - squareSideLength * 0.9, 1 - squareSideLength * 0.9],
-                [1 - squareSideLength * 0.9, 1],
+                [1, 1 - shortenedSquareSideLength],
+                [1 - shortenedSquareSideLength, 1 - shortenedSquareSideLength],
+                [1 - shortenedSquareSideLength, 1],
                 [0.5, 1],
                 [0.5, 0],
               ],
@@ -5846,7 +5848,9 @@ describe('polygonParts', () => {
       });
 
       it('should return 200 status code and update the resources for a part intersecting existing polygon part leaving two valid polygon parts, small area polygon generated during calculation (below threshold) is removed', async () => {
+        // a square with an area less than min area is calculated and used to generate a part excluding it's area
         const squareSideLength = applicationConfig.entities.polygonParts.minAreaSquareDeg ** 0.5;
+        const shortenedSquareSideLength = squareSideLength * 0.9;
         const insertPolygonPartsPayload = generatePolygonPartsPayload({
           partsData: [
             {
@@ -5877,9 +5881,9 @@ describe('polygonParts', () => {
                   [
                     [0.5, 0],
                     [1, 0],
-                    [1, 1 - squareSideLength * 0.9],
-                    [1 - squareSideLength * 0.9, 1 - squareSideLength * 0.9],
-                    [1 - squareSideLength * 0.9, 1],
+                    [1, 1 - shortenedSquareSideLength],
+                    [1 - shortenedSquareSideLength, 1 - shortenedSquareSideLength],
+                    [1 - shortenedSquareSideLength, 1],
                     [0.5, 1],
                     [0.5, 0],
                   ],
@@ -5911,9 +5915,9 @@ describe('polygonParts', () => {
               [
                 [0.5, 0],
                 [1, 0],
-                [1, 1 - squareSideLength * 0.9],
-                [1 - squareSideLength * 0.9, 1 - squareSideLength * 0.9],
-                [1 - squareSideLength * 0.9, 1],
+                [1, 1 - shortenedSquareSideLength],
+                [1 - shortenedSquareSideLength, 1 - shortenedSquareSideLength],
+                [1 - shortenedSquareSideLength, 1],
                 [0.5, 1],
                 [0.5, 0],
               ],

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.1](https://github.com/MapColonies/polygon-parts-manager/compare/v1.8.0...v1.8.1) (2025-09-04)
+
+
+### Bug Fixes
+
+* discard small area polygon parts (MAPCO-8596) ([#53](https://github.com/MapColonies/polygon-parts-manager/issues/53)) ([24e7af9](https://github.com/MapColonies/polygon-parts-manager/commit/24e7af9a3a044da324df76b5d3b3cc7296a4ab15))
+
 ## [1.8.0](https://github.com/MapColonies/polygon-parts-manager/compare/v1.7.3...v1.8.0) (2025-08-13)
 
 

@@ -1,3 +1,35 @@
+import { polygonSchema, multiPolygonSchema } from '@map-colonies/raster-shared';
+import { z } from 'zod';
+
+const featureCollectionPartDataProperties = z.object({
+  sourceId: z.string().optional(),
+  sourceName: z.string(),
+  imagingTimeBeginUTC: z.string(),
+  imagingTimeEndUTC: z.string(),
+  resolutionDegree: z.number(),
+  resolutionMeter: z.number(),
+  sourceResolutionMeter: z.number(),
+  horizontalAccuracyCE90: z.number(),
+  sensors: z.array(z.string()).min(1),
+  countries: z.array(z.string()).optional(),
+  cities: z.array(z.string()).optional(),
+  description: z.string().optional(),
+});
+
+const polygonPartsFeatureSchemaExpanded = z.object({
+  type: z.literal('Feature'),
+  id: z.string(),
+  properties: featureCollectionPartDataProperties,
+  geometry: z.union([polygonSchema, multiPolygonSchema]),
+  bbox: z.any().optional(),
+});
+
+const polygonPartsFeatureCollectionSchema = z.object({
+  type: z.literal('FeatureCollection'),
+  features: z.array(polygonPartsFeatureSchemaExpanded),
+  bbox: z.any().optional(),
+});
+
 export type DeepMapValues<T extends object, V> = {
   [K in keyof T]: T[K] extends object ? DeepMapValues<T[K], V> : V;
 };
@@ -18,3 +50,5 @@ export type ReplaceValuesOfType<T, VFrom, VTo> = {
 export type OptionalToNullableRecordValues<T extends Record<PropertyKey, any>> = {
   [K in keyof T]-?: T[K] extends NonNullable<T[K]> ? T[K] : Exclude<T[K] | null, undefined>;
 };
+
+export type PolygonPartsFeatureCollection = z.infer<typeof polygonPartsFeatureCollectionSchema>;

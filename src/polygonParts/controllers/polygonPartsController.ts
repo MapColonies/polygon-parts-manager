@@ -13,6 +13,8 @@ import type {
   FindPolygonPartsQueryParams,
   FindPolygonPartsRequestBody,
   FindPolygonPartsResponseBody,
+  ValidatePolygonPartsRequestBody,
+  ValidatePolygonPartsResponseBody,
 } from './interfaces';
 
 /**
@@ -48,6 +50,14 @@ export type AggregationLayerMetadataHandler = RequestHandler<
   AggregationLayerMetadataParams,
   AggregationLayerMetadataResponseBody,
   AggregatePolygonPartsRequestBody,
+  undefined,
+  EntitiesMetadata
+>;
+
+export type ValidatePolygonPartsHandler = RequestHandler<
+  undefined,
+  ValidatePolygonPartsResponseBody,
+  ValidatePolygonPartsRequestBody,
   undefined,
   EntitiesMetadata
 >;
@@ -107,6 +117,20 @@ export class PolygonPartsController {
       const isSwap = req.query.isSwap;
       const response = await this.polygonPartsManager.updatePolygonParts(isSwap, req.body, res.locals);
       return res.status(httpStatus.OK).send(response);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public validatePolygonParts: ValidatePolygonPartsHandler = async (req, res, next) => {
+    try {
+      const response = await this.polygonPartsManager.validatePolygonParts(req.body, res.locals);
+      //NOTE: returning 422 if there are validation errors, else 200 - There is a bug in the http wrapper that doesnt pass the response code- we want to leaveit for future support
+      if (response.parts.length === 0) {
+        return res.status(httpStatus.OK).send(response);
+      } else {
+        return res.status(httpStatus.UNPROCESSABLE_ENTITY).send(response);
+      }
     } catch (error) {
       next(error);
     }

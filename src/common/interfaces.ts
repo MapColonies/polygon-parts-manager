@@ -5,6 +5,10 @@ export interface ApplicationConfig {
   arraySeparator: string;
   createPolygonPartsTablesStoredProcedure: string;
   updatePolygonPartsTablesStoredProcedure: string;
+  createPolygonPartsValidationsTablesStoredProcedure: string;
+  countSmallHolesFunction: string;
+  countSmallGeometriesFunction: string;
+  validateResolutionsFunction: string;
   entities: {
     parts: {
       namePrefix: Lowercase<string>;
@@ -18,6 +22,10 @@ export interface ApplicationConfig {
       nameSuffix: Lowercase<string>;
       minAreaSquareDeg: number;
     };
+    validations: {
+      namePrefix: Lowercase<string>;
+      nameSuffix: Lowercase<string>;
+    };
   };
   aggregation: {
     fixGeometry: {
@@ -30,6 +38,9 @@ export interface ApplicationConfig {
       toleranceDeg: number;
     };
     maxDecimalDigits: number;
+  };
+  validation: {
+    areaThresholdSquareDeg: number;
   };
 }
 

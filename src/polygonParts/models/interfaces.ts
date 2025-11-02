@@ -26,6 +26,11 @@ export interface InsertPartData extends Readonly<Omit<CommonPayload, 'countries'
   readonly sensors: string;
 }
 
+export interface InsertValidatePartData extends Readonly<Omit<InsertPartData, 'footprint'>> {
+  readonly footprint: Polygon | MultiPolygon;
+  readonly id: string;
+}
+
 export type FeatureCollectionFilter = FeatureCollection<PolygonalGeometries, (GeoJsonProperties & Partial<RoiProperties>) | null>;
 
 /**
@@ -96,6 +101,10 @@ export interface PolygonPartRecord extends CommonRecord {
   readonly insertionOrder: number;
 }
 
+export interface ValidatePartRecord extends InsertValidatePartData {
+  readonly processed: boolean;
+}
+
 /**
  * Entity identifier
  */
@@ -132,6 +141,7 @@ export interface EntitiesMetadata {
   entitiesNames: {
     parts: EntityNames;
     polygonParts: EntityNames;
+    validations: EntityNames;
   };
 }
 

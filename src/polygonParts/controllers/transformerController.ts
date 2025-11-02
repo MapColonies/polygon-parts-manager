@@ -5,7 +5,7 @@ import { SERVICES } from '../../common/constants';
 import { Transformer } from '../../common/middlewares/transformer';
 import type { IsSwapQueryParams, PolygonPartsPayload } from '../models/interfaces';
 import type { ExistsRequestBody, FindPolygonPartsParams, FindPolygonPartsQueryParams, FindPolygonPartsRequestBody } from './interfaces';
-import type { AggregationLayerMetadataHandler } from './polygonPartsController';
+import type { AggregationLayerMetadataHandler, ValidatePolygonPartsHandler } from './polygonPartsController';
 
 /**
  * Create polygon parts transformer handler
@@ -83,6 +83,16 @@ export class TransformerController {
   public readonly parseAggregateLayerMetadata: AggregationLayerMetadataHandler = (req, res, next) => {
     try {
       const entitiesMetadata = this.transformer.parseEntitiesMetadata(req.params);
+      res.locals = entitiesMetadata;
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public readonly parseValidatePolygonParts: ValidatePolygonPartsHandler = (req, res, next) => {
+    try {
+      const entitiesMetadata = this.transformer.parseEntitiesMetadata(req.body);
       res.locals = entitiesMetadata;
       next();
     } catch (error) {

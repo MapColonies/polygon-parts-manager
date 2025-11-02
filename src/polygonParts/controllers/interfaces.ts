@@ -1,3 +1,4 @@
+import type { JobTypes } from '@map-colonies/raster-shared';
 import type {
   AggregateLayerMetadataOptions,
   AggregationLayerMetadataResponse,
@@ -6,7 +7,9 @@ import type {
   ExistsResponse,
   FindPolygonPartsOptions,
   FindPolygonPartsResponse,
+  CommonRecord,
 } from '../models/interfaces';
+import { PolygonPartsFeatureCollection } from '../../common/types';
 
 /**
  * Exists request body
@@ -52,3 +55,19 @@ export interface AggregationLayerMetadataParams {
  * Get aggregation layer metadata response body
  */
 export interface AggregationLayerMetadataResponseBody extends AggregationLayerMetadataResponse {}
+
+export interface ValidateError {
+  id: string;
+  errors: string[];
+}
+export interface ValidatePolygonPartsResponseBody {
+  parts: ValidateError[];
+  smallGeometriesCount: number; // count in this chunk
+  smallHolesCount: number; // count in this chunk
+}
+
+export type ValidatePolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType' | 'productVersion' | 'catalogId'> & {
+  jobType: JobTypes;
+} & {
+  featureCollection: PolygonPartsFeatureCollection;
+};

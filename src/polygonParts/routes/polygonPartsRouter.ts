@@ -20,6 +20,7 @@ const polygonPartsRouterFactory: FactoryFunction<Router> = (dependencyContainer)
   router.post('/exists', validations.validateExistsPolygonParts, transformer.parseExistsPolygonParts, controller.existsPolygonParts);
   router.post('/', validations.validateCreatePolygonParts, transformer.parseCreatePolygonParts, controller.createPolygonParts);
   router.put('/', validations.validateUpdatePolygonParts, transformer.parseUpdatePolygonParts, controller.updatePolygonParts);
+  router.post('/validate', transformer.parseValidatePolygonParts, controller.validatePolygonParts);
 
   return router;
 };

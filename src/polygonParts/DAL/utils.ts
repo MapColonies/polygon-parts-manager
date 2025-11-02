@@ -1,7 +1,7 @@
 import { DefaultNamingStrategy, type ObjectLiteral, type Repository, type Table } from 'typeorm';
 import type { ApplicationConfig } from '../../common/interfaces';
 import { camelCaseToSnakeCase } from '../../common/utils';
-import type { InsertPartData, InsertValidatePartData, PolygonPartsPayload } from '../models/interfaces';
+import type { InsertPartData, ValidatePartData, PolygonPartsPayload } from '../models/interfaces';
 import { ValidatePolygonPartsRequestBody } from '../controllers/interfaces';
 
 const customNamingStrategy = new DefaultNamingStrategy();
@@ -51,7 +51,7 @@ export const payloadToInsertPartsData = (
 export const payloadToInsertValidationsData = (
   validationsPolygonPartsPayload: ValidatePolygonPartsRequestBody,
   arraySeparator: ApplicationConfig['arraySeparator']
-): InsertValidatePartData[] => {
+): ValidatePartData[] => {
   const { featureCollection: partsData, productId, productVersion, productType, catalogId } = validationsPolygonPartsPayload;
 
   return partsData.features.map((partData) => {

@@ -50,7 +50,7 @@
     "createPolygonPartsValidationsTablesStoredProcedure": "CREATE_POLYGON_PARTS_VALIDATIONS_TABLES_STORED_PROCEDURE",
     "countSmallHolesFunction": "COUNT_SMALL_HOLES_FUNCTION",
     "countSmallGeometriesFunction": "COUNT_SMALL_GEOMETRIES_FUNCTION",
-    "validateResolutionsFunction": "VALIDATE_RESOLUTIONS_FUNCTION",
+    "resolutionsCheckFunction": "RESOLUTIONS_CHECK_FUNCTION",
 
     "entities": {
       "parts": {

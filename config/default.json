@@ -33,7 +33,7 @@
     "createPolygonPartsValidationsTablesStoredProcedure": "create_polygon_parts_validations_tables",
     "countSmallHolesFunction": "count_small_holes",
     "countSmallGeometriesFunction": "count_small_geoms",
-    "validateResolutionsFunction": "validate_resolutions",
+    "resolutionsCheckFunction": "resolutions_check",
     "entities": {
       "parts": {
         "namePrefix": "",

@@ -8,7 +8,7 @@ export interface ApplicationConfig {
   createPolygonPartsValidationsTablesStoredProcedure: string;
   countSmallHolesFunction: string;
   countSmallGeometriesFunction: string;
-  validateResolutionsFunction: string;
+  resolutionsCheckFunction: string;
   entities: {
     parts: {
       namePrefix: Lowercase<string>;

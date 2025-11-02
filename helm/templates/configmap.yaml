@@ -16,7 +16,7 @@ data:
   CREATE_POLYGON_PARTS_VALIDATIONS_TABLES_STORED_PROCEDURE: {{ .Values.env.application.createPolygonPartsValidationsTablesStoredProcedure | quote }}
   COUNT_SMALL_HOLES_FUNCTION: {{ .Values.env.application.countSmallHolesFunction | quote }}
   COUNT_SMALL_GEOMETRIES_FUNCTION: {{ .Values.env.application.countSmallGeometriesFunction | quote }}
-  VALIDATE_RESOLUTIONS_FUNCTION: {{ .Values.env.application.validateResolutionsFunction | quote }}
+  RESOLUTIONS_CHECK_FUNCTION: {{ .Values.env.application.resolutionsCheckFunction | quote }}
   ENTITY_PARTS_NAME_PREFIX: {{ .Values.env.application.entities.parts.namePrefix | quote }}
   ENTITY_PARTS_NAME_SUFFIX: {{ .Values.env.application.entities.parts.nameSuffix | quote }}
   ENTITY_POLYGON_PARTS_FIND_MAX_DECIMAL_DIGITS: {{ .Values.env.application.entities.polygonParts.find.maxDecimalDigits | quote }}

@@ -4,6 +4,7 @@ import { AggregationFeature, CORE_VALIDATIONS, JobTypes } from '@map-colonies/ra
 import { geometryCollection } from '@turf/helpers';
 import { inject, injectable } from 'tsyringe';
 import type { EntityManager, SelectQueryBuilder } from 'typeorm';
+import _ from 'lodash';
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';
@@ -275,6 +276,7 @@ export class PolygonPartsManager {
     const { catalogId } = validationsPayload;
     const logger = this.logger.child({ catalogId });
     logger.info({ msg: 'validatePolygonParts', catalogId });
+    let merged: ValidateError[] = [];
 
     try {
       const response = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
@@ -291,21 +293,21 @@ export class PolygonPartsManager {
         const stInvalidParts = await this.isValidGeometries(validationsContext);
         const smallGeometriesCount = await this.smallGeometriesCount(validationsContext);
         const smallHolesCount = await this.smallHolesCount(validationsContext);
-        
-        if(validationsPayload.jobType!==JobTypes.Ingestion_New){
-          //Call resolution validations
+
+        if (validationsPayload.jobType === JobTypes.Ingestion_Update) {
           const invalidResolutions = await this.validateResolutions(validationsContext);
-
+          merged = _(stInvalidParts)
+            .concat(invalidResolutions)
+            .groupBy('id')
+            .map((group, id) => ({
+              id,
+              errors: _.flatMap(group, 'errors'), // or _.uniq(_.flatMap(...)) to dedupe
+            }))
+            .value();
         }
-        //let isValidResolutionUpdate = [];
-        // if (jobType === 'Update') {
-        //   isValidResolutionUpdate = await this.validResolutionsUpdate(entityManager, validationsTableName.validateParams);
-        // }
 
-        //TODO: add here helper function that merges all validation responses into one
-        //const mergedValidationErrors: ValidatePolygonPartsResponseBody = [...validateErrors, ...isValidHOlesResponse, ...isResolutionsValidResponse];
         await this.updateprocessedValidationsRows(validationsContext);
-        return { parts: stInvalidParts, smallGeometriesCount, smallHolesCount };
+        return { parts: merged, smallGeometriesCount, smallHolesCount };
       });
       return response;
     } catch (error) {
@@ -535,32 +537,44 @@ export class PolygonPartsManager {
     }
   }
 
-   private async validateResolutions(context: { entitiesMetadata: EntitiesMetadata; entityManager: EntityManager; logger: Logger }): Promise<ValidateError[]> {
+  private async validateResolutions(context: {
+    entitiesMetadata: EntitiesMetadata;
+    entityManager: EntityManager;
+    logger: Logger;
+  }): Promise<ValidateError[]> {
     const {
       entityManager,
       logger,
       entitiesMetadata: {
         entitiesNames: {
           validations: { databaseObjectQualifiedName: validationsEntityQualifiedName },
+          polygonParts: { entityName: polygonPartsEntityName, databaseObjectQualifiedName: polygonPartsEntityQualifiedName },
         },
       },
     } = context;
     logger.debug({ msg: 'validationg resolutions', validationsEntityQualifiedName });
     try {
-        const rows = await entityManager
+      const entityExists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName);
+      if (!entityExists) {
+        throw new NotFoundError(`Table with the name '${polygonPartsEntityQualifiedName}' doesn't exists`);
+      }
+      const rows = await entityManager
         .createQueryBuilder()
-        .select('table.id', 'id') // alias as "id" so raw object has { id: ... }
-        .from(validationsEntityQualifiedName, 'table')
-        .where('processed = :processed', { processed: false })
-        .andWhere('NOT ST_IsValid(footprint)')
+        .select(`${this.applicationConfig.resolutionsCheckFunction}(:qualifiedValidationName, :qualifiedPolygonPartsName)`, 'id')
+        .from('(SELECT 1)', 't')
+        .setParameters({
+          qualifiedValidationName: validationsEntityQualifiedName,
+          qualifiedPolygonPartsName: polygonPartsEntityQualifiedName,
+        })
         .getRawMany<{ id: string }>();
 
       const result: ValidateError[] = rows.map(({ id }) => ({
         id,
         errors: ['Resolutions'],
       }));
+      return result;
     } catch (error) {
-      const errorMessage = `Could not get cvalidate resolutions in: ${validationsEntityQualifiedName}`;
+      const errorMessage = `Could not get validate resolutions in: ${validationsEntityQualifiedName}`;
       logger.error({ msg: errorMessage, error });
       throw error;
     }

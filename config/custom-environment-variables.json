@@ -48,9 +48,9 @@
     "createPolygonPartsTablesStoredProcedure": "CREATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE",
     "updatePolygonPartsTablesStoredProcedure": "UPDATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE",
     "createPolygonPartsValidationsTablesStoredProcedure": "CREATE_POLYGON_PARTS_VALIDATIONS_TABLES_STORED_PROCEDURE",
-    "countSmallHolesFunction": "COUNT_SMALL_HOLES_FUNCTION",
-    "countSmallGeometriesFunction": "COUNT_SMALL_GEOMETRIES_FUNCTION",
-    "resolutionsCheckFunction": "RESOLUTIONS_CHECK_FUNCTION",
+    "validateSmallHolesFunction": "VALIDATE_SMALL_HOLES_FUNCTION",
+    "validateSmallGeometriesFunction": "VALIDATE_SMALL_GEOMETRIES_FUNCTION",
+    "validateResolutionsFunction": "VALIDATE_RESOLUTIONS_FUNCTION",
 
     "entities": {
       "parts": {
@@ -100,8 +100,8 @@
       }
     },
     "validation": {
-      "areaThresholdSquareDeg": {
-        "__name": "VALIDATION_AREA_THRESHOLD_SQUARE_DEG",
+      "areaThresholdSquareMeters": {
+        "__name": "VALIDATION_AREA_THRESHOLD_SQUARE_METERS",
         "__format": "number"
       }
     }

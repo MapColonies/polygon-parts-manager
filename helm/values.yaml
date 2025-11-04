@@ -54,9 +54,9 @@ env:
     createPolygonPartsTablesStoredProcedure: 'create_polygon_parts_tables'
     updatePolygonPartsTablesStoredProcedure: 'update_polygon_parts'
     createPolygonPartsValidationsTablesStoredProcedure: 'create_polygon_parts_validations_tables'
-    countSmallHolesFunction: "count_small_holes"
-    countSmallGeometriesFunction: "count_small_geoms"
-    resolutionsCheckFunction: "resolutions_check"
+    validateSmallHolesFunction: "validate_small_holes"
+    validateSmallGeometriesFunction: "validate_small_geometries"
+    validateResolutionsFunction: "validate_resolutions"
     entities:
       parts:
         namePrefix: ''
@@ -78,7 +78,7 @@ env:
         enabled: true
         toleranceDeg: 0.000006
     validation:
-      areaThresholdSquareDeg: 5    
+      areaThresholdSquareMeters: 5    
 # external
 db:
   host: ''

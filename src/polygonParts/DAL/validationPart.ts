@@ -6,7 +6,7 @@ import { BasePart } from './basePart';
 @Entity({ name: 'validation_parts' })
 @Check('imaging times', `"imaging_time_begin_utc" <= "imaging_time_end_utc"`)
 export class ValidatePart extends BasePart implements ValidatePartRecord {
-  @PrimaryColumn({ type: 'uuid' })
+  @PrimaryColumn({ type: 'text' })
   public readonly id!: string;
 
   // Use a generic 'Geometry' spatialFeatureType so the column can hold Polygon or MultiPolygon
@@ -19,5 +19,5 @@ export class ValidatePart extends BasePart implements ValidatePartRecord {
 
   @Column({ type: 'boolean', default: false, insert: false })
   @Index()
-  public readonly processed!: boolean;
+  public readonly validated!: boolean;
 }

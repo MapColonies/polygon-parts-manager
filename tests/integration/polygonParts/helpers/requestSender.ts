@@ -7,6 +7,7 @@ import type {
   FindPolygonPartsParams,
   FindPolygonPartsQueryParams,
   FindPolygonPartsRequestBody,
+  ValidatePolygonPartsRequestBody,
 } from '../../../../src/polygonParts/controllers/interfaces';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 
@@ -48,5 +49,9 @@ export class PolygonPartsRequestSender {
     body?: AggregatePolygonPartsRequestBody;
   }): Promise<supertest.Response> {
     return supertest.agent(this.app).post(`/polygonParts/${options.params.polygonPartsEntityName}/aggregate`).send(options.body);
+  }
+
+  public async validatePolygonParts(body: ValidatePolygonPartsRequestBody): Promise<supertest.Response> {
+    return supertest.agent(this.app).post('/polygonParts/validate').set('Content-Type', 'application/json').send(body);
   }
 }

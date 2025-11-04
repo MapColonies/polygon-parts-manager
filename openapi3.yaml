@@ -268,15 +268,11 @@ paths:
         required: true
       responses:
         '200':
-          description: Always an empty array
+          description: No validation errors were found
           content:
             application/json:
               schema:
-                type: array
-                items: {}
-                minItems: 0
-                maxItems: 0
-              example: []
+                $ref: '#/components/schemas/ValidationResponse'
         '422':
           description: Unprocessable Entity
           content:
@@ -284,6 +280,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ValidationResponse'
         '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '404':
           description: Bad Request
           content:
             application/json:
@@ -680,12 +682,11 @@ components:
             additionalProperties: false
             required:
               - id
-              - errorMessage
+              - errors
             properties:
               id:
                 type: string
-                format: uuid
-              errorMessage:
+              errors:
                 type: array
                 items:
                   type: string
@@ -723,9 +724,8 @@ components:
           enum: [Feature]
         id:
           type: string
-          format: uuid
-          description: Layer's identifier
-          example: c52d8189-7e07-456a-8c6b-53859523c3e9
+          description: Part's identifier
+          example: '1111'
         properties:
           allOf:
             - $ref: '#/components/schemas/FeatureCollectionPartDataProperties'

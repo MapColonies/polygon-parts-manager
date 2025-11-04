@@ -6,9 +6,9 @@ export interface ApplicationConfig {
   createPolygonPartsTablesStoredProcedure: string;
   updatePolygonPartsTablesStoredProcedure: string;
   createPolygonPartsValidationsTablesStoredProcedure: string;
-  countSmallHolesFunction: string;
-  countSmallGeometriesFunction: string;
-  resolutionsCheckFunction: string;
+  validateSmallHolesFunction: string;
+  validateSmallGeometriesFunction: string;
+  validateResolutionsFunction: string;
   entities: {
     parts: {
       namePrefix: Lowercase<string>;
@@ -40,7 +40,7 @@ export interface ApplicationConfig {
     maxDecimalDigits: number;
   };
   validation: {
-    areaThresholdSquareDeg: number;
+    areaThresholdSquareMeters: number;
   };
 }
 

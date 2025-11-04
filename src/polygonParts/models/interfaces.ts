@@ -107,7 +107,7 @@ export interface PolygonPartRecord extends CommonRecord {
 export interface BasePartRecord extends BasePart {}
 
 export interface ValidatePartRecord extends ValidatePartData {
-  readonly processed: boolean;
+  readonly validated: boolean;
 }
 
 /**

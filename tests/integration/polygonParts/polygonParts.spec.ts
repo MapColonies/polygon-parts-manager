@@ -20,6 +20,7 @@ import { get as getValue, merge } from 'lodash';
 import { xor } from 'martinez-polygon-clipping';
 import { container } from 'tsyringe';
 import { DataSource, EntityManager, Geometry, Repository, SelectQueryBuilder, UpdateQueryBuilder, type DataSourceOptions } from 'typeorm';
+import _ from 'lodash';
 import { getApp } from '../../../src/app';
 import { ConnectionManager } from '../../../src/common/connectionManager';
 import { SERVICES } from '../../../src/common/constants';
@@ -5166,42 +5167,41 @@ describe('polygonParts', () => {
     });
 
     describe('PUT /polygonParts', () => {
-      //TODO: fix
-      // it('should return 200 status code on regular update with 3 non intersecting polygons', async () => {
-      //   const insertPolygonPartsPayload = createInitPayloadRequest;
-      //   await requestSender.createPolygonParts(insertPolygonPartsPayload);
-      //   const updatePayload = separatePolygonsRequest;
-      //   const {
-      //     entityIdentifier,
-      //     entitiesNames: { parts, polygonParts },
-      //   } = getEntitiesMetadata(updatePayload);
+      it('should return 200 status code on regular update with 3 non intersecting polygons', async () => {
+        const insertPolygonPartsPayload = createInitPayloadRequest;
+        await requestSender.createPolygonParts(insertPolygonPartsPayload);
+        const updatePayload = separatePolygonsRequest;
+        const {
+          entityIdentifier,
+          entitiesNames: { parts, polygonParts },
+        } = getEntitiesMetadata(updatePayload);
 
-      //   const response = await requestSender.updatePolygonParts(updatePayload, false);
-      //   const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
-      //   const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
+        const response = await requestSender.updatePolygonParts(updatePayload, false);
+        const partRecords = await helperDB.find(parts.databaseObjectQualifiedName, Part);
+        const polygonPartRecords = await helperDB.find(polygonParts.databaseObjectQualifiedName, PolygonPart);
 
-      //   expect(response.status).toBe(httpStatusCodes.OK);
-      //   expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
-      //   expect(response).toSatisfyApiSpec();
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response.body).toStrictEqual<EntityIdentifierObject>({ polygonPartsEntityName: entityIdentifier });
+        expect(response).toSatisfyApiSpec();
 
-      //   expect(polygonPartRecords).toHaveLength(4);
-      //   expect(partRecords).toHaveLength(4);
-      //   expect(partRecords[0].footprint).toEqual(worldFootprint);
-      //   expect(partRecords[1].footprint).toEqual(franceFootprint);
-      //   expect(partRecords[2].footprint).toEqual(germanyFootprint);
-      //   expect(partRecords[3].footprint).toEqual(italyFootprint);
-      //   expect(partRecords[1].insertionOrder).toBe(2);
-      //   expect(partRecords[2].insertionOrder).toBe(3);
-      //   expect(partRecords[3].insertionOrder).toBe(4);
-      //   expect(partRecords[1].isProcessedPart).toBe(true);
-      //   expect(partRecords[2].isProcessedPart).toBe(true);
-      //   expect(partRecords[3].isProcessedPart).toBe(true);
+        expect(polygonPartRecords).toHaveLength(4);
+        expect(partRecords).toHaveLength(4);
+        expect(partRecords[0].footprint).toEqual(worldFootprint);
+        expect(partRecords[1].footprint).toEqual(franceFootprint);
+        expect(partRecords[2].footprint).toEqual(germanyFootprint);
+        expect(partRecords[3].footprint).toEqual(italyFootprint);
+        expect(partRecords[1].insertionOrder).toBe(2);
+        expect(partRecords[2].insertionOrder).toBe(3);
+        expect(partRecords[3].insertionOrder).toBe(4);
+        expect(partRecords[1].isProcessedPart).toBe(true);
+        expect(partRecords[2].isProcessedPart).toBe(true);
+        expect(partRecords[3].isProcessedPart).toBe(true);
 
-      //   expect(polygonPartRecords[0].footprint).toEqual(worldMinusSeparateCountries);
-      //   expect(polygonPartRecords[0].insertionOrder).toBe(1);
+        expect(xor(polygonPartRecords[0].footprint.coordinates, worldMinusSeparateCountries.coordinates)).toHaveLength(0);
+        expect(polygonPartRecords[0].insertionOrder).toBe(1);
 
-      //   expect.assertions(17);
-      // }, 30000000);
+        expect.assertions(17);
+      });
 
       it('should return 200 status code on regular update with 2 intersecting polygons', async () => {
         const insertPolygonPartsPayload = createInitPayloadRequest;
@@ -7702,7 +7702,7 @@ describe('polygonParts', () => {
         expect.assertions(2);
       });
 
-       it('should return 400 status code when geometry is point', async () => {
+      it('should return 400 status code when geometry is point', async () => {
         const response = await requestSender.validatePolygonParts(invalidGeometryValidRequest as unknown as ValidatePolygonPartsRequestBody);
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);

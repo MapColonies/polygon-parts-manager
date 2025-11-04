@@ -1,6 +1,6 @@
 /* eslint-disable  @typescript-eslint/no-magic-numbers */
 import { JobTypes, RasterProductTypes } from '@map-colonies/raster-shared';
-import type { LineString, MultiPolygon, Polygon } from 'geojson';
+import type { MultiPolygon, Polygon } from 'geojson';
 import type { PolygonPartsPayload } from '../../src/polygonParts/models/interfaces';
 import { generatePolygonPartsPayload } from '../integration/polygonParts/helpers/db';
 import { ValidatePolygonPartsRequestBody } from '../../src/polygonParts/controllers/interfaces';
@@ -318,17 +318,11 @@ export const invalidGeometryValidRequest = {
         id: '1111',
         geometry: {
           type: 'LineString',
-          coordinates:[
-          [
-            1.3756380206141898,
-            43.08988386275399
+          coordinates: [
+            [1.3756380206141898, 43.08988386275399],
+            [2.2905211473345446, 43.37799276998723],
           ],
-          [
-            2.2905211473345446,
-            43.37799276998723
-          ]
-        ],
-        } ,
+        },
         properties: {
           ...propertiesToGenerate,
         },

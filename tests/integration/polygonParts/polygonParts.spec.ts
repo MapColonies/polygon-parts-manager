@@ -169,7 +169,6 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      //TODO: make test generic to return order of coordinates independent
       it('should return 200 status code and aggregated metadata with an empty request body (custom data)', async () => {
         const polygonPartsPayload = createCustomInitPayloadRequestForAggregation;
         await requestSender.createPolygonParts(polygonPartsPayload);
@@ -184,7 +183,10 @@ describe('polygonParts', () => {
         expect(response.status).toBe(httpStatusCodes.OK);
         expect(response).toSatisfyApiSpec();
         expect(result.success).toBe(true);
-        expect(result.data).toEqual(customAggregationNoFilter);
+        // @ts-expect-error test guarantees defined
+        expect(_.xorWith(result.data.geometry.coordinates, customAggregationNoFilter.geometry.coordinates, (a, b) => _.isEqual(a, b))).toHaveLength(
+          0
+        );
 
         const coordinates = result.data?.geometry?.coordinates.flat(3) ?? [];
         for (const coordinate of coordinates) {

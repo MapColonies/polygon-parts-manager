@@ -348,6 +348,80 @@ export class PolygonPartsManager {
     }
   }
 
+  public async deleteValidationPolygonParts(entitiesMetadata: EntitiesMetadata): Promise<void> {
+    const { entityName: validationsEntityName } =
+      entitiesMetadata.entitiesNames.validations;
+
+    const logger = this.logger.child({ validationsEntityName });
+    logger.info({ msg: 'deleting validations table', validationsEntityName });
+
+    try {
+      await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        const baseValidationContext = {
+          entityManager,
+          logger,
+          entitiesMetadata,
+        };
+
+        await entityManager.query(`SET search_path TO ${this.schema},public`);
+
+        const entityExists = await this.connectionManager.entityExists(entityManager, validationsEntityName);
+        if (!entityExists) {
+          throw new NotFoundError(`Table with the name '${validationsEntityName}' doesn't exists`);
+        }
+
+        await this.deleteValidationsTable(baseValidationContext);
+      });
+    } catch (error) {
+      const errorMessage = 'Validations query transaction failed';
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
+  //TODO: update params when api will be finalized- currenty just a placeholder
+  /* 
+  public async upsertPartsTable(
+    validationsPayload: ValidatePolygonPartsRequestBody,
+    isSuccessful: boolean,
+    entitiesMetadata: EntitiesMetadata
+  ): Promise<void> {
+    const { catalogId } = validationsPayload;
+    const logger = this.logger.child({ catalogId });
+    logger.info({ msg: 'upsert Parts', catalogId });
+
+    try {
+      await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        const baseValidationContext = {
+          entityManager,
+          logger,
+          entitiesMetadata,
+        };
+        const validationsEntityName = entitiesMetadata.entitiesNames.validations.entityName;
+
+        await entityManager.query(`SET search_path TO ${this.schema},public`);
+
+        const entityExists = await this.connectionManager.entityExists(entityManager, validationsEntityName);
+        if (!entityExists) {
+          throw new NotFoundError(`Table with the name '${validationsEntityName}' doesn't exists`);
+        }
+        const upsertContext = { ...baseValidationContext, validationsPayload };
+
+        //TODO: call here a function that creats parts table if not exists - using stored procedure
+        //TODO: call here a function that upserts parts data into parts table -
+        // create a stored procedure that inserts to the parts from the validations table
+        // it seperates multiploygons and inserts other data as is to the new table from validations table
+        //This 2 todos can be done in one stored procedure
+        await this.deleteValidationsTable(upsertContext);
+      });
+    } catch (error) {
+      const errorMessage = 'Validations query transaction failed';
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+    */
+
   private async prepareAggregationFilterQuery(
     entityManager: EntityManager,
     polygonPartsEntityName: EntityNames,
@@ -615,6 +689,28 @@ export class PolygonPartsManager {
       return result;
     } catch (error) {
       const errorMessage = `Could not get validate resolutions in: ${validationsEntityQualifiedName}`;
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
+  private async deleteValidationsTable(context: { entitiesMetadata: EntitiesMetadata; entityManager: EntityManager; logger: Logger }): Promise<void> {
+    const {
+      entityManager,
+      logger,
+      entitiesMetadata: {
+        entitiesNames: {
+          validations: { databaseObjectQualifiedName: validationsEntityQualifiedName },
+        },
+      },
+    } = context;
+    logger.debug({ msg: 'deleting validations table', validationsEntityQualifiedName });
+    try {
+      await entityManager.query(`DROP TABLE ${validationsEntityQualifiedName} CASCADE;`);
+
+      logger.info({ msg: 'validations table dropped', validationsEntityQualifiedName });
+    } catch (error) {
+      const errorMessage = `Could not delete validation table: ${validationsEntityQualifiedName}`;
       logger.error({ msg: errorMessage, error });
       throw error;
     }

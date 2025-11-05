@@ -6,7 +6,7 @@ import {
   CORE_VALIDATIONS,
   INGESTION_VALIDATIONS,
   JobTypes,
-  PolygonPart as PolygonPartType,
+  PolygonPart as PolygonPartType
 } from '@map-colonies/raster-shared';
 import { trace } from '@opentelemetry/api';
 import { booleanContains } from '@turf/boolean-contains';
@@ -29,6 +29,7 @@ import { Transformer } from '../../../src/common/middlewares/transformer';
 import { createConnectionOptions } from '../../../src/common/utils';
 import type {
   AggregatePolygonPartsRequestBody,
+  DeleteValidationEntityQuery,
   ExistsRequestBody,
   ExistsResponseBody,
   FindPolygonPartsResponseBody,
@@ -6041,6 +6042,22 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
     });
+
+    describe('DELETE /polygonParts/validate', () => {
+      it('should retrun 204 on successful delete', async () => {
+        const deleteRequestQuery: DeleteValidationEntityQuery = {
+          productId: validValidationPolygonPartsPayload.productId,
+          productType: validValidationPolygonPartsPayload.productType,
+        };
+        await requestSender.validatePolygonParts(validValidationPolygonPartsPayload);
+        const response = await requestSender.deleteValidationPolygonParts(deleteRequestQuery);
+
+        expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+    });
   });
 
   describe('Bad Path', () => {
@@ -7713,6 +7730,34 @@ describe('polygonParts', () => {
         expect.assertions(2);
       });
     });
+
+    describe('DELETE /polygonParts/validate', () => {
+      it('should retrun 400 on unsupported productType', async () => {
+        const deleteRequestQuery = {
+          productId: validValidationPolygonPartsPayload.productId,
+          productType: 'bad_value',
+        };
+        const response = await requestSender.deleteValidationPolygonParts(deleteRequestQuery as unknown as DeleteValidationEntityQuery);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should retrun 400 on unsupported productId format', async () => {
+        const deleteRequestQuery = {
+          productId: 111,
+          productType: validValidationPolygonPartsPayload.productType,
+        };
+        const response = await requestSender.deleteValidationPolygonParts(deleteRequestQuery as unknown as DeleteValidationEntityQuery);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+    });
   });
 
   describe('Sad Path', () => {
@@ -8624,6 +8669,54 @@ describe('polygonParts', () => {
         expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
         expect(response).toSatisfyApiSpec();
         expect(spyQuery).toHaveBeenCalledOnce();
+
+        expect.assertions(3);
+      });
+    });
+    describe('DELETE /polygonParts/validate', () => {
+      it('should retrun 404 when validation table doesnt exist', async () => {
+        const deleteRequestQuery: DeleteValidationEntityQuery = {
+          productId: validValidationPolygonPartsPayload.productId,
+          productType: validValidationPolygonPartsPayload.productType,
+        };
+        const response = await requestSender.deleteValidationPolygonParts(deleteRequestQuery);
+
+        expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should retrun 500 on when databse error - exists fails', async () => {
+        const deleteRequestQuery: DeleteValidationEntityQuery = {
+          productId: validValidationPolygonPartsPayload.productId,
+          productType: validValidationPolygonPartsPayload.productType,
+        };
+
+        const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValue(new Error('query error'));
+
+        const response = await requestSender.deleteValidationPolygonParts(deleteRequestQuery);
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response).toSatisfyApiSpec();
+        expect(spyGetExists).toHaveBeenCalledTimes(1);
+
+        expect.assertions(3);
+      });
+
+      it('should retrun 500 on when databse error - delete fails', async () => {
+        const deleteRequestQuery: DeleteValidationEntityQuery = {
+          productId: validValidationPolygonPartsPayload.productId,
+          productType: validValidationPolygonPartsPayload.productType,
+        };
+        await requestSender.validatePolygonParts(validValidationPolygonPartsPayload);
+
+        const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValue(new Error('query error'));
+
+        const response = await requestSender.deleteValidationPolygonParts(deleteRequestQuery);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response).toSatisfyApiSpec();
+        expect(spyQuery).toHaveBeenCalledTimes(1);
 
         expect.assertions(3);
       });

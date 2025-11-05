@@ -7,6 +7,7 @@ import type {
   AggregatePolygonPartsRequestBody,
   AggregationLayerMetadataParams,
   AggregationLayerMetadataResponseBody,
+  DeleteValidationEntityQuery,
   ExistsRequestBody,
   ExistsResponseBody,
   FindPolygonPartsParams,
@@ -59,6 +60,14 @@ export type ValidatePolygonPartsHandler = RequestHandler<
   ValidatePolygonPartsResponseBody,
   ValidatePolygonPartsRequestBody,
   undefined,
+  EntitiesMetadata
+>;
+
+export type DeleteValidationPolygonPartsEntityHandler = RequestHandler<
+  undefined,
+  undefined,
+  undefined,
+  DeleteValidationEntityQuery,
   EntitiesMetadata
 >;
 
@@ -132,6 +141,15 @@ export class PolygonPartsController {
             : httpStatus.UNPROCESSABLE_ENTITY
         )
         .send(response);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public deleteValidationPolygonParts: DeleteValidationPolygonPartsEntityHandler = async (req, res, next) => {
+    try {
+      await this.polygonPartsManager.deleteValidationPolygonParts(res.locals);
+      return res.status(httpStatus.NO_CONTENT).json();
     } catch (error) {
       next(error);
     }

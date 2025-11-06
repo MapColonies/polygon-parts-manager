@@ -301,7 +301,7 @@ export class PolygonPartsManager {
     const { catalogId } = validationsPayload;
     const logger = this.logger.child({ catalogId });
     logger.info({ msg: 'validatePolygonParts', catalogId });
-    let merged: ValidateError[] = [];
+    let mergedPartsErros: ValidateError[] = [];
 
     try {
       const response = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
@@ -330,7 +330,7 @@ export class PolygonPartsManager {
           errorsSummary.push(invalidResolutions);
         }
 
-        merged = _(errorsSummary.flat())
+        mergedPartsErros = _(errorsSummary.flat())
           .groupBy('id')
           .map((group, id) => ({
             id,
@@ -340,7 +340,7 @@ export class PolygonPartsManager {
 
         await this.updateFinishedValidationsRows(validationsContext);
         const transactionResponse: ValidatePolygonPartsResponseBody = {
-          parts: merged,
+          parts: mergedPartsErros,
           smallGeometriesCount: smallGeometriesSummary.count,
           smallHolesCount: smallHolesSummary.count,
         };

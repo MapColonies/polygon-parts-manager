@@ -62,12 +62,12 @@ export interface ValidateError {
 }
 export interface ValidatePolygonPartsResponseBody {
   parts: ValidateError[];
-  smallGeometriesCount: number; // count in this chunk
-  smallHolesCount: number; // count in this chunk
+  smallGeometriesCount: number;
+  smallHolesCount: number;
 }
 
 export type ValidatePolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType' | 'productVersion' | 'catalogId'> & {
-  jobType: JobTypes;
+  jobType: Extract<JobTypes, 'Ingestion_New' | 'Ingestion_Update' | 'Ingestion_Swap_Update'>;
 } & {
   featureCollection: PolygonPartsFeatureCollection;
 };

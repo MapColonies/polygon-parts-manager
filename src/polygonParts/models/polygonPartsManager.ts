@@ -318,7 +318,7 @@ export class PolygonPartsManager {
         const smallGeometriesSummary = await this.smallGeometriesCount(validationsContext);
         const smallHolesSummary = await this.smallHolesCount(validationsContext);
 
-        const sources: ValidateError[][] = [
+        const errorsSummary: ValidateError[][] = [
           stInvalidParts, // e.g. [{id, errors:['ST_IsValid']}...]
           smallGeometriesSummary.parts, // e.g. [{id, errors:['SMALL_GEOMETRY']}...]
           smallHolesSummary.parts, // e.g. [{id, errors:['SMALL_HOLE']}...]
@@ -326,10 +326,10 @@ export class PolygonPartsManager {
 
         if (validationsPayload.jobType === JobTypes.Ingestion_Update) {
           const invalidResolutions = await this.validateResolutions(validationsContext);
-          sources.push(invalidResolutions);
+          errorsSummary.push(invalidResolutions);
         }
 
-        merged = _(sources.flat())
+        merged = _(errorsSummary.flat())
           .groupBy('id')
           .map((group, id) => ({
             id,
@@ -338,7 +338,12 @@ export class PolygonPartsManager {
           .value();
 
         await this.updateFinishedValidationsRows(validationsContext);
-        return { parts: merged, smallGeometriesCount: smallGeometriesSummary.count, smallHolesCount: smallHolesSummary.count };
+        const transactionResponse: ValidatePolygonPartsResponseBody = {
+          parts: merged,
+          smallGeometriesCount: smallGeometriesSummary.count,
+          smallHolesCount: smallHolesSummary.count,
+        };
+        return transactionResponse;
       });
       return response;
     } catch (error) {
@@ -397,7 +402,7 @@ export class PolygonPartsManager {
         },
       },
     } = context;
-    logger.debug({ msg: 'Calculating is valid geometries', validationsEntityQualifiedName });
+    logger.info({ msg: 'Calculating is valid geometries', validationsEntityQualifiedName });
     try {
       const rows = await entityManager
         .createQueryBuilder()
@@ -592,7 +597,7 @@ export class PolygonPartsManager {
         },
       },
     } = context;
-    logger.debug({ msg: 'validationg resolutions', validationsEntityQualifiedName });
+    logger.info({ msg: 'validating resolutions', validationsEntityQualifiedName });
     try {
       const entityExists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName);
       if (!entityExists) {

@@ -7696,7 +7696,7 @@ describe('polygonParts', () => {
 
       it('should return 400 status code when jobType isnt supported', async () => {
         const validationRequest = { ...validValidationPolygonPartsPayload, jobType: JobTypes.Raster_Tiles_Exporter };
-        const response = await requestSender.validatePolygonParts(validationRequest as ValidatePolygonPartsRequestBody);
+        const response = await requestSender.validatePolygonParts(validationRequest as unknown as ValidatePolygonPartsRequestBody);
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();

@@ -16,7 +16,7 @@ const featureCollectionPartDataProperties = z.object({
   description: z.string().optional(),
 });
 
-const polygonPartsFeatureSchemaExpanded = z.object({
+const validationFeaureSchema = z.object({
   type: z.literal('Feature'),
   id: z.string(),
   properties: featureCollectionPartDataProperties,
@@ -26,7 +26,7 @@ const polygonPartsFeatureSchemaExpanded = z.object({
 
 const polygonPartsFeatureCollectionSchema = z.object({
   type: z.literal('FeatureCollection'),
-  features: z.array(polygonPartsFeatureSchemaExpanded),
+  features: z.array(validationFeaureSchema),
   bbox: z.any().optional(),
 });
 

@@ -70,6 +70,10 @@
             "__format": "number"
           }
         }
+      },
+      "validations": {
+        "namePrefix": "ENTITY_VALIDATIONS_NAME_PREFIX",
+        "nameSuffix": "ENTITY_VALIDATIONS_NAME_SUFFIX"
       }
     },
     "aggregation": {

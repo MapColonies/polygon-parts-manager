@@ -32,6 +32,8 @@ export class AddPartsValidations1762074152438 implements MigrationInterface {
               CHECK ("imaging_time_begin_utc" < now()),
           CONSTRAINT "base_imaging time end utc"
               CHECK ("imaging_time_end_utc" < now()),
+          CONSTRAINT "imaging times" CHECK (
+              "imaging_time_begin_utc" <= "imaging_time_end_utc"),
           CONSTRAINT "base_resolution degree"
               CHECK ("resolution_degree" BETWEEN 0.000000167638063430786 AND 0.703125),
           CONSTRAINT "base_resolution meter"
@@ -418,14 +420,14 @@ $func$;
 await queryRunner.query(`
 CREATE OR REPLACE FUNCTION polygon_parts.validate_resolutions(
     qualified_identifier_valid TEXT,   -- e.g. 'polygon_parts.valid'
-    qualified_identifier_parts TEXT    -- e.g. 'polygon_parts.parts'
+    qualified_identifier_polygon_parts TEXT    -- e.g. 'polygon_parts.parts'
 )
 RETURNS TABLE (id text)
 LANGUAGE plpgsql
 AS $BODY$
 DECLARE
     ident_v  name[] := parse_ident(qualified_identifier_valid)::name[];
-    ident_p  name[] := parse_ident(qualified_identifier_parts)::name[];
+    ident_p  name[] := parse_ident(qualified_identifier_polygon_parts)::name[];
 
     schema_valid TEXT;
     table_valid  TEXT;
@@ -439,7 +441,7 @@ BEGIN
         RAISE EXCEPTION 'Provide validation table as schema.table (got: %)', qualified_identifier_valid;
     END IF;
     IF array_length(ident_p, 1) <> 2 THEN
-        RAISE EXCEPTION 'Provide parts table as schema.table (got: %)', qualified_identifier_parts;
+        RAISE EXCEPTION 'Provide parts table as schema.table (got: %)', qualified_identifier_polygon_parts;
     END IF;
 
     schema_valid := ident_v[1];

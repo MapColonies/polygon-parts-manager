@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'express';
 import httpStatus from 'http-status-codes';
 import { inject, injectable } from 'tsyringe';
+import { getValidationStatusCode } from '../../common/utils';
 import type { EntitiesMetadata, IsSwapQueryParams, PolygonPartsPayload, PolygonPartsResponse } from '../models/interfaces';
 import { PolygonPartsManager } from '../models/polygonPartsManager';
 import type {
@@ -125,13 +126,7 @@ export class PolygonPartsController {
   public validatePolygonParts: ValidatePolygonPartsHandler = async (req, res, next) => {
     try {
       const response = await this.polygonPartsManager.validatePolygonParts(req.body, res.locals);
-      return res
-        .status(
-          response.parts.length === 0 && response.smallGeometriesCount === 0 && response.smallHolesCount === 0
-            ? httpStatus.OK
-            : httpStatus.UNPROCESSABLE_ENTITY
-        )
-        .send(response);
+      return res.status(getValidationStatusCode(response)).send(response);
     } catch (error) {
       next(error);
     }

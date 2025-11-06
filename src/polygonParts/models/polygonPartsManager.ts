@@ -355,8 +355,7 @@ export class PolygonPartsManager {
   }
 
   public async deleteValidationPolygonParts(entitiesMetadata: EntitiesMetadata): Promise<void> {
-    const { entityName: validationsEntityName } =
-      entitiesMetadata.entitiesNames.validations;
+    const { entityName: validationsEntityName } = entitiesMetadata.entitiesNames.validations;
 
     const logger = this.logger.child({ validationsEntityName });
     logger.info({ msg: 'deleting validations table', validationsEntityName });

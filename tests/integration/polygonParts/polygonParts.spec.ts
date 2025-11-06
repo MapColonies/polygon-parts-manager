@@ -6,7 +6,7 @@ import {
   CORE_VALIDATIONS,
   INGESTION_VALIDATIONS,
   JobTypes,
-  PolygonPart as PolygonPartType
+  PolygonPart as PolygonPartType,
 } from '@map-colonies/raster-shared';
 import { trace } from '@opentelemetry/api';
 import { booleanContains } from '@turf/boolean-contains';

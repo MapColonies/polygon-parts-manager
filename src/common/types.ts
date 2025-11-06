@@ -1,7 +1,7 @@
 import { polygonSchema, multiPolygonSchema } from '@map-colonies/raster-shared';
 import { z } from 'zod';
 
-const featureCollectionPartDataProperties = z.object({
+const featurePropertiesSchema = z.object({
   sourceId: z.string().optional(),
   sourceName: z.string(),
   imagingTimeBeginUTC: z.string(),
@@ -19,7 +19,7 @@ const featureCollectionPartDataProperties = z.object({
 const validationFeaureSchema = z.object({
   type: z.literal('Feature'),
   id: z.string(),
-  properties: featureCollectionPartDataProperties,
+  properties: featurePropertiesSchema,
   geometry: z.union([polygonSchema, multiPolygonSchema]),
   bbox: z.any().optional(),
 });

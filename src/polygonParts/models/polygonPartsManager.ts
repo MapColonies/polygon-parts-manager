@@ -14,6 +14,7 @@ import { PolygonPart } from '../DAL/polygonPart';
 import { payloadToInsertPartsData, payloadToInsertValidationsData, setRepositoryTablePath } from '../DAL/utils';
 import { ValidateError, ValidatePolygonPartsRequestBody, ValidatePolygonPartsResponseBody } from '../controllers/interfaces';
 import { ValidatePart } from '../DAL/validationPart';
+import { FeatureValidationError } from '../../common/enums';
 import {
   findSelectOutputColumns,
   geometryColumn,
@@ -319,7 +320,7 @@ export class PolygonPartsManager {
         const smallHolesSummary = await this.smallHolesCount(validationsContext);
 
         const errorsSummary: ValidateError[][] = [
-          stInvalidParts, // e.g. [{id, errors:['ST_IsValid']}...]
+          stInvalidParts, // e.g. [{id, errors:['Validity']}...]
           smallGeometriesSummary.parts, // e.g. [{id, errors:['SMALL_GEOMETRY']}...]
           smallHolesSummary.parts, // e.g. [{id, errors:['SMALL_HOLE']}...]
         ];
@@ -414,7 +415,7 @@ export class PolygonPartsManager {
 
       const result: ValidateError[] = rows.map(({ id }) => ({
         id,
-        errors: ['ST_IsValid'],
+        errors: [FeatureValidationError.VALIDITY],
       }));
 
       return result;
@@ -450,7 +451,7 @@ export class PolygonPartsManager {
         count: dbResponse.count,
         parts: dbResponse.ids.map((id) => ({
           id,
-          errors: ['SmallGeometry'],
+          errors: [FeatureValidationError.SMALL_GEOMETRY],
         })),
       };
 
@@ -541,7 +542,7 @@ export class PolygonPartsManager {
         count: dbResponse.count,
         parts: dbResponse.ids.map((id) => ({
           id,
-          errors: ['SmallHoles'],
+          errors: [FeatureValidationError.SMALL_HOLES],
         })),
       };
 
@@ -615,7 +616,7 @@ export class PolygonPartsManager {
 
       const result: ValidateError[] = rows.map(({ id }) => ({
         id,
-        errors: ['Resolutions'],
+        errors: [FeatureValidationError.RESOLUTIONS],
       }));
       return result;
     } catch (error) {

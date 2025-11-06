@@ -24,7 +24,7 @@ data:
   ENTITY_POLYGON_PARTS_NAME_SUFFIX: {{ .Values.env.application.entities.polygonParts.nameSuffix | quote }}
   ENTITY_POLYGON_PARTS_MIN_AREA_SQUARE_DEG: {{ .Values.env.application.entities.polygonParts.minAreaSquareDeg | quote }}
   ENTITY_VALIDATIONS_NAME_PREFIX: {{ .Values.env.application.entities.validations.namePrefix | quote }}
-  ENTITY_VALIDATIONS_NAME_SUFFIX: {{ .Values.env.application.entities.validations.nameSuffix | quote
+  ENTITY_VALIDATIONS_NAME_SUFFIX: {{ .Values.env.application.entities.validations.nameSuffix | quote }}
   AGGREGATION_MAX_DECIMAL_DIGITS: {{ .Values.env.application.aggregation.maxDecimalDigits | quote }}
   AGGREGATION_FIX_GEOMETRY_ENABLED: {{ .Values.env.application.aggregation.fixGeometry.enabled | quote }}
   {{- if .Values.env.application.aggregation.fixGeometry.enabled }}

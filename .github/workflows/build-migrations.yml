@@ -1,0 +1,84 @@
+# .github/workflows/build-migrations.yml
+name: Build & Push Migrations (tags or manual)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      imageTag:
+        description: "Docker tag to push (e.g. v1.2.3)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (all tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve image tag and head ref
+        id: resolve
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"   # e.g. v1.2.3
+            echo "head=${GITHUB_SHA}"     >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ inputs.imageTag }}" >> "$GITHUB_OUTPUT"
+            echo "head=HEAD"                  >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Find previous tag (fallback to repo root)
+        id: prev
+        shell: bash
+        run: |
+          if PREV=$(git describe --tags --abbrev=0 "$(git rev-list --tags --max-count=2)" 2>/dev/null | tail -n1); then
+            echo "base=$PREV" >> "$GITHUB_OUTPUT"
+          else
+            ROOT=$(git rev-list --max-parents=0 HEAD | tail -n1)
+            echo "base=$ROOT" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Detect ADDED migration files since previous tag
+        id: detect
+        shell: bash
+        run: |
+          ADDED=$(git diff --name-only --diff-filter=A \
+                   "${{ steps.prev.outputs.base }}" "${{ steps.resolve.outputs.head }}" \
+                   | grep '^src/db/migrations/' || true)
+          echo "$ADDED"
+          if [ -n "$ADDED" ]; then
+            echo "added=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "added=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Login to ACR
+        if: steps.detect.outputs.added == 'true'
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.ACR_URL }}
+          username: ${{ secrets.ACR_PUSH_USER }}
+          password: ${{ secrets.ACR_PUSH_TOKEN }}
+
+      - name: Build and push (migrations)
+        if: steps.detect.outputs.added == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./migrations.Dockerfile
+          push: true
+          tags: ${{ secrets.ACR_URL }}/raster/${{ github.event.repository.name }}-migrations:${{ steps.resolve.outputs.tag }}
+
+      - name: Skip (no newly added migrations)
+        if: steps.detect.outputs.added != 'true'
+        run: echo "No new files added under src/db/migrations/**; skipping."
+

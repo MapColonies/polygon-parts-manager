@@ -67,7 +67,7 @@ env:
         namePrefix: ''
         nameSuffix: ''
         minAreaSquareDeg: 1e-15
-      Validations:
+      validations:
         namePrefix: ''
         nameSuffix: '_valid'
     aggregation:

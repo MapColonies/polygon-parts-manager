@@ -1,11 +1,16 @@
 # .github/workflows/build-migrations.yml
-name: Build & Push Migrations (tags or manual)
+name: Build & Push Migrations (tags / PR / manual)
 
 on:
   push:
     tags:
-      - 'v*'
-  workflow_dispatch:
+      - 'v*'                       # build on tag pushes
+  pull_request:                     # show in Actions and allow PR runs
+    types: [opened, reopened, synchronize, labeled]
+    paths:
+      - 'src/db/migrations/**'
+      - 'migrations.Dockerfile'
+  workflow_dispatch:                # manual run (pick the Docker tag)
     inputs:
       imageTag:
         description: "Docker tag to push (e.g. v1.2.3)"
@@ -28,13 +33,24 @@ jobs:
         id: resolve
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"   # e.g. v1.2.3
-            echo "head=${GITHUB_SHA}"     >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${{ inputs.imageTag }}" >> "$GITHUB_OUTPUT"
-            echo "head=HEAD"                  >> "$GITHUB_OUTPUT"
-          fi
+          set -e
+          case "${{ github.event_name }}" in
+            push)
+              # Tag push
+              echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"   # e.g. v1.2.3
+              echo "head=${GITHUB_SHA}"     >> "$GITHUB_OUTPUT"
+              ;;
+            pull_request)
+              # PR run – make a descriptive, unique tag
+              echo "tag=pr-${{ github.event.pull_request.number }}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+              echo "head=HEAD" >> "$GITHUB_OUTPUT"
+              ;;
+            workflow_dispatch)
+              # Manual run – use provided input
+              echo "tag=${{ inputs.imageTag }}" >> "$GITHUB_OUTPUT"
+              echo "head=HEAD"                  >> "$GITHUB_OUTPUT"
+              ;;
+          esac
 
       - name: Find previous tag (fallback to repo root)
         id: prev
@@ -81,4 +97,3 @@ jobs:
       - name: Skip (no newly added migrations)
         if: steps.detect.outputs.added != 'true'
         run: echo "No new files added under src/db/migrations/**; skipping."
-

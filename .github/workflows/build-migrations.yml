@@ -7,9 +7,6 @@ on:
       - 'v*'                       # build on tag pushes
   pull_request:                     # show in Actions and allow PR runs
     types: [opened, reopened, synchronize, labeled]
-    paths:
-      - 'src/db/migrations/**'
-      - 'migrations.Dockerfile'
   workflow_dispatch:                # manual run (pick the Docker tag)
     inputs:
       imageTag:

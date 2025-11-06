@@ -10,6 +10,7 @@ import type {
   CommonRecord,
 } from '../models/interfaces';
 import { PolygonPartsFeatureCollection } from '../../common/types';
+import { FeatureValidationError } from '../../common/enums';
 
 /**
  * Exists request body
@@ -58,16 +59,16 @@ export interface AggregationLayerMetadataResponseBody extends AggregationLayerMe
 
 export interface ValidateError {
   id: string;
-  errors: string[];
+  errors: FeatureValidationError[];
 }
 export interface ValidatePolygonPartsResponseBody {
   parts: ValidateError[];
-  smallGeometriesCount: number; // count in this chunk
-  smallHolesCount: number; // count in this chunk
+  smallGeometriesCount: number;
+  smallHolesCount: number;
 }
 
 export type ValidatePolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType' | 'productVersion' | 'catalogId'> & {
-  jobType: JobTypes;
+  jobType: Extract<JobTypes, 'Ingestion_New' | 'Ingestion_Update' | 'Ingestion_Swap_Update'>;
 } & {
   featureCollection: PolygonPartsFeatureCollection;
 };

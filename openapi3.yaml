@@ -772,7 +772,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/FeatureCollectionPartDataProperties'
           type: object
-          nullable: true
+          nullable: false
         geometry:
           type: object
           oneOf:

@@ -14,6 +14,7 @@ import { PolygonPart } from '../DAL/polygonPart';
 import { payloadToInsertPartsData, payloadToInsertValidationsData, setRepositoryTablePath } from '../DAL/utils';
 import { ValidateError, ValidatePolygonPartsRequestBody, ValidatePolygonPartsResponseBody } from '../controllers/interfaces';
 import { ValidatePart } from '../DAL/validationPart';
+import { FeatureValidationError } from '../../common/enums';
 import {
   findSelectOutputColumns,
   geometryColumn,
@@ -300,7 +301,7 @@ export class PolygonPartsManager {
     const { catalogId } = validationsPayload;
     const logger = this.logger.child({ catalogId });
     logger.info({ msg: 'validatePolygonParts', catalogId });
-    let merged: ValidateError[] = [];
+    let mergedPartsErrors: ValidateError[] = [];
 
     try {
       const response = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
@@ -318,18 +319,18 @@ export class PolygonPartsManager {
         const smallGeometriesSummary = await this.smallGeometriesCount(validationsContext);
         const smallHolesSummary = await this.smallHolesCount(validationsContext);
 
-        const sources: ValidateError[][] = [
-          stInvalidParts, // e.g. [{id, errors:['ST_IsValid']}...]
+        const errorsSummary: ValidateError[][] = [
+          stInvalidParts, // e.g. [{id, errors:['Validity']}...]
           smallGeometriesSummary.parts, // e.g. [{id, errors:['SMALL_GEOMETRY']}...]
           smallHolesSummary.parts, // e.g. [{id, errors:['SMALL_HOLE']}...]
         ];
 
         if (validationsPayload.jobType === JobTypes.Ingestion_Update) {
           const invalidResolutions = await this.validateResolutions(validationsContext);
-          sources.push(invalidResolutions);
+          errorsSummary.push(invalidResolutions);
         }
 
-        merged = _(sources.flat())
+        mergedPartsErrors = _(errorsSummary.flat())
           .groupBy('id')
           .map((group, id) => ({
             id,
@@ -338,7 +339,12 @@ export class PolygonPartsManager {
           .value();
 
         await this.updateFinishedValidationsRows(validationsContext);
-        return { parts: merged, smallGeometriesCount: smallGeometriesSummary.count, smallHolesCount: smallHolesSummary.count };
+        const transactionResponse: ValidatePolygonPartsResponseBody = {
+          parts: mergedPartsErrors,
+          smallGeometriesCount: smallGeometriesSummary.count,
+          smallHolesCount: smallHolesSummary.count,
+        };
+        return transactionResponse;
       });
       return response;
     } catch (error) {
@@ -471,7 +477,7 @@ export class PolygonPartsManager {
         },
       },
     } = context;
-    logger.debug({ msg: 'Calculating is valid geometries', validationsEntityQualifiedName });
+    logger.info({ msg: 'Calculating is valid geometries', validationsEntityQualifiedName });
     try {
       const rows = await entityManager
         .createQueryBuilder()
@@ -483,7 +489,7 @@ export class PolygonPartsManager {
 
       const result: ValidateError[] = rows.map(({ id }) => ({
         id,
-        errors: ['ST_IsValid'],
+        errors: [FeatureValidationError.VALIDITY],
       }));
 
       return result;
@@ -519,7 +525,7 @@ export class PolygonPartsManager {
         count: dbResponse.count,
         parts: dbResponse.ids.map((id) => ({
           id,
-          errors: ['SmallGeometry'],
+          errors: [FeatureValidationError.SMALL_GEOMETRY],
         })),
       };
 
@@ -610,7 +616,7 @@ export class PolygonPartsManager {
         count: dbResponse.count,
         parts: dbResponse.ids.map((id) => ({
           id,
-          errors: ['SmallHoles'],
+          errors: [FeatureValidationError.SMALL_HOLES],
         })),
       };
 
@@ -666,7 +672,7 @@ export class PolygonPartsManager {
         },
       },
     } = context;
-    logger.debug({ msg: 'validationg resolutions', validationsEntityQualifiedName });
+    logger.info({ msg: 'validating resolutions', validationsEntityQualifiedName });
     try {
       const entityExists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName);
       if (!entityExists) {
@@ -684,7 +690,7 @@ export class PolygonPartsManager {
 
       const result: ValidateError[] = rows.map(({ id }) => ({
         id,
-        errors: ['Resolutions'],
+        errors: [FeatureValidationError.RESOLUTIONS],
       }));
       return result;
     } catch (error) {

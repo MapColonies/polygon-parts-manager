@@ -5999,7 +5999,7 @@ describe('polygonParts', () => {
     });
 
     describe('POST /polygonParts/validate', () => {
-      it('should retrun 200 with no validation errors on valid polygonpart request of new job type', async () => {
+      it('should return 200 with no validation errors on valid polygonpart request of new job type', async () => {
         const response = await requestSender.validatePolygonParts(validValidationPolygonPartsPayload);
 
         expect(response.status).toBe(httpStatusCodes.OK);
@@ -6009,7 +6009,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should retrun 200 with no validation errors on valid polygonpart request of new job type on entire world', async () => {
+      it('should return 200 with no validation errors on valid polygonpart request of new job type on entire world', async () => {
         const response = await requestSender.validatePolygonParts(validationEntireWorldRequest);
 
         expect(response.status).toBe(httpStatusCodes.OK);
@@ -6019,7 +6019,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should retrun 200 with no validation errors on valid polygonpart request of update job type where parts dont intersect', async () => {
+      it('should return 200 with no validation errors on valid polygonpart request of update job type where parts dont intersect', async () => {
         const insertPolygonPartsPayload = createCustomInitPayloadRequestForAggregation;
         await requestSender.createPolygonParts(insertPolygonPartsPayload);
         const updateRequestPayload = { ...validValidationPolygonPartsPayload, jobType: JobTypes.Ingestion_Update };
@@ -6032,7 +6032,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should retrun 200 with no validation errors on valid polygonpart request of swap job type', async () => {
+      it('should return 200 with no validation errors on valid polygonpart request of swap job type', async () => {
         const updateRequestPayload = { ...validValidationPolygonPartsPayload, jobType: JobTypes.Ingestion_Swap_Update };
         const response = await requestSender.validatePolygonParts(updateRequestPayload);
 
@@ -6045,7 +6045,7 @@ describe('polygonParts', () => {
     });
 
     describe('DELETE /polygonParts/validate', () => {
-      it('should retrun 204 on successful delete', async () => {
+      it('should return 204 on successful delete', async () => {
         const deleteRequestQuery: DeleteValidationEntityQuery = {
           productId: validValidationPolygonPartsPayload.productId,
           productType: validValidationPolygonPartsPayload.productType,
@@ -7733,7 +7733,7 @@ describe('polygonParts', () => {
     });
 
     describe('DELETE /polygonParts/validate', () => {
-      it('should retrun 400 on unsupported productType', async () => {
+      it('should return 400 on unsupported productType', async () => {
         const deleteRequestQuery = {
           productId: validValidationPolygonPartsPayload.productId,
           productType: 'bad_value',
@@ -7746,7 +7746,7 @@ describe('polygonParts', () => {
         expect.assertions(2);
       });
 
-      it('should retrun 400 on unsupported productId format', async () => {
+      it('should return 400 on unsupported productId format', async () => {
         const deleteRequestQuery = {
           productId: 111,
           productType: validValidationPolygonPartsPayload.productType,
@@ -7757,6 +7757,33 @@ describe('polygonParts', () => {
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(2);
+      });
+
+      it('should return 400 on detele attempt on a non validation table', async () => {
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalQuery = EntityManager.prototype.query;
+
+        const querySpy = jest.spyOn(EntityManager.prototype, 'query')
+        .mockImplementationOnce(originalQuery)
+        .mockImplementationOnce(originalQuery)
+        .mockImplementationOnce(originalQuery)
+        .mockImplementationOnce(originalQuery)
+        .mockImplementationOnce(originalQuery)
+        .mockResolvedValueOnce([]);        
+        
+        const deleteRequestQuery: DeleteValidationEntityQuery = {
+          productId: validValidationPolygonPartsPayload.productId,
+          productType: validValidationPolygonPartsPayload.productType,
+        };
+
+        await requestSender.validatePolygonParts(validValidationPolygonPartsPayload);
+
+        const response = await requestSender.deleteValidationPolygonParts(deleteRequestQuery);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+        expect(querySpy).toHaveBeenCalledTimes(6);
+        expect.assertions(3);
       });
     });
   });
@@ -8678,7 +8705,7 @@ describe('polygonParts', () => {
       });
     });
     describe('DELETE /polygonParts/validate', () => {
-      it('should retrun 404 when validation table doesnt exist', async () => {
+      it('should return 404 when validation table doesnt exist', async () => {
         const deleteRequestQuery: DeleteValidationEntityQuery = {
           productId: validValidationPolygonPartsPayload.productId,
           productType: validValidationPolygonPartsPayload.productType,
@@ -8691,7 +8718,7 @@ describe('polygonParts', () => {
         expect.assertions(2);
       });
 
-      it('should retrun 500 on when databse error - exists fails', async () => {
+      it('should return 500 on when databse error - exists fails', async () => {
         const deleteRequestQuery: DeleteValidationEntityQuery = {
           productId: validValidationPolygonPartsPayload.productId,
           productType: validValidationPolygonPartsPayload.productType,
@@ -8707,7 +8734,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it('should retrun 500 on when databse error - delete fails', async () => {
+      it('should return 500 on when databse error - delete fails', async () => {
         const deleteRequestQuery: DeleteValidationEntityQuery = {
           productId: validValidationPolygonPartsPayload.productId,
           productType: validValidationPolygonPartsPayload.productType,

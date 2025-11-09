@@ -378,7 +378,7 @@ export class PolygonPartsManager {
         await this.deleteValidationsTable(baseValidationContext);
       });
     } catch (error) {
-      const errorMessage = 'Validations query transaction failed';
+      const errorMessage = 'Validation table deletes query transaction failed';
       logger.error({ msg: errorMessage, error });
       throw error;
     }
@@ -709,11 +709,43 @@ export class PolygonPartsManager {
         },
       },
     } = context;
-    logger.debug({ msg: 'deleting validations table', validationsEntityQualifiedName });
+    logger.info({ msg: 'deleting validations table', validationsEntityQualifiedName });
     try {
+      // Split schema + table
+      const [schemaName, tableName] = validationsEntityQualifiedName.split('.');
+
+      // Query PostgreSQL catalogs to verify inheritance
+      const result = await entityManager.query<number[]>(
+        `
+      SELECT 1 as res
+      FROM pg_inherits AS i
+      JOIN pg_class AS child ON i.inhrelid = child.oid
+      JOIN pg_namespace AS n_child ON n_child.oid = child.relnamespace
+      JOIN pg_class AS parent ON i.inhparent = parent.oid
+      JOIN pg_namespace AS n_parent ON n_parent.oid = parent.relnamespace
+      WHERE n_parent.nspname = $1
+        AND parent.relname = $2
+        AND n_child.nspname = $1
+        AND child.relname = $3;
+    `,
+        [
+          schemaName,
+          'validation_parts', // <-- base table name
+          tableName,
+        ]
+      );
+
+      const isChildOfValidationRecord = result.length > 0;
+
+      if (!isChildOfValidationRecord) {
+        const errorMessage = `Refused to drop ${validationsEntityQualifiedName} — it is not a descendant of validation_parts.`;
+        logger.error({ msg: errorMessage });
+        throw new BadRequestError(errorMessage);
+      }
+
       await entityManager.query(`DROP TABLE ${validationsEntityQualifiedName} CASCADE;`);
 
-      logger.info({ msg: 'validations table dropped', validationsEntityQualifiedName });
+      logger.debug({ msg: 'validations table dropped', validationsEntityQualifiedName });
     } catch (error) {
       const errorMessage = `Could not delete validation table: ${validationsEntityQualifiedName}`;
       logger.error({ msg: errorMessage, error });

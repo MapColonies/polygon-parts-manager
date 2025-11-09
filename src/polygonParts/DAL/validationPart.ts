@@ -13,7 +13,7 @@ export class ValidatePart extends BasePart implements ValidatePartRecord {
   @Column({ type: 'geometry', spatialFeatureType: 'Geometry', srid: 4326, precision: 20 })
   @Index({ spatial: true })
   // Enforce geometry type to be POLYGON or MULTIPOLYGON
-  @Check('validation_footprint_type_chk', `GeometryType("footprint") IN ('POLYGON','MULTIPOLYGON')`)
+  @Check('footprint', `GeometryType("footprint") IN ('POLYGON','MULTIPOLYGON')`)
   @Check('geometry extent', `Box2D("footprint") @Box2D(ST_GeomFromText('LINESTRING(-180 -90, 180 90)'))`)
   public footprint!: Polygon | MultiPolygon;
 

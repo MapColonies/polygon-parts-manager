@@ -7759,7 +7759,7 @@ describe('polygonParts', () => {
         expect.assertions(2);
       });
 
-      it('should return 400 on detele attempt on a non validation table', async () => {
+      it('should return 400 on delete attempt on a non validation table', async () => {
         // eslint-disable-next-line @typescript-eslint/unbound-method
         const originalQuery = EntityManager.prototype.query;
 

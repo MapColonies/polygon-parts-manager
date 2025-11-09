@@ -662,15 +662,12 @@ export class PolygonPartsManager {
       logger,
       entitiesMetadata: {
         entitiesNames: {
-          validations: { databaseObjectQualifiedName: validationsEntityQualifiedName },
+          validations: { entityName: validationsEntityQualifiedName },
         },
       },
     } = context;
     logger.info({ msg: 'deleting validations table', validationsEntityQualifiedName });
     try {
-      // Split schema + table
-      const [schemaName, tableName] = validationsEntityQualifiedName.split('.');
-
       // Query PostgreSQL catalogs to verify inheritance
       const result = await entityManager.query<number[]>(
         `
@@ -686,9 +683,9 @@ export class PolygonPartsManager {
         AND child.relname = $3;
     `,
         [
-          schemaName,
+          this.schema,
           'validation_parts', // <-- base table name
-          tableName,
+          validationsEntityQualifiedName,
         ]
       );
 

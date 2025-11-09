@@ -297,6 +297,48 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
+    delete:
+      tags:
+        - polygon-parts
+      summary: Delete polygon parts validation entity
+      description: Delete polygon parts validation entity
+      operationId: deletePolygonPartsValidation
+      parameters:
+        - in: query
+          name: productType
+          required: true
+          description: Product type key.
+          schema:
+            $ref: './SchemaRaster/core/layer.yaml#/components/schemas/ProductType'
+          allowEmptyValue: false
+        - in: query
+          name: productId
+          required: true
+          description: Product identifier.
+          schema:
+            $ref: './SchemaRaster/core/layer.yaml#/components/schemas/ProductId'
+          allowEmptyValue: false
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
 components:
   schemas:
     AggregationFeature:

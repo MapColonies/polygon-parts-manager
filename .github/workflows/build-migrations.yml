@@ -1,0 +1,122 @@
+# .github/workflows/build-migrations.yml
+name: Build & Push Migrations (tags / manual)
+
+on:
+  push:
+    tags:
+      - 'v*'                       # build on tag pushes
+  workflow_dispatch:                # manual run (pick the Docker tag)
+    inputs:
+      imageTag:
+        description: "Docker tag to push (e.g. v1.2.3)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (all tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve image tag and head ref
+        id: resolve
+        shell: bash
+        run: |
+          set -e
+          case "${{ github.event_name }}" in
+            push)
+              echo "Detected event: push"
+              echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+              echo "head=${GITHUB_SHA}"     >> "$GITHUB_OUTPUT"
+              ;;
+            workflow_dispatch)
+              echo "Detected event: workflow_dispatch"
+              echo "tag=${{ inputs.imageTag }}" >> "$GITHUB_OUTPUT"
+              echo "head=HEAD"                  >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      - name: Find previous tag (context-aware)
+        id: prev
+        shell: bash
+        run: |
+          EVENT="${{ github.event_name }}"
+          CURRENT_TAG=${{ steps.resolve.outputs.tag }}
+          echo "Event: $EVENT"
+          echo "Resolved current tag: $CURRENT_TAG"
+
+          # Determine base tag logic based on event type
+          if [ "$EVENT" = "push" ]; then
+            echo "Detected tag push — will diff against the previous real tag."
+            if git rev-parse -q --verify "refs/tags/$CURRENT_TAG" >/dev/null; then
+              PREV=$(git tag --sort=-creatordate | awk -v curr="$CURRENT_TAG" '
+                $0 == curr {getline; print; exit}
+              ')
+            else
+              echo "WARNING: Tag $CURRENT_TAG not found, defaulting to latest real tag."
+              PREV=$(git tag --sort=-creatordate | head -n1)
+            fi
+          else
+            echo "Manual run — will use latest tag as base."
+            PREV=$(git tag --sort=-creatordate | head -n1)
+          fi
+
+          # Fallbacks
+          if [ -z "$PREV" ]; then
+            ROOT=$(git rev-list --max-parents=0 HEAD | tail -n1)
+            echo "No previous tag found. Using root commit: $ROOT"
+            PREV=$ROOT
+          fi
+
+          echo "Found previous tag (base): $PREV"
+
+          echo "base=$PREV" >> "$GITHUB_OUTPUT"
+          echo "PREVIOUS_TAG=$PREV" >> "$GITHUB_ENV"
+          echo "CURRENT_TAG=$CURRENT_TAG" >> "$GITHUB_ENV"
+
+      - name: Print current and previous tags
+        run: |
+          echo "Current tag: $CURRENT_TAG"
+          echo "Previous tag: $PREVIOUS_TAG"
+
+      - name: Detect ADDED migration files since previous tag
+        id: detect
+        shell: bash
+        run: |
+          echo "Comparing changes from $PREVIOUS_TAG → ${{ steps.resolve.outputs.head }}"
+          ADDED=$(git diff --name-only --diff-filter=A \
+                   "$PREVIOUS_TAG" "${{ steps.resolve.outputs.head }}" \
+                   | grep '^src/db/migrations/' || true)
+          echo "$ADDED"
+          if [ -n "$ADDED" ]; then
+            echo "added=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "added=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Login to ACR
+        if: steps.detect.outputs.added == 'true'
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.ACR_URL }}
+          username: ${{ secrets.ACR_PUSH_USER }}
+          password: ${{ secrets.ACR_PUSH_TOKEN }}
+
+      - name: Build and push (migrations)
+        if: steps.detect.outputs.added == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./migrations.Dockerfile
+          push: true
+          tags: ${{ secrets.ACR_URL }}/raster/${{ github.event.repository.name }}-migrations:${{ steps.resolve.outputs.tag }}
+
+      - name: Skip (no newly added migrations)
+        if: steps.detect.outputs.added != 'true'
+        run: echo "No new files added under src/db/migrations/**; skipping."

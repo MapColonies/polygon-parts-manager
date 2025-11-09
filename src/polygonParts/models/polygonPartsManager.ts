@@ -384,49 +384,6 @@ export class PolygonPartsManager {
     }
   }
 
-  //TODO: update params when api will be finalized- currenty just a placeholder
-  /* 
-  public async upsertPartsTable(
-    validationsPayload: ValidatePolygonPartsRequestBody,
-    isSuccessful: boolean,
-    entitiesMetadata: EntitiesMetadata
-  ): Promise<void> {
-    const { catalogId } = validationsPayload;
-    const logger = this.logger.child({ catalogId });
-    logger.info({ msg: 'upsert Parts', catalogId });
-
-    try {
-      await this.connectionManager.getDataSource().transaction(async (entityManager) => {
-        const baseValidationContext = {
-          entityManager,
-          logger,
-          entitiesMetadata,
-        };
-        const validationsEntityName = entitiesMetadata.entitiesNames.validations.entityName;
-
-        await entityManager.query(`SET search_path TO ${this.schema},public`);
-
-        const entityExists = await this.connectionManager.entityExists(entityManager, validationsEntityName);
-        if (!entityExists) {
-          throw new NotFoundError(`Table with the name '${validationsEntityName}' doesn't exists`);
-        }
-        const upsertContext = { ...baseValidationContext, validationsPayload };
-
-        //TODO: call here a function that creats parts table if not exists - using stored procedure
-        //TODO: call here a function that upserts parts data into parts table -
-        // create a stored procedure that inserts to the parts from the validations table
-        // it seperates multiploygons and inserts other data as is to the new table from validations table
-        //This 2 todos can be done in one stored procedure
-        await this.deleteValidationsTable(upsertContext);
-      });
-    } catch (error) {
-      const errorMessage = 'Validations query transaction failed';
-      logger.error({ msg: errorMessage, error });
-      throw error;
-    }
-  }
-    */
-
   private async prepareAggregationFilterQuery(
     entityManager: EntityManager,
     polygonPartsEntityName: EntityNames,
@@ -738,7 +695,7 @@ export class PolygonPartsManager {
       const isChildOfValidationRecord = result.length > 0;
 
       if (!isChildOfValidationRecord) {
-        const errorMessage = `Refused to drop ${validationsEntityQualifiedName} — it is not a descendant of validation_parts.`;
+        const errorMessage = `Refused to drop ${validationsEntityQualifiedName} — it is not instance of validation_parts entity.`;
         logger.error({ msg: errorMessage });
         throw new BadRequestError(errorMessage);
       }

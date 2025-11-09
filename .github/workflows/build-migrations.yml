@@ -33,17 +33,17 @@ jobs:
           set -e
           case "${{ github.event_name }}" in
             push)
-              # Tag push
-              echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"   # e.g. v1.2.3
+              echo "Detected event: push"
+              echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
               echo "head=${GITHUB_SHA}"     >> "$GITHUB_OUTPUT"
               ;;
             pull_request)
-              # PR run – make a descriptive, unique tag
+              echo "Detected event: pull_request"
               echo "tag=pr-${{ github.event.pull_request.number }}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
               echo "head=HEAD" >> "$GITHUB_OUTPUT"
               ;;
             workflow_dispatch)
-              # Manual run – use provided input
+              echo "Detected event: workflow_dispatch"
               echo "tag=${{ inputs.imageTag }}" >> "$GITHUB_OUTPUT"
               echo "head=HEAD"                  >> "$GITHUB_OUTPUT"
               ;;
@@ -53,12 +53,37 @@ jobs:
         id: prev
         shell: bash
         run: |
-          if PREV=$(git describe --tags --abbrev=0 "$(git rev-list --tags --max-count=2)" 2>/dev/null | tail -n1); then
+          # Get sorted list of tags (most recent first)
+          TAGS=$(git tag --sort=-creatordate)
+          echo "All tags (newest first):"
+          echo "$TAGS"
+
+          # Get previous tag relative to the current tag if possible
+          CURRENT_TAG=${{ steps.resolve.outputs.tag }}
+          PREV=$(git describe --tags --abbrev=0 "${CURRENT_TAG}^" 2>/dev/null || true)
+
+          if [ -z "$PREV" ]; then
+            PREV=$(git describe --tags --abbrev=0 "$(git rev-list --tags --max-count=2)" 2>/dev/null | tail -n1 || true)
+          fi
+
+          if [ -n "$PREV" ]; then
+            echo "Found previous tag: $PREV"
             echo "base=$PREV" >> "$GITHUB_OUTPUT"
+            echo "PREVIOUS_TAG=$PREV" >> "$GITHUB_ENV"
           else
             ROOT=$(git rev-list --max-parents=0 HEAD | tail -n1)
+            echo "No previous tag found. Using root commit: $ROOT"
             echo "base=$ROOT" >> "$GITHUB_OUTPUT"
+            echo "PREVIOUS_TAG=$ROOT" >> "$GITHUB_ENV"
           fi
+
+          echo "CURRENT_TAG=${CURRENT_TAG}" >> "$GITHUB_ENV"
+
+
+      - name: Print current and previous tags
+        run: |
+          echo "Current tag: $CURRENT_TAG"
+          echo "Previous tag: $PREVIOUS_TAG"
 
       - name: Detect ADDED migration files since previous tag
         id: detect

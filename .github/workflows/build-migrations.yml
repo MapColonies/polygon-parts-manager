@@ -1,12 +1,10 @@
 # .github/workflows/build-migrations.yml
-name: Build & Push Migrations (tags / PR / manual)
+name: Build & Push Migrations (tags / manual)
 
 on:
   push:
     tags:
       - 'v*'                       # build on tag pushes
-  pull_request:                     # show in Actions and allow PR runs
-    types: [opened, reopened, synchronize, labeled]
   workflow_dispatch:                # manual run (pick the Docker tag)
     inputs:
       imageTag:
@@ -37,11 +35,6 @@ jobs:
               echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
               echo "head=${GITHUB_SHA}"     >> "$GITHUB_OUTPUT"
               ;;
-            pull_request)
-              echo "Detected event: pull_request"
-              echo "tag=pr-${{ github.event.pull_request.number }}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-              echo "head=HEAD" >> "$GITHUB_OUTPUT"
-              ;;
             workflow_dispatch)
               echo "Detected event: workflow_dispatch"
               echo "tag=${{ inputs.imageTag }}" >> "$GITHUB_OUTPUT"
@@ -49,42 +42,43 @@ jobs:
               ;;
           esac
 
-      - name: Find previous tag (fallback to repo root)
+      - name: Find previous tag (context-aware)
         id: prev
         shell: bash
         run: |
-          echo "Resolved current tag: ${{ steps.resolve.outputs.tag }}"
-
-          # Get all tags sorted by creation date (latest first)
-          TAGS=$(git tag --sort=-creatordate)
-          echo "All tags (newest first):"
-          echo "$TAGS"
-
+          EVENT="${{ github.event_name }}"
           CURRENT_TAG=${{ steps.resolve.outputs.tag }}
+          echo "Event: $EVENT"
+          echo "Resolved current tag: $CURRENT_TAG"
 
-          # Try to get the previous tag *only if CURRENT_TAG exists in history*
-          if git rev-parse -q --verify "refs/tags/$CURRENT_TAG" >/dev/null; then
-            echo "Current tag exists in history: $CURRENT_TAG"
-            PREV=$(git describe --tags --abbrev=0 "${CURRENT_TAG}^" 2>/dev/null || true)
+          # Determine base tag logic based on event type
+          if [ "$EVENT" = "push" ]; then
+            echo "Detected tag push — will diff against the previous real tag."
+            if git rev-parse -q --verify "refs/tags/$CURRENT_TAG" >/dev/null; then
+              PREV=$(git tag --sort=-creatordate | awk -v curr="$CURRENT_TAG" '
+                $0 == curr {getline; print; exit}
+              ')
+            else
+              echo "WARNING: Tag $CURRENT_TAG not found, defaulting to latest real tag."
+              PREV=$(git tag --sort=-creatordate | head -n1)
+            fi
           else
-            echo "Current tag is not a real tag (e.g., PR or manual run)."
-            # Just use the latest real tag as 'previous'
-            PREV=$(git describe --tags --abbrev=0 2>/dev/null || true)
+            echo "Manual run — will use latest tag as base."
+            PREV=$(git tag --sort=-creatordate | head -n1)
           fi
 
-          if [ -n "$PREV" ]; then
-            echo "Found previous tag: $PREV"
-            echo "base=$PREV" >> "$GITHUB_OUTPUT"
-            echo "PREVIOUS_TAG=$PREV" >> "$GITHUB_ENV"
-          else
+          # Fallbacks
+          if [ -z "$PREV" ]; then
             ROOT=$(git rev-list --max-parents=0 HEAD | tail -n1)
             echo "No previous tag found. Using root commit: $ROOT"
-            echo "base=$ROOT" >> "$GITHUB_OUTPUT"
-            echo "PREVIOUS_TAG=$ROOT" >> "$GITHUB_ENV"
+            PREV=$ROOT
           fi
 
-          echo "CURRENT_TAG=${CURRENT_TAG}" >> "$GITHUB_ENV"
+          echo "Found previous tag (base): $PREV"
 
+          echo "base=$PREV" >> "$GITHUB_OUTPUT"
+          echo "PREVIOUS_TAG=$PREV" >> "$GITHUB_ENV"
+          echo "CURRENT_TAG=$CURRENT_TAG" >> "$GITHUB_ENV"
 
       - name: Print current and previous tags
         run: |
@@ -95,8 +89,9 @@ jobs:
         id: detect
         shell: bash
         run: |
+          echo "Comparing changes from $PREVIOUS_TAG → ${{ steps.resolve.outputs.head }}"
           ADDED=$(git diff --name-only --diff-filter=A \
-                   "${{ steps.prev.outputs.base }}" "${{ steps.resolve.outputs.head }}" \
+                   "$PREVIOUS_TAG" "${{ steps.resolve.outputs.head }}" \
                    | grep '^src/db/migrations/' || true)
           echo "$ADDED"
           if [ -n "$ADDED" ]; then
@@ -125,7 +120,3 @@ jobs:
       - name: Skip (no newly added migrations)
         if: steps.detect.outputs.added != 'true'
         run: echo "No new files added under src/db/migrations/**; skipping."
-
-      - name: Dump environment (end)
-        run: env | sort
-

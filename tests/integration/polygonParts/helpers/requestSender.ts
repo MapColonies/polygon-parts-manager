@@ -3,10 +3,12 @@ import * as supertest from 'supertest';
 import type {
   AggregatePolygonPartsRequestBody,
   AggregationLayerMetadataParams,
+  DeleteValidationEntityQuery,
   ExistsRequestBody,
   FindPolygonPartsParams,
   FindPolygonPartsQueryParams,
   FindPolygonPartsRequestBody,
+  ValidatePolygonPartsRequestBody,
 } from '../../../../src/polygonParts/controllers/interfaces';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 
@@ -48,5 +50,13 @@ export class PolygonPartsRequestSender {
     body?: AggregatePolygonPartsRequestBody;
   }): Promise<supertest.Response> {
     return supertest.agent(this.app).post(`/polygonParts/${options.params.polygonPartsEntityName}/aggregate`).send(options.body);
+  }
+
+  public async validatePolygonParts(body: ValidatePolygonPartsRequestBody): Promise<supertest.Response> {
+    return supertest.agent(this.app).post('/polygonParts/validate').set('Content-Type', 'application/json').send(body);
+  }
+
+  public async deleteValidationPolygonParts(query: DeleteValidationEntityQuery): Promise<supertest.Response> {
+    return supertest.agent(this.app).delete('/polygonParts/validate').query(query).send();
   }
 }

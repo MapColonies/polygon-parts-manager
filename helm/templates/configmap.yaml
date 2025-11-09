@@ -13,18 +13,25 @@ data:
   ARRAY_SEPARATOR: {{ .Values.env.application.arraySeparator | quote }}
   CREATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE: {{ .Values.env.application.createPolygonPartsTablesStoredProcedure | quote }}
   UPDATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE: {{ .Values.env.application.updatePolygonPartsTablesStoredProcedure | quote }}
+  CREATE_POLYGON_PARTS_VALIDATIONS_TABLES_STORED_PROCEDURE: {{ .Values.env.application.createPolygonPartsValidationsTablesStoredProcedure | quote }}
+  VALIDATE_SMALL_HOLES_FUNCTION: {{ .Values.env.application.validateSmallHolesFunction | quote }}
+  VALIDATE_SMALL_GEOMETRIES_FUNCTION: {{ .Values.env.application.validateSmallGeometriesFunction | quote }}
+  VALIDATE_RESOLUTIONS_FUNCTION: {{ .Values.env.application.validateResolutionsFunction | quote }}
   ENTITY_PARTS_NAME_PREFIX: {{ .Values.env.application.entities.parts.namePrefix | quote }}
   ENTITY_PARTS_NAME_SUFFIX: {{ .Values.env.application.entities.parts.nameSuffix | quote }}
   ENTITY_POLYGON_PARTS_FIND_MAX_DECIMAL_DIGITS: {{ .Values.env.application.entities.polygonParts.find.maxDecimalDigits | quote }}
   ENTITY_POLYGON_PARTS_NAME_PREFIX: {{ .Values.env.application.entities.polygonParts.namePrefix | quote }}
   ENTITY_POLYGON_PARTS_NAME_SUFFIX: {{ .Values.env.application.entities.polygonParts.nameSuffix | quote }}
   ENTITY_POLYGON_PARTS_MIN_AREA_SQUARE_DEG: {{ .Values.env.application.entities.polygonParts.minAreaSquareDeg | quote }}
+  ENTITY_VALIDATIONS_NAME_PREFIX: {{ .Values.env.application.entities.validations.namePrefix | quote }}
+  ENTITY_VALIDATIONS_NAME_SUFFIX: {{ .Values.env.application.entities.validations.nameSuffix | quote }}
   AGGREGATION_MAX_DECIMAL_DIGITS: {{ .Values.env.application.aggregation.maxDecimalDigits | quote }}
   AGGREGATION_FIX_GEOMETRY_ENABLED: {{ .Values.env.application.aggregation.fixGeometry.enabled | quote }}
   {{- if .Values.env.application.aggregation.fixGeometry.enabled }}
   AGGREGATION_FIX_GEOMETRY_BUFFER_SIZE_DEG: {{ .Values.env.application.aggregation.fixGeometry.bufferSizeDeg | quote }}
   AGGREGATION_FIX_GEOMETRY_BUFFER_STYLE_PARAMETERS: {{ .Values.env.application.aggregation.fixGeometry.bufferStyleParameters | quote }}
   {{- end }}
+  VALIDATION_AREA_THRESHOLD_SQUARE_METERS: {{ .Values.env.application.validation.areaThresholdSquareMeters | quote }}
   {{- if .Values.env.application.aggregation.simplifyGeometry.enabled }}
   AGGREGATION_SIMPLIFY_GEOMETRY_TOLERANCE_DEG: {{ .Values.env.application.aggregation.simplifyGeometry.toleranceDeg | quote }}
   {{- end }}

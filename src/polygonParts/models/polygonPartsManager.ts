@@ -1,16 +1,20 @@
 import { BadRequestError, ConflictError, InternalServerError, NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
-import { AggregationFeature, CORE_VALIDATIONS } from '@map-colonies/raster-shared';
+import { AggregationFeature, CORE_VALIDATIONS, JobTypes } from '@map-colonies/raster-shared';
 import { geometryCollection } from '@turf/helpers';
 import { inject, injectable } from 'tsyringe';
 import type { EntityManager, SelectQueryBuilder } from 'typeorm';
+import _ from 'lodash';
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
 import { Part } from '../DAL/part';
 import { PolygonPart } from '../DAL/polygonPart';
-import { payloadToInsertPartsData, setRepositoryTablePath } from '../DAL/utils';
+import { payloadToInsertPartsData, payloadToInsertValidationsData, setRepositoryTablePath } from '../DAL/utils';
+import { ValidateError, ValidatePolygonPartsRequestBody, ValidatePolygonPartsResponseBody } from '../controllers/interfaces';
+import { ValidatePart } from '../DAL/validationPart';
+import { FeatureValidationError } from '../../common/enums';
 import {
   findSelectOutputColumns,
   geometryColumn,
@@ -40,6 +44,18 @@ import type {
   PolygonPartsResponse,
 } from './interfaces';
 
+type EntitiesMetadataWithoutValidations = Pick<EntitiesMetadata, 'entityIdentifier'> & {
+  entitiesNames: Omit<EntitiesMetadata['entitiesNames'], 'validations'>;
+};
+interface CountQueryResponse {
+  count: number;
+  ids: string[];
+}
+interface ValidationCountSummary {
+  count: number;
+  parts: ValidateError[];
+}
+
 @injectable()
 export class PolygonPartsManager {
   private readonly applicationConfig: ApplicationConfig;
@@ -63,10 +79,14 @@ export class PolygonPartsManager {
 
     try {
       const polygonPartsEntityName = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        const entitiesMetadataWithoutValidations: EntitiesMetadataWithoutValidations = {
+          entityIdentifier: entitiesMetadata.entityIdentifier,
+          entitiesNames: _.omit(entitiesMetadata.entitiesNames, 'validations'),
+        };
         const baseIngestionContext = {
           entityManager,
           logger,
-          entitiesMetadata,
+          entitiesMetadata: entitiesMetadataWithoutValidations,
         };
 
         await entityManager.query(`SET search_path TO ${this.schema},public`);
@@ -96,17 +116,21 @@ export class PolygonPartsManager {
 
     try {
       const polygonPartsEntityName = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        const entitiesMetadataWithoutValidations: EntitiesMetadataWithoutValidations = {
+          entityIdentifier: entitiesMetadata.entityIdentifier,
+          entitiesNames: _.omit(entitiesMetadata.entitiesNames, 'validations'),
+        };
         const baseIngestionContext = {
           entityManager,
           logger: this.logger,
-          entitiesMetadata,
+          entitiesMetadata: entitiesMetadataWithoutValidations,
         };
 
         await entityManager.query(`SET search_path TO ${this.schema},public`);
         const existingEntities = await this.checkExistingEntities(baseIngestionContext);
         if (existingEntities.length === 0) {
           throw new NotFoundError('Entities do not exist(s)');
-        } else if (existingEntities.length !== Object.keys(entitiesMetadata.entitiesNames).length) {
+        } else if (existingEntities.length !== Object.keys(entitiesMetadataWithoutValidations.entitiesNames).length) {
           throw new InternalServerError('Some entities are missing');
         }
 
@@ -182,10 +206,14 @@ export class PolygonPartsManager {
 
     try {
       const polygonPartsEntityName = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        const entitiesMetadataWithoutValidations: EntitiesMetadataWithoutValidations = {
+          entityIdentifier: entitiesMetadata.entityIdentifier,
+          entitiesNames: _.omit(entitiesMetadata.entitiesNames, 'validations'),
+        };
         const baseUpdateContext = {
           entityManager,
           logger,
-          entitiesMetadata,
+          entitiesMetadata: entitiesMetadataWithoutValidations,
         };
 
         await entityManager.query(`SET search_path TO ${this.schema},public`);
@@ -266,6 +294,96 @@ export class PolygonPartsManager {
     }
   }
 
+  public async validatePolygonParts(
+    validationsPayload: ValidatePolygonPartsRequestBody,
+    entitiesMetadata: EntitiesMetadata
+  ): Promise<ValidatePolygonPartsResponseBody> {
+    const { catalogId } = validationsPayload;
+    const logger = this.logger.child({ catalogId });
+    logger.info({ msg: 'validatePolygonParts', catalogId });
+    let mergedPartsErrors: ValidateError[] = [];
+
+    try {
+      const response = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        const baseValidationContext = {
+          entityManager,
+          logger,
+          entitiesMetadata,
+        };
+
+        await entityManager.query(`SET search_path TO ${this.schema},public`);
+        const validationsContext = { ...baseValidationContext, validationsPayload };
+        await this.createValidationsTable(validationsContext);
+        await this.insertToValidationsTable(validationsContext);
+        const stInvalidParts = await this.isValidGeometries(validationsContext);
+        const smallGeometriesSummary = await this.smallGeometriesCount(validationsContext);
+        const smallHolesSummary = await this.smallHolesCount(validationsContext);
+
+        const errorsSummary: ValidateError[][] = [
+          stInvalidParts, // e.g. [{id, errors:['Validity']}...]
+          smallGeometriesSummary.parts, // e.g. [{id, errors:['SMALL_GEOMETRY']}...]
+          smallHolesSummary.parts, // e.g. [{id, errors:['SMALL_HOLE']}...]
+        ];
+
+        if (validationsPayload.jobType === JobTypes.Ingestion_Update) {
+          const invalidResolutions = await this.validateResolutions(validationsContext);
+          errorsSummary.push(invalidResolutions);
+        }
+
+        mergedPartsErrors = _(errorsSummary.flat())
+          .groupBy('id')
+          .map((group, id) => ({
+            id,
+            errors: _.uniq(group.flatMap((g) => g.errors)),
+          }))
+          .value();
+
+        await this.updateFinishedValidationsRows(validationsContext);
+        const transactionResponse: ValidatePolygonPartsResponseBody = {
+          parts: mergedPartsErrors,
+          smallGeometriesCount: smallGeometriesSummary.count,
+          smallHolesCount: smallHolesSummary.count,
+        };
+        return transactionResponse;
+      });
+      return response;
+    } catch (error) {
+      const errorMessage = 'Validations query transaction failed';
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
+  public async deleteValidationPolygonParts(entitiesMetadata: EntitiesMetadata): Promise<void> {
+    const { entityName: validationsEntityName } = entitiesMetadata.entitiesNames.validations;
+
+    const logger = this.logger.child({ validationsEntityName });
+    logger.info({ msg: 'deleting validations table', validationsEntityName });
+
+    try {
+      await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        const baseValidationContext = {
+          entityManager,
+          logger,
+          entitiesMetadata,
+        };
+
+        await entityManager.query(`SET search_path TO ${this.schema},public`);
+
+        const entityExists = await this.connectionManager.entityExists(entityManager, validationsEntityName);
+        if (!entityExists) {
+          throw new NotFoundError(`Table with the name '${validationsEntityName}' doesn't exists`);
+        }
+
+        await this.deleteValidationsTable(baseValidationContext);
+      });
+    } catch (error) {
+      const errorMessage = 'Validation table deletes query transaction failed';
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
   private async prepareAggregationFilterQuery(
     entityManager: EntityManager,
     polygonPartsEntityName: EntityNames,
@@ -299,6 +417,294 @@ export class PolygonPartsManager {
     });
 
     return { filterQueryMetadata, filteredPolygonPartsQuery };
+  }
+
+  private async isValidGeometries(context: {
+    entitiesMetadata: EntitiesMetadata;
+    entityManager: EntityManager;
+    logger: Logger;
+  }): Promise<ValidateError[]> {
+    const {
+      entityManager,
+      logger,
+      entitiesMetadata: {
+        entitiesNames: {
+          validations: { databaseObjectQualifiedName: validationsEntityQualifiedName },
+        },
+      },
+    } = context;
+    logger.info({ msg: 'Calculating is valid geometries', validationsEntityQualifiedName });
+    try {
+      const rows = await entityManager
+        .createQueryBuilder()
+        .select('table.id', 'id') // alias as "id" so raw object has { id: ... }
+        .from(validationsEntityQualifiedName, 'table')
+        .where('validated = :validated', { validated: false })
+        .andWhere('NOT ST_IsValid(footprint)')
+        .getRawMany<{ id: string }>();
+
+      const result: ValidateError[] = rows.map(({ id }) => ({
+        id,
+        errors: [FeatureValidationError.VALIDITY],
+      }));
+
+      return result;
+    } catch (error) {
+      const errorMessage = `Could not create polygon parts validation table: ${validationsEntityQualifiedName}`;
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
+  private async smallGeometriesCount(context: {
+    entitiesMetadata: EntitiesMetadata;
+    entityManager: EntityManager;
+    logger: Logger;
+  }): Promise<ValidationCountSummary> {
+    const {
+      entityManager,
+      logger,
+      entitiesMetadata: {
+        entitiesNames: {
+          validations: { databaseObjectQualifiedName: validationsEntityQualifiedName },
+        },
+      },
+    } = context;
+    logger.info({ msg: 'calculating small area geometries', validationsEntityQualifiedName });
+    try {
+      const [dbResponse] = await entityManager.query<CountQueryResponse[]>(
+        `SELECT * FROM ${this.applicationConfig.validateSmallGeometriesFunction}($1, $2)`,
+        [validationsEntityQualifiedName, this.applicationConfig.validation.areaThresholdSquareMeters]
+      );
+
+      const summary: ValidationCountSummary = {
+        count: dbResponse.count,
+        parts: dbResponse.ids.map((id) => ({
+          id,
+          errors: [FeatureValidationError.SMALL_GEOMETRY],
+        })),
+      };
+
+      return summary;
+    } catch (error) {
+      const errorMessage = `Could not calculte small geometries: ${validationsEntityQualifiedName}`;
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
+  private async insertToValidationsTable(context: {
+    entitiesMetadata: EntitiesMetadata;
+    entityManager: EntityManager;
+    logger: Logger;
+    validationsPayload: ValidatePolygonPartsRequestBody;
+  }): Promise<void> {
+    const {
+      entityManager,
+      entitiesMetadata: {
+        entitiesNames: {
+          validations: { databaseObjectQualifiedName: validationsEntityQualifiedName },
+        },
+      },
+      logger,
+      validationsPayload,
+    } = context;
+    logger.debug({ msg: 'Inserting polygon parts data' });
+
+    const insertValidationsPartData = payloadToInsertValidationsData(validationsPayload, this.applicationConfig.arraySeparator);
+
+    try {
+      const part = entityManager.getRepository(ValidatePart);
+      setRepositoryTablePath(part, validationsEntityQualifiedName);
+      await part.save(insertValidationsPartData, { chunk: this.applicationConfig.chunkSize });
+    } catch (error) {
+      const errorMessage = `Could not insert polygon parts data to table '${validationsEntityQualifiedName}'`;
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
+  private async createValidationsTable(context: { entitiesMetadata: EntitiesMetadata; entityManager: EntityManager; logger: Logger }): Promise<void> {
+    const {
+      entityManager,
+      logger,
+      entitiesMetadata: {
+        entitiesNames: {
+          validations: { databaseObjectQualifiedName: validationsEntityQualifiedName },
+        },
+      },
+    } = context;
+    logger.debug({ msg: 'Creating polygon parts validation' });
+
+    try {
+      await entityManager.query(
+        `CALL ${this.applicationConfig.createPolygonPartsValidationsTablesStoredProcedure}('${validationsEntityQualifiedName}');`
+      );
+    } catch (error) {
+      const errorMessage = `Could not create validation parts tables: '${validationsEntityQualifiedName}' `;
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
+  private async smallHolesCount(context: {
+    entitiesMetadata: EntitiesMetadata;
+    entityManager: EntityManager;
+    logger: Logger;
+  }): Promise<ValidationCountSummary> {
+    const {
+      entityManager,
+      logger,
+      entitiesMetadata: {
+        entitiesNames: {
+          validations: { databaseObjectQualifiedName: validationsEntityQualifiedName },
+        },
+      },
+    } = context;
+    logger.info({ msg: 'calculating small holes', validationsEntityQualifiedName });
+    try {
+      const [dbResponse] = await entityManager.query<CountQueryResponse[]>(
+        `SELECT * FROM ${this.applicationConfig.validateSmallHolesFunction}($1, $2)`,
+        [validationsEntityQualifiedName, this.applicationConfig.validation.areaThresholdSquareMeters]
+      );
+
+      const summary: ValidationCountSummary = {
+        count: dbResponse.count,
+        parts: dbResponse.ids.map((id) => ({
+          id,
+          errors: [FeatureValidationError.SMALL_HOLES],
+        })),
+      };
+
+      return summary;
+    } catch (error) {
+      const errorMessage = `Could not get summary of small holes in: ${validationsEntityQualifiedName}`;
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
+  private async updateFinishedValidationsRows(context: {
+    entitiesMetadata: EntitiesMetadata;
+    entityManager: EntityManager;
+    logger: Logger;
+  }): Promise<void> {
+    const {
+      entityManager,
+      logger,
+      entitiesMetadata: {
+        entitiesNames: {
+          validations: { databaseObjectQualifiedName: validationsEntityQualifiedName },
+        },
+      },
+    } = context;
+    logger.debug({ msg: 'Updating finished validation rows', validationsEntityQualifiedName });
+    try {
+      await entityManager
+        .createQueryBuilder()
+        .update(validationsEntityQualifiedName)
+        .set({ validated: true })
+        .where('validated = :validated', { validated: false })
+        .execute();
+    } catch (error) {
+      const errorMessage = `Could not update validation table: ${validationsEntityQualifiedName}`;
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
+  private async validateResolutions(context: {
+    entitiesMetadata: EntitiesMetadata;
+    entityManager: EntityManager;
+    logger: Logger;
+  }): Promise<ValidateError[]> {
+    const {
+      entityManager,
+      logger,
+      entitiesMetadata: {
+        entitiesNames: {
+          validations: { databaseObjectQualifiedName: validationsEntityQualifiedName },
+          polygonParts: { entityName: polygonPartsEntityName, databaseObjectQualifiedName: polygonPartsEntityQualifiedName },
+        },
+      },
+    } = context;
+    logger.info({ msg: 'validating resolutions', validationsEntityQualifiedName });
+    try {
+      const entityExists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName);
+      if (!entityExists) {
+        throw new NotFoundError(`Table with the name '${polygonPartsEntityQualifiedName}' doesn't exists`);
+      }
+      const rows = await entityManager
+        .createQueryBuilder()
+        .select(`${this.applicationConfig.validateResolutionsFunction}(:qualifiedValidationName, :qualifiedPolygonPartsName)`, 'id')
+        .from('(SELECT 1)', 't')
+        .setParameters({
+          qualifiedValidationName: validationsEntityQualifiedName,
+          qualifiedPolygonPartsName: polygonPartsEntityQualifiedName,
+        })
+        .getRawMany<{ id: string }>();
+
+      const result: ValidateError[] = rows.map(({ id }) => ({
+        id,
+        errors: [FeatureValidationError.RESOLUTIONS],
+      }));
+      return result;
+    } catch (error) {
+      const errorMessage = `Could not get validate resolutions in: ${validationsEntityQualifiedName}`;
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
+  private async deleteValidationsTable(context: { entitiesMetadata: EntitiesMetadata; entityManager: EntityManager; logger: Logger }): Promise<void> {
+    const {
+      entityManager,
+      logger,
+      entitiesMetadata: {
+        entitiesNames: {
+          validations: { entityName: validationsEntityQualifiedName },
+        },
+      },
+    } = context;
+    logger.info({ msg: 'deleting validations table', validationsEntityQualifiedName });
+    try {
+      // Query PostgreSQL catalogs to verify inheritance
+      const result = await entityManager.query<number[]>(
+        `
+      SELECT 1 as res
+      FROM pg_inherits AS i
+      JOIN pg_class AS child ON i.inhrelid = child.oid
+      JOIN pg_namespace AS n_child ON n_child.oid = child.relnamespace
+      JOIN pg_class AS parent ON i.inhparent = parent.oid
+      JOIN pg_namespace AS n_parent ON n_parent.oid = parent.relnamespace
+      WHERE n_parent.nspname = $1
+        AND parent.relname = $2
+        AND n_child.nspname = $1
+        AND child.relname = $3;
+    `,
+        [
+          this.schema,
+          'validation_parts', // <-- base table name
+          validationsEntityQualifiedName,
+        ]
+      );
+
+      const isChildOfValidationRecord = result.length > 0;
+
+      if (!isChildOfValidationRecord) {
+        const errorMessage = `Refused to drop ${validationsEntityQualifiedName} — it is not instance of validation_parts entity.`;
+        logger.error({ msg: errorMessage });
+        throw new BadRequestError(errorMessage);
+      }
+
+      await entityManager.query(`DROP TABLE ${validationsEntityQualifiedName} CASCADE;`);
+
+      logger.debug({ msg: 'validations table dropped', validationsEntityQualifiedName });
+    } catch (error) {
+      const errorMessage = `Could not delete validation table: ${validationsEntityQualifiedName}`;
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
   }
 
   private buildAggregationLayerMetadataQuery(context: {
@@ -427,10 +833,11 @@ export class PolygonPartsManager {
     return aggregationQueryBuilder;
   }
 
+  //TODO: refocator- merge this with getEntitiesNamesIfExists
   private async checkExistingEntities(context: {
     entityManager: EntityManager;
     logger: Logger;
-    entitiesMetadata: EntitiesMetadata;
+    entitiesMetadata: EntitiesMetadataWithoutValidations;
   }): Promise<DatabaseObjectQualifiedName[]> {
     const { entityManager, logger, entitiesMetadata } = context;
     const { entitiesNames } = entitiesMetadata;
@@ -587,7 +994,11 @@ export class PolygonPartsManager {
     return filterPolygonPartsQuery;
   }
 
-  private async calculatePolygonParts(context: { entitiesMetadata: EntitiesMetadata; entityManager: EntityManager; logger: Logger }): Promise<void> {
+  private async calculatePolygonParts(context: {
+    entitiesMetadata: EntitiesMetadataWithoutValidations;
+    entityManager: EntityManager;
+    logger: Logger;
+  }): Promise<void> {
     const { entityManager, logger, entitiesMetadata } = context;
     const {
       entitiesNames: {
@@ -608,7 +1019,11 @@ export class PolygonPartsManager {
     }
   }
 
-  private async createTables(context: { entitiesMetadata: EntitiesMetadata; entityManager: EntityManager; logger: Logger }): Promise<void> {
+  private async createTables(context: {
+    entitiesMetadata: EntitiesMetadataWithoutValidations;
+    entityManager: EntityManager;
+    logger: Logger;
+  }): Promise<void> {
     const {
       entityManager,
       logger,
@@ -632,10 +1047,11 @@ export class PolygonPartsManager {
     }
   }
 
+  //TODO: refacotr: combine this with the checkExistingEntities
   private async getEntitiesNamesIfExists(context: {
     entityManager: EntityManager;
     logger: Logger;
-    entitiesMetadata: EntitiesMetadata;
+    entitiesMetadata: EntitiesMetadataWithoutValidations;
   }): Promise<void> {
     const { entityManager, logger, entitiesMetadata } = context;
     const { entitiesNames } = entitiesMetadata;
@@ -658,7 +1074,7 @@ export class PolygonPartsManager {
   }
 
   private async insertParts(context: {
-    entitiesMetadata: EntitiesMetadata;
+    entitiesMetadata: EntitiesMetadataWithoutValidations;
     entityManager: EntityManager;
     logger: Logger;
     polygonPartsPayload: PolygonPartsPayload;
@@ -688,7 +1104,11 @@ export class PolygonPartsManager {
     }
   }
 
-  private async truncateEntities(context: { entityManager: EntityManager; logger: Logger; entitiesMetadata: EntitiesMetadata }): Promise<void> {
+  private async truncateEntities(context: {
+    entityManager: EntityManager;
+    logger: Logger;
+    entitiesMetadata: EntitiesMetadataWithoutValidations;
+  }): Promise<void> {
     const { entityManager, logger, entitiesMetadata } = context;
     const { entitiesNames } = entitiesMetadata;
     logger.debug({ msg: `Truncating entities` });

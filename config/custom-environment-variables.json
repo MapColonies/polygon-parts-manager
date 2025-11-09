@@ -47,6 +47,11 @@
     "arraySeparator": "ARRAY_SEPARATOR",
     "createPolygonPartsTablesStoredProcedure": "CREATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE",
     "updatePolygonPartsTablesStoredProcedure": "UPDATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE",
+    "createPolygonPartsValidationsTablesStoredProcedure": "CREATE_POLYGON_PARTS_VALIDATIONS_TABLES_STORED_PROCEDURE",
+    "validateSmallHolesFunction": "VALIDATE_SMALL_HOLES_FUNCTION",
+    "validateSmallGeometriesFunction": "VALIDATE_SMALL_GEOMETRIES_FUNCTION",
+    "validateResolutionsFunction": "VALIDATE_RESOLUTIONS_FUNCTION",
+
     "entities": {
       "parts": {
         "namePrefix": "ENTITY_PARTS_NAME_PREFIX",
@@ -65,6 +70,10 @@
             "__format": "number"
           }
         }
+      },
+      "validations": {
+        "namePrefix": "ENTITY_VALIDATIONS_NAME_PREFIX",
+        "nameSuffix": "ENTITY_VALIDATIONS_NAME_SUFFIX"
       }
     },
     "aggregation": {
@@ -92,6 +101,12 @@
           "__name": "AGGREGATION_SIMPLIFY_GEOMETRY_TOLERANCE_DEG",
           "__format": "number"
         }
+      }
+    },
+    "validation": {
+      "areaThresholdSquareMeters": {
+        "__name": "VALIDATION_AREA_THRESHOLD_SQUARE_METERS",
+        "__format": "number"
       }
     }
   },

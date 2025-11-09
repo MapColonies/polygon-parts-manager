@@ -53,17 +53,23 @@ jobs:
         id: prev
         shell: bash
         run: |
-          # Get sorted list of tags (most recent first)
+          echo "Resolved current tag: ${{ steps.resolve.outputs.tag }}"
+
+          # Get all tags sorted by creation date (latest first)
           TAGS=$(git tag --sort=-creatordate)
           echo "All tags (newest first):"
           echo "$TAGS"
 
-          # Get previous tag relative to the current tag if possible
           CURRENT_TAG=${{ steps.resolve.outputs.tag }}
-          PREV=$(git describe --tags --abbrev=0 "${CURRENT_TAG}^" 2>/dev/null || true)
 
-          if [ -z "$PREV" ]; then
-            PREV=$(git describe --tags --abbrev=0 "$(git rev-list --tags --max-count=2)" 2>/dev/null | tail -n1 || true)
+          # Try to get the previous tag *only if CURRENT_TAG exists in history*
+          if git rev-parse -q --verify "refs/tags/$CURRENT_TAG" >/dev/null; then
+            echo "Current tag exists in history: $CURRENT_TAG"
+            PREV=$(git describe --tags --abbrev=0 "${CURRENT_TAG}^" 2>/dev/null || true)
+          else
+            echo "Current tag is not a real tag (e.g., PR or manual run)."
+            # Just use the latest real tag as 'previous'
+            PREV=$(git describe --tags --abbrev=0 2>/dev/null || true)
           fi
 
           if [ -n "$PREV" ]; then

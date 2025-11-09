@@ -198,10 +198,7 @@ await queryRunner.query(`
 
 //Validate small geometries function
 await queryRunner.query(`
-
--- Count small polygon components (from Polygon/MultiPolygon) and return:
---   1) count : total number of components with area < min_area_m2 (m²)
---   2) ids   : distinct part IDs (TEXT) that have at least one such small component
+-- Validate small geometries: count polygon components with area < min_area_m2 and return their part IDs
 CREATE OR REPLACE FUNCTION polygon_parts.validate_small_geometries(
     qualified_identifier TEXT,
     min_area_m2 DOUBLE PRECISION
@@ -224,41 +221,23 @@ BEGIN
   table_name  := ident[2];
 
   sql := format($q$
-    WITH src AS (
+    WITH polys AS (
       SELECT
-        id AS part_id,
-        footprint AS g4326
+        t.id::text AS part_id,
+        (ST_Dump(t.footprint)).geom AS poly
       FROM %I.%I t
-      WHERE ST_IsValid(footprint)
+      WHERE ST_IsValid(t.footprint)
         AND t.validated = false
     ),
-    polys AS (
-      SELECT
-        s.part_id,
-        (d.geom)::geometry(Polygon,4326) AS poly
-      FROM src s
-      CROSS JOIN LATERAL ST_Dump(
-        ST_CollectionExtract(s.g4326, 3)  -- 3 = Polygon
-      ) AS d
-    ),
-    small_ids AS (
-      SELECT DISTINCT part_id
-      FROM polys
-      WHERE ST_Area(ST_Transform(poly, 6933)) < %L
-      ORDER BY part_id
-    ),
-    small_count AS (
-      SELECT COUNT(*)::bigint AS cnt
+    small AS (
+      SELECT part_id
       FROM polys
       WHERE ST_Area(ST_Transform(poly, 6933)) < %L
     )
     SELECT
-      (SELECT cnt FROM small_count) AS count,
-      COALESCE(
-        (SELECT ARRAY_AGG(part_id ORDER BY part_id) FROM small_ids),
-        ARRAY[]::text[]
-      ) AS ids
-  $q$, schema_name, table_name, min_area_m2, min_area_m2);
+      (SELECT COUNT(*)::bigint FROM small) AS count,
+      COALESCE((SELECT ARRAY_AGG(DISTINCT part_id) FROM small), ARRAY[]::text[]) AS ids
+  $q$, schema_name, table_name, min_area_m2);
 
   RETURN QUERY EXECUTE sql;
 END;
@@ -289,18 +268,12 @@ BEGIN
   schema_name := ident[1];
   table_name  := ident[2];
 
-  /*
-    Logic:
-      - Take valid, unvalidated rows.
-      - ST_Dump polygonal parts (Polygon/MultiPolygon -> Polygon).
-      - For each polygon, iterate interior rings with generate_series(1, ST_NumInteriorRings(poly)).
-      - Compute hole area in m² via EPSG:6933.
-  */
+  -- Count holes (interior rings) smaller than min_hole_area_m2 (m²) and return IDs that have any
   sql := format($q$
     WITH polys AS (
       SELECT
         t.id::text AS part_id,
-        (ST_Dump(ST_CollectionExtract(t.footprint, 3))).geom AS poly
+        (ST_Dump(ST_CollectionExtract(t.footprint, 3))).geom AS poly   -- Polygon from Polygon/MultiPolygon
       FROM %I.%I t
       WHERE ST_IsValid(t.footprint)
         AND t.validated = false
@@ -310,27 +283,19 @@ BEGIN
         p.part_id,
         ST_Area(
           ST_Transform(
-            ST_BuildArea(ST_InteriorRingN(p.poly, n)),
-            6933
+            ST_BuildArea(ST_InteriorRingN(p.poly, n)),  -- build polygon from the nth interior ring
+            6933                                        -- equal-area meters
           )
         ) AS hole_area_m2
       FROM polys p,
            generate_series(1, ST_NumInteriorRings(p.poly)) AS n
-    ),
-    small_ids AS (
-      SELECT DISTINCT part_id
-      FROM holes
-      WHERE hole_area_m2 < %L
-      ORDER BY part_id
-    ),
-    small_count AS (
-      SELECT COUNT(*)::bigint AS cnt
-      FROM holes
-      WHERE hole_area_m2 < %L
     )
     SELECT
-      (SELECT cnt FROM small_count) AS count,
-      COALESCE((SELECT ARRAY_AGG(part_id ORDER BY part_id) FROM small_ids), ARRAY[]::text[]) AS ids
+      (SELECT COUNT(*)::bigint FROM holes WHERE hole_area_m2 < %L) AS count,
+      COALESCE(
+        (SELECT ARRAY_AGG(DISTINCT part_id) FROM holes WHERE hole_area_m2 < %L),
+        ARRAY[]::text[]
+      ) AS ids
   $q$, schema_name, table_name, min_hole_area_m2, min_hole_area_m2);
 
   RETURN QUERY EXECUTE sql;

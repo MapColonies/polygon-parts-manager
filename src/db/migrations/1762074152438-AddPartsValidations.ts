@@ -46,42 +46,6 @@ export class AddPartsValidations1762074152438 implements MigrationInterface {
       );
     `);
 
-    // --- Base indexes ---
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "base_parts_product_id_idx"
-      ON "polygon_parts"."base_parts" ("product_id");
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "base_parts_product_type_idx"
-      ON "polygon_parts"."base_parts" ("product_type");
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "base_parts_ingestion_date_utc_idx"
-      ON "polygon_parts"."base_parts" ("ingestion_date_utc");
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "base_parts_imaging_time_begin_utc_idx"
-      ON "polygon_parts"."base_parts" ("imaging_time_begin_utc");
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "base_parts_imaging_time_end_utc_idx"
-      ON "polygon_parts"."base_parts" ("imaging_time_end_utc");
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "base_parts_resolution_degree_idx"
-      ON "polygon_parts"."base_parts" ("resolution_degree");
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "base_parts_resolution_meter_idx"
-      ON "polygon_parts"."base_parts" ("resolution_meter");
-    `);
-
     // --- Validation table ---
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "polygon_parts"."validation_parts" (

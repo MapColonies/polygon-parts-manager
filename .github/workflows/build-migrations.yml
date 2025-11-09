@@ -5,8 +5,6 @@ on:
   push:
     tags:
       - 'v*'                       # build on tag pushes
-  pull_request:                     # show in Actions and allow PR runs
-    types: [opened, reopened, synchronize, labeled]
   workflow_dispatch:                # manual run (pick the Docker tag)
     inputs:
       imageTag:

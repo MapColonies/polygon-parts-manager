@@ -7763,14 +7763,15 @@ describe('polygonParts', () => {
         // eslint-disable-next-line @typescript-eslint/unbound-method
         const originalQuery = EntityManager.prototype.query;
 
-        const querySpy = jest.spyOn(EntityManager.prototype, 'query')
-        .mockImplementationOnce(originalQuery)
-        .mockImplementationOnce(originalQuery)
-        .mockImplementationOnce(originalQuery)
-        .mockImplementationOnce(originalQuery)
-        .mockImplementationOnce(originalQuery)
-        .mockResolvedValueOnce([]);        
-        
+        const querySpy = jest
+          .spyOn(EntityManager.prototype, 'query')
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockResolvedValueOnce([]);
+
         const deleteRequestQuery: DeleteValidationEntityQuery = {
           productId: validValidationPolygonPartsPayload.productId,
           productType: validValidationPolygonPartsPayload.productType,

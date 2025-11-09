@@ -94,3 +94,7 @@ jobs:
       - name: Skip (no newly added migrations)
         if: steps.detect.outputs.added != 'true'
         run: echo "No new files added under src/db/migrations/**; skipping."
+
+      - name: Dump environment (end)
+        run: env | sort
+

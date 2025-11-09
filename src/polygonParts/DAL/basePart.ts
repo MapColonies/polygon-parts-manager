@@ -1,5 +1,5 @@
 import { RASTER_PRODUCT_TYPE_LIST, RasterProductTypes } from '@map-colonies/raster-shared';
-import { Check, Column, Index } from 'typeorm';
+import { Check, Column, CreateDateColumn, Index } from 'typeorm';
 import type { BasePartRecord } from '../models/interfaces';
 
 @Check('imaging times', `"imaging_time_begin_utc" <= "imaging_time_end_utc"`)
@@ -30,6 +30,10 @@ export abstract class BasePart implements BasePartRecord {
   @Column({ type: 'text', collation: 'ucs_basic' })
   @Check('product version', `"product_version" ~ '^[1-9]\\\\d*(\\\\.(0|[1-9]\\\\d?))?$'`)
   public productVersion!: string;
+
+  @CreateDateColumn({ type: 'timestamp with time zone', insert: false })
+  @Index()
+  public readonly ingestionDateUTC!: Date;
 
   @Column({ type: 'timestamp with time zone' })
   @Check('imaging time begin utc', `"imaging_time_begin_utc" < now()`)

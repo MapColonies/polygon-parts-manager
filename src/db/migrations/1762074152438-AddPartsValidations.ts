@@ -24,62 +24,26 @@ export class AddPartsValidations1762074152438 implements MigrationInterface {
           "description"              text COLLATE "ucs_basic",
           "id"                       text NOT NULL,
           "catalog_id"               uuid NOT NULL,
-          CONSTRAINT "base_product id"
+          CONSTRAINT "product id"
               CHECK ("product_id" ~ '^[A-Za-z]{1}[A-Za-z0-9_]{0,37}$'),
-          CONSTRAINT "base_product version"
+          CONSTRAINT "product version"
               CHECK ("product_version" ~ '^[1-9]\\d*(\\.(0|[1-9]\\d?))?$'),
-          CONSTRAINT "base_imaging time begin utc"
+          CONSTRAINT "imaging time begin utc"
               CHECK ("imaging_time_begin_utc" < now()),
-          CONSTRAINT "base_imaging time end utc"
+          CONSTRAINT "imaging time end utc"
               CHECK ("imaging_time_end_utc" < now()),
           CONSTRAINT "imaging times" CHECK (
               "imaging_time_begin_utc" <= "imaging_time_end_utc"),
-          CONSTRAINT "base_resolution degree"
+          CONSTRAINT "resolution degree"
               CHECK ("resolution_degree" BETWEEN 0.000000167638063430786 AND 0.703125),
-          CONSTRAINT "base_resolution meter"
+          CONSTRAINT "resolution meter"
               CHECK ("resolution_meter" BETWEEN 0.0185 AND 78271.52),
-          CONSTRAINT "base_source resolution meter"
+          CONSTRAINT "source resolution meter"
               CHECK ("source_resolution_meter" BETWEEN 0.0185 AND 78271.52),
-          CONSTRAINT "base_horizontal accuracy ce90"
+          CONSTRAINT "horizontal accuracy ce90"
               CHECK ("horizontal_accuracy_ce90" BETWEEN 0.01 AND 4000),
           CONSTRAINT "base_parts_pkey" PRIMARY KEY ("id")
       );
-    `);
-
-    // --- Base indexes ---
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "base_parts_product_id_idx"
-      ON "polygon_parts"."base_parts" ("product_id");
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "base_parts_product_type_idx"
-      ON "polygon_parts"."base_parts" ("product_type");
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "base_parts_ingestion_date_utc_idx"
-      ON "polygon_parts"."base_parts" ("ingestion_date_utc");
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "base_parts_imaging_time_begin_utc_idx"
-      ON "polygon_parts"."base_parts" ("imaging_time_begin_utc");
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "base_parts_imaging_time_end_utc_idx"
-      ON "polygon_parts"."base_parts" ("imaging_time_end_utc");
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "base_parts_resolution_degree_idx"
-      ON "polygon_parts"."base_parts" ("resolution_degree");
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "base_parts_resolution_meter_idx"
-      ON "polygon_parts"."base_parts" ("resolution_meter");
     `);
 
     // --- Validation table ---
@@ -87,11 +51,9 @@ export class AddPartsValidations1762074152438 implements MigrationInterface {
       CREATE TABLE IF NOT EXISTS "polygon_parts"."validation_parts" (
           "validated" boolean NOT NULL DEFAULT false,
           "footprint" geometry(Geometry, 4326) NOT NULL,
-          CONSTRAINT "validation_footprint_type_chk"
+          CONSTRAINT "footprint"
               CHECK (GeometryType("footprint") IN ('POLYGON','MULTIPOLYGON')),
-          CONSTRAINT "validation_footprint_srid_chk"
-              CHECK (ST_SRID("footprint") = 4326),
-          CONSTRAINT "validation_geometry_extent"
+          CONSTRAINT "geometry extent"
               CHECK (Box2D("footprint") @ Box2D(ST_GeomFromText('LINESTRING(-180 -90, 180 90)'))),
           CONSTRAINT "validation_parts_pkey" PRIMARY KEY ("id")
       )
@@ -110,11 +72,6 @@ export class AddPartsValidations1762074152438 implements MigrationInterface {
     `);
 
     await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "validation_parts_id_idx"
-      ON "polygon_parts"."validation_parts" ("id");
-    `);
-
-    await queryRunner.query(`
       CREATE INDEX IF NOT EXISTS "validation_parts_ingestion_date_utc_idx"
       ON "polygon_parts"."validation_parts" ("ingestion_date_utc");
     `);
@@ -127,6 +84,31 @@ export class AddPartsValidations1762074152438 implements MigrationInterface {
     await queryRunner.query(`
       CREATE INDEX IF NOT EXISTS "validation_parts_imaging_time_end_utc_idx"
       ON "polygon_parts"."validation_parts" ("imaging_time_end_utc");
+    `);
+
+    await queryRunner.query(`
+      CREATE INDEX IF NOT EXISTS "validation_parts_product_id_idx"
+      ON "polygon_parts"."validation_parts" ("product_id");
+    `);
+
+    await queryRunner.query(`
+      CREATE INDEX IF NOT EXISTS "validation_parts_product_type_idx"
+      ON "polygon_parts"."validation_parts" ("product_type");
+    `);
+    
+    await queryRunner.query(`
+      CREATE INDEX IF NOT EXISTS "validation_parts_catalog_id_idx"
+      ON "polygon_parts"."validation_parts" ("catalog_id");
+    `);
+    
+    await queryRunner.query(`
+      CREATE INDEX IF NOT EXISTS "validation_parts_resolution_degree_idx"
+      ON "polygon_parts"."validation_parts" ("resolution_degree");
+    `);
+    
+    await queryRunner.query(`
+      CREATE INDEX IF NOT EXISTS "validation_parts_resolution_meter_idx"
+      ON "polygon_parts"."validation_parts" ("resolution_meter");
     `);
 
     // --- Stored procedure: create_polygon_parts_validations_tables ---
@@ -207,9 +189,6 @@ await queryRunner.query(`
 
       EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %s ("resolution_meter")',
                      child_table || '_resolution_meter_idx', schm_child);
-
-      EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %s ("id")',
-                     child_table || '_id_idx', schm_child);
 
       EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %s ("product_id")',
                      child_table || '_product_id_idx', schm_child);

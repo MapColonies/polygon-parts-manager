@@ -22,7 +22,6 @@ export class AddPartsValidations1762074152438 implements MigrationInterface {
           "countries"                text COLLATE "ucs_basic",
           "cities"                   text COLLATE "ucs_basic",
           "description"              text COLLATE "ucs_basic",
-          "id"                       text NOT NULL,
           "catalog_id"               uuid NOT NULL,
           CONSTRAINT "product id"
               CHECK ("product_id" ~ '^[A-Za-z]{1}[A-Za-z0-9_]{0,37}$'),
@@ -41,14 +40,14 @@ export class AddPartsValidations1762074152438 implements MigrationInterface {
           CONSTRAINT "source resolution meter"
               CHECK ("source_resolution_meter" BETWEEN 0.0185 AND 78271.52),
           CONSTRAINT "horizontal accuracy ce90"
-              CHECK ("horizontal_accuracy_ce90" BETWEEN 0.01 AND 4000),
-          CONSTRAINT "base_parts_pkey" PRIMARY KEY ("id")
+              CHECK ("horizontal_accuracy_ce90" BETWEEN 0.01 AND 4000)
       );
     `);
 
     // --- Validation table ---
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "polygon_parts"."validation_parts" (
+          "id"           text NOT NULL,
           "validated" boolean NOT NULL DEFAULT false,
           "footprint" geometry(Geometry, 4326) NOT NULL,
           CONSTRAINT "footprint"
@@ -133,8 +132,6 @@ await queryRunner.query(`
           RAISE EXCEPTION 'Input "%" must be a schema-qualified identifier (schema.table)', qualified_identifier;
       END IF;
 
-      EXECUTE format('CREATE SCHEMA IF NOT EXISTS %I', schema_name);
-
       -- Check if child table exists
       SELECT to_regclass(format('%I.%I', schema_name, child_table)) IS NOT NULL
       INTO child_exists;
@@ -205,15 +202,6 @@ await queryRunner.query(`
 -- Count small polygon components (from Polygon/MultiPolygon) and return:
 --   1) count : total number of components with area < min_area_m2 (m²)
 --   2) ids   : distinct part IDs (TEXT) that have at least one such small component
---
--- Notes:
--- - Area is computed in a projected equal-area CRS (EPSG:6933):
---     ST_Area(ST_Transform(poly, 6933))
---   This avoids geodesic/antipodal issues from geography.
--- - The function assumes 'footprint' is in lon/lat (SRID 4326) or SRID=0 (we set it).
--- - If your data may cross the antimeridian, normalize it once during ingest
---   (e.g., ST_WrapX only-if-crossing) and store the normalized geometry.
-
 CREATE OR REPLACE FUNCTION polygon_parts.validate_small_geometries(
     qualified_identifier TEXT,
     min_area_m2 DOUBLE PRECISION
@@ -235,29 +223,13 @@ BEGIN
   schema_name := ident[1];
   table_name  := ident[2];
 
-  /*
-    Pipeline:
-      1) src:
-         - Keep valid rows not yet validated.
-         - Ensure SRID=4326 (set if SRID=0).
-      2) polys:
-         - Extract polygonal parts (3 = Polygon) from Polygon/MultiPolygon.
-         - ST_Dump → one row per polygon component.
-      3) small_ids / small_count:
-         - Compute area in m² via ST_Area(ST_Transform(..., 6933)).
-         - Collect distinct part IDs with any component below threshold and total count.
-  */
   sql := format($q$
     WITH src AS (
       SELECT
-        id::text AS part_id,
-        CASE
-          WHEN ST_SRID(footprint) = 0 THEN ST_SetSRID(footprint, 4326)
-          ELSE footprint
-        END AS g4326
+        id AS part_id,
+        footprint AS g4326
       FROM %I.%I t
-      WHERE footprint IS NOT NULL
-        AND ST_IsValid(footprint)
+      WHERE ST_IsValid(footprint)
         AND t.validated = false
     ),
     polys AS (
@@ -273,6 +245,7 @@ BEGIN
       SELECT DISTINCT part_id
       FROM polys
       WHERE ST_Area(ST_Transform(poly, 6933)) < %L
+      ORDER BY part_id
     ),
     small_count AS (
       SELECT COUNT(*)::bigint AS cnt
@@ -281,7 +254,10 @@ BEGIN
     )
     SELECT
       (SELECT cnt FROM small_count) AS count,
-      COALESCE((SELECT ARRAY_AGG(part_id ORDER BY part_id) FROM small_ids), ARRAY[]::text[]) AS ids
+      COALESCE(
+        (SELECT ARRAY_AGG(part_id ORDER BY part_id) FROM small_ids),
+        ARRAY[]::text[]
+      ) AS ids
   $q$, schema_name, table_name, min_area_m2, min_area_m2);
 
   RETURN QUERY EXECUTE sql;
@@ -301,7 +277,7 @@ LANGUAGE plpgsql
 STABLE
 AS $func$
 DECLARE
-  ident       NAME[] := parse_ident(qualified_identifier)::NAME[];
+  ident NAME[] := parse_ident(qualified_identifier)::NAME[];
   schema_name TEXT;
   table_name  TEXT;
   sql         TEXT;
@@ -314,70 +290,38 @@ BEGIN
   table_name  := ident[2];
 
   /*
-    Counts hole components with area < min_hole_area_m2 and returns:
-      - count : total number of such holes
-      - ids   : distinct part IDs (TEXT) that contain ≥1 small hole
-
-    Robustness:
-      - SRID normalization to 4326:
-          SRID=0       -> ST_SetSRID(...,4326)
-          SRID!=4326   -> ST_Transform(...,4326)
-      - No typmod casts like geometry(LineString,4326)/geometry(Polygon,4326)
-        in intermediate steps (prevents postgis_valid_typmod errors).
-      - Area in m² via EPSG:6933.
+    Logic:
+      - Take valid, unvalidated rows.
+      - ST_Dump polygonal parts (Polygon/MultiPolygon -> Polygon).
+      - For each polygon, iterate interior rings with generate_series(1, ST_NumInteriorRings(poly)).
+      - Compute hole area in m² via EPSG:6933.
   */
   sql := format($q$
-    WITH src AS (
+    WITH polys AS (
       SELECT
-        id::text AS part_id,
-        CASE
-          WHEN ST_SRID(footprint) = 0 THEN ST_SetSRID(footprint, 4326)
-          WHEN ST_SRID(footprint) <> 4326 THEN ST_Transform(footprint, 4326)
-          ELSE footprint
-        END AS g4326
+        t.id::text AS part_id,
+        (ST_Dump(ST_CollectionExtract(t.footprint, 3))).geom AS poly
       FROM %I.%I t
-      WHERE footprint IS NOT NULL
-        AND ST_IsValid(footprint)
+      WHERE ST_IsValid(t.footprint)
         AND t.validated = false
     ),
-    -- explode polygonal components from Polygon/MultiPolygon
-    polys AS (
-      SELECT
-        s.part_id,
-        -- keep SRID but avoid typmod cast
-        ST_SetSRID((d.geom), 4326) AS poly4326
-      FROM src s
-      CROSS JOIN LATERAL ST_Dump(
-        ST_CollectionExtract(s.g4326, 3)   -- 3 = Polygon components
-      ) AS d
-    ),
-    -- dump rings of each polygon: outer (path[1]=0) and holes (path[1]>0)
-    rings AS (
-      SELECT
-        p.part_id,
-        ST_SetSRID((dr).geom, 4326) AS ring4326,
-        (dr).path AS path
-      FROM polys p
-      CROSS JOIN LATERAL (SELECT ST_DumpRings(p.poly4326) AS dr) r
-    ),
-    -- build area for each inner ring; buffer(0) can clean tiny self-touching artifacts
     holes AS (
       SELECT
-        part_id,
+        p.part_id,
         ST_Area(
           ST_Transform(
-            ST_Buffer(ST_BuildArea(ring4326), 0),
+            ST_BuildArea(ST_InteriorRingN(p.poly, n)),
             6933
           )
         ) AS hole_area_m2
-      FROM rings
-      WHERE path[1] > 0
-        AND NOT ST_IsEmpty(ring4326)
+      FROM polys p,
+           generate_series(1, ST_NumInteriorRings(p.poly)) AS n
     ),
     small_ids AS (
       SELECT DISTINCT part_id
       FROM holes
       WHERE hole_area_m2 < %L
+      ORDER BY part_id
     ),
     small_count AS (
       SELECT COUNT(*)::bigint AS cnt
@@ -432,8 +376,7 @@ BEGIN
     sql := format($q$
         SELECT v.id
         FROM   %I.%I AS v
-        WHERE  v.footprint IS NOT NULL
-          AND  ST_IsValid(v.footprint)                  -- validity check FIRST
+        WHERE  ST_IsValid(v.footprint)                  -- validity check FIRST
           AND  EXISTS (
                 SELECT 1
                 FROM   %I.%I AS p

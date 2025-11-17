@@ -126,7 +126,6 @@ export class AddPartsValidations1762074152438 implements MigrationInterface {
       schm_child    text   := q_schema || '.' || q_child;
 
       child_exists  boolean;
-      pk_exists     boolean;
     BEGIN
       IF schema_name IS NULL OR base_table IS NULL THEN
           RAISE EXCEPTION 'Input "%" must be a schema-qualified identifier (schema.table)', qualified_identifier;
@@ -204,7 +203,7 @@ export class AddPartsValidations1762074152438 implements MigrationInterface {
     sql := format($q$
       WITH polys AS (
         SELECT
-          t.id::text AS part_id,
+          t.id AS part_id,
           (ST_Dump(t.footprint)).geom AS poly
         FROM %I.%I t
         WHERE ST_IsValid(t.footprint)
@@ -253,8 +252,8 @@ export class AddPartsValidations1762074152438 implements MigrationInterface {
     sql := format($q$
       WITH polys AS (
         SELECT
-          t.id::text AS part_id,
-          (ST_Dump(ST_CollectionExtract(t.footprint, 3))).geom AS poly   -- Polygon from  Polygon/MultiPolygon
+          t.id AS part_id,
+          (ST_Dump(t.footprint)).geom AS poly   -- Polygon from  Polygon/MultiPolygon
         FROM %I.%I t
         WHERE ST_IsValid(t.footprint)
           AND t.validated = false

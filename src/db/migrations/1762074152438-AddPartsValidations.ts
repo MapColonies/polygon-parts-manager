@@ -146,25 +146,6 @@ export class AddPartsValidations1762074152438 implements MigrationInterface {
           RAISE NOTICE 'Child table % already exists, skipping CREATE TABLE', schm_child;
       END IF;
 
-      -- Ensure PRIMARY KEY(id) exists (not inherited)
-      SELECT EXISTS (
-          SELECT 1
-          FROM pg_constraint c
-          JOIN pg_class t ON t.oid = c.conrelid
-          JOIN pg_namespace n ON n.oid = t.relnamespace
-          WHERE n.nspname = schema_name
-            AND t.relname = child_table
-            AND c.contype = 'p'
-      )
-      INTO pk_exists;
-
-      IF NOT pk_exists THEN
-          EXECUTE format(
-              'ALTER TABLE %s ADD CONSTRAINT %I PRIMARY KEY ("id")',
-              schm_child, child_table || '_pkey'
-          );
-      END IF;
-
       -- Indexes (idempotent)
       EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %s USING GIST ("footprint")',
                      child_table || '_footprint_idx', schm_child);

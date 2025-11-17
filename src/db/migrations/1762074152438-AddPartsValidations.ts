@@ -325,7 +325,7 @@ export class AddPartsValidations1762074152438 implements MigrationInterface {
             AND  EXISTS (
                   SELECT 1
                   FROM   %I.%I AS p
-                  WHERE  v.validated = 'false'
+                  WHERE  v.validated = false
   				          AND   p.resolution_degree < v.resolution_degree
                     AND  p.footprint && v.footprint       -- fast bbox prefilter (GiST)
                     AND  ST_Intersects(p.footprint, v.footprint)

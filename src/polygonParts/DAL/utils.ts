@@ -1,7 +1,8 @@
 import { DefaultNamingStrategy, type ObjectLiteral, type Repository, type Table } from 'typeorm';
 import type { ApplicationConfig } from '../../common/interfaces';
 import { camelCaseToSnakeCase } from '../../common/utils';
-import type { InsertPartData, PolygonPartsPayload } from '../models/interfaces';
+import type { InsertPartData, ValidatePartData, PolygonPartsPayload } from '../models/interfaces';
+import { ValidatePolygonPartsRequestBody } from '../controllers/interfaces';
 
 const customNamingStrategy = new DefaultNamingStrategy();
 customNamingStrategy.indexName = (tableOrName: Table | string, columnNames: string[], where?: string): string => {
@@ -43,6 +44,36 @@ export const payloadToInsertPartsData = (
       sensors: partData.sensors.join(arraySeparator),
       countries: partData.countries?.join(arraySeparator),
       cities: partData.cities?.join(arraySeparator),
+    };
+  });
+};
+
+export const payloadToInsertValidationsData = (
+  validationsPolygonPartsPayload: ValidatePolygonPartsRequestBody,
+  arraySeparator: ApplicationConfig['arraySeparator']
+): ValidatePartData[] => {
+  const { featureCollection: partsData, productId, productVersion, productType, catalogId } = validationsPolygonPartsPayload;
+
+  return partsData.features.map((partData) => {
+    return {
+      productId,
+      productType,
+      productVersion,
+      id: partData.id,
+      catalogId,
+      footprint: partData.geometry,
+      horizontalAccuracyCE90: partData.properties.horizontalAccuracyCE90,
+      imagingTimeBeginUTC: new Date(partData.properties.imagingTimeBeginUTC),
+      imagingTimeEndUTC: new Date(partData.properties.imagingTimeEndUTC),
+      resolutionDegree: partData.properties.resolutionDegree,
+      resolutionMeter: partData.properties.resolutionMeter,
+      sourceResolutionMeter: partData.properties.sourceResolutionMeter,
+      sourceId: partData.properties.sourceId,
+      sourceName: partData.properties.sourceName,
+      description: partData.properties.description,
+      sensors: partData.properties.sensors.join(arraySeparator),
+      countries: partData.properties.countries?.join(arraySeparator),
+      cities: partData.properties.cities?.join(arraySeparator),
     };
   });
 };

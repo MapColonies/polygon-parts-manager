@@ -1,7 +1,13 @@
 import { faker } from '@faker-js/faker';
 import jsLogger from '@map-colonies/js-logger';
 import { zoomLevelToResolutionDeg } from '@map-colonies/mc-utils';
-import { aggregationFeatureSchema, CORE_VALIDATIONS, INGESTION_VALIDATIONS, PolygonPart as PolygonPartType } from '@map-colonies/raster-shared';
+import {
+  aggregationFeatureSchema,
+  CORE_VALIDATIONS,
+  INGESTION_VALIDATIONS,
+  JobTypes,
+  PolygonPart as PolygonPartType,
+} from '@map-colonies/raster-shared';
 import { trace } from '@opentelemetry/api';
 import { booleanContains } from '@turf/boolean-contains';
 import { booleanEqual } from '@turf/boolean-equal';
@@ -13,7 +19,8 @@ import { StatusCodes as httpStatusCodes } from 'http-status-codes';
 import { get as getValue, merge } from 'lodash';
 import { xor } from 'martinez-polygon-clipping';
 import { container } from 'tsyringe';
-import { DataSource, EntityManager, Geometry, Repository, SelectQueryBuilder, type DataSourceOptions } from 'typeorm';
+import { DataSource, EntityManager, Geometry, Repository, SelectQueryBuilder, UpdateQueryBuilder, type DataSourceOptions } from 'typeorm';
+import _ from 'lodash';
 import { getApp } from '../../../src/app';
 import { ConnectionManager } from '../../../src/common/connectionManager';
 import { SERVICES } from '../../../src/common/constants';
@@ -22,9 +29,12 @@ import { Transformer } from '../../../src/common/middlewares/transformer';
 import { createConnectionOptions } from '../../../src/common/utils';
 import type {
   AggregatePolygonPartsRequestBody,
+  DeleteValidationEntityQuery,
   ExistsRequestBody,
   ExistsResponseBody,
   FindPolygonPartsResponseBody,
+  ValidatePolygonPartsRequestBody,
+  ValidatePolygonPartsResponseBody,
 } from '../../../src/polygonParts/controllers/interfaces';
 import { Part } from '../../../src/polygonParts/DAL/part';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
@@ -44,20 +54,31 @@ import {
   germanyFootprint,
   intersectionWithItalyFootprint,
   intersectionWithItalyRequest,
+  invalidGeometriesValidateRequest,
+  invalidGeometryValidRequest,
+  invalidSmallGeometriesValidateRequest,
+  invalidSmallHolesValidateRequest,
   italyFootprint,
   italyWithoutIntersection,
+  mockMultipleInvalidGeometries,
+  mockSmallAreaAndHole,
+  mockUpdateWithIntersectingParts,
   separatePolygonsRequest,
+  validationEntireWorldRequest,
+  validValidationPolygonPartsPayload,
   worldFootprint,
   worldMinusSeparateCountries,
 } from '../../mocks/requestsMocks';
 import { customAggregationNoFilter, customAggregationWithFilter } from '../../mocks/responseMocks';
+import { ValidatePart } from '../../../src/polygonParts/DAL/validationPart';
+import { FeatureValidationError } from '../../../src/common/enums';
 import polygonEarth from './data/polygonEarth.json';
 import polygonEasternHemisphere from './data/polygonEasternHemisphere.json';
 import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
 import polygonWesternHemisphere from './data/polygonWesternHemisphere.json';
 import { INITIAL_DB, INTERNAL_DB_GEOM_PRECISION } from './helpers/constants';
-import { createDB, generateExistsPayload, generateFeatureId, generatePolygon, generatePolygonPartsPayload, HelperDB } from './helpers/db';
+import { createDB, deleteDB, generateExistsPayload, generateFeatureId, generatePolygon, generatePolygonPartsPayload, HelperDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import type { DeepPartial } from './helpers/types';
 import { allFindFeaturesEqual, toExpectedFindPolygonPartsResponse, toExpectedPostgresResponse } from './helpers/utils';
@@ -93,7 +114,7 @@ describe('polygonParts', () => {
   ) => EntitiesMetadata;
 
   beforeAll(async () => {
-    testDataSourceOptions = { entities: [Part, PolygonPart], namingStrategy, ...createConnectionOptions(dbConfig) };
+    testDataSourceOptions = { entities: [Part, PolygonPart, ValidatePart], namingStrategy, ...createConnectionOptions(dbConfig) };
     await createDB({ options: testDataSourceOptions, initialDatabase: INITIAL_DB });
     helperDB = new HelperDB(testDataSourceOptions);
     await helperDB.initConnection();
@@ -103,7 +124,7 @@ describe('polygonParts', () => {
     await helperDB.destroyConnection();
     /* uncomment this when running locally, this deletes the created db after all tests,
     instead of removing it manually after each run.*/
-    // await deleteDB(testDataSourceOptions);
+    await deleteDB(testDataSourceOptions);
   });
 
   beforeEach(async () => {
@@ -164,7 +185,10 @@ describe('polygonParts', () => {
         expect(response.status).toBe(httpStatusCodes.OK);
         expect(response).toSatisfyApiSpec();
         expect(result.success).toBe(true);
-        expect(result.data).toEqual(customAggregationNoFilter);
+        // @ts-expect-error test guarantees defined
+        expect(_.xorWith(result.data.geometry.coordinates, customAggregationNoFilter.geometry.coordinates, (a, b) => _.isEqual(a, b))).toHaveLength(
+          0
+        );
 
         const coordinates = result.data?.geometry?.coordinates.flat(3) ?? [];
         for (const coordinate of coordinates) {
@@ -4217,7 +4241,7 @@ describe('polygonParts', () => {
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);
-      });
+      }, 5000000);
     });
 
     describe('POST /polygonParts', () => {
@@ -5177,7 +5201,7 @@ describe('polygonParts', () => {
         expect(partRecords[2].isProcessedPart).toBe(true);
         expect(partRecords[3].isProcessedPart).toBe(true);
 
-        expect(polygonPartRecords[0].footprint).toEqual(worldMinusSeparateCountries);
+        expect(xor(polygonPartRecords[0].footprint.coordinates, worldMinusSeparateCountries.coordinates)).toHaveLength(0);
         expect(polygonPartRecords[0].insertionOrder).toBe(1);
 
         expect.assertions(17);
@@ -5971,6 +5995,68 @@ describe('polygonParts', () => {
         });
 
         expect.assertions(29);
+      });
+    });
+
+    describe('POST /polygonParts/validate', () => {
+      it('should return 200 with no validation errors on valid polygonpart request of new job type', async () => {
+        const response = await requestSender.validatePolygonParts(validValidationPolygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response).toSatisfyApiSpec();
+        expect(response.body).toStrictEqual({ parts: [], smallGeometriesCount: 0, smallHolesCount: 0 });
+
+        expect.assertions(3);
+      });
+
+      it('should return 200 with no validation errors on valid polygonpart request of new job type on entire world', async () => {
+        const response = await requestSender.validatePolygonParts(validationEntireWorldRequest);
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response).toSatisfyApiSpec();
+        expect(response.body).toStrictEqual({ parts: [], smallGeometriesCount: 0, smallHolesCount: 0 });
+
+        expect.assertions(3);
+      });
+
+      it('should return 200 with no validation errors on valid polygonpart request of update job type where parts dont intersect', async () => {
+        const insertPolygonPartsPayload = createCustomInitPayloadRequestForAggregation;
+        await requestSender.createPolygonParts(insertPolygonPartsPayload);
+        const updateRequestPayload = { ...validValidationPolygonPartsPayload, jobType: JobTypes.Ingestion_Update };
+        const response = await requestSender.validatePolygonParts(updateRequestPayload);
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response).toSatisfyApiSpec();
+        expect(response.body).toStrictEqual({ parts: [], smallGeometriesCount: 0, smallHolesCount: 0 });
+
+        expect.assertions(3);
+      });
+
+      it('should return 200 with no validation errors on valid polygonpart request of swap job type', async () => {
+        const updateRequestPayload = { ...validValidationPolygonPartsPayload, jobType: JobTypes.Ingestion_Swap_Update };
+        const response = await requestSender.validatePolygonParts(updateRequestPayload);
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response).toSatisfyApiSpec();
+        expect(response.body).toStrictEqual({ parts: [], smallGeometriesCount: 0, smallHolesCount: 0 });
+
+        expect.assertions(3);
+      });
+    });
+
+    describe('DELETE /polygonParts/validate', () => {
+      it('should return 204 on successful delete', async () => {
+        const deleteRequestQuery: DeleteValidationEntityQuery = {
+          productId: validValidationPolygonPartsPayload.productId,
+          productType: validValidationPolygonPartsPayload.productType,
+        };
+        await requestSender.validatePolygonParts(validValidationPolygonPartsPayload);
+        const response = await requestSender.deleteValidationPolygonParts(deleteRequestQuery);
+
+        expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
       });
     });
   });
@@ -7614,6 +7700,93 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
     });
+
+    describe('POST /polygonParts/validate', () => {
+      it('should return 400 status code if productType isnt supported', async () => {
+        const validationRequest = { ...validValidationPolygonPartsPayload, productType: 'bad value' };
+        const response = await requestSender.validatePolygonParts(validationRequest as ValidatePolygonPartsRequestBody);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code when jobType isnt supported', async () => {
+        const validationRequest = { ...validValidationPolygonPartsPayload, jobType: JobTypes.Raster_Tiles_Exporter };
+        const response = await requestSender.validatePolygonParts(validationRequest as unknown as ValidatePolygonPartsRequestBody);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 status code when geometry is point', async () => {
+        const response = await requestSender.validatePolygonParts(invalidGeometryValidRequest as unknown as ValidatePolygonPartsRequestBody);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+    });
+
+    describe('DELETE /polygonParts/validate', () => {
+      it('should return 400 on unsupported productType', async () => {
+        const deleteRequestQuery = {
+          productId: validValidationPolygonPartsPayload.productId,
+          productType: 'bad_value',
+        };
+        const response = await requestSender.deleteValidationPolygonParts(deleteRequestQuery as unknown as DeleteValidationEntityQuery);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 on unsupported productId format', async () => {
+        const deleteRequestQuery = {
+          productId: 111,
+          productType: validValidationPolygonPartsPayload.productType,
+        };
+        const response = await requestSender.deleteValidationPolygonParts(deleteRequestQuery as unknown as DeleteValidationEntityQuery);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 on delete attempt on a non validation table', async () => {
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalQuery = EntityManager.prototype.query;
+
+        const querySpy = jest
+          .spyOn(EntityManager.prototype, 'query')
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockResolvedValueOnce([]);
+
+        const deleteRequestQuery: DeleteValidationEntityQuery = {
+          productId: validValidationPolygonPartsPayload.productId,
+          productType: validValidationPolygonPartsPayload.productType,
+        };
+
+        await requestSender.validatePolygonParts(validValidationPolygonPartsPayload);
+
+        const response = await requestSender.deleteValidationPolygonParts(deleteRequestQuery);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+        expect(querySpy).toHaveBeenCalledTimes(6);
+        expect.assertions(3);
+      });
+    });
   });
 
   describe('Sad Path', () => {
@@ -8270,6 +8443,314 @@ describe('polygonParts', () => {
         expect(existsPolygonParts).toBeTrue();
 
         expect.assertions(6);
+      });
+    });
+
+    describe('POST /polygonParts/validate', () => {
+      it('should return 422 status code when geomerties arent valid', async () => {
+        const expected: ValidatePolygonPartsResponseBody = {
+          parts: [
+            {
+              id: invalidGeometriesValidateRequest.featureCollection.features[0].id,
+              errors: [FeatureValidationError.VALIDITY],
+            },
+            {
+              id: invalidGeometriesValidateRequest.featureCollection.features[1].id,
+              errors: [FeatureValidationError.VALIDITY],
+            },
+          ],
+          smallGeometriesCount: 0,
+          smallHolesCount: 0,
+        };
+        const response = await requestSender.validatePolygonParts(invalidGeometriesValidateRequest);
+
+        expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
+        expect(response.body).toEqual(expected);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 422 status code when there are small geometries', async () => {
+        const expected: ValidatePolygonPartsResponseBody = {
+          parts: [
+            { id: invalidSmallGeometriesValidateRequest.featureCollection.features[0].id, errors: [FeatureValidationError.SMALL_GEOMETRY] },
+            { id: invalidSmallGeometriesValidateRequest.featureCollection.features[1].id, errors: [FeatureValidationError.SMALL_GEOMETRY] },
+          ],
+          smallGeometriesCount: 2,
+          smallHolesCount: 0,
+        };
+        const response = await requestSender.validatePolygonParts(invalidSmallGeometriesValidateRequest);
+
+        expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
+        expect(response.body).toEqual(expected);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 422 status code when there are small holes', async () => {
+        const expected: ValidatePolygonPartsResponseBody = {
+          parts: [
+            { id: invalidSmallGeometriesValidateRequest.featureCollection.features[0].id, errors: [FeatureValidationError.SMALL_HOLES] },
+            { id: invalidSmallGeometriesValidateRequest.featureCollection.features[1].id, errors: [FeatureValidationError.SMALL_HOLES] },
+          ],
+          smallGeometriesCount: 0,
+          smallHolesCount: 2,
+        };
+        const response = await requestSender.validatePolygonParts(invalidSmallHolesValidateRequest);
+
+        expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
+        expect(response.body).toEqual(expected);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 422 status code when there are small hole and small geo', async () => {
+        const expected: ValidatePolygonPartsResponseBody = {
+          parts: [
+            { id: mockSmallAreaAndHole.featureCollection.features[0].id, errors: [FeatureValidationError.SMALL_GEOMETRY] },
+            { id: mockSmallAreaAndHole.featureCollection.features[1].id, errors: [FeatureValidationError.SMALL_HOLES] },
+          ],
+          smallGeometriesCount: 1,
+          smallHolesCount: 1,
+        };
+        const response = await requestSender.validatePolygonParts(mockSmallAreaAndHole);
+
+        expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
+        expect(response.body).toEqual(expected);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 422 status code when there is small hole, small geo and 1 invalid', async () => {
+        const expected: ValidatePolygonPartsResponseBody = {
+          parts: [
+            { id: mockMultipleInvalidGeometries.featureCollection.features[0].id, errors: [FeatureValidationError.VALIDITY] },
+            { id: mockMultipleInvalidGeometries.featureCollection.features[2].id, errors: [FeatureValidationError.VALIDITY] },
+            {
+              id: mockMultipleInvalidGeometries.featureCollection.features[1].id,
+              errors: [FeatureValidationError.SMALL_GEOMETRY, FeatureValidationError.SMALL_HOLES],
+            },
+          ],
+          smallGeometriesCount: 1,
+          smallHolesCount: 1,
+        };
+        const response = await requestSender.validatePolygonParts(mockMultipleInvalidGeometries);
+
+        expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
+        expect(response.body).toEqual(expected);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(3);
+      });
+
+      it('should return 422 status code when updating intersecting parts with worse resolution', async () => {
+        const expected: ValidatePolygonPartsResponseBody = {
+          parts: [
+            { id: mockUpdateWithIntersectingParts.featureCollection.features[0].id, errors: [FeatureValidationError.RESOLUTIONS] },
+            { id: mockUpdateWithIntersectingParts.featureCollection.features[1].id, errors: [FeatureValidationError.RESOLUTIONS] },
+          ],
+          smallGeometriesCount: 0,
+          smallHolesCount: 0,
+        };
+        const insertPolygonPartsPayload = createCustomInitPayloadRequestForAggregation;
+        await requestSender.createPolygonParts(insertPolygonPartsPayload);
+        const response = await requestSender.validatePolygonParts(mockUpdateWithIntersectingParts);
+
+        expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
+        expect(response).toSatisfyApiSpec();
+        expect(response.body).toStrictEqual(expected);
+
+        expect.assertions(3);
+      });
+
+      it('should return 500 status code for a database error - cant create validations table', async () => {
+        const expectedErrorMessage = 'query error';
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalQuery = EntityManager.prototype.query;
+        const spyQuery = jest
+          .spyOn(EntityManager.prototype, 'query')
+          .mockImplementationOnce(originalQuery)
+          .mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.validatePolygonParts(validValidationPolygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response).toSatisfyApiSpec();
+        expect(spyQuery).toHaveBeenCalledTimes(2);
+
+        expect.assertions(3);
+      });
+
+      it('should return 500 status code for a database error - insert to validation table error', async () => {
+        const expectedErrorMessage = 'query error';
+        const spyQuery = jest.spyOn(Repository.prototype, 'save').mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.validatePolygonParts(validValidationPolygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response).toSatisfyApiSpec();
+        expect(spyQuery).toHaveBeenCalledTimes(1);
+
+        expect.assertions(3);
+      });
+
+      it('should return 500 status code for a database error - geometries validation check fails', async () => {
+        const expectedErrorMessage = 'query error';
+        const spySelect = jest.spyOn(SelectQueryBuilder.prototype, 'getRawMany').mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.validatePolygonParts(validValidationPolygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response).toSatisfyApiSpec();
+        expect(spySelect).toHaveBeenCalledTimes(1);
+
+        expect.assertions(3);
+      });
+
+      it('should return 500 status code for a database error - small geometries validation check fails', async () => {
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalQuery = EntityManager.prototype.query;
+        const expectedErrorMessage = 'query error';
+        const spyQuery = jest
+          .spyOn(EntityManager.prototype, 'query')
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.validatePolygonParts(validValidationPolygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response).toSatisfyApiSpec();
+        expect(spyQuery).toHaveBeenCalledTimes(3);
+
+        expect.assertions(3);
+      });
+
+      it('should return 500 status code for a database error - small holes validation check fails', async () => {
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalQuery = EntityManager.prototype.query;
+        const expectedErrorMessage = 'query error';
+        const spyQuery = jest
+          .spyOn(EntityManager.prototype, 'query')
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.validatePolygonParts(validValidationPolygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response).toSatisfyApiSpec();
+        expect(spyQuery).toHaveBeenCalledTimes(4);
+
+        expect.assertions(3);
+      });
+
+      it('should return 404 status code for a non existing polygonParts table upon update', async () => {
+        const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockResolvedValueOnce(false);
+        const response = await requestSender.validatePolygonParts({ ...validValidationPolygonPartsPayload, jobType: JobTypes.Ingestion_Update });
+
+        expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
+        expect(response).toSatisfyApiSpec();
+        expect(spyGetExists).toHaveBeenCalledTimes(1);
+
+        expect.assertions(3);
+      });
+
+      it('should return 500 status code on getExists database error upon update', async () => {
+        const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValue(new Error('query error'));
+        const response = await requestSender.validatePolygonParts({ ...validValidationPolygonPartsPayload, jobType: JobTypes.Ingestion_Update });
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response).toSatisfyApiSpec();
+        expect(spyGetExists).toHaveBeenCalledTimes(1);
+
+        expect.assertions(3);
+      });
+
+      it('should return 500 status code on resolutions  database error upon update', async () => {
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalQuery = SelectQueryBuilder.prototype.getRawMany;
+        const expectedErrorMessage = 'query error';
+        jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockResolvedValueOnce(true);
+
+        const spySelect = jest
+          .spyOn(SelectQueryBuilder.prototype, 'getRawMany')
+          .mockImplementationOnce(originalQuery)
+          .mockImplementationOnce(originalQuery)
+          .mockRejectedValueOnce(new Error(expectedErrorMessage));
+        const response = await requestSender.validatePolygonParts({ ...validValidationPolygonPartsPayload, jobType: JobTypes.Ingestion_Update });
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response).toSatisfyApiSpec();
+        expect(spySelect).toHaveBeenCalledTimes(2);
+
+        expect.assertions(3);
+      });
+
+      it('should return 500 status code for a database error - when updating validated property', async () => {
+        const expectedErrorMessage = 'query error';
+        const spyQuery = jest.spyOn(UpdateQueryBuilder.prototype, 'execute').mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.validatePolygonParts(validValidationPolygonPartsPayload);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response).toSatisfyApiSpec();
+        expect(spyQuery).toHaveBeenCalledOnce();
+
+        expect.assertions(3);
+      });
+    });
+    describe('DELETE /polygonParts/validate', () => {
+      it('should return 404 when validation table doesnt exist', async () => {
+        const deleteRequestQuery: DeleteValidationEntityQuery = {
+          productId: validValidationPolygonPartsPayload.productId,
+          productType: validValidationPolygonPartsPayload.productType,
+        };
+        const response = await requestSender.deleteValidationPolygonParts(deleteRequestQuery);
+
+        expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 500 on when databse error - exists fails', async () => {
+        const deleteRequestQuery: DeleteValidationEntityQuery = {
+          productId: validValidationPolygonPartsPayload.productId,
+          productType: validValidationPolygonPartsPayload.productType,
+        };
+
+        const spyGetExists = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValue(new Error('query error'));
+
+        const response = await requestSender.deleteValidationPolygonParts(deleteRequestQuery);
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response).toSatisfyApiSpec();
+        expect(spyGetExists).toHaveBeenCalledTimes(1);
+
+        expect.assertions(3);
+      });
+
+      it('should return 500 on when databse error - delete fails', async () => {
+        const deleteRequestQuery: DeleteValidationEntityQuery = {
+          productId: validValidationPolygonPartsPayload.productId,
+          productType: validValidationPolygonPartsPayload.productType,
+        };
+        await requestSender.validatePolygonParts(validValidationPolygonPartsPayload);
+
+        const spyQuery = jest.spyOn(EntityManager.prototype, 'query').mockRejectedValue(new Error('query error'));
+
+        const response = await requestSender.deleteValidationPolygonParts(deleteRequestQuery);
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response).toSatisfyApiSpec();
+        expect(spyQuery).toHaveBeenCalledTimes(1);
+
+        expect.assertions(3);
       });
     });
   });

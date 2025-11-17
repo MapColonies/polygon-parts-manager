@@ -1,18 +1,22 @@
 import type { RequestHandler } from 'express';
 import httpStatus from 'http-status-codes';
 import { inject, injectable } from 'tsyringe';
+import { getValidationStatusCode } from '../../common/utils';
 import type { EntitiesMetadata, IsSwapQueryParams, PolygonPartsPayload, PolygonPartsResponse } from '../models/interfaces';
 import { PolygonPartsManager } from '../models/polygonPartsManager';
 import type {
   AggregatePolygonPartsRequestBody,
   AggregationLayerMetadataParams,
   AggregationLayerMetadataResponseBody,
+  DeleteValidationEntityQuery,
   ExistsRequestBody,
   ExistsResponseBody,
   FindPolygonPartsParams,
   FindPolygonPartsQueryParams,
   FindPolygonPartsRequestBody,
   FindPolygonPartsResponseBody,
+  ValidatePolygonPartsRequestBody,
+  ValidatePolygonPartsResponseBody,
 } from './interfaces';
 
 /**
@@ -49,6 +53,22 @@ export type AggregationLayerMetadataHandler = RequestHandler<
   AggregationLayerMetadataResponseBody,
   AggregatePolygonPartsRequestBody,
   undefined,
+  EntitiesMetadata
+>;
+
+export type ValidatePolygonPartsHandler = RequestHandler<
+  undefined,
+  ValidatePolygonPartsResponseBody,
+  ValidatePolygonPartsRequestBody,
+  undefined,
+  EntitiesMetadata
+>;
+
+export type DeleteValidationPolygonPartsEntityHandler = RequestHandler<
+  undefined,
+  undefined,
+  undefined,
+  DeleteValidationEntityQuery,
   EntitiesMetadata
 >;
 
@@ -107,6 +127,24 @@ export class PolygonPartsController {
       const isSwap = req.query.isSwap;
       const response = await this.polygonPartsManager.updatePolygonParts(isSwap, req.body, res.locals);
       return res.status(httpStatus.OK).send(response);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public validatePolygonParts: ValidatePolygonPartsHandler = async (req, res, next) => {
+    try {
+      const response = await this.polygonPartsManager.validatePolygonParts(req.body, res.locals);
+      return res.status(getValidationStatusCode(response)).send(response);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public deleteValidationPolygonParts: DeleteValidationPolygonPartsEntityHandler = async (req, res, next) => {
+    try {
+      await this.polygonPartsManager.deleteValidationPolygonParts(res.locals);
+      return res.status(httpStatus.NO_CONTENT).json();
     } catch (error) {
       next(error);
     }

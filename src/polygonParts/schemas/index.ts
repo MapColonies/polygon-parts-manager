@@ -67,7 +67,7 @@ export const getDBEntityNameSchemaFactory = <T extends keyof ApplicationConfig['
 };
 
 export const getEntitiesMetadataSchemaFactory = ({
-  entities: { parts, polygonParts },
+  entities: { parts, polygonParts, validations },
   schema,
   getEntitiesMetadata,
 }: Pick<ApplicationConfig, 'entities'> & Pick<DbConfig, 'schema'> & Pick<Transformer, 'getEntitiesMetadata'>): ZodType<
@@ -88,6 +88,12 @@ export const getEntitiesMetadataSchemaFactory = ({
     getEntitiesMetadata,
     entity: 'polygonParts',
   });
+  const validationsDBEntityNameSchema = getDBEntityNameSchemaFactory({
+    ...validations,
+    ...{ schema },
+    getEntitiesMetadata,
+    entity: 'validations',
+  });
 
   return z
     .object({
@@ -96,6 +102,7 @@ export const getEntitiesMetadataSchemaFactory = ({
         .object({
           parts: partsDBEntityNameSchema,
           polygonParts: polygonPartsDBEntityNameSchema,
+          validations: validationsDBEntityNameSchema,
         })
         .strict(),
     })

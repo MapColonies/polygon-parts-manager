@@ -1,7 +1,7 @@
 import { BadRequestError } from '@map-colonies/error-types';
 import { inject, singleton } from 'tsyringe';
 import { ZodType, type ZodTypeDef } from 'zod';
-import type { ExistsRequestBody } from '../../polygonParts/controllers/interfaces';
+import type { ExistsRequestBody, ValidatePolygonPartsRequestBody } from '../../polygonParts/controllers/interfaces';
 import type {
   EntitiesMetadata,
   EntityIdentifier,
@@ -50,6 +50,8 @@ export class Transformer {
       `${this.applicationConfig.entities.parts.namePrefix}${entityIdentifier}${this.applicationConfig.entities.parts.nameSuffix}` satisfies EntityNames['entityName'];
     const polygonPartsEntityName =
       `${this.applicationConfig.entities.polygonParts.namePrefix}${entityIdentifier}${this.applicationConfig.entities.polygonParts.nameSuffix}` satisfies EntityNames['entityName'];
+    const validationsEntityName =
+      `${this.applicationConfig.entities.validations.namePrefix}${entityIdentifier}${this.applicationConfig.entities.validations.nameSuffix}` satisfies EntityNames['entityName'];
 
     return {
       entityIdentifier,
@@ -62,11 +64,17 @@ export class Transformer {
           entityName: polygonPartsEntityName,
           databaseObjectQualifiedName: this.getDatabaseObjectQualifiedName(this.schema, polygonPartsEntityName),
         },
+        validations: {
+          entityName: validationsEntityName,
+          databaseObjectQualifiedName: this.getDatabaseObjectQualifiedName(this.schema, validationsEntityName),
+        },
       },
     };
   };
 
-  public readonly parseEntitiesMetadata = (input: EntityIdentifierObject | PolygonPartsPayload | ExistsRequestBody): EntitiesMetadata => {
+  public readonly parseEntitiesMetadata = (
+    input: EntityIdentifierObject | PolygonPartsPayload | ExistsRequestBody | ValidatePolygonPartsRequestBody
+  ): EntitiesMetadata => {
     try {
       const entitiesMetadata = this.getEntitiesMetadata(input);
       return schemaParser({

@@ -1,3 +1,4 @@
+import type { JobTypes } from '@map-colonies/raster-shared';
 import type {
   AggregateLayerMetadataOptions,
   AggregationLayerMetadataResponse,
@@ -6,7 +7,10 @@ import type {
   ExistsResponse,
   FindPolygonPartsOptions,
   FindPolygonPartsResponse,
+  CommonRecord,
 } from '../models/interfaces';
+import { PolygonPartsFeatureCollection } from '../../common/types';
+import { FeatureValidationError } from '../../common/enums';
 
 /**
  * Exists request body
@@ -52,3 +56,21 @@ export interface AggregationLayerMetadataParams {
  * Get aggregation layer metadata response body
  */
 export interface AggregationLayerMetadataResponseBody extends AggregationLayerMetadataResponse {}
+
+export interface ValidateError {
+  id: string;
+  errors: FeatureValidationError[];
+}
+export interface ValidatePolygonPartsResponseBody {
+  parts: ValidateError[];
+  smallGeometriesCount: number;
+  smallHolesCount: number;
+}
+
+export type ValidatePolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType' | 'productVersion' | 'catalogId'> & {
+  jobType: Extract<JobTypes, 'Ingestion_New' | 'Ingestion_Update' | 'Ingestion_Swap_Update'>;
+} & {
+  featureCollection: PolygonPartsFeatureCollection;
+};
+
+export type DeleteValidationEntityQuery = Pick<CommonRecord, 'productId' | 'productType'>;

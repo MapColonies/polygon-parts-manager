@@ -1,3 +1,4 @@
+import { PolygonPartsEntityName, PolygonPartsEntityNameObject } from '@map-colonies/raster-shared';
 import type { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
 export interface ApplicationConfig {
@@ -11,16 +12,22 @@ export interface ApplicationConfig {
   validateResolutionsFunction: string;
   entities: {
     parts: {
+      // TODO: remove
       namePrefix: Lowercase<string>;
       nameSuffix: Lowercase<string>;
     };
     polygonParts: {
+      // TODO: remove
       find: {
         maxDecimalDigits: number;
       };
       namePrefix: Lowercase<string>;
       nameSuffix: Lowercase<string>;
       minAreaSquareDeg: number;
+    };
+    datasets: {
+      namePrefix: Lowercase<string>;
+      nameSuffix: Lowercase<string>;
     };
     validations: {
       namePrefix: Lowercase<string>;
@@ -61,3 +68,15 @@ export interface OpenApiConfig {
   jsonPath: string;
   uiPath: string;
 }
+
+/**
+ * Entity identifier
+ */
+export type EntityIdentifier = PolygonPartsEntityName; // TODO: modify raster shared property to something else but PolygonPartsEntityName?!
+
+/**
+ * Entity identifier object
+ */
+export interface EntityIdentifierObject {
+  readonly id: PolygonPartsEntityName;
+} // TODO: rename PolygonPartsEntityNameObject underlying raster-shared type AND use it

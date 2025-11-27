@@ -50,6 +50,10 @@
       "validations": {
         "namePrefix": "",
         "nameSuffix": "_valid"
+      },
+      "datasets": {
+        "namePrefix": "",
+        "nameSuffix": "_parts"
       }
     },
     "aggregation": {

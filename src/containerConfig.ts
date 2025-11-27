@@ -9,6 +9,7 @@ import { DataSourceLogger } from './common/dataSourceLogger';
 import { registerDependencies, type InjectionObject, type Providers } from './common/dependencyRegistration';
 import type { DbConfig } from './common/interfaces';
 import { tracing } from './common/tracing';
+import { DATASETS_ROUTER_SYMBOL, datasetsRouterFactory } from './datasets/routes/datasetsRouter';
 import { POLYGON_PARTS_ROUTER_SYMBOL, polygonPartsRouterFactory } from './polygonParts/routes/polygonPartsRouter';
 
 export interface RegisterOptions {
@@ -52,10 +53,13 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
         },
       },
     },
-
     {
       token: POLYGON_PARTS_ROUTER_SYMBOL,
       provider: { useFactory: polygonPartsRouterFactory },
+    },
+    {
+      token: DATASETS_ROUTER_SYMBOL,
+      provider: { useFactory: datasetsRouterFactory },
     },
     {
       token: 'onSignal',

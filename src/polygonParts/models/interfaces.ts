@@ -29,7 +29,7 @@ export interface InsertPartData extends Readonly<Omit<CommonPayload, 'countries'
 //Used for the Base record
 export interface BasePart extends Readonly<Omit<InsertPartData, 'footprint'>> {}
 
-export interface ValidatePartData extends Readonly<BasePart> {
+export interface ValidationPartData extends Readonly<BasePart> {
   readonly footprint: Polygon | MultiPolygon;
   readonly id: string;
 }
@@ -106,19 +106,19 @@ export interface PolygonPartRecord extends CommonRecord {
 
 export interface BasePartRecord extends BasePart {}
 
-export interface ValidatePartRecord extends ValidatePartData {
+export interface ValidationPartRecord extends ValidationPartData {
   readonly validated: boolean;
 }
 
 /**
  * Entity identifier
  */
-export type EntityIdentifier = PolygonPartsEntityName;
+export type EntityIdentifier = PolygonPartsEntityName; // TODO: (USE THE SAME TYPE IN common folder interfaces.ts) AND modify raster shared property to something else but PolygonPartsEntityName?!
 
 /**
- * Entity identifier
+ * Entity identifier object
  */
-export type EntityIdentifierObject = PolygonPartsEntityNameObject;
+export type EntityIdentifierObject = PolygonPartsEntityNameObject; // TODO: (USE THE SAME TYPE IN common folder interfaces.ts) AND modify raster shared property to something else but PolygonPartsEntityName?!
 
 /**
  * Name of an entity
@@ -138,14 +138,16 @@ export interface EntityNames {
   databaseObjectQualifiedName: DatabaseObjectQualifiedName;
 }
 
+// TODO: move to central location
 /**
  * Properties describing parts & polygon parts entities names
  */
 export interface EntitiesMetadata {
   entityIdentifier: EntityIdentifier;
   entitiesNames: {
-    parts: EntityNames;
-    polygonParts: EntityNames;
+    parts: EntityNames;//TODO: remove
+    polygonParts: EntityNames;//TODO: remove
+    datasets: EntityNames;
     validations: EntityNames;
   };
 }

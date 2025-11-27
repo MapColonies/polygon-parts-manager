@@ -74,6 +74,10 @@
       "validations": {
         "namePrefix": "ENTITY_VALIDATIONS_NAME_PREFIX",
         "nameSuffix": "ENTITY_VALIDATIONS_NAME_SUFFIX"
+      },
+      "datasets": {
+        "namePrefix": "ENTITY_DATASETS_NAME_PREFIX",
+        "nameSuffix": "ENTITY_DATASETS_NAME_SUFFIX"
       }
     },
     "aggregation": {

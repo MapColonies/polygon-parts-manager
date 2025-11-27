@@ -13,7 +13,7 @@ import { Part } from '../DAL/part';
 import { PolygonPart } from '../DAL/polygonPart';
 import { payloadToInsertPartsData, payloadToInsertValidationsData, setRepositoryTablePath } from '../DAL/utils';
 import { ValidateError, ValidatePolygonPartsRequestBody, ValidatePolygonPartsResponseBody } from '../controllers/interfaces';
-import { ValidatePart } from '../DAL/validationPart';
+import { ValidationPart } from '../DAL/validationPart';
 import { FeatureValidationError } from '../../common/enums';
 import {
   findSelectOutputColumns,
@@ -218,6 +218,7 @@ export class PolygonPartsManager {
 
         await entityManager.query(`SET search_path TO ${this.schema},public`);
         await this.getEntitiesNamesIfExists(baseUpdateContext);
+        await this.checkExistingEntities(baseUpdateContext);
         const updateContext = { ...baseUpdateContext, polygonPartsPayload };
         if (isSwap) {
           await this.truncateEntities(updateContext);
@@ -514,9 +515,9 @@ export class PolygonPartsManager {
     const insertValidationsPartData = payloadToInsertValidationsData(validationsPayload, this.applicationConfig.arraySeparator);
 
     try {
-      const part = entityManager.getRepository(ValidatePart);
-      setRepositoryTablePath(part, validationsEntityQualifiedName);
-      await part.save(insertValidationsPartData, { chunk: this.applicationConfig.chunkSize });
+      const validationPart = entityManager.getRepository(ValidationPart);
+      setRepositoryTablePath(validationPart, validationsEntityQualifiedName);
+      await validationPart.save(insertValidationsPartData, { chunk: this.applicationConfig.chunkSize });
     } catch (error) {
       const errorMessage = `Could not insert polygon parts data to table '${validationsEntityQualifiedName}'`;
       logger.error({ msg: errorMessage, error });

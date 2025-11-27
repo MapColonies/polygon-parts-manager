@@ -2,7 +2,7 @@ import { RASTER_PRODUCT_TYPE_LIST, type RasterProductTypes } from '@map-colonies
 import { Check, Column, CreateDateColumn, Index, PrimaryGeneratedColumn, type Polygon } from 'typeorm';
 import type { CommonRecord } from '../models/interfaces';
 
-export class Common implements CommonRecord {
+export abstract class Common implements CommonRecord {
   @PrimaryGeneratedColumn('uuid')
   public readonly id!: string;
 
@@ -27,6 +27,7 @@ export class Common implements CommonRecord {
   public sourceId?: string;
 
   @Column({ type: 'text', collation: 'ucs_basic' })
+  @Check('source name', `length("source_name") > 1`)
   public sourceName!: string;
 
   @Column({ type: 'text', collation: 'ucs_basic' })
@@ -66,12 +67,15 @@ export class Common implements CommonRecord {
   public horizontalAccuracyCE90!: number;
 
   @Column({ type: 'text', collation: 'ucs_basic' })
+  @Check('sensors', `"sensors" ~ '^((([^,\\\\s][^,\n]*?[^,\\\\s])|([^,\\\\s]))(,(([^,\\\\s][^,\n]*?[^,\\\\s])|([^,\\\\s]))+?)*?)$'`)
   public sensors!: string;
 
   @Column({ type: 'text', collation: 'ucs_basic', nullable: true })
+  @Check('countries', `"countries" ~ '^([^,]+)+(,[^,]+)*$'`)
   public countries?: string;
 
   @Column({ type: 'text', collation: 'ucs_basic', nullable: true })
+  @Check('cities', `"cities" ~ '^([^,]+)+(,[^,]+)*$'`)
   public cities?: string;
 
   @Column({ type: 'text', collation: 'ucs_basic', nullable: true })

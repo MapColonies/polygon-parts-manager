@@ -5,14 +5,15 @@ import type { ExistsRequestBody, ValidatePolygonPartsRequestBody } from '../../p
 import type {
   EntitiesMetadata,
   EntityIdentifier,
-  EntityIdentifierObject,
   EntityNames,
+  EntityIdentifierObject as PolygonPartsEntityIdentifierObject,
   PolygonPartsPayload,
 } from '../../polygonParts/models/interfaces';
-import { getEntitiesMetadataSchemaFactory, schemaParser } from '../../polygonParts/schemas';
+import { getEntitiesMetadataSchemaFactory } from '../../polygonParts/schemas';
 import { SERVICES } from '../constants';
 import { ValidationError } from '../errors';
-import type { ApplicationConfig, DbConfig, IConfig } from '../interfaces';
+import type { ApplicationConfig, DbConfig, EntityIdentifierObject, IConfig } from '../interfaces';
+import { schemaParser } from '../schemas';
 import type { DeepMapValues } from '../types';
 
 @singleton()
@@ -39,17 +40,21 @@ export class Transformer {
   };
 
   public readonly getEntitiesMetadata = (
-    entityIdentifierOptions: EntityIdentifierObject | Pick<PolygonPartsPayload, 'productId' | 'productType'>
+    entityIdentifierOptions: EntityIdentifierObject | PolygonPartsEntityIdentifierObject | Pick<PolygonPartsPayload, 'productId' | 'productType'>
   ): EntitiesMetadata => {
     const entityIdentifier = (
       'polygonPartsEntityName' in entityIdentifierOptions
         ? entityIdentifierOptions.polygonPartsEntityName
+        : 'id' in entityIdentifierOptions
+        ? entityIdentifierOptions.id
         : [entityIdentifierOptions.productId, entityIdentifierOptions.productType].join('_').toLowerCase()
     ) as EntityIdentifier;
-    const partsEntityName =
+    const partsEntityName = //TODO: remove
       `${this.applicationConfig.entities.parts.namePrefix}${entityIdentifier}${this.applicationConfig.entities.parts.nameSuffix}` satisfies EntityNames['entityName'];
-    const polygonPartsEntityName =
+    const polygonPartsEntityName = //TODO: remove
       `${this.applicationConfig.entities.polygonParts.namePrefix}${entityIdentifier}${this.applicationConfig.entities.polygonParts.nameSuffix}` satisfies EntityNames['entityName'];
+    const datasetsEntityName =
+      `${this.applicationConfig.entities.datasets.namePrefix}${entityIdentifier}${this.applicationConfig.entities.datasets.nameSuffix}` satisfies EntityNames['entityName'];
     const validationsEntityName =
       `${this.applicationConfig.entities.validations.namePrefix}${entityIdentifier}${this.applicationConfig.entities.validations.nameSuffix}` satisfies EntityNames['entityName'];
 
@@ -57,12 +62,18 @@ export class Transformer {
       entityIdentifier,
       entitiesNames: {
         parts: {
+          //TODO: remove
           entityName: partsEntityName,
           databaseObjectQualifiedName: this.getDatabaseObjectQualifiedName(this.schema, partsEntityName),
         },
         polygonParts: {
+          //TODO: remove
           entityName: polygonPartsEntityName,
           databaseObjectQualifiedName: this.getDatabaseObjectQualifiedName(this.schema, polygonPartsEntityName),
+        },
+        datasets: {
+          entityName: datasetsEntityName,
+          databaseObjectQualifiedName: this.getDatabaseObjectQualifiedName(this.schema, datasetsEntityName),
         },
         validations: {
           entityName: validationsEntityName,
@@ -73,7 +84,7 @@ export class Transformer {
   };
 
   public readonly parseEntitiesMetadata = (
-    input: EntityIdentifierObject | PolygonPartsPayload | ExistsRequestBody | ValidatePolygonPartsRequestBody
+    input: EntityIdentifierObject | PolygonPartsEntityIdentifierObject | PolygonPartsPayload | ExistsRequestBody | ValidatePolygonPartsRequestBody // TODO: later remove PolygonPartsEntityIdentifierObject
   ): EntitiesMetadata => {
     try {
       const entitiesMetadata = this.getEntitiesMetadata(input);

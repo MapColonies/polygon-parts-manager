@@ -6,12 +6,12 @@ import type { Feature } from 'geojson';
 import { inject, singleton } from 'tsyringe';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';
+import { schemaParser } from '../../common/schemas';
 import type { AggregationLayerMetadataParams, AggregationLayerMetadataResponseBody } from '../../polygonParts/controllers/interfaces';
 import {
   aggregationPolygonPartsRequestBodySchema,
   findPolygonPartsQueryParamsSchema,
   findPolygonPartsRequestBodySchema,
-  schemaParser,
   updatePolygonPartsQueryParamsSchema,
 } from '../schemas';
 

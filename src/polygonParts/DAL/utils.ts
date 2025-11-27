@@ -1,9 +1,10 @@
 import { DefaultNamingStrategy, type ObjectLiteral, type Repository, type Table } from 'typeorm';
 import type { ApplicationConfig } from '../../common/interfaces';
 import { camelCaseToSnakeCase } from '../../common/utils';
-import type { InsertPartData, ValidatePartData, PolygonPartsPayload } from '../models/interfaces';
+import type { InsertPartData, ValidationPartData, PolygonPartsPayload } from '../models/interfaces';
 import { ValidatePolygonPartsRequestBody } from '../controllers/interfaces';
 
+// TODO: start move to a common location
 const customNamingStrategy = new DefaultNamingStrategy();
 customNamingStrategy.indexName = (tableOrName: Table | string, columnNames: string[], where?: string): string => {
   /* istanbul ignore next */
@@ -30,7 +31,9 @@ export const setRepositoryTablePath = <Entity extends ObjectLiteral>(repository:
   repository.metadata.tablePath = table; // this approach may be unstable for other versions of typeorm - https://github.com/typeorm/typeorm/issues/4245#issuecomment-2134156283
   return repository;
 };
+// TODO: end move to a common location
 
+// TODO: remove payloadToInsertPartsData
 export const payloadToInsertPartsData = (
   polygonPartsPayload: PolygonPartsPayload,
   arraySeparator: ApplicationConfig['arraySeparator']
@@ -51,7 +54,7 @@ export const payloadToInsertPartsData = (
 export const payloadToInsertValidationsData = (
   validationsPolygonPartsPayload: ValidatePolygonPartsRequestBody,
   arraySeparator: ApplicationConfig['arraySeparator']
-): ValidatePartData[] => {
+): ValidationPartData[] => {
   const { featureCollection: partsData, productId, productVersion, productType, catalogId } = validationsPolygonPartsPayload;
 
   return partsData.features.map((partData) => {

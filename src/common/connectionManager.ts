@@ -9,6 +9,7 @@ import type { DbConfig, IConfig } from '../common/interfaces';
 import { Part } from '../polygonParts/DAL/part';
 import { PolygonPart } from '../polygonParts/DAL/polygonPart';
 import { namingStrategy } from '../polygonParts/DAL/utils';
+import { ValidationPart } from '../polygonParts/DAL/validationPart';
 import { DataSourceLogger } from './dataSourceLogger';
 import { createConnectionOptions } from './utils';
 
@@ -103,7 +104,7 @@ export class ConnectionManager {
 
   private createConnectionOptions(dbConfig: DbConfig): PostgresConnectionOptions {
     const connectionOptions = createConnectionOptions(dbConfig);
-    return { entities: [Part, PolygonPart], namingStrategy, logger: this.dataSourceLogger, ...connectionOptions };
+    return { entities: [Part, PolygonPart, ValidationPart], namingStrategy, logger: this.dataSourceLogger, ...connectionOptions };
   }
 
   private async schemaExists(): Promise<boolean> {

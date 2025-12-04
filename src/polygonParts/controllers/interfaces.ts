@@ -70,7 +70,7 @@ export interface ValidatePolygonPartsResponseBody {
 export type ValidatePolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType' | 'productVersion' | 'catalogId'> & {
   jobType: Extract<JobTypes, 'Ingestion_New' | 'Ingestion_Update' | 'Ingestion_Swap_Update'>;
 } & {
-  featureCollection: PolygonPartsFeatureCollection;
+  partsData: PolygonPartsFeatureCollection;
 };
 
 export type DeleteValidationEntityQuery = Pick<CommonRecord, 'productId' | 'productType'>;

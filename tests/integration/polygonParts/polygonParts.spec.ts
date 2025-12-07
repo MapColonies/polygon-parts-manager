@@ -82,7 +82,6 @@ import { createDB, deleteDB, generateExistsPayload, generateFeatureId, generateP
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import type { DeepPartial } from './helpers/types';
 import { allFindFeaturesEqual, toExpectedFindPolygonPartsResponse, toExpectedPostgresResponse } from './helpers/utils';
-import { request } from 'express';
 
 type ConfigImport = typeof import('config') & { application: ApplicationConfig };
 
@@ -8468,7 +8467,7 @@ describe('polygonParts', () => {
 
         const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
-        expect(responseBody.parts.length).toBe(expected.parts.length);
+        expect(responseBody.parts).toHaveLength(expected.parts.length);
         expect(responseBody.parts).toContain(expected.parts[0].id);
         expect(responseBody.parts).toContain(expected.parts[1].id);
         expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
@@ -8491,7 +8490,7 @@ describe('polygonParts', () => {
 
         const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
-        expect(responseBody.parts.length).toBe(expected.parts.length);
+        expect(responseBody.parts).toHaveLength(expected.parts.length);
         expect(responseBody.parts).toContain(expected.parts[0].id);
         expect(responseBody.parts).toContain(expected.parts[1].id);
         expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
@@ -8512,10 +8511,10 @@ describe('polygonParts', () => {
         };
 
         const response = await requestSender.validatePolygonParts(invalidSmallHolesValidateRequest);
-        
+
         const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
-        expect(responseBody.parts.length).toBe(expected.parts.length);
+        expect(responseBody.parts).toHaveLength(expected.parts.length);
         expect(responseBody.parts).toContain(expected.parts[0].id);
         expect(responseBody.parts).toContain(expected.parts[1].id);
         expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
@@ -8538,7 +8537,7 @@ describe('polygonParts', () => {
 
         const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
-        expect(responseBody.parts.length).toBe(expected.parts.length);
+        expect(responseBody.parts).toHaveLength(expected.parts.length);
         expect(responseBody.parts).toContain(expected.parts[0].id);
         expect(responseBody.parts).toContain(expected.parts[1].id);
         expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
@@ -8565,7 +8564,7 @@ describe('polygonParts', () => {
 
         const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
-        expect(responseBody.parts.length).toBe(expected.parts.length);
+        expect(responseBody.parts).toHaveLength(expected.parts.length);
         expect(responseBody.parts).toContain(expected.parts[0].id);
         expect(responseBody.parts).toContain(expected.parts[1].id);
         expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
@@ -8590,7 +8589,7 @@ describe('polygonParts', () => {
 
         const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
-        expect(responseBody.parts.length).toBe(expected.parts.length);
+        expect(responseBody.parts).toHaveLength(expected.parts.length);
         expect(responseBody.parts).toContain(expected.parts[0].id);
         expect(responseBody.parts).toContain(expected.parts[1].id);
         expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);

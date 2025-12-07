@@ -52,3 +52,5 @@ export type OptionalToNullableRecordValues<T extends Record<PropertyKey, any>> =
 };
 
 export type PolygonPartsFeatureCollection = z.infer<typeof polygonPartsFeatureCollectionSchema>;
+
+export type PolygonPartsProperties = z.infer<typeof featurePropertiesSchema>;

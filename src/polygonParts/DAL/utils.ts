@@ -52,7 +52,7 @@ export const payloadToInsertValidationsData = (
   validationsPolygonPartsPayload: ValidatePolygonPartsRequestBody,
   arraySeparator: ApplicationConfig['arraySeparator']
 ): ValidatePartData[] => {
-  const { partsData ,productId, productVersion, productType, catalogId } = validationsPolygonPartsPayload;
+  const { partsData, productId, productVersion, productType, catalogId } = validationsPolygonPartsPayload;
 
   return partsData.features.map((partData) => {
     return {

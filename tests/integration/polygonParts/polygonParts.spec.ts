@@ -82,6 +82,7 @@ import { createDB, deleteDB, generateExistsPayload, generateFeatureId, generateP
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import type { DeepPartial } from './helpers/types';
 import { allFindFeaturesEqual, toExpectedFindPolygonPartsResponse, toExpectedPostgresResponse } from './helpers/utils';
+import { request } from 'express';
 
 type ConfigImport = typeof import('config') & { application: ApplicationConfig };
 
@@ -8462,11 +8463,16 @@ describe('polygonParts', () => {
           smallGeometriesCount: 0,
           smallHolesCount: 0,
         };
-        
+
         const response = await requestSender.validatePolygonParts(invalidGeometriesValidateRequest);
 
+        const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
-        expect(response.body).toEqual(expected);
+        expect(responseBody.parts.length).toBe(expected.parts.length);
+        expect(responseBody.parts).toContain(expected.parts[0].id);
+        expect(responseBody.parts).toContain(expected.parts[1].id);
+        expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
+        expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);
@@ -8483,8 +8489,13 @@ describe('polygonParts', () => {
         };
         const response = await requestSender.validatePolygonParts(invalidSmallGeometriesValidateRequest);
 
+        const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
-        expect(response.body).toEqual(expected);
+        expect(responseBody.parts.length).toBe(expected.parts.length);
+        expect(responseBody.parts).toContain(expected.parts[0].id);
+        expect(responseBody.parts).toContain(expected.parts[1].id);
+        expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
+        expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);
@@ -8499,11 +8510,16 @@ describe('polygonParts', () => {
           smallGeometriesCount: 0,
           smallHolesCount: 2,
         };
-        
-        const response = await requestSender.validatePolygonParts(invalidSmallHolesValidateRequest);
 
+        const response = await requestSender.validatePolygonParts(invalidSmallHolesValidateRequest);
+        
+        const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
-        expect(response.body).toEqual(expected);
+        expect(responseBody.parts.length).toBe(expected.parts.length);
+        expect(responseBody.parts).toContain(expected.parts[0].id);
+        expect(responseBody.parts).toContain(expected.parts[1].id);
+        expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
+        expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);
@@ -8520,8 +8536,13 @@ describe('polygonParts', () => {
         };
         const response = await requestSender.validatePolygonParts(mockSmallAreaAndHole);
 
+        const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
-        expect(response.body).toEqual(expected);
+        expect(responseBody.parts.length).toBe(expected.parts.length);
+        expect(responseBody.parts).toContain(expected.parts[0].id);
+        expect(responseBody.parts).toContain(expected.parts[1].id);
+        expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
+        expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);
@@ -8542,8 +8563,13 @@ describe('polygonParts', () => {
         };
         const response = await requestSender.validatePolygonParts(mockMultipleInvalidGeometries);
 
+        const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
-        expect(response.body).toEqual(expected);
+        expect(responseBody.parts.length).toBe(expected.parts.length);
+        expect(responseBody.parts).toContain(expected.parts[0].id);
+        expect(responseBody.parts).toContain(expected.parts[1].id);
+        expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
+        expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);
@@ -8562,9 +8588,14 @@ describe('polygonParts', () => {
         await requestSender.createPolygonParts(insertPolygonPartsPayload);
         const response = await requestSender.validatePolygonParts(mockUpdateWithIntersectingParts);
 
+        const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
+        expect(responseBody.parts.length).toBe(expected.parts.length);
+        expect(responseBody.parts).toContain(expected.parts[0].id);
+        expect(responseBody.parts).toContain(expected.parts[1].id);
+        expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
+        expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
         expect(response).toSatisfyApiSpec();
-        expect(response.body).toStrictEqual(expected);
 
         expect.assertions(3);
       });

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0](https://github.com/MapColonies/polygon-parts-manager/compare/v1.8.1...v2.0.0) (2025-12-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* add validate route (MAPCO-8332) (#54)
+
+### Features
+
+* add migrations docker workflow(MAPCO-8916) ([#56](https://github.com/MapColonies/polygon-parts-manager/issues/56)) ([06d8e98](https://github.com/MapColonies/polygon-parts-manager/commit/06d8e986c15fa44c51ac01ad838c36adceec36f1))
+* add validate route (MAPCO-8332) ([#54](https://github.com/MapColonies/polygon-parts-manager/issues/54)) ([698944c](https://github.com/MapColonies/polygon-parts-manager/commit/698944cfa1f53e745f180827ff44998027350655)), closes [#55](https://github.com/MapColonies/polygon-parts-manager/issues/55)
+* changed feature id to properties scope ([#58](https://github.com/MapColonies/polygon-parts-manager/issues/58)) ([4083c7b](https://github.com/MapColonies/polygon-parts-manager/commit/4083c7b6269a7e86bc21fbeb4885d76ff16d6acb))
+* response status validation ([#60](https://github.com/MapColonies/polygon-parts-manager/issues/60)) ([2ec7069](https://github.com/MapColonies/polygon-parts-manager/commit/2ec70698153abb267cb45721c9ec334f246bd502))
+
 ### [1.8.1](https://github.com/MapColonies/polygon-parts-manager/compare/v1.8.0...v1.8.1) (2025-09-04)
 
 

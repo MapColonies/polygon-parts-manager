@@ -759,6 +759,7 @@ components:
         - type
         - properties
         - geometry
+        - id
       properties:
         type:
           type: string

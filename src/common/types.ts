@@ -2,6 +2,7 @@ import { polygonSchema, multiPolygonSchema } from '@map-colonies/raster-shared';
 import { z } from 'zod';
 
 const featurePropertiesSchema = z.object({
+  id: z.string(),
   sourceId: z.string().optional(),
   sourceName: z.string(),
   imagingTimeBeginUTC: z.string(),
@@ -18,7 +19,6 @@ const featurePropertiesSchema = z.object({
 
 const validationFeaureSchema = z.object({
   type: z.literal('Feature'),
-  id: z.string(),
   properties: featurePropertiesSchema,
   geometry: z.union([polygonSchema, multiPolygonSchema]),
   bbox: z.any().optional(),
@@ -52,3 +52,5 @@ export type OptionalToNullableRecordValues<T extends Record<PropertyKey, any>> =
 };
 
 export type PolygonPartsFeatureCollection = z.infer<typeof polygonPartsFeatureCollectionSchema>;
+
+export type PolygonPartsProperties = z.infer<typeof featurePropertiesSchema>;

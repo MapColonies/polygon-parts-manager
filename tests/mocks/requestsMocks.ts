@@ -1,9 +1,11 @@
 /* eslint-disable  @typescript-eslint/no-magic-numbers */
 import { JobTypes, RasterProductTypes } from '@map-colonies/raster-shared';
 import type { MultiPolygon, Polygon } from 'geojson';
+import { faker } from '@faker-js/faker/.';
 import type { PolygonPartsPayload } from '../../src/polygonParts/models/interfaces';
 import { generatePolygonPartsPayload } from '../integration/polygonParts/helpers/db';
 import { ValidatePolygonPartsRequestBody } from '../../src/polygonParts/controllers/interfaces';
+import { PolygonPartsProperties } from '../../src/common/types';
 
 type LayerMetadata = Pick<PolygonPartsPayload, 'catalogId' | 'productId' | 'productType' | 'productVersion'>;
 
@@ -26,7 +28,8 @@ const updateLayerMetadata: LayerMetadata = {
   productVersion: '2.0',
 };
 
-const propertiesToGenerate = {
+const propertiesToGenerate = (): PolygonPartsProperties => ({
+  id: faker.string.uuid(),
   sourceName: 'Blue Marble Source',
   imagingTimeBeginUTC: '2024-01-01T00:00:00.000Z',
   imagingTimeEndUTC: '2024-12-31T23:59:59.000Z',
@@ -35,7 +38,7 @@ const propertiesToGenerate = {
   sourceResolutionMeter: 10,
   horizontalAccuracyCE90: 1.5,
   sensors: ['Sensor_X', 'Sensor_Y'],
-};
+});
 
 export const worldFootprint: Polygon = {
   type: 'Polygon',
@@ -255,23 +258,21 @@ export const createCustomInitPayloadRequestForAggregation: PolygonPartsPayload =
 export const validValidationPolygonPartsPayload: ValidatePolygonPartsRequestBody = {
   ...createLayerMetadataForValidation,
   jobType: JobTypes.Ingestion_New,
-  featureCollection: {
+  partsData: {
     type: 'FeatureCollection',
     features: [
       {
         type: 'Feature',
-        id: 'c52d8189-7e07-456a-8c6b-53859523c3e1',
         geometry: italyFootprint,
         properties: {
-          ...propertiesToGenerate,
+          ...propertiesToGenerate(),
         },
       },
       {
         type: 'Feature',
-        id: 'c52d8189-7e07-456a-8c6b-53859523c3e2',
         geometry: europeMultiPolygon,
         properties: {
-          ...propertiesToGenerate,
+          ...propertiesToGenerate(),
         },
       },
     ],
@@ -281,12 +282,11 @@ export const validValidationPolygonPartsPayload: ValidatePolygonPartsRequestBody
 export const validationEntireWorldRequest: ValidatePolygonPartsRequestBody = {
   ...createLayerMetadataForValidation,
   jobType: JobTypes.Ingestion_New,
-  featureCollection: {
+  partsData: {
     type: 'FeatureCollection',
     features: [
       {
         type: 'Feature',
-        id: '1111',
         geometry: {
           type: 'Polygon',
           coordinates: [
@@ -300,7 +300,7 @@ export const validationEntireWorldRequest: ValidatePolygonPartsRequestBody = {
           ],
         } as Polygon,
         properties: {
-          ...propertiesToGenerate,
+          ...propertiesToGenerate(),
         },
       },
     ],
@@ -310,12 +310,11 @@ export const validationEntireWorldRequest: ValidatePolygonPartsRequestBody = {
 export const invalidGeometryValidRequest = {
   ...createLayerMetadataForValidation,
   jobType: JobTypes.Ingestion_New,
-  featureCollection: {
+  partsData: {
     type: 'FeatureCollection',
     features: [
       {
         type: 'Feature',
-        id: '1111',
         geometry: {
           type: 'LineString',
           coordinates: [
@@ -324,7 +323,7 @@ export const invalidGeometryValidRequest = {
           ],
         },
         properties: {
-          ...propertiesToGenerate,
+          ...propertiesToGenerate(),
         },
       },
     ],
@@ -334,12 +333,11 @@ export const invalidGeometryValidRequest = {
 export const invalidGeometriesValidateRequest: ValidatePolygonPartsRequestBody = {
   ...createLayerMetadataForValidation,
   jobType: JobTypes.Ingestion_New,
-  featureCollection: {
+  partsData: {
     type: 'FeatureCollection',
     features: [
       {
         type: 'Feature',
-        id: 'c52d8189-7e07-456a-8c6b-53859523c3e1',
         geometry: {
           type: 'Polygon',
           coordinates: [
@@ -353,12 +351,11 @@ export const invalidGeometriesValidateRequest: ValidatePolygonPartsRequestBody =
           ],
         } as Polygon,
         properties: {
-          ...propertiesToGenerate,
+          ...propertiesToGenerate(),
         },
       },
       {
         type: 'Feature',
-        id: 'c52d8189-7e07-456a-8c6b-53859523c3e2',
         geometry: {
           type: 'MultiPolygon',
           coordinates: [
@@ -385,7 +382,7 @@ export const invalidGeometriesValidateRequest: ValidatePolygonPartsRequestBody =
           ],
         } as MultiPolygon,
         properties: {
-          ...propertiesToGenerate,
+          ...propertiesToGenerate(),
         },
       },
     ],
@@ -395,12 +392,11 @@ export const invalidGeometriesValidateRequest: ValidatePolygonPartsRequestBody =
 export const invalidSmallGeometriesValidateRequest: ValidatePolygonPartsRequestBody = {
   ...createLayerMetadataForValidation,
   jobType: JobTypes.Ingestion_New,
-  featureCollection: {
+  partsData: {
     type: 'FeatureCollection',
     features: [
       {
         type: 'Feature',
-        id: 'c52d8189-7e07-456a-8c6b-53859523c3e1',
         geometry: {
           type: 'Polygon',
           coordinates: [
@@ -414,12 +410,11 @@ export const invalidSmallGeometriesValidateRequest: ValidatePolygonPartsRequestB
           ],
         } as Polygon,
         properties: {
-          ...propertiesToGenerate,
+          ...propertiesToGenerate(),
         },
       },
       {
         type: 'Feature',
-        id: 'c52d8189-7e07-456a-8c6b-53859523c3e2',
         geometry: {
           type: 'MultiPolygon',
           coordinates: [
@@ -447,7 +442,7 @@ export const invalidSmallGeometriesValidateRequest: ValidatePolygonPartsRequestB
           ],
         } as MultiPolygon,
         properties: {
-          ...propertiesToGenerate,
+          ...propertiesToGenerate(),
         },
       },
     ],
@@ -457,12 +452,11 @@ export const invalidSmallGeometriesValidateRequest: ValidatePolygonPartsRequestB
 export const invalidSmallHolesValidateRequest: ValidatePolygonPartsRequestBody = {
   ...createLayerMetadataForValidation,
   jobType: JobTypes.Ingestion_New,
-  featureCollection: {
+  partsData: {
     type: 'FeatureCollection',
     features: [
       {
         type: 'Feature',
-        id: 'c52d8189-7e07-456a-8c6b-53859523c3e1',
         geometry: {
           type: 'Polygon',
           coordinates: [
@@ -485,12 +479,11 @@ export const invalidSmallHolesValidateRequest: ValidatePolygonPartsRequestBody =
           ],
         } as Polygon,
         properties: {
-          ...propertiesToGenerate,
+          ...propertiesToGenerate(),
         },
       },
       {
         type: 'Feature',
-        id: 'c52d8189-7e07-456a-8c6b-53859523c3e2',
         geometry: {
           type: 'MultiPolygon',
           coordinates: [
@@ -525,7 +518,7 @@ export const invalidSmallHolesValidateRequest: ValidatePolygonPartsRequestBody =
           ],
         } as MultiPolygon,
         properties: {
-          ...propertiesToGenerate,
+          ...propertiesToGenerate(),
         },
       },
     ],
@@ -535,12 +528,11 @@ export const invalidSmallHolesValidateRequest: ValidatePolygonPartsRequestBody =
 export const mockSmallAreaAndHole: ValidatePolygonPartsRequestBody = {
   ...createLayerMetadataForValidation,
   jobType: JobTypes.Ingestion_New,
-  featureCollection: {
+  partsData: {
     type: 'FeatureCollection',
     features: [
       {
         type: 'Feature',
-        id: 'c52d8189-7e07-456a-8c6b-53859523c3e1',
         geometry: {
           // A) Polygon whose total area < 5 m² (~2m x ~2m)
           type: 'Polygon',
@@ -555,12 +547,11 @@ export const mockSmallAreaAndHole: ValidatePolygonPartsRequestBody = {
           ],
         } as Polygon,
         properties: {
-          ...propertiesToGenerate,
+          ...propertiesToGenerate(),
         },
       },
       {
         type: 'Feature',
-        id: 'c52d8189-7e07-456a-8c6b-53859523c3e2',
         geometry: {
           type: 'MultiPolygon',
           coordinates: [
@@ -594,7 +585,7 @@ export const mockSmallAreaAndHole: ValidatePolygonPartsRequestBody = {
           ],
         } as MultiPolygon,
         properties: {
-          ...propertiesToGenerate,
+          ...propertiesToGenerate(),
         },
       },
     ],
@@ -604,12 +595,11 @@ export const mockSmallAreaAndHole: ValidatePolygonPartsRequestBody = {
 export const mockMultipleInvalidGeometries: ValidatePolygonPartsRequestBody = {
   ...createLayerMetadataForValidation,
   jobType: JobTypes.Ingestion_New,
-  featureCollection: {
+  partsData: {
     type: 'FeatureCollection',
     features: [
       {
         type: 'Feature',
-        id: 'c52d8189-7e07-456a-8c6b-53859523c3e1',
         geometry: {
           // A)  1) Invalid polygon (bow-tie / self-intersecting)
           type: 'Polygon',
@@ -624,12 +614,11 @@ export const mockMultipleInvalidGeometries: ValidatePolygonPartsRequestBody = {
           ],
         } as Polygon,
         properties: {
-          ...propertiesToGenerate,
+          ...propertiesToGenerate(),
         },
       },
       {
         type: 'Feature',
-        id: 'c52d8189-7e07-456a-8c6b-53859523c3e2',
         geometry: {
           type: 'Polygon',
           coordinates: [
@@ -652,12 +641,11 @@ export const mockMultipleInvalidGeometries: ValidatePolygonPartsRequestBody = {
           ],
         } as Polygon,
         properties: {
-          ...propertiesToGenerate,
+          ...propertiesToGenerate(),
         },
       },
       {
         type: 'Feature',
-        id: 'c52d8189-7e07-456a-8c6b-53859523c3e3',
         geometry: {
           // 3) MultiPolygon: one invalid component + one valid with hole
 
@@ -693,7 +681,7 @@ export const mockMultipleInvalidGeometries: ValidatePolygonPartsRequestBody = {
           ],
         } as MultiPolygon,
         properties: {
-          ...propertiesToGenerate,
+          ...propertiesToGenerate(),
         },
       },
     ],
@@ -706,12 +694,11 @@ export const mockUpdateWithIntersectingParts: ValidatePolygonPartsRequestBody = 
   catalogId: createCustomInitPayloadRequestForAggregation.catalogId,
   productVersion: '2.0',
   jobType: JobTypes.Ingestion_Update,
-  featureCollection: {
+  partsData: {
     type: 'FeatureCollection',
     features: [
       {
         type: 'Feature',
-        id: 'c52d8189-7e07-456a-8c6b-53859523c3e1',
         geometry: {
           type: 'Polygon',
           coordinates: [
@@ -725,22 +712,12 @@ export const mockUpdateWithIntersectingParts: ValidatePolygonPartsRequestBody = 
           ],
         },
         properties: {
-          sourceName: 'Example Source 1',
-          imagingTimeBeginUTC: '2024-01-15T10:30:00.000Z',
-          imagingTimeEndUTC: '2024-01-15T11:45:00.000Z',
+          ...propertiesToGenerate(),
           resolutionDegree: 0.00026,
-          resolutionMeter: 25.5,
-          sourceResolutionMeter: 25.5,
-          horizontalAccuracyCE90: 3.5,
-          sensors: ['Sensor_A', 'Sensor_B'],
-          countries: ['Israel'],
-          cities: ['Haifa', 'Tel Aviv'],
-          description: 'Northern coastal region imagery',
         },
       },
       {
         type: 'Feature',
-        id: 'c52d8189-7e07-456a-8c6b-53859523c3e2',
         geometry: {
           type: 'Polygon',
           coordinates: [
@@ -754,17 +731,8 @@ export const mockUpdateWithIntersectingParts: ValidatePolygonPartsRequestBody = 
           ],
         },
         properties: {
-          sourceName: 'Example Source 2',
-          imagingTimeBeginUTC: '2024-01-16T09:20:00.000Z',
-          imagingTimeEndUTC: '2024-01-16T10:15:00.000Z',
+          ...propertiesToGenerate(),
           resolutionDegree: 0.00012,
-          resolutionMeter: 10.2,
-          sourceResolutionMeter: 10.2,
-          horizontalAccuracyCE90: 2.1,
-          sensors: ['Sensor_C'],
-          countries: ['Israel'],
-          cities: ['Jerusalem'],
-          description: 'Central region high-resolution capture',
         },
       },
     ],

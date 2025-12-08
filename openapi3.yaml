@@ -696,7 +696,7 @@ components:
         - productVersion
         - jobType
       properties:
-        featureCollection:
+        partsData:
           $ref: '#/components/schemas/PolygonPartsFeatureCollection'
         productId:
           $ref: './SchemaRaster/core/layer.yaml#/components/schemas/ProductId'
@@ -759,15 +759,10 @@ components:
         - type
         - properties
         - geometry
-        - id
       properties:
         type:
           type: string
           enum: [Feature]
-        id:
-          type: string
-          description: Part's identifier
-          example: '1111'
         properties:
           allOf:
             - $ref: '#/components/schemas/FeatureCollectionPartDataProperties'
@@ -780,10 +775,15 @@ components:
             - $ref: './SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon'
         bbox:
           $ref: './SchemaRaster/core/geojson.yaml#/components/schemas/BBox'
+        id:
+          type: string
+          description: feature identifier
+          example: '1234'
     FeatureCollectionPartDataProperties:
       type: object
       description: Part data
       required:
+        - id
         - sourceName
         - imagingTimeBeginUTC
         - imagingTimeEndUTC
@@ -793,6 +793,10 @@ components:
         - horizontalAccuracyCE90
         - sensors
       properties:
+        id:
+          type: string
+          description: Part's identifier
+          example: '1111'
         sourceId:
           $ref: './SchemaRaster/core/polygon-parts.yaml#/components/schemas/SourceId'
         sourceName:

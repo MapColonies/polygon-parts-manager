@@ -8451,87 +8451,105 @@ describe('polygonParts', () => {
         const expected: ValidatePolygonPartsResponseBody = {
           parts: [
             {
-              id: invalidGeometriesValidateRequest.featureCollection.features[0].id,
+              id: invalidGeometriesValidateRequest.partsData.features[0].properties.id,
               errors: [FeatureValidationError.VALIDITY],
             },
             {
-              id: invalidGeometriesValidateRequest.featureCollection.features[1].id,
+              id: invalidGeometriesValidateRequest.partsData.features[1].properties.id,
               errors: [FeatureValidationError.VALIDITY],
             },
           ],
           smallGeometriesCount: 0,
           smallHolesCount: 0,
         };
+
         const response = await requestSender.validatePolygonParts(invalidGeometriesValidateRequest);
 
+        const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
-        expect(response.body).toEqual(expected);
+        expect(responseBody.parts).toHaveLength(expected.parts.length);
+        expect(responseBody.parts).toEqual(expect.arrayContaining(expected.parts));
+        expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
+        expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(3);
+        expect.assertions(6);
       });
 
       it('should return 422 status code when there are small geometries', async () => {
         const expected: ValidatePolygonPartsResponseBody = {
           parts: [
-            { id: invalidSmallGeometriesValidateRequest.featureCollection.features[0].id, errors: [FeatureValidationError.SMALL_GEOMETRY] },
-            { id: invalidSmallGeometriesValidateRequest.featureCollection.features[1].id, errors: [FeatureValidationError.SMALL_GEOMETRY] },
+            { id: invalidSmallGeometriesValidateRequest.partsData.features[0].properties.id, errors: [FeatureValidationError.SMALL_GEOMETRY] },
+            { id: invalidSmallGeometriesValidateRequest.partsData.features[1].properties.id, errors: [FeatureValidationError.SMALL_GEOMETRY] },
           ],
           smallGeometriesCount: 2,
           smallHolesCount: 0,
         };
         const response = await requestSender.validatePolygonParts(invalidSmallGeometriesValidateRequest);
 
+        const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
-        expect(response.body).toEqual(expected);
+        expect(responseBody.parts).toHaveLength(expected.parts.length);
+        expect(responseBody.parts).toEqual(expect.arrayContaining(expected.parts));
+        expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
+        expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(3);
+        expect.assertions(6);
       });
 
       it('should return 422 status code when there are small holes', async () => {
         const expected: ValidatePolygonPartsResponseBody = {
           parts: [
-            { id: invalidSmallGeometriesValidateRequest.featureCollection.features[0].id, errors: [FeatureValidationError.SMALL_HOLES] },
-            { id: invalidSmallGeometriesValidateRequest.featureCollection.features[1].id, errors: [FeatureValidationError.SMALL_HOLES] },
+            { id: invalidSmallHolesValidateRequest.partsData.features[0].properties.id, errors: [FeatureValidationError.SMALL_HOLES] },
+            { id: invalidSmallHolesValidateRequest.partsData.features[1].properties.id, errors: [FeatureValidationError.SMALL_HOLES] },
           ],
           smallGeometriesCount: 0,
           smallHolesCount: 2,
         };
+
         const response = await requestSender.validatePolygonParts(invalidSmallHolesValidateRequest);
 
+        const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
-        expect(response.body).toEqual(expected);
+        expect(responseBody.parts).toHaveLength(expected.parts.length);
+        expect(responseBody.parts).toEqual(expect.arrayContaining(expected.parts));
+        expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
+        expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(3);
+        expect.assertions(6);
       });
 
       it('should return 422 status code when there are small hole and small geo', async () => {
         const expected: ValidatePolygonPartsResponseBody = {
           parts: [
-            { id: mockSmallAreaAndHole.featureCollection.features[0].id, errors: [FeatureValidationError.SMALL_GEOMETRY] },
-            { id: mockSmallAreaAndHole.featureCollection.features[1].id, errors: [FeatureValidationError.SMALL_HOLES] },
+            { id: mockSmallAreaAndHole.partsData.features[0].properties.id, errors: [FeatureValidationError.SMALL_GEOMETRY] },
+            { id: mockSmallAreaAndHole.partsData.features[1].properties.id, errors: [FeatureValidationError.SMALL_HOLES] },
           ],
           smallGeometriesCount: 1,
           smallHolesCount: 1,
         };
         const response = await requestSender.validatePolygonParts(mockSmallAreaAndHole);
 
+        const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
-        expect(response.body).toEqual(expected);
+        expect(responseBody.parts).toHaveLength(expected.parts.length);
+        expect(responseBody.parts).toEqual(expect.arrayContaining(expected.parts));
+        expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
+        expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(3);
+        expect.assertions(6);
       });
 
       it('should return 422 status code when there is small hole, small geo and 1 invalid', async () => {
         const expected: ValidatePolygonPartsResponseBody = {
           parts: [
-            { id: mockMultipleInvalidGeometries.featureCollection.features[0].id, errors: [FeatureValidationError.VALIDITY] },
-            { id: mockMultipleInvalidGeometries.featureCollection.features[2].id, errors: [FeatureValidationError.VALIDITY] },
+            { id: mockMultipleInvalidGeometries.partsData.features[0].properties.id, errors: [FeatureValidationError.VALIDITY] },
+            { id: mockMultipleInvalidGeometries.partsData.features[2].properties.id, errors: [FeatureValidationError.VALIDITY] },
             {
-              id: mockMultipleInvalidGeometries.featureCollection.features[1].id,
+              id: mockMultipleInvalidGeometries.partsData.features[1].properties.id,
               errors: [FeatureValidationError.SMALL_GEOMETRY, FeatureValidationError.SMALL_HOLES],
             },
           ],
@@ -8540,18 +8558,22 @@ describe('polygonParts', () => {
         };
         const response = await requestSender.validatePolygonParts(mockMultipleInvalidGeometries);
 
+        const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
-        expect(response.body).toEqual(expected);
+        expect(responseBody.parts).toHaveLength(expected.parts.length);
+        expect(responseBody.parts).toEqual(expect.arrayContaining(expected.parts));
+        expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
+        expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(3);
+        expect.assertions(6);
       });
 
       it('should return 422 status code when updating intersecting parts with worse resolution', async () => {
         const expected: ValidatePolygonPartsResponseBody = {
           parts: [
-            { id: mockUpdateWithIntersectingParts.featureCollection.features[0].id, errors: [FeatureValidationError.RESOLUTIONS] },
-            { id: mockUpdateWithIntersectingParts.featureCollection.features[1].id, errors: [FeatureValidationError.RESOLUTIONS] },
+            { id: mockUpdateWithIntersectingParts.partsData.features[0].properties.id, errors: [FeatureValidationError.RESOLUTIONS] },
+            { id: mockUpdateWithIntersectingParts.partsData.features[1].properties.id, errors: [FeatureValidationError.RESOLUTIONS] },
           ],
           smallGeometriesCount: 0,
           smallHolesCount: 0,
@@ -8560,11 +8582,15 @@ describe('polygonParts', () => {
         await requestSender.createPolygonParts(insertPolygonPartsPayload);
         const response = await requestSender.validatePolygonParts(mockUpdateWithIntersectingParts);
 
+        const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
+        expect(responseBody.parts).toHaveLength(expected.parts.length);
+        expect(responseBody.parts).toEqual(expect.arrayContaining(expected.parts));
+        expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
+        expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
         expect(response).toSatisfyApiSpec();
-        expect(response.body).toStrictEqual(expected);
 
-        expect.assertions(3);
+        expect.assertions(6);
       });
 
       it('should return 500 status code for a database error - cant create validations table', async () => {

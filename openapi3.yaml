@@ -268,7 +268,7 @@ paths:
         required: true
       responses:
         '200':
-          description: No validation errors were found
+          description: OK
           content:
             application/json:
               schema:
@@ -278,7 +278,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ValidationResponse'
+                $ref: '#/components/schemas/ErrorMessage'
         '400':
           description: Bad Request
           content:

@@ -1,8 +1,6 @@
 import { readFileSync } from 'fs';
-import httpStatus from 'http-status-codes';
 import { snakeCase } from 'change-case-all';
 import type { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
-import { ValidatePolygonPartsResponseBody } from '../polygonParts/controllers/interfaces';
 import type { DbConfig } from './interfaces';
 
 export const camelCaseToSnakeCase = (value: string): string => {

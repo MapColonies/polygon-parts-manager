@@ -310,12 +310,11 @@ export const validationEntireWorldRequest: ValidatePolygonPartsRequestBody = {
 export const invalidGeometryValidRequest = {
   ...createLayerMetadataForValidation,
   jobType: JobTypes.Ingestion_New,
-  featureCollection: {
+  partsData: {
     type: 'FeatureCollection',
     features: [
       {
         type: 'Feature',
-        id: '1111',
         geometry: {
           type: 'LineString',
           coordinates: [
@@ -713,18 +712,8 @@ export const mockUpdateWithIntersectingParts: ValidatePolygonPartsRequestBody = 
           ],
         },
         properties: {
-          id: faker.string.uuid(),
-          sourceName: 'Example Source 1',
-          imagingTimeBeginUTC: '2024-01-15T10:30:00.000Z',
-          imagingTimeEndUTC: '2024-01-15T11:45:00.000Z',
+          ...propertiesToGenerate(),
           resolutionDegree: 0.00026,
-          resolutionMeter: 25.5,
-          sourceResolutionMeter: 25.5,
-          horizontalAccuracyCE90: 3.5,
-          sensors: ['Sensor_A', 'Sensor_B'],
-          countries: ['Israel'],
-          cities: ['Haifa', 'Tel Aviv'],
-          description: 'Northern coastal region imagery',
         },
       },
       {
@@ -742,18 +731,8 @@ export const mockUpdateWithIntersectingParts: ValidatePolygonPartsRequestBody = 
           ],
         },
         properties: {
-          id: faker.string.uuid(),
-          sourceName: 'Example Source 2',
-          imagingTimeBeginUTC: '2024-01-16T09:20:00.000Z',
-          imagingTimeEndUTC: '2024-01-16T10:15:00.000Z',
+          ...propertiesToGenerate(),
           resolutionDegree: 0.00012,
-          resolutionMeter: 10.2,
-          sourceResolutionMeter: 10.2,
-          horizontalAccuracyCE90: 2.1,
-          sensors: ['Sensor_C'],
-          countries: ['Israel'],
-          cities: ['Jerusalem'],
-          description: 'Central region high-resolution capture',
         },
       },
     ],

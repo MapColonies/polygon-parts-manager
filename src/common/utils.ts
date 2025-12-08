@@ -17,9 +17,3 @@ export const createConnectionOptions = (dbConfig: DbConfig): PostgresConnectionO
   }
   return connectionOptions;
 };
-
-export function getValidationStatusCode(response: ValidatePolygonPartsResponseBody): number {
-  return response.parts.length === 0 && response.smallGeometriesCount === 0 && response.smallHolesCount === 0
-    ? httpStatus.OK
-    : httpStatus.UNPROCESSABLE_ENTITY;
-}

@@ -778,7 +778,7 @@ components:
         id:
           type: string
           description: feature identifier
-          example: '1234' 
+          example: '1234'
     FeatureCollectionPartDataProperties:
       type: object
       description: Part data

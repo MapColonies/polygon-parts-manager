@@ -273,12 +273,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationResponse'
-        '422':
-          description: Unprocessable Entity
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorMessage'
         '400':
           description: Bad Request
           content:

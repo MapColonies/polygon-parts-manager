@@ -8468,13 +8468,12 @@ describe('polygonParts', () => {
         const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
         expect(responseBody.parts).toHaveLength(expected.parts.length);
-        expect(responseBody.parts).toContain(expected.parts[0].id);
-        expect(responseBody.parts).toContain(expected.parts[1].id);
+        expect(responseBody.parts).toEqual(expect.arrayContaining(expected.parts));
         expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
         expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(3);
+        expect.assertions(6);
       });
 
       it('should return 422 status code when there are small geometries', async () => {
@@ -8491,13 +8490,12 @@ describe('polygonParts', () => {
         const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
         expect(responseBody.parts).toHaveLength(expected.parts.length);
-        expect(responseBody.parts).toContain(expected.parts[0].id);
-        expect(responseBody.parts).toContain(expected.parts[1].id);
+        expect(responseBody.parts).toEqual(expect.arrayContaining(expected.parts));
         expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
         expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(3);
+        expect.assertions(6);
       });
 
       it('should return 422 status code when there are small holes', async () => {
@@ -8515,13 +8513,12 @@ describe('polygonParts', () => {
         const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
         expect(responseBody.parts).toHaveLength(expected.parts.length);
-        expect(responseBody.parts).toContain(expected.parts[0].id);
-        expect(responseBody.parts).toContain(expected.parts[1].id);
+        expect(responseBody.parts).toEqual(expect.arrayContaining(expected.parts));
         expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
         expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(3);
+        expect.assertions(6);
       });
 
       it('should return 422 status code when there are small hole and small geo', async () => {
@@ -8538,13 +8535,12 @@ describe('polygonParts', () => {
         const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
         expect(responseBody.parts).toHaveLength(expected.parts.length);
-        expect(responseBody.parts).toContain(expected.parts[0].id);
-        expect(responseBody.parts).toContain(expected.parts[1].id);
+        expect(responseBody.parts).toEqual(expect.arrayContaining(expected.parts));
         expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
         expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(3);
+        expect.assertions(6);
       });
 
       it('should return 422 status code when there is small hole, small geo and 1 invalid', async () => {
@@ -8565,13 +8561,12 @@ describe('polygonParts', () => {
         const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
         expect(responseBody.parts).toHaveLength(expected.parts.length);
-        expect(responseBody.parts).toContain(expected.parts[0].id);
-        expect(responseBody.parts).toContain(expected.parts[1].id);
+        expect(responseBody.parts).toEqual(expect.arrayContaining(expected.parts));
         expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
         expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(3);
+        expect.assertions(6);
       });
 
       it('should return 422 status code when updating intersecting parts with worse resolution', async () => {
@@ -8590,13 +8585,12 @@ describe('polygonParts', () => {
         const responseBody = response.body as ValidatePolygonPartsResponseBody;
         expect(response.status).toBe(httpStatusCodes.UNPROCESSABLE_ENTITY);
         expect(responseBody.parts).toHaveLength(expected.parts.length);
-        expect(responseBody.parts).toContain(expected.parts[0].id);
-        expect(responseBody.parts).toContain(expected.parts[1].id);
+        expect(responseBody.parts).toEqual(expect.arrayContaining(expected.parts));
         expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
         expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
         expect(response).toSatisfyApiSpec();
 
-        expect.assertions(3);
+        expect.assertions(6);
       });
 
       it('should return 500 status code for a database error - cant create validations table', async () => {

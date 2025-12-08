@@ -759,7 +759,6 @@ components:
         - type
         - properties
         - geometry
-        - id
       properties:
         type:
           type: string
@@ -776,6 +775,10 @@ components:
             - $ref: './SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon'
         bbox:
           $ref: './SchemaRaster/core/geojson.yaml#/components/schemas/BBox'
+        id:
+          type: string
+          description: feature identifier
+          example: '1234' 
     FeatureCollectionPartDataProperties:
       type: object
       description: Part data

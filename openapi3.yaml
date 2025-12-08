@@ -268,13 +268,7 @@ paths:
         required: true
       responses:
         '200':
-          description: No validation errors were found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ValidationResponse'
-        '422':
-          description: Unprocessable Entity
+          description: OK
           content:
             application/json:
               schema:

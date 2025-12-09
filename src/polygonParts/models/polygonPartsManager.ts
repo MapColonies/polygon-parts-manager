@@ -445,7 +445,7 @@ export class PolygonPartsManager {
 
       const result: ValidateError[] = rows.map(({ id }) => ({
         id,
-        errors: [FeatureValidationError.VALIDITY],
+        errors: [FeatureValidationError.GEOMETRY_VALIDITY],
       }));
 
       return result;

@@ -8452,11 +8452,11 @@ describe('polygonParts', () => {
           parts: [
             {
               id: invalidGeometriesValidateRequest.partsData.features[0].properties.id,
-              errors: [FeatureValidationError.VALIDITY],
+              errors: [FeatureValidationError.GEOMETRY_VALIDITY],
             },
             {
               id: invalidGeometriesValidateRequest.partsData.features[1].properties.id,
-              errors: [FeatureValidationError.VALIDITY],
+              errors: [FeatureValidationError.GEOMETRY_VALIDITY],
             },
           ],
           smallGeometriesCount: 0,
@@ -8546,8 +8546,8 @@ describe('polygonParts', () => {
       it('should return 422 status code when there is small hole, small geo and 1 invalid', async () => {
         const expected: ValidatePolygonPartsResponseBody = {
           parts: [
-            { id: mockMultipleInvalidGeometries.partsData.features[0].properties.id, errors: [FeatureValidationError.VALIDITY] },
-            { id: mockMultipleInvalidGeometries.partsData.features[2].properties.id, errors: [FeatureValidationError.VALIDITY] },
+            { id: mockMultipleInvalidGeometries.partsData.features[0].properties.id, errors: [FeatureValidationError.GEOMETRY_VALIDITY] },
+            { id: mockMultipleInvalidGeometries.partsData.features[2].properties.id, errors: [FeatureValidationError.GEOMETRY_VALIDITY] },
             {
               id: mockMultipleInvalidGeometries.partsData.features[1].properties.id,
               errors: [FeatureValidationError.SMALL_GEOMETRY, FeatureValidationError.SMALL_HOLES],

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.1.1-alpha](https://github.com/MapColonies/polygon-parts-manager/compare/v2.1.0-alpha...v2.1.1-alpha) (2025-12-09)
+
+
+### Bug Fixes
+
+* correct feature validation error constants for consistency ([#61](https://github.com/MapColonies/polygon-parts-manager/issues/61)) ([dec3967](https://github.com/MapColonies/polygon-parts-manager/commit/dec3967a3a5b30637ef0768fda901922f8123801))
+
 ## [2.1.0-alpha](https://github.com/MapColonies/polygon-parts-manager/compare/v1.8.1...v2.1.0-alpha) (2025-12-08)
 
 

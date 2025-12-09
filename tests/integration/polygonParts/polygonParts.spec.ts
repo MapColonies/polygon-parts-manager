@@ -8572,8 +8572,8 @@ describe('polygonParts', () => {
       it('should return 422 status code when updating intersecting parts with worse resolution', async () => {
         const expected: ValidatePolygonPartsResponseBody = {
           parts: [
-            { id: mockUpdateWithIntersectingParts.partsData.features[0].properties.id, errors: [FeatureValidationError.RESOLUTIONS] },
-            { id: mockUpdateWithIntersectingParts.partsData.features[1].properties.id, errors: [FeatureValidationError.RESOLUTIONS] },
+            { id: mockUpdateWithIntersectingParts.partsData.features[0].properties.id, errors: [FeatureValidationError.RESOLUTION] },
+            { id: mockUpdateWithIntersectingParts.partsData.features[1].properties.id, errors: [FeatureValidationError.RESOLUTION] },
           ],
           smallGeometriesCount: 0,
           smallHolesCount: 0,

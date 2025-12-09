@@ -320,7 +320,7 @@ export class PolygonPartsManager {
         const smallHolesSummary = await this.smallHolesCount(validationsContext);
 
         const errorsSummary: ValidateError[][] = [
-          stInvalidParts, // e.g. [{id, errors:['Validity']}...]
+          stInvalidParts, // e.g. [{id, errors:['Geometry_Validity']}...]
           smallGeometriesSummary.parts, // e.g. [{id, errors:['SMALL_GEOMETRY']}...]
           smallHolesSummary.parts, // e.g. [{id, errors:['SMALL_HOLE']}...]
         ];
@@ -445,7 +445,7 @@ export class PolygonPartsManager {
 
       const result: ValidateError[] = rows.map(({ id }) => ({
         id,
-        errors: [FeatureValidationError.VALIDITY],
+        errors: [FeatureValidationError.GEOMETRY_VALIDITY],
       }));
 
       return result;
@@ -646,7 +646,7 @@ export class PolygonPartsManager {
 
       const result: ValidateError[] = rows.map(({ id }) => ({
         id,
-        errors: [FeatureValidationError.RESOLUTIONS],
+        errors: [FeatureValidationError.RESOLUTION],
       }));
       return result;
     } catch (error) {

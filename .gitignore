@@ -3,6 +3,7 @@ config/*local*.json
 helm/certs
 helm/local
 helm/local.yaml
+helm/Chart.lock
 local
 #generated files
 bundledApi.yaml

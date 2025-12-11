@@ -4,3 +4,8 @@ description: A Helm chart for polygon-parts-manager service
 type: application
 version: 2.1.1-alpha
 appVersion: 2.1.1-alpha
+
+dependencies:
+  - name: mclabels
+    version: 1.0.1
+    repository: oci://acrarolibotnonprod.azurecr.io/helm/infra

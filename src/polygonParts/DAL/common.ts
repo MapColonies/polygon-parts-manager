@@ -67,7 +67,7 @@ export abstract class Common implements CommonRecord {
   public horizontalAccuracyCE90!: number;
 
   @Column({ type: 'text', collation: 'ucs_basic' })
-  @Check('sensors', `"sensors" ~ '^((([^,\\\\s][^,\n]*?[^,\\\\s])|([^,\\\\s]))(,(([^,\\\\s][^,\n]*?[^,\\\\s])|([^,\\\\s]))+?)*?)$'`)
+  @Check('sensors', `"sensors" ~ '^((([^,\\\\s][^,\\\\n]*?[^,\\\\s])|([^,\\\\s]))(,(([^,\\\\s][^,\\\\n]*?[^,\\\\s])|([^,\\\\s]))+?)*?)$'`)
   public sensors!: string;
 
   @Column({ type: 'text', collation: 'ucs_basic', nullable: true })

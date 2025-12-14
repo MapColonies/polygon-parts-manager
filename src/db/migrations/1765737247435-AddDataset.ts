@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddDatasets1763918895280 implements MigrationInterface {
-    name = 'AddDatasets1763918895280'
+export class AddDataset1765737247435 implements MigrationInterface {
+    name = 'AddDataset1765737247435'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`
@@ -28,6 +28,7 @@ export class AddDatasets1763918895280 implements MigrationInterface {
                 "insertion_order" bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
                 "is_processed_part" boolean NOT NULL DEFAULT false,
                 CONSTRAINT "product id" CHECK ("product_id" ~ '^[A-Za-z]{1}[A-Za-z0-9_]{0,37}$'),
+                CONSTRAINT "source name" CHECK (length("source_name") > 1),
                 CONSTRAINT "product version" CHECK (
                     "product_version" ~ '^[1-9]\\d*(\\.(0|[1-9]\\d?))?$'
                 ),
@@ -45,6 +46,11 @@ export class AddDatasets1763918895280 implements MigrationInterface {
                 CONSTRAINT "horizontal accuracy ce90" CHECK (
                     "horizontal_accuracy_ce90" BETWEEN 0.01 AND 4000
                 ),
+                CONSTRAINT "sensors" CHECK (
+                    "sensors" ~ '^((([^,\\s][^,\\n]*?[^,\\s])|([^,\\s]))(,(([^,\\s][^,\\n]*?[^,\\s])|([^,\\s]))+?)*?)$'
+                ),
+                CONSTRAINT "countries" CHECK ("countries" ~ '^([^,]+)+(,[^,]+)*$'),
+                CONSTRAINT "cities" CHECK ("cities" ~ '^([^,]+)+(,[^,]+)*$'),
                 CONSTRAINT "geometry extent" CHECK (
                     Box2D("footprint") @Box2D(ST_GeomFromText('LINESTRING(-180 -90, 180 90)'))
                 ),
@@ -90,9 +96,101 @@ export class AddDatasets1763918895280 implements MigrationInterface {
             ALTER TABLE "polygon_parts"."validation_parts"
             ADD CONSTRAINT "polygon_parts.validation_parts_insertion_order_uq" UNIQUE ("insertion_order")
         `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."validation_parts"
+            ALTER COLUMN "footprint" TYPE geometry(Geometry, 4326)
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."validation_parts"
+            ALTER COLUMN "footprint" TYPE geometry(Geometry, 4326)
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."polygon_parts"
+            ALTER COLUMN "footprint" TYPE geometry(Polygon, 4326)
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."parts"
+            ALTER COLUMN "footprint" TYPE geometry(Polygon, 4326)
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."polygon_parts"
+            ADD CONSTRAINT "source name" CHECK (length("source_name") > 1)
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."polygon_parts"
+            ADD CONSTRAINT "sensors" CHECK (
+                    "sensors" ~ '^((([^,\\s][^,\\n]*?[^,\\s])|([^,\\s]))(,(([^,\\s][^,\\n]*?[^,\\s])|([^,\\s]))+?)*?)$'
+                )
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."polygon_parts"
+            ADD CONSTRAINT "countries" CHECK ("countries" ~ '^([^,]+)+(,[^,]+)*$')
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."polygon_parts"
+            ADD CONSTRAINT "cities" CHECK ("cities" ~ '^([^,]+)+(,[^,]+)*$')
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."parts"
+            ADD CONSTRAINT "source name" CHECK (length("source_name") > 1)
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."parts"
+            ADD CONSTRAINT "sensors" CHECK (
+                    "sensors" ~ '^((([^,\\s][^,\\n]*?[^,\\s])|([^,\\s]))(,(([^,\\s][^,\\n]*?[^,\\s])|([^,\\s]))+?)*?)$'
+                )
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."parts"
+            ADD CONSTRAINT "countries" CHECK ("countries" ~ '^([^,]+)+(,[^,]+)*$')
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."parts"
+            ADD CONSTRAINT "cities" CHECK ("cities" ~ '^([^,]+)+(,[^,]+)*$')
+        `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."parts" DROP CONSTRAINT "cities"
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."parts" DROP CONSTRAINT "countries"
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."parts" DROP CONSTRAINT "sensors"
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."parts" DROP CONSTRAINT "source name"
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."polygon_parts" DROP CONSTRAINT "cities"
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."polygon_parts" DROP CONSTRAINT "countries"
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."polygon_parts" DROP CONSTRAINT "sensors"
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."polygon_parts" DROP CONSTRAINT "source name"
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."parts"
+            ALTER COLUMN "footprint" TYPE geometry(POLYGON, 4326)
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."polygon_parts"
+            ALTER COLUMN "footprint" TYPE geometry(POLYGON, 4326)
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."validation_parts"
+            ALTER COLUMN "footprint" TYPE geometry(POLYGON, 4326)
+        `);
+        await queryRunner.query(`
+            ALTER TABLE "polygon_parts"."validation_parts"
+            ALTER COLUMN "footprint" TYPE geometry(POLYGON, 4326)
+        `);
         await queryRunner.query(`
             ALTER TABLE "polygon_parts"."validation_parts" DROP CONSTRAINT "polygon_parts.validation_parts_insertion_order_uq"
         `);

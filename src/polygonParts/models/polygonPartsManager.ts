@@ -384,6 +384,109 @@ export class PolygonPartsManager {
     }
   }
 
+  public async moveValidationsToHistory(entitiesMetadata: EntitiesMetadata): Promise<void> {
+    const { entityName: validationsEntityName, databaseObjectQualifiedName: validationsEntityQualifiedName } =
+      entitiesMetadata.entitiesNames.validations;
+
+    const logger = this.logger.child({ validationsEntityName });
+    logger.info({ msg: 'moving validations to history table', validationsEntityQualifiedName });
+
+    try {
+      await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        await entityManager.query(`SET search_path TO ${this.schema},public`);
+
+        const entityExists = await this.connectionManager.entityExists(entityManager, validationsEntityName);
+        if (!entityExists) {
+          throw new NotFoundError(`Table with the name '${validationsEntityName}' doesn't exists`);
+        }
+
+        // Construct history table name
+        const historyTableName = `${validationsEntityName}_history`;
+        const historyTableQualifiedName = `${this.schema}.${historyTableName}`;
+
+        // Check if history table exists
+        const historyTableExists = await this.connectionManager.entityExists(entityManager, historyTableName);
+
+        if (!historyTableExists) {
+          // Create history table if it doesn't exist
+          logger.debug({ msg: 'creating history table', historyTableQualifiedName });
+          await entityManager.query(`CREATE TABLE ${historyTableQualifiedName} (LIKE ${validationsEntityQualifiedName} INCLUDING ALL);`);
+        }
+
+        // Insert data into history table, splitting MultiPolygons into Polygons
+        logger.debug({ msg: 'inserting validation data into history table', historyTableQualifiedName });
+        await entityManager.query(`
+          INSERT INTO ${historyTableQualifiedName} (
+            product_id,
+            catalog_id,
+            source_id,
+            source_name,
+            product_version,
+            ingestion_date_utc,
+            imaging_time_begin_utc,
+            imaging_time_end_utc,
+            resolution_degree,
+            resolution_meter,
+            source_resolution_meter,
+            horizontal_accuracy_ce90,
+            sensors,
+            countries,
+            cities,
+            description,
+            footprint,
+            id,
+            product_type
+          )
+          SELECT 
+            product_id,
+            catalog_id,
+            source_id,
+            source_name,
+            product_version,
+            ingestion_date_utc,
+            imaging_time_begin_utc,
+            imaging_time_end_utc,
+            resolution_degree,
+            resolution_meter,
+            source_resolution_meter,
+            horizontal_accuracy_ce90,
+            sensors,
+            countries,
+            cities,
+            description,
+            geom as footprint,
+            CASE 
+              WHEN geom_count > 1 THEN id || '_' || geom_index
+              ELSE id
+            END as id,
+            product_type
+          FROM (
+            SELECT 
+              *,
+              (st_dump(footprint)).path[1] as geom_index,
+              (st_dump(footprint)).geom as geom,
+              st_numgeometries(footprint) as geom_count
+            FROM ${validationsEntityQualifiedName}
+          ) as dumped_geometries;
+        `);
+
+        // Delete the temporary validation table
+        const baseValidationContext = {
+          entityManager,
+          logger,
+          entitiesMetadata,
+        };
+        await this.deleteValidationsTable(baseValidationContext);
+
+        logger.info({ msg: 'validations moved to history and temporary table dropped', validationsEntityQualifiedName, historyTableQualifiedName });
+      });
+    } catch (error) {
+      const errorMessage = 'Move validations to history table transaction failed';
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
   private async prepareAggregationFilterQuery(
     entityManager: EntityManager,
     polygonPartsEntityName: EntityNames,
@@ -656,6 +759,145 @@ export class PolygonPartsManager {
     }
   }
 
+  private async verifyValidationTableInheritance(
+    entityManager: EntityManager,
+    validationsEntityName: string,
+    validationsEntityQualifiedName: string,
+    logger: Logger
+  ): Promise<void> {
+    // Query PostgreSQL catalogs to verify inheritance
+    const result = await entityManager.query<number[]>(
+      `
+      SELECT 1 as res
+      FROM pg_inherits AS i
+      JOIN pg_class AS child ON i.inhrelid = child.oid
+      JOIN pg_namespace AS n_child ON n_child.oid = child.relnamespace
+      JOIN pg_class AS parent ON i.inhparent = parent.oid
+      JOIN pg_namespace AS n_parent ON n_parent.oid = parent.relnamespace
+      WHERE n_parent.nspname = $1
+        AND parent.relname = $2
+        AND n_child.nspname = $1
+        AND child.relname = $3;
+    `,
+      [
+        this.schema,
+        'validation_parts', // <-- base table name
+        validationsEntityName,
+      ]
+    );
+
+    const isChildOfValidationRecord = result.length > 0;
+
+    if (!isChildOfValidationRecord) {
+      const errorMessage = `Refused to operate on ${validationsEntityQualifiedName} — it is not instance of validation_parts entity.`;
+      logger.error({ msg: errorMessage });
+      throw new BadRequestError(errorMessage);
+    }
+  }
+
+  public async moveValidationsToHistory(entitiesMetadata: EntitiesMetadata): Promise<void> {
+    const { entityName: validationsEntityName, databaseObjectQualifiedName: validationsEntityQualifiedName } =
+      entitiesMetadata.entitiesNames.validations;
+
+    const logger = this.logger.child({ validationsEntityName });
+    logger.info({ msg: 'moving validations to history table', validationsEntityQualifiedName });
+
+    try {
+      await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        await entityManager.query(`SET search_path TO ${this.schema},public`);
+
+        const entityExists = await this.connectionManager.entityExists(entityManager, validationsEntityName);
+        if (!entityExists) {
+          throw new NotFoundError(`Table with the name '${validationsEntityName}' doesn't exists`);
+        }
+
+        // Construct history table name
+        const historyTableName = `${validationsEntityName}_history`;
+        const historyTableQualifiedName = `${this.schema}.${historyTableName}`;
+
+        // Check if history table exists
+        const historyTableExists = await this.connectionManager.entityExists(entityManager, historyTableName);
+
+        if (!historyTableExists) {
+          // Create history table if it doesn't exist
+          logger.debug({ msg: 'creating history table', historyTableQualifiedName });
+          await entityManager.query(`CREATE TABLE ${historyTableQualifiedName} (LIKE ${validationsEntityQualifiedName} INCLUDING ALL);`);
+        }
+
+        // Insert data into history table, splitting MultiPolygons into Polygons
+        logger.debug({ msg: 'inserting validation data into history table', historyTableQualifiedName });
+        await entityManager.query(`
+          INSERT INTO ${historyTableQualifiedName} (
+            product_id,
+            catalog_id,
+            source_id,
+            source_name,
+            product_version,
+            ingestion_date_utc,
+            imaging_time_begin_utc,
+            imaging_time_end_utc,
+            resolution_degree,
+            resolution_meter,
+            source_resolution_meter,
+            horizontal_accuracy_ce90,
+            sensors,
+            countries,
+            cities,
+            description,
+            footprint,
+            id,
+            product_type
+          )
+          SELECT 
+            product_id,
+            catalog_id,
+            source_id,
+            source_name,
+            product_version,
+            ingestion_date_utc,
+            imaging_time_begin_utc,
+            imaging_time_end_utc,
+            resolution_degree,
+            resolution_meter,
+            source_resolution_meter,
+            horizontal_accuracy_ce90,
+            sensors,
+            countries,
+            cities,
+            description,
+            geom as footprint,
+            CASE 
+              WHEN geom_count > 1 THEN id || '_' || geom_index
+              ELSE id
+            END as id,
+            product_type
+          FROM (
+            SELECT 
+              *,
+              (st_dump(footprint)).path[1] as geom_index,
+              (st_dump(footprint)).geom as geom,
+              st_numgeometries(footprint) as geom_count
+            FROM ${validationsEntityQualifiedName}
+          ) as dumped_geometries;
+        `);
+
+        // Delete the temporary validation table
+        const baseValidationContext = {
+          entityManager,
+          logger,
+          entitiesMetadata,
+        };
+        await this.deleteValidationsTable(baseValidationContext);
+
+        logger.info({ msg: 'validations moved to history and temporary table dropped', validationsEntityQualifiedName, historyTableQualifiedName });
+      });
+    } catch (error) {
+      const errorMessage = 'Move validations to history table transaction failed';
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
   private async deleteValidationsTable(context: { entitiesMetadata: EntitiesMetadata; entityManager: EntityManager; logger: Logger }): Promise<void> {
     const {
       entityManager,
@@ -668,34 +910,7 @@ export class PolygonPartsManager {
     } = context;
     logger.info({ msg: 'deleting validations table', validationsEntityQualifiedName });
     try {
-      // Query PostgreSQL catalogs to verify inheritance
-      const result = await entityManager.query<number[]>(
-        `
-      SELECT 1 as res
-      FROM pg_inherits AS i
-      JOIN pg_class AS child ON i.inhrelid = child.oid
-      JOIN pg_namespace AS n_child ON n_child.oid = child.relnamespace
-      JOIN pg_class AS parent ON i.inhparent = parent.oid
-      JOIN pg_namespace AS n_parent ON n_parent.oid = parent.relnamespace
-      WHERE n_parent.nspname = $1
-        AND parent.relname = $2
-        AND n_child.nspname = $1
-        AND child.relname = $3;
-    `,
-        [
-          this.schema,
-          'validation_parts', // <-- base table name
-          validationsEntityQualifiedName,
-        ]
-      );
-
-      const isChildOfValidationRecord = result.length > 0;
-
-      if (!isChildOfValidationRecord) {
-        const errorMessage = `Refused to drop ${validationsEntityQualifiedName} — it is not instance of validation_parts entity.`;
-        logger.error({ msg: errorMessage });
-        throw new BadRequestError(errorMessage);
-      }
+      await this.verifyValidationTableInheritance(entityManager, validationsEntityQualifiedName, validationsEntityQualifiedName, logger);
 
       await entityManager.query(`DROP TABLE ${validationsEntityQualifiedName} CASCADE;`);
 
@@ -948,10 +1163,9 @@ export class PolygonPartsManager {
       .createQueryBuilder('polygon_part')
       .select(idColumn, 'polygon_part_id')
       .addSelect(
-        `${
-          shouldClip
-            ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
-            : geometryColumn
+        `${shouldClip
+          ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
+          : geometryColumn
         }`,
         geometryColumn
       )
@@ -1149,8 +1363,7 @@ export class PolygonPartsManager {
 
     if (!isValidFilterGeometry.valid) {
       throw new BadRequestError(
-        `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${
-          isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
+        `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
         }`
       );
     }

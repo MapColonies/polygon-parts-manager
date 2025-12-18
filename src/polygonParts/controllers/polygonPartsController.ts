@@ -7,7 +7,7 @@ import type {
   AggregatePolygonPartsRequestBody,
   AggregationLayerMetadataParams,
   AggregationLayerMetadataResponseBody,
-  DeleteValidationEntityQuery,
+  ValidationEntityQuery,
   ExistsRequestBody,
   ExistsResponseBody,
   FindPolygonPartsParams,
@@ -67,13 +67,21 @@ export type DeleteValidationPolygonPartsEntityHandler = RequestHandler<
   undefined,
   undefined,
   undefined,
-  DeleteValidationEntityQuery,
+  ValidationEntityQuery,
+  EntitiesMetadata
+>;
+
+export type HistoryPolygonPartsEntityHandler = RequestHandler<
+  undefined,
+  undefined,
+  undefined,
+  ValidationEntityQuery,
   EntitiesMetadata
 >;
 
 @injectable()
 export class PolygonPartsController {
-  public constructor(@inject(PolygonPartsManager) private readonly polygonPartsManager: PolygonPartsManager) {}
+  public constructor(@inject(PolygonPartsManager) private readonly polygonPartsManager: PolygonPartsManager) { }
 
   public createPolygonParts: CreatePolygonPartsHandler = async (req, res, next) => {
     try {
@@ -148,4 +156,15 @@ export class PolygonPartsController {
       next(error);
     }
   };
+
+  public moveValidationsToHistory: HistoryPolygonPartsEntityHandler = async (req, res, next) => {
+    try {
+      await this.polygonPartsManager.moveValidationsToHistory(res.locals);
+      return res.status(httpStatus.NO_CONTENT).json();
+    } catch (error) {
+      next(error);
+    }
+  };
+
+
 }

@@ -29,7 +29,7 @@ import { Transformer } from '../../../src/common/middlewares/transformer';
 import { createConnectionOptions } from '../../../src/common/utils';
 import type {
   AggregatePolygonPartsRequestBody,
-  DeleteValidationEntityQuery,
+  ValidationEntityQuery,
   ExistsRequestBody,
   ExistsResponseBody,
   FindPolygonPartsResponseBody,
@@ -6046,7 +6046,7 @@ describe('polygonParts', () => {
 
     describe('DELETE /polygonParts/validate', () => {
       it('should return 204 on successful delete', async () => {
-        const deleteRequestQuery: DeleteValidationEntityQuery = {
+        const deleteRequestQuery: ValidationEntityQuery = {
           productId: validValidationPolygonPartsPayload.productId,
           productType: validValidationPolygonPartsPayload.productType,
         };
@@ -7738,7 +7738,7 @@ describe('polygonParts', () => {
           productId: validValidationPolygonPartsPayload.productId,
           productType: 'bad_value',
         };
-        const response = await requestSender.deleteValidationPolygonParts(deleteRequestQuery as unknown as DeleteValidationEntityQuery);
+        const response = await requestSender.deleteValidationPolygonParts(deleteRequestQuery as unknown as ValidationEntityQuery);
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
@@ -7751,7 +7751,7 @@ describe('polygonParts', () => {
           productId: 111,
           productType: validValidationPolygonPartsPayload.productType,
         };
-        const response = await requestSender.deleteValidationPolygonParts(deleteRequestQuery as unknown as DeleteValidationEntityQuery);
+        const response = await requestSender.deleteValidationPolygonParts(deleteRequestQuery as unknown as ValidationEntityQuery);
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
@@ -7772,7 +7772,7 @@ describe('polygonParts', () => {
           .mockImplementationOnce(originalQuery)
           .mockResolvedValueOnce([]);
 
-        const deleteRequestQuery: DeleteValidationEntityQuery = {
+        const deleteRequestQuery: ValidationEntityQuery = {
           productId: validValidationPolygonPartsPayload.productId,
           productType: validValidationPolygonPartsPayload.productType,
         };
@@ -8733,7 +8733,7 @@ describe('polygonParts', () => {
     });
     describe('DELETE /polygonParts/validate', () => {
       it('should return 404 when validation table doesnt exist', async () => {
-        const deleteRequestQuery: DeleteValidationEntityQuery = {
+        const deleteRequestQuery: ValidationEntityQuery = {
           productId: validValidationPolygonPartsPayload.productId,
           productType: validValidationPolygonPartsPayload.productType,
         };
@@ -8746,7 +8746,7 @@ describe('polygonParts', () => {
       });
 
       it('should return 500 on when databse error - exists fails', async () => {
-        const deleteRequestQuery: DeleteValidationEntityQuery = {
+        const deleteRequestQuery: ValidationEntityQuery = {
           productId: validValidationPolygonPartsPayload.productId,
           productType: validValidationPolygonPartsPayload.productType,
         };
@@ -8762,7 +8762,7 @@ describe('polygonParts', () => {
       });
 
       it('should return 500 on when databse error - delete fails', async () => {
-        const deleteRequestQuery: DeleteValidationEntityQuery = {
+        const deleteRequestQuery: ValidationEntityQuery = {
           productId: validValidationPolygonPartsPayload.productId,
           productType: validValidationPolygonPartsPayload.productType,
         };

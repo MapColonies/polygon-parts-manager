@@ -10,6 +10,7 @@ import { registerDependencies, type InjectionObject, type Providers } from './co
 import type { DbConfig } from './common/interfaces';
 import { tracing } from './common/tracing';
 import { POLYGON_PARTS_ROUTER_SYMBOL, polygonPartsRouterFactory } from './polygonParts/routes/polygonPartsRouter';
+import { HISTORY_ROUTER_SYMBOL, historyRouterFactory } from './polygonParts/routes/historyRouter';
 
 export interface RegisterOptions {
   override?: InjectionObject<unknown>[];
@@ -56,6 +57,10 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
     {
       token: POLYGON_PARTS_ROUTER_SYMBOL,
       provider: { useFactory: polygonPartsRouterFactory },
+    },
+    {
+      token: HISTORY_ROUTER_SYMBOL,
+      provider: { useFactory: historyRouterFactory },
     },
     {
       token: 'onSignal',

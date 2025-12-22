@@ -329,7 +329,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
   /history:
-    post:
+    put:
       tags:
       - history
       summary: Move polygon parts validation entity to history

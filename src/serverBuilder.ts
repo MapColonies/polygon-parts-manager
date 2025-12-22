@@ -11,6 +11,7 @@ import { inject, injectable } from 'tsyringe';
 import { SERVICES } from './common/constants';
 import type { IConfig } from './common/interfaces';
 import { POLYGON_PARTS_ROUTER_SYMBOL } from './polygonParts/routes/polygonPartsRouter';
+import { HISTORY_ROUTER_SYMBOL } from './polygonParts/routes/historyRouter';
 
 @injectable()
 export class ServerBuilder {
@@ -19,7 +20,8 @@ export class ServerBuilder {
   public constructor(
     @inject(SERVICES.CONFIG) private readonly config: IConfig,
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
-    @inject(POLYGON_PARTS_ROUTER_SYMBOL) private readonly polygonPartsRouter: Router
+    @inject(POLYGON_PARTS_ROUTER_SYMBOL) private readonly polygonPartsRouter: Router,
+    @inject(HISTORY_ROUTER_SYMBOL) private readonly historyRouter: Router
   ) {
     this.serverInstance = express();
   }
@@ -43,6 +45,7 @@ export class ServerBuilder {
 
   private buildRoutes(): void {
     this.serverInstance.use('/polygonParts', this.polygonPartsRouter);
+    this.serverInstance.use('/', this.historyRouter);
     this.buildDocsRoutes();
   }
 

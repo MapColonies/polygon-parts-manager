@@ -22,7 +22,6 @@ const polygonPartsRouterFactory: FactoryFunction<Router> = (dependencyContainer)
   router.put('/', validations.validateUpdatePolygonParts, transformer.parseUpdatePolygonParts, controller.updatePolygonParts);
   router.post('/validate', transformer.parseValidatePolygonParts, controller.validatePolygonParts);
   router.delete('/validate', transformer.parseDeleteValidationPolygonPartsEntity, controller.deleteValidationPolygonParts);
-  router.post('/history', transformer.parseDeleteValidationPolygonPartsEntity, controller.moveValidationsToHistory);
 
   return router;
 };

@@ -37,13 +37,23 @@ export const payloadToInsertPartsData = (
 ): InsertPartData[] => {
   const { partsData, ...layerMetadata } = polygonPartsPayload;
 
-  return partsData.map((partData) => {
+  return partsData.features.map((partData) => {
     return {
       ...layerMetadata,
-      ...partData,
-      sensors: partData.sensors.join(arraySeparator),
-      countries: partData.countries?.join(arraySeparator),
-      cities: partData.cities?.join(arraySeparator),
+      id: partData.properties.id,
+      footprint: partData.geometry,
+      horizontalAccuracyCE90: partData.properties.horizontalAccuracyCE90,
+      imagingTimeBeginUTC: new Date(partData.properties.imagingTimeBeginUTC),
+      imagingTimeEndUTC: new Date(partData.properties.imagingTimeEndUTC),
+      resolutionDegree: partData.properties.resolutionDegree,
+      resolutionMeter: partData.properties.resolutionMeter,
+      sourceResolutionMeter: partData.properties.sourceResolutionMeter,
+      sourceId: partData.properties.sourceId,
+      sourceName: partData.properties.sourceName,
+      description: partData.properties.description,
+      sensors: partData.properties.sensors.join(arraySeparator),
+      countries: partData.properties.countries?.join(arraySeparator),
+      cities: partData.properties.cities?.join(arraySeparator),
     };
   });
 };
@@ -52,13 +62,14 @@ export const payloadToInsertValidationsData = (
   validationsPolygonPartsPayload: ValidatePolygonPartsRequestBody,
   arraySeparator: ApplicationConfig['arraySeparator']
 ): ValidatePartData[] => {
-  const { partsData, productId, productVersion, productType, catalogId } = validationsPolygonPartsPayload;
+  const { partsData, productId, productVersion, productType, catalogId, jobType } = validationsPolygonPartsPayload;
 
   return partsData.features.map((partData) => {
     return {
       productId,
       productType,
       productVersion,
+      jobType,
       id: partData.properties.id,
       catalogId,
       footprint: partData.geometry,

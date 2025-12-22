@@ -1,17 +1,18 @@
 import type {
   AggregationFeature,
-  PolygonPart,
+  partSchema,
   PolygonPartsEntityName,
-  PolygonPartsEntityNameObject,
+  polygonPartsEntityNameSchema,
   PolygonPartsPayload as PolygonPartsPayloadType,
   RoiProperties,
 } from '@map-colonies/raster-shared';
 import type { Feature, FeatureCollection, GeoJsonProperties, Geometry, MultiPolygon, Polygon } from 'geojson';
 import { EntityManager, SelectQueryBuilder } from 'typeorm';
+import { z } from 'zod';
 import type { OptionalToNullableRecordValues, ReplaceValuesOfType } from '../../common/types';
 
 //#region public
-interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
+interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, z.infer<typeof partSchema> {}
 /**
  * Polygonal geometries
  */
@@ -24,6 +25,7 @@ export interface InsertPartData extends Readonly<Omit<CommonPayload, 'countries'
   readonly countries?: string;
   readonly cities?: string;
   readonly sensors: string;
+  readonly footprint: Polygon | MultiPolygon;
 }
 
 //Used for the Base record
@@ -83,9 +85,10 @@ export interface PolygonPartsResponse extends EntityIdentifierObject {}
 /**
  * Common record properties of part and polygon part
  */
-export interface CommonRecord extends InsertPartData {
+export interface CommonRecord extends Omit<InsertPartData, 'footprint'> {
   readonly id: string;
   readonly ingestionDateUTC: Date;
+  readonly footprint: Polygon | MultiPolygon;
 }
 
 /**
@@ -118,7 +121,7 @@ export type EntityIdentifier = PolygonPartsEntityName;
 /**
  * Entity identifier
  */
-export type EntityIdentifierObject = PolygonPartsEntityNameObject;
+export type EntityIdentifierObject = z.infer<typeof polygonPartsEntityNameSchema>;
 
 /**
  * Name of an entity

@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class RenamePartsToHistory1734825600000 implements MigrationInterface {
-    name = 'RenamePartsToHistory1734825600000'
+export class RenamePartsToHistory1766662638962 implements MigrationInterface {
+    name = 'RenamePartsToHistory1766662638962'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         // This migration renames tables with '_parts' suffix to '_history' suffix
@@ -88,4 +88,5 @@ export class RenamePartsToHistory1734825600000 implements MigrationInterface {
             }
         }
     }
+
 }

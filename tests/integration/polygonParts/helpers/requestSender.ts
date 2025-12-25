@@ -59,4 +59,8 @@ export class PolygonPartsRequestSender {
   public async deleteValidationPolygonParts(query: ValidationEntityQuery): Promise<supertest.Response> {
     return supertest.agent(this.app).delete('/polygonParts/validate').query(query).send();
   }
+
+  public async moveValidationsToHistory(query: ValidationEntityQuery): Promise<supertest.Response> {
+    return supertest.agent(this.app).put('/history').query(query).send();
+  }
 }

@@ -8,6 +8,7 @@ import { DBConnectionError } from '../common/errors';
 import type { DbConfig, IConfig } from '../common/interfaces';
 import { Part } from '../polygonParts/DAL/part';
 import { PolygonPart } from '../polygonParts/DAL/polygonPart';
+import { ValidatePart } from '../polygonParts/DAL/validationPart';
 import { namingStrategy } from '../polygonParts/DAL/utils';
 import { DataSourceLogger } from './dataSourceLogger';
 import { createConnectionOptions } from './utils';
@@ -40,9 +41,8 @@ export class ConnectionManager {
     try {
       if (!this.isConnected()) {
         this.logger.info({
-          msg: `connecting to database ${this.dataSourceOptions.database as string} ${
-            'host' in this.dataSourceOptions && this.dataSourceOptions.host !== undefined ? `on ${this.dataSourceOptions.host}` : ''
-          }`,
+          msg: `connecting to database ${this.dataSourceOptions.database as string} ${'host' in this.dataSourceOptions && this.dataSourceOptions.host !== undefined ? `on ${this.dataSourceOptions.host}` : ''
+            }`,
         });
         await this.dataSource.initialize();
       }
@@ -103,7 +103,7 @@ export class ConnectionManager {
 
   private createConnectionOptions(dbConfig: DbConfig): PostgresConnectionOptions {
     const connectionOptions = createConnectionOptions(dbConfig);
-    return { entities: [Part, PolygonPart], namingStrategy, logger: this.dataSourceLogger, ...connectionOptions };
+    return { entities: [Part, PolygonPart, ValidatePart], namingStrategy, logger: this.dataSourceLogger, ...connectionOptions };
   }
 
   private async schemaExists(): Promise<boolean> {

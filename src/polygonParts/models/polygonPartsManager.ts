@@ -388,8 +388,14 @@ export class PolygonPartsManager {
     const { entityName: validationsEntityName, databaseObjectQualifiedName: validationsEntityQualifiedName } =
       entitiesMetadata.entitiesNames.validations;
 
-    const logger = this.logger.child({ validationsEntityName });
-    logger.info({ msg: 'moving validations to history table', validationsEntityQualifiedName });
+    // Construct history table name by replacing the parts suffix with _history
+    const partsEntityName = entitiesMetadata.entitiesNames.parts.entityName;
+    const partsSuffix = this.applicationConfig.entities.parts.nameSuffix;
+    const historyTableName = partsEntityName.replace(new RegExp(`${partsSuffix}$`), '_history');
+    const historyTableQualifiedName = `${this.schema}.${historyTableName}`;
+
+    const logger = this.logger.child({ validationsEntityName, historyTableName });
+    logger.info({ msg: 'moving validations to history table', validationsEntityQualifiedName, historyTableQualifiedName });
 
     try {
       await this.connectionManager.getDataSource().transaction(async (entityManager) => {
@@ -400,17 +406,14 @@ export class PolygonPartsManager {
           throw new NotFoundError(`Table with the name '${validationsEntityName}' doesn't exists`);
         }
 
-        // Construct history table name
-        const historyTableName = `${validationsEntityName}_history`;
-        const historyTableQualifiedName = `${this.schema}.${historyTableName}`;
-
         // Check if history table exists
         const historyTableExists = await this.connectionManager.entityExists(entityManager, historyTableName);
 
         if (!historyTableExists) {
-          // Create history table if it doesn't exist
-          logger.debug({ msg: 'creating history table', historyTableQualifiedName });
-          await entityManager.query(`CREATE TABLE ${historyTableQualifiedName} (LIKE ${validationsEntityQualifiedName} INCLUDING ALL);`);
+          // Create history table based on polygon_parts template
+          const polygonPartsTemplateQualifiedName = `${this.schema}.polygon_parts`;
+          logger.debug({ msg: 'creating history table from polygon_parts template', historyTableQualifiedName, polygonPartsTemplateQualifiedName });
+          await entityManager.query(`CREATE TABLE ${historyTableQualifiedName} (LIKE ${polygonPartsTemplateQualifiedName} INCLUDING ALL);`);
         }
 
         // Insert data into history table, splitting MultiPolygons into Polygons
@@ -435,6 +438,8 @@ export class PolygonPartsManager {
             description,
             footprint,
             id,
+            part_id,
+            insertion_order,
             product_type
           )
           SELECT 
@@ -456,9 +461,11 @@ export class PolygonPartsManager {
             description,
             geom as footprint,
             CASE 
-              WHEN geom_count > 1 THEN id || '_' || geom_index
-              ELSE id
+              WHEN geom_count > 1 THEN uuid_generate_v5(uuid_ns_url(), id || '_' || geom_index::text)
+              ELSE uuid_generate_v5(uuid_ns_url(), id)
             END as id,
+            uuid_generate_v5(uuid_ns_url(), id) as part_id,
+            ROW_NUMBER() OVER (ORDER BY id, geom_index) as insertion_order,
             product_type
           FROM (
             SELECT 
@@ -617,7 +624,7 @@ export class PolygonPartsManager {
     const insertValidationsPartData = payloadToInsertValidationsData(validationsPayload, this.applicationConfig.arraySeparator);
 
     try {
-      const part = entityManager.getRepository(ValidatePart);
+      const part = entityManager.getRepository('ValidatePart');
       setRepositoryTablePath(part, validationsEntityQualifiedName);
       await part.save(insertValidationsPartData, { chunk: this.applicationConfig.chunkSize });
     } catch (error) {

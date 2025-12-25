@@ -162,22 +162,45 @@ export const italyWithoutIntersection: Polygon = {
 
 export const createInitPayloadRequest: PolygonPartsPayload = generatePolygonPartsPayload({
   ...createLayerMetadata,
-  partsData: [{ footprint: worldFootprint }],
+  partsData: {
+    type: 'FeatureCollection',
+    features: [{ type: 'Feature', geometry: worldFootprint }],
+  },
 });
 export const separatePolygonsRequest: PolygonPartsPayload = generatePolygonPartsPayload({
   ...updateLayerMetadata,
-  partsData: [{ footprint: franceFootprint }, { footprint: germanyFootprint }, { footprint: italyFootprint }],
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      { type: 'Feature', geometry: franceFootprint },
+      { type: 'Feature', geometry: germanyFootprint },
+      { type: 'Feature', geometry: italyFootprint },
+    ],
+  },
 });
 export const intersectionWithItalyRequest: PolygonPartsPayload = generatePolygonPartsPayload({
   ...updateLayerMetadata,
-  partsData: [{ footprint: italyFootprint }, { footprint: intersectionWithItalyFootprint }],
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      { type: 'Feature', geometry: italyFootprint },
+      { type: 'Feature', geometry: intersectionWithItalyFootprint },
+    ],
+  },
 });
 
 // Aggregation request
 export const createEuropeInitPayloadRequest: PolygonPartsPayload = generatePolygonPartsPayload({
   ...createLayerMetadata,
   productId: 'EUROPE',
-  partsData: [{ footprint: franceFootprint }, { footprint: germanyFootprint }, { footprint: italyFootprint }],
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      { type: 'Feature', geometry: franceFootprint },
+      { type: 'Feature', geometry: germanyFootprint },
+      { type: 'Feature', geometry: italyFootprint },
+    ],
+  },
 });
 
 export const outsideEuropePolygon: Polygon = {
@@ -201,58 +224,70 @@ export const createCustomInitPayloadRequestForAggregation: PolygonPartsPayload =
   productId: 'AGGREGATED_EXAMPLE',
   productType: RasterProductTypes.ORTHOPHOTO,
   productVersion: '1.5',
-  partsData: [
-    {
-      sourceName: 'Example Source 1',
-      imagingTimeBeginUTC: new Date('2024-01-15T10:30:00.000Z'),
-      imagingTimeEndUTC: new Date('2024-01-15T11:45:00.000Z'),
-      resolutionDegree: 0.00025,
-      resolutionMeter: 25.5,
-      sourceResolutionMeter: 25.5,
-      horizontalAccuracyCE90: 3.5,
-      sensors: ['Sensor_A', 'Sensor_B'],
-      countries: ['Israel'],
-      cities: ['Haifa', 'Tel Aviv'],
-      description: 'Northern coastal region imagery',
-      footprint: {
-        type: 'Polygon',
-        coordinates: [
-          [
-            [34.85149443279957, 32.30543192283443],
-            [34.85149443279957, 32.29430955805424],
-            [34.86824157112912, 32.29430955805424],
-            [34.86824157112912, 32.30543192283443],
-            [34.85149443279957, 32.30543192283443],
+  jobType: 'POLYGON_PARTS',
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [34.85149443279957, 32.30543192283443],
+              [34.85149443279957, 32.29430955805424],
+              [34.86824157112912, 32.29430955805424],
+              [34.86824157112912, 32.30543192283443],
+              [34.85149443279957, 32.30543192283443],
+            ],
           ],
-        ],
+        },
+        properties: {
+          id: faker.string.uuid(),
+          sourceName: 'Example Source 1',
+          imagingTimeBeginUTC: new Date('2024-01-15T10:30:00.000Z'),
+          imagingTimeEndUTC: new Date('2024-01-15T11:45:00.000Z'),
+          resolutionDegree: 0.00025,
+          resolutionMeter: 25.5,
+          sourceResolutionMeter: 25.5,
+          horizontalAccuracyCE90: 3.5,
+          sensors: ['Sensor_A', 'Sensor_B'],
+          countries: ['Israel'],
+          cities: ['Haifa', 'Tel Aviv'],
+          description: 'Northern coastal region imagery',
+        },
       },
-    },
-    {
-      sourceName: 'Example Source 2',
-      imagingTimeBeginUTC: new Date('2024-01-16T09:20:00.000Z'),
-      imagingTimeEndUTC: new Date('2024-01-16T10:15:00.000Z'),
-      resolutionDegree: 0.0001,
-      resolutionMeter: 10.2,
-      sourceResolutionMeter: 10.2,
-      horizontalAccuracyCE90: 2.1,
-      sensors: ['Sensor_C'],
-      countries: ['Israel'],
-      cities: ['Jerusalem'],
-      description: 'Central region high-resolution capture',
-      footprint: {
-        type: 'Polygon',
-        coordinates: [
-          [
-            [35.21012157112912, 31.78243192283443],
-            [35.21012157112912, 31.76430955805424],
-            [35.23149443279957, 31.76430955805424],
-            [35.23149443279957, 31.78243192283443],
-            [35.21012157112912, 31.78243192283443],
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [35.21012157112912, 31.78243192283443],
+              [35.21012157112912, 31.76430955805424],
+              [35.23149443279957, 31.76430955805424],
+              [35.23149443279957, 31.78243192283443],
+              [35.21012157112912, 31.78243192283443],
+            ],
           ],
-        ],
+        },
+        properties: {
+          id: faker.string.uuid(),
+          sourceName: 'Example Source 2',
+          imagingTimeBeginUTC: new Date('2024-01-16T09:20:00.000Z'),
+          imagingTimeEndUTC: new Date('2024-01-16T10:15:00.000Z'),
+          resolutionDegree: 0.0001,
+          resolutionMeter: 10.2,
+          sourceResolutionMeter: 10.2,
+          horizontalAccuracyCE90: 2.1,
+          sensors: ['Sensor_C'],
+          countries: ['Israel'],
+          cities: ['Jerusalem'],
+          description: 'Central region high-resolution capture',
+        },
       },
-    },
-  ],
+    ],
+  },
 };
 
 export const validValidationPolygonPartsPayload: ValidatePolygonPartsRequestBody = {

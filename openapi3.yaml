@@ -819,7 +819,9 @@ components:
         bbox:
           $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
         id:
-          type: string
+          oneOf:
+            - type: number
+            - type: string
           description: feature identifier
           example: '1234'
     FeatureCollectionPartDataProperties:

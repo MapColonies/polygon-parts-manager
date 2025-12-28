@@ -6,8 +6,6 @@ import { BasePart } from './basePart';
 @Entity({ name: 'validation_parts' })
 @Check('imaging times', `"imaging_time_begin_utc" <= "imaging_time_end_utc"`)
 export class ValidatePart extends BasePart implements ValidatePartRecord {
-  @Column({ type: 'text' })
-  public jobType!: string;
   @PrimaryColumn({ type: 'text' })
   public readonly id!: string;
 

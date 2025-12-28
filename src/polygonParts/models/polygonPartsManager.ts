@@ -13,7 +13,6 @@ import { Part } from '../DAL/part';
 import { PolygonPart } from '../DAL/polygonPart';
 import { payloadToInsertPartsData, payloadToInsertValidationsData, setRepositoryTablePath } from '../DAL/utils';
 import { ValidateError, ValidatePolygonPartsRequestBody, ValidatePolygonPartsResponseBody } from '../controllers/interfaces';
-import { ValidatePart } from '../DAL/validationPart';
 import { FeatureValidationError } from '../../common/enums';
 import {
   findSelectOutputColumns,
@@ -826,7 +825,7 @@ export class PolygonPartsManager {
     }
   }
 
-  private buildAggregationLayerMetadataQuery(context: {
+private buildAggregationLayerMetadataQuery(context: {
     entityManager: EntityManager;
     options: AggregateLayerMetadataOptions;
     filterQueryMetadata?: FilterQueryMetadata;

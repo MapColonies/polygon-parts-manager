@@ -198,7 +198,7 @@ describe('history', () => {
                 expect(historyData.length).toBeGreaterThan(0);
 
                 expect.assertions(5);
-            }, 30000); // Extended timeout for database operations
+            });
 
             it('should split MultiPolygon geometries into individual Polygons when moving to history', async () => {
                 const multiPolygonGeometry = multiPolygon([

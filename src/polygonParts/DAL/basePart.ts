@@ -4,11 +4,9 @@ import type { BasePartRecord } from '../models/interfaces';
 
 @Check('imaging times', `"imaging_time_begin_utc" <= "imaging_time_end_utc"`)
 export abstract class BasePart implements BasePartRecord {
-  @Column({ type: 'text', collation: 'ucs_basic' })
-  public jobType!: string;
-
   @Column({ type: 'uuid', primary: true })
   public id!: string;
+
   @Column({ name: 'product_id', type: 'text', collation: 'ucs_basic' })
   @Index()
   @Check('product id', `"product_id" ~ '^[A-Za-z]{1}[A-Za-z0-9_]{0,37}$'`)

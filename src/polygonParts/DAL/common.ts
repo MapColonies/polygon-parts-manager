@@ -79,6 +79,7 @@ export class Common implements CommonRecord {
   @Column({ type: 'text', collation: 'ucs_basic', nullable: true })
   public description?: string;
 
+  //TODO: check changes on this footprint with previous implementation
   @Column({ type: 'geometry', spatialFeatureType: 'Geometry', srid: 4326, precision: 20 })
   @Index({ spatial: true })
   @Check('footprint', `GeometryType("footprint") IN ('POLYGON','MULTIPOLYGON')`)

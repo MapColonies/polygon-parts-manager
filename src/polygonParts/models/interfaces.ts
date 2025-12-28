@@ -12,7 +12,7 @@ import { z } from 'zod';
 import type { OptionalToNullableRecordValues, ReplaceValuesOfType } from '../../common/types';
 
 //#region public
-interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, z.infer<typeof partSchema> { }
+interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData' | 'jobType'>, z.infer<typeof partSchema> { }
 /**
  * Polygonal geometries
  */
@@ -34,7 +34,7 @@ export interface BasePart extends Readonly<Omit<InsertPartData, 'footprint'>> { 
 export interface ValidatePartData extends Readonly<BasePart> {
   readonly footprint: Polygon | MultiPolygon;
   readonly id: string;
-}
+}pol
 
 export type FeatureCollectionFilter = FeatureCollection<PolygonalGeometries, (GeoJsonProperties & Partial<RoiProperties>) | null>;
 

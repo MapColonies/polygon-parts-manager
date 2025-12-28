@@ -14,7 +14,6 @@ const FIND_OUTPUT_PROPERTIES: MapValues<Required<Omit<PolygonPartRecord, 'footpr
   horizontalAccuracyCE90: true,
   id: true,
   imagingTimeBeginUTC: (column: string) => `to_char("${column}" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`,
-  jobType: true,
   imagingTimeEndUTC: (column: string) => `to_char("${column}" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`,
   ingestionDateUTC: (column: string) => `to_char("${column}" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`,
   partId: true,

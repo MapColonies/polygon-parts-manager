@@ -9,6 +9,7 @@ import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
+import { deleteValidationsTable } from '../../common/utils';
 import { Part } from '../DAL/part';
 import { PolygonPart } from '../DAL/polygonPart';
 import { payloadToInsertPartsData, payloadToInsertValidationsData, setRepositoryTablePath } from '../DAL/utils';
@@ -354,19 +355,13 @@ export class PolygonPartsManager {
   }
 
   public async deleteValidationPolygonParts(entitiesMetadata: EntitiesMetadata): Promise<void> {
-    const { entityName: validationsEntityName } = entitiesMetadata.entitiesNames.validations;
+    const { entityName: validationsEntityName, databaseObjectQualifiedName: validationsEntityQualifiedName } = entitiesMetadata.entitiesNames.validations;
 
     const logger = this.logger.child({ validationsEntityName });
     logger.info({ msg: 'deleting validations table', validationsEntityName });
 
     try {
       await this.connectionManager.getDataSource().transaction(async (entityManager) => {
-        const baseValidationContext = {
-          entityManager,
-          logger,
-          entitiesMetadata,
-        };
-
         await entityManager.query(`SET search_path TO ${this.schema},public`);
 
         const entityExists = await this.connectionManager.entityExists(entityManager, validationsEntityName);
@@ -374,120 +369,10 @@ export class PolygonPartsManager {
           throw new NotFoundError(`Table with the name '${validationsEntityName}' doesn't exists`);
         }
 
-        await this.deleteValidationsTable(baseValidationContext);
+        await deleteValidationsTable(entityManager, this.schema, validationsEntityName, validationsEntityQualifiedName, logger);
       });
     } catch (error) {
       const errorMessage = 'Validation table deletes query transaction failed';
-      logger.error({ msg: errorMessage, error });
-      throw error;
-    }
-  }
-
-  public async moveValidationsToHistory(entitiesMetadata: EntitiesMetadata): Promise<void> {
-    const { entityName: validationsEntityName, databaseObjectQualifiedName: validationsEntityQualifiedName } =
-      entitiesMetadata.entitiesNames.validations;
-
-    // Construct history table name by replacing the parts suffix with _history
-    const partsEntityName = entitiesMetadata.entitiesNames.parts.entityName;
-    const partsSuffix = this.applicationConfig.entities.parts.nameSuffix;
-    const historyTableName = partsEntityName.replace(new RegExp(`${partsSuffix}$`), '_history');
-    const historyTableQualifiedName = `${this.schema}.${historyTableName}`;
-
-    const logger = this.logger.child({ validationsEntityName, historyTableName });
-    logger.info({ msg: 'moving validations to history table', validationsEntityQualifiedName, historyTableQualifiedName });
-
-    try {
-      await this.connectionManager.getDataSource().transaction(async (entityManager) => {
-        await entityManager.query(`SET search_path TO ${this.schema},public`);
-
-        const entityExists = await this.connectionManager.entityExists(entityManager, validationsEntityName);
-        if (!entityExists) {
-          throw new NotFoundError(`Table with the name '${validationsEntityName}' doesn't exists`);
-        }
-
-        // Check if history table exists
-        const historyTableExists = await this.connectionManager.entityExists(entityManager, historyTableName);
-
-        if (!historyTableExists) {
-          // Create history table based on polygon_parts template
-          const polygonPartsTemplateQualifiedName = `${this.schema}.polygon_parts`;
-          logger.debug({ msg: 'creating history table from polygon_parts template', historyTableQualifiedName, polygonPartsTemplateQualifiedName });
-          await entityManager.query(`CREATE TABLE ${historyTableQualifiedName} (LIKE ${polygonPartsTemplateQualifiedName} INCLUDING ALL);`);
-        }
-
-        // Insert data into history table, splitting MultiPolygons into Polygons
-        logger.debug({ msg: 'inserting validation data into history table', historyTableQualifiedName });
-        await entityManager.query(`
-          INSERT INTO ${historyTableQualifiedName} (
-            product_id,
-            catalog_id,
-            source_id,
-            source_name,
-            product_version,
-            ingestion_date_utc,
-            imaging_time_begin_utc,
-            imaging_time_end_utc,
-            resolution_degree,
-            resolution_meter,
-            source_resolution_meter,
-            horizontal_accuracy_ce90,
-            sensors,
-            countries,
-            cities,
-            description,
-            footprint,
-            id,
-            part_id,
-            insertion_order,
-            product_type
-          )
-          SELECT 
-            product_id,
-            catalog_id,
-            source_id,
-            source_name,
-            product_version,
-            ingestion_date_utc,
-            imaging_time_begin_utc,
-            imaging_time_end_utc,
-            resolution_degree,
-            resolution_meter,
-            source_resolution_meter,
-            horizontal_accuracy_ce90,
-            sensors,
-            countries,
-            cities,
-            description,
-            geom as footprint,
-            CASE 
-              WHEN geom_count > 1 THEN uuid_generate_v5(uuid_ns_url(), id || '_' || geom_index::text)
-              ELSE uuid_generate_v5(uuid_ns_url(), id)
-            END as id,
-            uuid_generate_v5(uuid_ns_url(), id) as part_id,
-            ROW_NUMBER() OVER (ORDER BY id, geom_index) as insertion_order,
-            product_type
-          FROM (
-            SELECT 
-              *,
-              (st_dump(footprint)).path[1] as geom_index,
-              (st_dump(footprint)).geom as geom,
-              st_numgeometries(footprint) as geom_count
-            FROM ${validationsEntityQualifiedName}
-          ) as dumped_geometries;
-        `);
-
-        // Delete the temporary validation table
-        const baseValidationContext = {
-          entityManager,
-          logger,
-          entitiesMetadata,
-        };
-        await this.deleteValidationsTable(baseValidationContext);
-
-        logger.info({ msg: 'validations moved to history and temporary table dropped', validationsEntityQualifiedName, historyTableQualifiedName });
-      });
-    } catch (error) {
-      const errorMessage = 'Move validations to history table transaction failed';
       logger.error({ msg: errorMessage, error });
       throw error;
     }
@@ -765,67 +650,9 @@ export class PolygonPartsManager {
     }
   }
 
-  private async verifyValidationTableInheritance(
-    entityManager: EntityManager,
-    validationsEntityName: string,
-    validationsEntityQualifiedName: string,
-    logger: Logger
-  ): Promise<void> {
-    // Query PostgreSQL catalogs to verify inheritance
-    const result = await entityManager.query<number[]>(
-      `
-      SELECT 1 as res
-      FROM pg_inherits AS i
-      JOIN pg_class AS child ON i.inhrelid = child.oid
-      JOIN pg_namespace AS n_child ON n_child.oid = child.relnamespace
-      JOIN pg_class AS parent ON i.inhparent = parent.oid
-      JOIN pg_namespace AS n_parent ON n_parent.oid = parent.relnamespace
-      WHERE n_parent.nspname = $1
-        AND parent.relname = $2
-        AND n_child.nspname = $1
-        AND child.relname = $3;
-    `,
-      [
-        this.schema,
-        'validation_parts', // <-- base table name
-        validationsEntityName,
-      ]
-    );
 
-    const isChildOfValidationRecord = result.length > 0;
 
-    if (!isChildOfValidationRecord) {
-      const errorMessage = `Refused to operate on ${validationsEntityQualifiedName} — it is not instance of validation_parts entity.`;
-      logger.error({ msg: errorMessage });
-      throw new BadRequestError(errorMessage);
-    }
-  }
-
-  private async deleteValidationsTable(context: { entitiesMetadata: EntitiesMetadata; entityManager: EntityManager; logger: Logger }): Promise<void> {
-    const {
-      entityManager,
-      logger,
-      entitiesMetadata: {
-        entitiesNames: {
-          validations: { entityName: validationsEntityQualifiedName },
-        },
-      },
-    } = context;
-    logger.info({ msg: 'deleting validations table', validationsEntityQualifiedName });
-    try {
-      await this.verifyValidationTableInheritance(entityManager, validationsEntityQualifiedName, validationsEntityQualifiedName, logger);
-
-      await entityManager.query(`DROP TABLE ${validationsEntityQualifiedName} CASCADE;`);
-
-      logger.debug({ msg: 'validations table dropped', validationsEntityQualifiedName });
-    } catch (error) {
-      const errorMessage = `Could not delete validation table: ${validationsEntityQualifiedName}`;
-      logger.error({ msg: errorMessage, error });
-      throw error;
-    }
-  }
-
-private buildAggregationLayerMetadataQuery(context: {
+  private buildAggregationLayerMetadataQuery(context: {
     entityManager: EntityManager;
     options: AggregateLayerMetadataOptions;
     filterQueryMetadata?: FilterQueryMetadata;

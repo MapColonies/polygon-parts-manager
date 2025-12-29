@@ -34,7 +34,7 @@ export interface BasePart extends Readonly<Omit<InsertPartData, 'footprint'>> { 
 export interface ValidatePartData extends Readonly<BasePart> {
   readonly footprint: Polygon | MultiPolygon;
   readonly id: string;
-}pol
+}
 
 export type FeatureCollectionFilter = FeatureCollection<PolygonalGeometries, (GeoJsonProperties & Partial<RoiProperties>) | null>;
 

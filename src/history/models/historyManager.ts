@@ -1,0 +1,128 @@
+import { NotFoundError } from '@map-colonies/error-types';
+import type { Logger } from '@map-colonies/js-logger';
+import { inject, injectable } from 'tsyringe';
+import { SERVICES } from '../../common/constants';
+import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
+import { deleteValidationsTable } from '../../common/utils';
+import type { EntitiesMetadata } from '../../polygonParts/models/interfaces';
+import { ConnectionManager } from '../../common/connectionManager';
+
+@injectable()
+export class HistoryManager {
+    private readonly applicationConfig: ApplicationConfig;
+    private readonly schema: DbConfig['schema'];
+
+    public constructor(
+        @inject(SERVICES.LOGGER) private readonly logger: Logger,
+        @inject(SERVICES.CONFIG) private readonly config: IConfig,
+        @inject(SERVICES.CONNECTION_MANAGER) private readonly connectionManager: ConnectionManager
+    ) {
+        this.applicationConfig = this.config.get('application');
+        this.schema = config.get('db.schema');
+    }
+
+    public async moveValidationsToHistory(entitiesMetadata: EntitiesMetadata): Promise<void> {
+        const { entityName: validationsEntityName, databaseObjectQualifiedName: validationsEntityQualifiedName } =
+            entitiesMetadata.entitiesNames.validations;
+
+        // Construct history table name by replacing the parts suffix with _history
+        const partsEntityName = entitiesMetadata.entitiesNames.parts.entityName;
+        const partsSuffix = this.applicationConfig.entities.parts.nameSuffix;
+        const historyTableName = partsEntityName.replace(new RegExp(`${partsSuffix}$`), '_history');
+        const historyTableQualifiedName = `${this.schema}.${historyTableName}`;
+
+        const logger = this.logger.child({ validationsEntityName, historyTableName });
+        logger.info({ msg: 'moving validations to history table', validationsEntityQualifiedName, historyTableQualifiedName });
+
+        try {
+            await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+                await entityManager.query(`SET search_path TO ${this.schema},public`);
+
+                const entityExists = await this.connectionManager.entityExists(entityManager, validationsEntityName);
+                if (!entityExists) {
+                    throw new NotFoundError(`Table with the name '${validationsEntityName}' doesn't exists`);
+                }
+
+                // Check if history table exists
+                const historyTableExists = await this.connectionManager.entityExists(entityManager, historyTableName);
+
+                if (!historyTableExists) {
+                    // Create history table based on polygon_history template
+                    const polygonHistoryTemplateQualifiedName = `${this.schema}.polygon_history`;
+                    logger.debug({ msg: 'creating history table from polygon_history template', historyTableQualifiedName, polygonHistoryTemplateQualifiedName });
+                    await entityManager.query(`CREATE TABLE ${historyTableQualifiedName} (LIKE ${polygonHistoryTemplateQualifiedName} INCLUDING ALL);`);
+                }
+
+                // Insert data into history table, splitting MultiPolygons into Polygons
+                logger.debug({ msg: 'inserting validation data into history table', historyTableQualifiedName });
+                await entityManager.query(`
+          INSERT INTO ${historyTableQualifiedName} (
+            product_id,
+            catalog_id,
+            source_id,
+            source_name,
+            product_version,
+            ingestion_date_utc,
+            imaging_time_begin_utc,
+            imaging_time_end_utc,
+            resolution_degree,
+            resolution_meter,
+            source_resolution_meter,
+            horizontal_accuracy_ce90,
+            sensors,
+            countries,
+            cities,
+            description,
+            footprint,
+            id,
+            part_id,
+            insertion_order,
+            product_type
+          )
+          SELECT 
+            product_id,
+            catalog_id,
+            source_id,
+            source_name,
+            product_version,
+            ingestion_date_utc,
+            imaging_time_begin_utc,
+            imaging_time_end_utc,
+            resolution_degree,
+            resolution_meter,
+            source_resolution_meter,
+            horizontal_accuracy_ce90,
+            sensors,
+            countries,
+            cities,
+            description,
+            geom as footprint,
+            CASE 
+              WHEN geom_count > 1 THEN uuid_generate_v5(uuid_ns_url(), id || '_' || geom_index::text)
+              ELSE uuid_generate_v5(uuid_ns_url(), id)
+            END as id,
+            uuid_generate_v5(uuid_ns_url(), id) as part_id,
+            ROW_NUMBER() OVER (ORDER BY id, geom_index) as insertion_order,
+            product_type
+          FROM (
+            SELECT 
+              *,
+              (st_dump(footprint)).path[1] as geom_index,
+              (st_dump(footprint)).geom as geom,
+              st_numgeometries(footprint) as geom_count
+            FROM ${validationsEntityQualifiedName}
+          ) as dumped_geometries;
+        `);
+
+                // Delete the temporary validation table
+                await deleteValidationsTable(entityManager, this.schema, validationsEntityName, validationsEntityQualifiedName, logger);
+
+                logger.info({ msg: 'validations moved to history and temporary table dropped', validationsEntityQualifiedName, historyTableQualifiedName });
+            });
+        } catch (error) {
+            const errorMessage = 'Move validations to history table transaction failed';
+            logger.error({ msg: errorMessage, error });
+            throw error;
+        }
+    }
+}

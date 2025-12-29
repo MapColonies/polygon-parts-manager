@@ -87,14 +87,12 @@ describe('history', () => {
         await createDB({ options: testDataSourceOptions, initialDatabase: INITIAL_DB });
         helperDB = new HelperDB(testDataSourceOptions);
         await helperDB.initConnection();
-    }, 60000); // 60 second timeout for database setup
+    }); // 60 second timeout for database setup
 
     afterAll(async () => {
         // Ensure helperDB connection is properly closed
         try {
-            if (helperDB) {
-                await helperDB.destroyConnection();
-            }
+            await helperDB.destroyConnection();
         } catch (error) {
             console.error('Error destroying helperDB connection:', error);
         }
@@ -457,6 +455,7 @@ describe('history', () => {
                 await helperDB.query(`DROP TABLE IF EXISTS ${schema}.${historyTableName} CASCADE`);
 
                 const expectedErrorMessage = 'table creation error';
+                // eslint-disable-next-line @typescript-eslint/unbound-method
                 const originalQuery = EntityManager.prototype.query;
                 let createTableCalled = false;
                 const spyQuery = jest
@@ -464,6 +463,7 @@ describe('history', () => {
                     .mockImplementation(async function (this: EntityManager, query: string, ...args: any[]) {
                         // Let SET search_path pass through
                         if (query.includes('SET search_path')) {
+                            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                             return originalQuery.call(this, query, ...args);
                         }
                         // Fail on CREATE TABLE, but only for history table creation
@@ -472,6 +472,7 @@ describe('history', () => {
                             throw new Error(expectedErrorMessage);
                         }
                         // Let all other queries pass through (including information_schema queries)
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                         return originalQuery.call(this, query, ...args);
                     });
 

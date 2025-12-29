@@ -37,7 +37,7 @@
     "entities": {
       "parts": {
         "namePrefix": "",
-        "nameSuffix": "_parts"
+        "nameSuffix": "_history"
       },
       "polygonParts": {
         "find": {

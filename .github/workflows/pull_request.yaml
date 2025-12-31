@@ -9,3 +9,4 @@ jobs:
     with:
       usePostgres: true
       openApiFilePath: ./bundledApi.yaml
+      nodeVersions: '22.x'

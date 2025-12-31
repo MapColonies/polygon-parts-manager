@@ -66,7 +66,7 @@ describe('history', () => {
     await createDB({ options: testDataSourceOptions, initialDatabase: INITIAL_DB });
     helperDB = new HelperDB(testDataSourceOptions);
     await helperDB.initConnection();
-  }); 
+  });
 
   afterAll(async () => {
     // Ensure helperDB connection is properly closed
@@ -440,6 +440,7 @@ describe('history', () => {
         let createTableCalled = false;
         const spyQuery = jest
           .spyOn(EntityManager.prototype, 'query')
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .mockImplementation(async function (this: EntityManager, query: string, ...args: any[]) {
             // Let SET search_path pass through
             if (query.includes('SET search_path')) {
@@ -486,6 +487,7 @@ describe('history', () => {
         const originalQuery = EntityManager.prototype.query.bind(EntityManager.prototype);
         const spyQuery = jest
           .spyOn(EntityManager.prototype, 'query')
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .mockImplementation(async function (this: EntityManager, query: string, ...args: any[]) {
             // Let SET search_path pass through
             if (query.includes('SET search_path')) {

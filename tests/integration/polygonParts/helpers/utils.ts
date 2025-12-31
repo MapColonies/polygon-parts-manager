@@ -1,5 +1,6 @@
 import { booleanEqual } from '@turf/boolean-equal';
 import { feature, featureCollection } from '@turf/helpers';
+import type { PartFeatureProperties } from '@map-colonies/raster-shared';
 import config from 'config';
 import type { Polygon } from 'geojson';
 import { isMatch } from 'lodash';
@@ -42,18 +43,11 @@ export function toExpectedPostgresResponse(polygonPartsPayload: PolygonPartsPayl
 
 export function toExpectedFindPolygonPartsResponse(polygonPartsPayload: PolygonPartsPayload, duplicates = 1): FindPolygonPartsResponseBody {
   const { partsData, ...layerMetadata } = polygonPartsPayload;
-  const expectedFeatures = partsData
-    .map((partData) => {
-      const {
-        cities = null,
-        countries = null,
-        description = null,
-        footprint,
-        imagingTimeBeginUTC,
-        imagingTimeEndUTC,
-        sourceId = null,
-        ...props
-      } = partData;
+  const expectedFeatures = partsData.features
+    .map((partFeature) => {
+      const partData: PartFeatureProperties = partFeature.properties;
+      const { cities = null, countries = null, description = null, imagingTimeBeginUTC, imagingTimeEndUTC, sourceId = null, ...props } = partData;
+      const footprint = partFeature.geometry;
 
       return Array.from({ length: duplicates }, () =>
         feature(footprint, {
@@ -74,6 +68,5 @@ export function toExpectedFindPolygonPartsResponse(polygonPartsPayload: PolygonP
     })
     .flat();
 
-  const expectedPostgresResponse = featureCollection(expectedFeatures);
-  return expectedPostgresResponse;
+  return featureCollection(expectedFeatures) as FindPolygonPartsResponseBody;
 }

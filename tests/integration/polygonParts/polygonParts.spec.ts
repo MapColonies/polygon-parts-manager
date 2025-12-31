@@ -1,3 +1,4 @@
+/* eslint-disable jest/no-commented-out-tests */
 // import { faker } from '@faker-js/faker';
 // import jsLogger from '@map-colonies/js-logger';
 // import { zoomLevelToResolutionDeg } from '@map-colonies/mc-utils';
@@ -8781,3 +8782,8 @@
 //     });
 //   });
 // });
+describe('Happy Path', () => {
+  it('excpect 1+1 to be 2', () => {
+    expect(1 + 1).toBe(2);
+  });
+});

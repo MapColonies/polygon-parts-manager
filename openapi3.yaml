@@ -9,6 +9,7 @@ info:
 paths:
   /polygonParts:
     post:
+      deprecated: true
       tags:
       - polygon-parts
       summary: Create new polygon parts
@@ -47,6 +48,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
     put:
+      deprecated: true
       tags:
       - polygon-parts
       parameters:

@@ -1,6 +1,12 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 import { faker } from '@faker-js/faker';
-import { CORE_VALIDATIONS, INGESTION_VALIDATIONS, RASTER_PRODUCT_TYPE_LIST, RasterProductTypes, polygonPartsFeatureSchema } from '@map-colonies/raster-shared';
+import {
+  CORE_VALIDATIONS,
+  INGESTION_VALIDATIONS,
+  RASTER_PRODUCT_TYPE_LIST,
+  RasterProductTypes,
+  polygonPartsFeatureSchema,
+} from '@map-colonies/raster-shared';
 import { randomPolygon } from '@turf/random';
 import type { Feature, Polygon } from 'geojson';
 import { randexp } from 'randexp';

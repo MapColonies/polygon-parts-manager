@@ -63,17 +63,11 @@ export type ValidatePolygonPartsHandler = RequestHandler<
   EntitiesMetadata
 >;
 
-export type DeleteValidationPolygonPartsEntityHandler = RequestHandler<
-  undefined,
-  undefined,
-  undefined,
-  ValidationEntityQuery,
-  EntitiesMetadata
->;
+export type DeleteValidationPolygonPartsEntityHandler = RequestHandler<undefined, undefined, undefined, ValidationEntityQuery, EntitiesMetadata>;
 
 @injectable()
 export class PolygonPartsController {
-  public constructor(@inject(PolygonPartsManager) private readonly polygonPartsManager: PolygonPartsManager) { }
+  public constructor(@inject(PolygonPartsManager) private readonly polygonPartsManager: PolygonPartsManager) {}
 
   public createPolygonParts: CreatePolygonPartsHandler = async (req, res, next) => {
     try {

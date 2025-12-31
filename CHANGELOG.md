@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.1.1-alpha.0](https://github.com/MapColonies/polygon-parts-manager/compare/v2.1.1-alpha...v2.1.1-alpha.0) (2025-12-30)
+
+
+### Bug Fixes
+
+* update feature identifier schema to support both number and string types ([#63](https://github.com/MapColonies/polygon-parts-manager/issues/63)) ([6867702](https://github.com/MapColonies/polygon-parts-manager/commit/6867702f2037348a650ebbbada45880f7e00ab2b))
+
 ### [2.1.1-alpha](https://github.com/MapColonies/polygon-parts-manager/compare/v2.1.0-alpha...v2.1.1-alpha) (2025-12-09)
 
 

@@ -43,6 +43,7 @@ import type {
   PolygonPartsPayload,
   PolygonPartsResponse,
 } from './interfaces';
+import { ValidatePart } from '../DAL/validationPart';
 
 type EntitiesMetadataWithoutValidations = Pick<EntitiesMetadata, 'entityIdentifier'> & {
   entitiesNames: Omit<EntitiesMetadata['entitiesNames'], 'validations'>;
@@ -509,7 +510,7 @@ export class PolygonPartsManager {
     const insertValidationsPartData = payloadToInsertValidationsData(validationsPayload, this.applicationConfig.arraySeparator);
 
     try {
-      const part = entityManager.getRepository('ValidatePart');
+      const part = entityManager.getRepository(ValidatePart);
       setRepositoryTablePath(part, validationsEntityQualifiedName);
       await part.save(insertValidationsPartData, { chunk: this.applicationConfig.chunkSize });
     } catch (error) {

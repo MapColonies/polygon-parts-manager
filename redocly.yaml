@@ -3,7 +3,7 @@ plugins:
   # We don't support community plugins.
   # You don't need to import our built-in plugins and rules.
   # Omit this section if you don't have custom plugins.
-  []
+  {}
 
 extends:
   # This section is where you choose the base configurations.
@@ -14,12 +14,12 @@ resolve:
   # Use this when you have external links in your definition that are not publicly accessible.
   # Not required for Redocly API registry links.
   # We recommend using environment variables for when possible.
-  []
+  {}
 
 preprocessors:
   # Preprocessors are rarely indicated -- avoid if possible.
   # This section can be omitted.
-  []
+  {}
 
 rules:
   boolean-parameter-prefixes:
@@ -32,4 +32,4 @@ rules:
 decorators:
   # Decorators modify the the definition after validation is complete, only in the bundling process.
   # This section can be omitted if you don't use decorators.
-  []
+  {}

@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Polygon-Parts Manager
   description: CRUD operations to manage polygon parts
-  version: 2.1.1-alpha
+  version: 2.1.1-alpha.0
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -821,7 +821,9 @@ components:
         bbox:
           $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
         id:
-          type: string
+          oneOf:
+            - type: number
+            - type: string
           description: feature identifier
           example: '1234'
     FeatureCollectionPartDataProperties:

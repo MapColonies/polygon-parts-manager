@@ -357,13 +357,12 @@ describe('history', () => {
 
         // Verify essential columns exist
         expect(firstRecord).toHaveProperty('id');
-        expect(firstRecord).toHaveProperty('part_id');
         expect(firstRecord).toHaveProperty('product_id');
         expect(firstRecord).toHaveProperty('product_type');
         expect(firstRecord).toHaveProperty('footprint');
         expect(firstRecord).toHaveProperty('insertion_order');
 
-        expect.assertions(6);
+        expect.assertions(5);
       });
     });
 

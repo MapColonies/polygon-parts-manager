@@ -47,14 +47,14 @@ export class HistoryManager {
         const historyTableExists = await this.connectionManager.entityExists(entityManager, historyTableName);
 
         if (!historyTableExists) {
-          // Create history table based on polygon_history template
-          const polygonHistoryTemplateQualifiedName = `${this.schema}.polygon_history`;
+          // Create history table based on history template
+          const historyTemplateQualifiedName = `${this.schema}.history`;
           logger.debug({
-            msg: 'creating history table from polygon_history template',
+            msg: 'creating history table from history template',
             historyTableQualifiedName,
-            polygonHistoryTemplateQualifiedName,
+            historyTemplateQualifiedName,
           });
-          await entityManager.query(`CREATE TABLE ${historyTableQualifiedName} (LIKE ${polygonHistoryTemplateQualifiedName} INCLUDING ALL);`);
+          await entityManager.query(`CREATE TABLE ${historyTableQualifiedName} (LIKE ${historyTemplateQualifiedName} INCLUDING ALL);`);
         }
 
         // Insert data into history table, splitting MultiPolygons into Polygons
@@ -78,9 +78,6 @@ export class HistoryManager {
             cities,
             description,
             footprint,
-            id,
-            part_id,
-            insertion_order,
             product_type
           )
           SELECT 
@@ -101,12 +98,6 @@ export class HistoryManager {
             cities,
             description,
             geom as footprint,
-            CASE 
-              WHEN geom_count > 1 THEN uuid_generate_v5(uuid_ns_url(), id || '_' || geom_index::text)
-              ELSE uuid_generate_v5(uuid_ns_url(), id)
-            END as id,
-            uuid_generate_v5(uuid_ns_url(), id) as part_id,
-            ROW_NUMBER() OVER (ORDER BY id, geom_index) as insertion_order,
             product_type
           FROM (
             SELECT 

@@ -15,6 +15,7 @@ import { PolygonPart } from '../DAL/polygonPart';
 import { payloadToInsertPartsData, payloadToInsertValidationsData, setRepositoryTablePath } from '../DAL/utils';
 import { ValidateError, ValidatePolygonPartsRequestBody, ValidatePolygonPartsResponseBody } from '../controllers/interfaces';
 import { FeatureValidationError } from '../../common/enums';
+import { ValidatePart } from '../DAL/validationPart';
 import {
   findSelectOutputColumns,
   geometryColumn,
@@ -43,7 +44,6 @@ import type {
   PolygonPartsPayload,
   PolygonPartsResponse,
 } from './interfaces';
-import { ValidatePart } from '../DAL/validationPart';
 
 type EntitiesMetadataWithoutValidations = Pick<EntitiesMetadata, 'entityIdentifier'> & {
   entitiesNames: Omit<EntitiesMetadata['entitiesNames'], 'validations'>;

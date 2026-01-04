@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Polygon-Parts Manager
   description: CRUD operations to manage polygon parts
-  version: 2.1.1-alpha.0
+  version: 2.1.1-alpha.1
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -374,6 +374,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
+security:
+  - {}
 components:
   schemas:
     AggregationFeature:

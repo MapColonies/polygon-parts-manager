@@ -1,6 +1,6 @@
 {
   "name": "polygon-parts-manager",
-  "version": "2.1.1-alpha.0",
+  "version": "2.1.1-alpha.1",
   "description": "service responsible for polygon parts management",
   "main": "./src/index.ts",
   "scripts": {
@@ -17,7 +17,7 @@
     "format:fix": "prettier --write .",
     "prelint": "npm run format",
     "lint": "eslint .",
-    "lint:openapi": "openapi lint ./openapi3.yaml --skip-rule=no-unresolved-refs",
+    "lint:openapi": "redocly lint openapi3.yaml",
     "lint:bundledopenapi": "openapi lint ./bundledApi.yaml",
     "prelint:fix": "npm run format:fix",
     "lint:fix": "eslint --fix .",
@@ -89,7 +89,7 @@
     "@map-colonies/prettier-config": "0.0.1",
     "@map-colonies/standard-version-update-helm-version": "^2.0.1",
     "@map-colonies/standard-version-update-openapi3-version": "0.0.2",
-    "@redocly/openapi-cli": "^1.0.0-beta.94",
+    "@redocly/cli": "^2.14.2",
     "@turf/boolean-contains": "^7.2.0",
     "@turf/boolean-equal": "^7.2.0",
     "@turf/random": "^7.2.0",

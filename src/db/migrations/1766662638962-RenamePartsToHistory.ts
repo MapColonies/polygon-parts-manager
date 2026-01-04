@@ -57,8 +57,13 @@ export class RenamePartsToHistory1766662638962 implements MigrationInterface {
         }
 
         // Step 5: Update the stored procedure to reference "history" instead of "parts"
+        // Drop the procedure first to avoid parameter name mismatch error
         await queryRunner.query(`
-            CREATE OR REPLACE PROCEDURE polygon_parts.create_polygon_parts_tables(
+            DROP PROCEDURE IF EXISTS polygon_parts.create_polygon_parts_tables;
+        `);
+
+        await queryRunner.query(`
+            CREATE PROCEDURE polygon_parts.create_polygon_parts_tables(
                 IN qualified_identifier_history text,
                 IN qualified_identifier_polygon_parts text)
             LANGUAGE 'plpgsql'
@@ -198,8 +203,13 @@ export class RenamePartsToHistory1766662638962 implements MigrationInterface {
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         // Step 1: Revert stored procedure to reference "parts" instead of "history"
+        // Drop the procedure first to avoid parameter name mismatch error
         await queryRunner.query(`
-            CREATE OR REPLACE PROCEDURE polygon_parts.create_polygon_parts_tables(
+            DROP PROCEDURE IF EXISTS polygon_parts.create_polygon_parts_tables;
+        `);
+
+        await queryRunner.query(`
+            CREATE PROCEDURE polygon_parts.create_polygon_parts_tables(
                 IN qualified_identifier_parts text,
                 IN qualified_identifier_polygon_parts text)
             LANGUAGE 'plpgsql'

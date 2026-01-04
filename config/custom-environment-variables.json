@@ -51,9 +51,8 @@
     "validateSmallHolesFunction": "VALIDATE_SMALL_HOLES_FUNCTION",
     "validateSmallGeometriesFunction": "VALIDATE_SMALL_GEOMETRIES_FUNCTION",
     "validateResolutionsFunction": "VALIDATE_RESOLUTIONS_FUNCTION",
-
     "entities": {
-      "parts": {
+      "history": {
         "namePrefix": "ENTITY_PARTS_NAME_PREFIX",
         "nameSuffix": "ENTITY_PARTS_NAME_SUFFIX"
       },

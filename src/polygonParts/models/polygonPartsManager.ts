@@ -947,7 +947,7 @@ export class PolygonPartsManager {
     const { entityManager, logger, entitiesMetadata } = context;
     const {
       entitiesNames: {
-        parts: { databaseObjectQualifiedName: partsEntityQualifiedName },
+        history: { databaseObjectQualifiedName: partsEntityQualifiedName },
         polygonParts: { databaseObjectQualifiedName: polygonPartsEntityQualifiedName },
       },
     } = entitiesMetadata;
@@ -974,7 +974,7 @@ export class PolygonPartsManager {
       logger,
       entitiesMetadata: {
         entitiesNames: {
-          parts: { databaseObjectQualifiedName: partsEntityQualifiedName },
+          history: { databaseObjectQualifiedName: partsEntityQualifiedName },
           polygonParts: { databaseObjectQualifiedName: polygonPartsEntityQualifiedName },
         },
       },
@@ -1028,7 +1028,7 @@ export class PolygonPartsManager {
       entityManager,
       entitiesMetadata: {
         entitiesNames: {
-          parts: { databaseObjectQualifiedName: partsEntityQualifiedName },
+          history: { databaseObjectQualifiedName: partsEntityQualifiedName },
         },
       },
       logger,

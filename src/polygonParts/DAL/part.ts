@@ -2,7 +2,7 @@ import { Check, Column, Entity, Index, Unique } from 'typeorm';
 import type { PartRecord } from '../models/interfaces';
 import { Common } from './common';
 
-@Entity({ name: 'parts' })
+@Entity({ name: 'history' })
 @Unique(['insertionOrder'])
 @Check('imaging times', `"imaging_time_begin_utc" <= "imaging_time_end_utc"`)
 export class Part extends Common implements PartRecord {

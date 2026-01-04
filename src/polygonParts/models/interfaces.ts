@@ -147,7 +147,7 @@ export interface EntityNames {
 export interface EntitiesMetadata {
   entityIdentifier: EntityIdentifier;
   entitiesNames: {
-    parts: EntityNames;
+    history: EntityNames;
     polygonParts: EntityNames;
     validations: EntityNames;
   };

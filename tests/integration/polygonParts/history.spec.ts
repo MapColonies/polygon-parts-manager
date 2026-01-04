@@ -154,8 +154,8 @@ describe('history', () => {
         };
 
         const entitiesMetadata = getEntitiesMetadata(historyQuery);
-        const partsEntityName = entitiesMetadata.entitiesNames.parts.entityName;
-        const partsSuffix = applicationConfig.entities.parts.nameSuffix;
+        const partsEntityName = entitiesMetadata.entitiesNames.history.entityName;
+        const partsSuffix = applicationConfig.entities.history.nameSuffix;
         const historyTableName = partsEntityName.replace(new RegExp(`${partsSuffix}$`), '_history');
 
         const response = await requestSender.moveValidationsToHistory(historyQuery);
@@ -222,8 +222,8 @@ describe('history', () => {
         };
 
         const entitiesMetadata = getEntitiesMetadata(historyQuery);
-        const partsEntityName = entitiesMetadata.entitiesNames.parts.entityName;
-        const partsSuffix = applicationConfig.entities.parts.nameSuffix;
+        const partsEntityName = entitiesMetadata.entitiesNames.history.entityName;
+        const partsSuffix = applicationConfig.entities.history.nameSuffix;
         const historyTableName = partsEntityName.replace(new RegExp(`${partsSuffix}$`), '_history');
 
         const response = await requestSender.moveValidationsToHistory(historyQuery);
@@ -251,8 +251,8 @@ describe('history', () => {
         };
 
         const entitiesMetadata = getEntitiesMetadata(historyQuery);
-        const partsEntityName = entitiesMetadata.entitiesNames.parts.entityName;
-        const partsSuffix = applicationConfig.entities.parts.nameSuffix;
+        const partsEntityName = entitiesMetadata.entitiesNames.history.entityName;
+        const partsSuffix = applicationConfig.entities.history.nameSuffix;
         const historyTableName = partsEntityName.replace(new RegExp(`${partsSuffix}$`), '_history');
 
         // Verify history table doesn't exist yet
@@ -311,8 +311,8 @@ describe('history', () => {
         };
 
         const entitiesMetadata = getEntitiesMetadata(historyQuery);
-        const partsEntityName = entitiesMetadata.entitiesNames.parts.entityName;
-        const partsSuffix = applicationConfig.entities.parts.nameSuffix;
+        const partsEntityName = entitiesMetadata.entitiesNames.history.entityName;
+        const partsSuffix = applicationConfig.entities.history.nameSuffix;
         const historyTableName = partsEntityName.replace(new RegExp(`${partsSuffix}$`), '_history');
 
         // First batch
@@ -346,8 +346,8 @@ describe('history', () => {
         };
 
         const entitiesMetadata = getEntitiesMetadata(historyQuery);
-        const partsEntityName = entitiesMetadata.entitiesNames.parts.entityName;
-        const partsSuffix = applicationConfig.entities.parts.nameSuffix;
+        const partsEntityName = entitiesMetadata.entitiesNames.history.entityName;
+        const partsSuffix = applicationConfig.entities.history.nameSuffix;
         const historyTableName = partsEntityName.replace(new RegExp(`${partsSuffix}$`), '_history');
 
         await requestSender.moveValidationsToHistory(historyQuery);
@@ -429,8 +429,8 @@ describe('history', () => {
 
         // Ensure history table doesn't exist from previous tests
         const entitiesMetadata = getEntitiesMetadata(historyQuery);
-        const partsEntityName = entitiesMetadata.entitiesNames.parts.entityName;
-        const partsSuffix = applicationConfig.entities.parts.nameSuffix;
+        const partsEntityName = entitiesMetadata.entitiesNames.history.entityName;
+        const partsSuffix = applicationConfig.entities.history.nameSuffix;
         const historyTableName = partsEntityName.replace(new RegExp(`${partsSuffix}$`), '_history');
         await helperDB.query(`DROP TABLE IF EXISTS ${schema}.${historyTableName} CASCADE`);
 

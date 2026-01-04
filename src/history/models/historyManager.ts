@@ -26,8 +26,8 @@ export class HistoryManager {
       entitiesMetadata.entitiesNames.validations;
 
     // Construct history table name by replacing the parts suffix with _history
-    const partsEntityName = entitiesMetadata.entitiesNames.parts.entityName;
-    const partsSuffix = this.applicationConfig.entities.parts.nameSuffix;
+    const partsEntityName = entitiesMetadata.entitiesNames.history.entityName;
+    const partsSuffix = this.applicationConfig.entities.history.nameSuffix;
     const historyTableName = partsEntityName.replace(new RegExp(`${partsSuffix}$`), '_history');
     const historyTableQualifiedName = `${this.schema}.${historyTableName}`;
 

@@ -47,7 +47,7 @@ export class Transformer {
         : [entityIdentifierOptions.productId, entityIdentifierOptions.productType].join('_').toLowerCase()
     ) as EntityIdentifier;
     const partsEntityName =
-      `${this.applicationConfig.entities.parts.namePrefix}${entityIdentifier}${this.applicationConfig.entities.parts.nameSuffix}` satisfies EntityNames['entityName'];
+      `${this.applicationConfig.entities.history.namePrefix}${entityIdentifier}${this.applicationConfig.entities.history.nameSuffix}` satisfies EntityNames['entityName'];
     const polygonPartsEntityName =
       `${this.applicationConfig.entities.polygonParts.namePrefix}${entityIdentifier}${this.applicationConfig.entities.polygonParts.nameSuffix}` satisfies EntityNames['entityName'];
     const validationsEntityName =
@@ -56,7 +56,7 @@ export class Transformer {
     return {
       entityIdentifier,
       entitiesNames: {
-        parts: {
+        history: {
           entityName: partsEntityName,
           databaseObjectQualifiedName: this.getDatabaseObjectQualifiedName(this.schema, partsEntityName),
         },

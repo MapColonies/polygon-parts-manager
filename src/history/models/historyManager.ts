@@ -60,6 +60,10 @@ export class HistoryManager {
         // Insert data into history table, splitting MultiPolygons into Polygons
         logger.debug({ msg: 'inserting validation data into history table', historyTableQualifiedName });
         await entityManager.query(`
+          WITH max_order AS (
+            SELECT COALESCE(MAX(insertion_order), 0) as max_val
+            FROM ${historyTableQualifiedName}
+          )
           INSERT INTO ${historyTableQualifiedName} (
             product_id,
             catalog_id,
@@ -78,6 +82,7 @@ export class HistoryManager {
             cities,
             description,
             footprint,
+            insertion_order,
             product_type
           )
           SELECT 
@@ -98,6 +103,7 @@ export class HistoryManager {
             cities,
             description,
             geom as footprint,
+            (SELECT max_val FROM max_order) + ROW_NUMBER() OVER (ORDER BY id, geom_index) as insertion_order,
             product_type
           FROM (
             SELECT 

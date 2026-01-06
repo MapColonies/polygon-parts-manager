@@ -63,6 +63,8 @@ import {
   mockMultipleInvalidGeometries,
   mockSmallAreaAndHole,
   mockUpdateWithIntersectingParts,
+  mockUpdateWithTouchPart,
+  polygonPartsPayloadForResolutionConflict,
   separatePolygonsRequest,
   validationEntireWorldRequest,
   validValidationPolygonPartsPayload,
@@ -124,7 +126,7 @@ describe('polygonParts', () => {
     await helperDB.destroyConnection();
     /* uncomment this when running locally, this deletes the created db after all tests,
     instead of removing it manually after each run.*/
-    await deleteDB(testDataSourceOptions);
+    //await deleteDB(testDataSourceOptions);
   });
 
   beforeEach(async () => {
@@ -6041,6 +6043,27 @@ describe('polygonParts', () => {
         expect(response.body).toStrictEqual({ parts: [], smallGeometriesCount: 0, smallHolesCount: 0 });
 
         expect.assertions(3);
+      });
+
+      it.only('should return 200 status code when updating intersecting but only touches parts with worse resolution', async () => {
+        const expected: ValidatePolygonPartsResponseBody = {
+          parts: [],
+          smallGeometriesCount: 0,
+          smallHolesCount: 0,
+        };
+
+        await requestSender.createPolygonParts(polygonPartsPayloadForResolutionConflict);
+        const response = await requestSender.validatePolygonParts(mockUpdateWithTouchPart);
+
+        const responseBody = response.body as ValidatePolygonPartsResponseBody;
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(responseBody.parts).toHaveLength(expected.parts.length);
+        expect(responseBody.parts).toEqual(expect.arrayContaining(expected.parts));
+        expect(responseBody.smallGeometriesCount).toBe(expected.smallGeometriesCount);
+        expect(responseBody.smallHolesCount).toBe(expected.smallHolesCount);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(6);
       });
     });
 

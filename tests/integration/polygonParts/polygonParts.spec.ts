@@ -6045,7 +6045,7 @@ describe('polygonParts', () => {
         expect.assertions(3);
       });
 
-      it.only('should return 200 status code when updating intersecting but only touches parts with worse resolution', async () => {
+      it('should return 200 status code when updating intersecting but only touches parts with worse resolution', async () => {
         const expected: ValidatePolygonPartsResponseBody = {
           parts: [],
           smallGeometriesCount: 0,

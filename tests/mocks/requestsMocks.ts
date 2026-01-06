@@ -419,7 +419,7 @@ export const polygonPartsPayloadForResolutionConflict: PolygonPartsPayload = {
           ],
         ],
       },
-    }
+    },
   ],
 };
 
@@ -774,7 +774,7 @@ export const mockUpdateWithIntersectingParts: ValidatePolygonPartsRequestBody = 
 };
 
 export const mockUpdateWithTouchPart: ValidatePolygonPartsRequestBody = {
-  productId: "Resolution_Conflict_Test",
+  productId: 'Resolution_Conflict_Test',
   productType: RasterProductTypes.ORTHOPHOTO,
   catalogId: faker.string.uuid(),
   productVersion: '2.0',
@@ -792,13 +792,13 @@ export const mockUpdateWithTouchPart: ValidatePolygonPartsRequestBody = {
               [34.86824157112912, 32.30543192283443],
               [34.88498870945867, 32.30543192283443],
               [34.88498870945867, 32.29430955805424],
-              [34.86824157112912, 32.29430955805424]
+              [34.86824157112912, 32.29430955805424],
             ],
           ],
         },
         properties: {
           ...propertiesToGenerate(),
-          resolutionDegree: 0.0000214576721191406, // zoom level 15 
+          resolutionDegree: 0.0000214576721191406, // zoom level 15
         },
       },
     ],

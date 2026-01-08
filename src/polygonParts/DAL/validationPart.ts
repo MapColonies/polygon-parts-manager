@@ -6,7 +6,7 @@ import { BasePart } from './basePart';
 @Entity({ name: 'validation_parts' })
 @Unique(['insertionOrder'])
 @Check('imaging times', `"imaging_time_begin_utc" <= "imaging_time_end_utc"`)
-export class ValidatePart extends BasePart implements ValidatePartRecord {  
+export class ValidatePart extends BasePart implements ValidatePartRecord {
   @PrimaryColumn({ type: 'text' })
   public readonly id!: string;
 

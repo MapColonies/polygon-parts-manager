@@ -6,7 +6,6 @@ import { Common } from './common';
 @Unique(['insertionOrder'])
 @Check('imaging times', `"imaging_time_begin_utc" <= "imaging_time_end_utc"`)
 export class History extends Common implements PartRecord {
-  
   @Column({ type: 'bigint', insert: false, generated: 'identity', generatedIdentity: 'ALWAYS' })
   public readonly insertionOrder!: number;
 

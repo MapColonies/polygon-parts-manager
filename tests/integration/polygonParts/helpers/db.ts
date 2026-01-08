@@ -221,43 +221,4 @@ export class HelperDB {
     const data = await this.appDataSource.query(`SELECT * FROM ${schema}.${table}`);
     return data as unknown[];
   }
-
-  public async createValidationsStoredProcedure(schema: string): Promise<void> {
-    // Migrations should have already created base_parts, validation_parts, and enums
-    // This helper just ensures the stored procedure exists for test usage
-    await this.appDataSource.query(`
-      CREATE OR REPLACE PROCEDURE ${schema}.create_polygon_parts_validations_tables(IN qualified_identifier text)
-      LANGUAGE plpgsql
-      AS $BODY$
-      DECLARE
-        ident_parts   name[] := parse_ident(qualified_identifier)::name[];
-        schema_name   text   := ident_parts[1];
-        child_table   text   := ident_parts[2];
-        schm_child    text   := format('%I.%I', schema_name, child_table);
-        child_exists  boolean;
-      BEGIN
-        IF schema_name IS NULL OR child_table IS NULL THEN
-            RAISE EXCEPTION 'Input "%" must be a schema-qualified identifier (schema.table)', qualified_identifier;
-        END IF;
-
-        SELECT to_regclass(schm_child) IS NOT NULL INTO child_exists;
-
-        IF NOT child_exists THEN
-            EXECUTE format('CREATE TABLE %s () INHERITS (%I.validation_parts)', schm_child, schema_name);
-        END IF;
-
-        -- Create indexes (idempotent with IF NOT EXISTS)
-        EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %s USING GIST (footprint)', child_table || '_footprint_idx', schm_child);
-        EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %s (validated)', child_table || '_validated_idx', schm_child);
-        EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %s (ingestion_date_utc)', child_table || '_ingestion_date_utc_idx', schm_child);
-        EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %s (imaging_time_begin_utc)', child_table || '_imaging_time_begin_utc_idx', schm_child);
-        EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %s (imaging_time_end_utc)', child_table || '_imaging_time_end_utc_idx', schm_child);
-        EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %s (resolution_degree)', child_table || '_resolution_degree_idx', schm_child);
-        EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %s (resolution_meter)', child_table || '_resolution_meter_idx', schm_child);
-        EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %s (product_id)', child_table || '_product_id_idx', schm_child);
-        EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %s (product_type)', child_table || '_product_type_idx', schm_child);
-      END;
-      $BODY$;
-    `);
-  }
 }

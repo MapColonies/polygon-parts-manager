@@ -10,7 +10,7 @@ export class ValidatePart extends BasePart implements ValidatePartRecord {
   @PrimaryColumn({ type: 'text' })
   public readonly id!: string;
 
-  @Column({ type: 'bigint', insert: false, update: false, generated: 'identity', generatedIdentity: 'ALWAYS' })
+  @Column({ type: 'bigint', insert: false, generated: 'identity', generatedIdentity: 'ALWAYS' })
   public readonly insertionOrder!: number;
 
   // Use a generic 'Geometry' spatialFeatureType so the column can hold Polygon or MultiPolygon

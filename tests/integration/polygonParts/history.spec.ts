@@ -40,8 +40,6 @@ describe('history', () => {
 
   // Helper function to insert validation data directly into the database
   const insertValidationDataDirectly = async (validateRequest: ValidatePolygonPartsRequestBody): Promise<string> => {
-    await helperDB.createValidationsStoredProcedure(schema);
-
     const entitiesMetadata = getEntitiesMetadata({
       productId: validateRequest.productId,
       productType: validateRequest.productType,

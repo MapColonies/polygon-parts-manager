@@ -13,7 +13,7 @@ import { ApplicationConfig, DbConfig } from '../../../src/common/interfaces';
 import { Transformer } from '../../../src/common/middlewares/transformer';
 import { createConnectionOptions } from '../../../src/common/utils';
 import { ValidationEntityQuery, ValidatePolygonPartsRequestBody } from '../../../src/polygonParts/controllers/interfaces';
-import { Part } from '../../../src/polygonParts/DAL/part';
+import { History } from '../../../src/polygonParts/DAL/history';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
 import { namingStrategy, payloadToInsertValidationsData } from '../../../src/polygonParts/DAL/utils';
 import { ValidatePart } from '../../../src/polygonParts/DAL/validationPart';
@@ -59,7 +59,7 @@ describe('history', () => {
 
   beforeAll(async () => {
     testDataSourceOptions = {
-      entities: [Part, PolygonPart, ValidatePart],
+      entities: [History, PolygonPart, ValidatePart],
       namingStrategy,
       ...createConnectionOptions(dbConfig),
     };

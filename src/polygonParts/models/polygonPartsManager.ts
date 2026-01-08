@@ -10,7 +10,7 @@ import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
 import { deleteValidationsTable } from '../../common/utils';
-import { Part } from '../DAL/part';
+import { History } from '../DAL/history';
 import { PolygonPart } from '../DAL/polygonPart';
 import { payloadToInsertPartsData, payloadToInsertValidationsData, setRepositoryTablePath } from '../DAL/utils';
 import { ValidateError, ValidatePolygonPartsRequestBody, ValidatePolygonPartsResponseBody } from '../controllers/interfaces';
@@ -893,10 +893,9 @@ export class PolygonPartsManager {
       .createQueryBuilder('polygon_part')
       .select(idColumn, 'polygon_part_id')
       .addSelect(
-        `${
-          shouldClip
-            ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
-            : geometryColumn
+        `${shouldClip
+          ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
+          : geometryColumn
         }`,
         geometryColumn
       )
@@ -1039,7 +1038,7 @@ export class PolygonPartsManager {
     const insertPartsData = payloadToInsertPartsData(polygonPartsPayload, this.applicationConfig.arraySeparator);
 
     try {
-      const part = entityManager.getRepository(Part);
+      const part = entityManager.getRepository(History);
       setRepositoryTablePath(part, partsEntityQualifiedName);
       await part.save(insertPartsData, { chunk: this.applicationConfig.chunkSize });
     } catch (error) {
@@ -1094,8 +1093,7 @@ export class PolygonPartsManager {
 
     if (!isValidFilterGeometry.valid) {
       throw new BadRequestError(
-        `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${
-          isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
+        `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
         }`
       );
     }

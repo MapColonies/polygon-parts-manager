@@ -389,6 +389,40 @@ export const invalidGeometriesValidateRequest: ValidatePolygonPartsRequestBody =
   },
 };
 
+export const polygonPartsPayloadForResolutionConflict: PolygonPartsPayload = {
+  catalogId: 'c52d8189-7e07-456a-8c6b-53859523c3e9',
+  productId: 'Resolution_Conflict_Test',
+  productType: RasterProductTypes.ORTHOPHOTO,
+  productVersion: '1.0',
+  partsData: [
+    {
+      sourceName: 'Example Source 1',
+      imagingTimeBeginUTC: new Date('2024-01-15T10:30:00.000Z'),
+      imagingTimeEndUTC: new Date('2024-01-15T11:45:00.000Z'),
+      resolutionDegree: 0.00000268220901489258, // zoom level 18
+      resolutionMeter: 25.5,
+      sourceResolutionMeter: 25.5,
+      horizontalAccuracyCE90: 3.5,
+      sensors: ['Sensor_A', 'Sensor_B'],
+      countries: ['Israel'],
+      cities: ['Haifa', 'Tel Aviv'],
+      description: 'Northern coastal region imagery',
+      footprint: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [34.85149443279957, 32.30543192283443],
+            [34.85149443279957, 32.29430955805424],
+            [34.86824157112912, 32.29430955805424],
+            [34.86824157112912, 32.30543192283443],
+            [34.85149443279957, 32.30543192283443],
+          ],
+        ],
+      },
+    },
+  ],
+};
+
 export const invalidSmallGeometriesValidateRequest: ValidatePolygonPartsRequestBody = {
   ...createLayerMetadataForValidation,
   jobType: JobTypes.Ingestion_New,
@@ -733,6 +767,38 @@ export const mockUpdateWithIntersectingParts: ValidatePolygonPartsRequestBody = 
         properties: {
           ...propertiesToGenerate(),
           resolutionDegree: 0.00012,
+        },
+      },
+    ],
+  },
+};
+
+export const mockUpdateWithTouchPart: ValidatePolygonPartsRequestBody = {
+  productId: 'Resolution_Conflict_Test',
+  productType: RasterProductTypes.ORTHOPHOTO,
+  catalogId: faker.string.uuid(),
+  productVersion: '2.0',
+  jobType: JobTypes.Ingestion_Update,
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [34.86824157112912, 32.29430955805424],
+              [34.86824157112912, 32.30543192283443],
+              [34.88498870945867, 32.30543192283443],
+              [34.88498870945867, 32.29430955805424],
+              [34.86824157112912, 32.29430955805424],
+            ],
+          ],
+        },
+        properties: {
+          ...propertiesToGenerate(),
+          resolutionDegree: 0.0000214576721191406, // zoom level 15
         },
       },
     ],

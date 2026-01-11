@@ -63,6 +63,8 @@ import {
   mockMultipleInvalidGeometries,
   mockSmallAreaAndHole,
   mockUpdateWithIntersectingParts,
+  mockUpdateWithTouchPart,
+  polygonPartsPayloadForResolutionConflict,
   separatePolygonsRequest,
   validationEntireWorldRequest,
   validValidationPolygonPartsPayload,
@@ -78,7 +80,7 @@ import polygonHole from './data/polygonHole.json';
 import polygonHoleSplitter from './data/polygonHoleSplitter.json';
 import polygonWesternHemisphere from './data/polygonWesternHemisphere.json';
 import { INITIAL_DB, INTERNAL_DB_GEOM_PRECISION } from './helpers/constants';
-import { createDB, deleteDB, generateExistsPayload, generateFeatureId, generatePolygon, generatePolygonPartsPayload, HelperDB } from './helpers/db';
+import { createDB, generateExistsPayload, generateFeatureId, generatePolygon, generatePolygonPartsPayload, HelperDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import type { DeepPartial } from './helpers/types';
 import { allFindFeaturesEqual, toExpectedFindPolygonPartsResponse, toExpectedPostgresResponse } from './helpers/utils';
@@ -124,7 +126,7 @@ describe('polygonParts', () => {
     await helperDB.destroyConnection();
     /* uncomment this when running locally, this deletes the created db after all tests,
     instead of removing it manually after each run.*/
-    await deleteDB(testDataSourceOptions);
+    //await deleteDB(testDataSourceOptions);
   });
 
   beforeEach(async () => {
@@ -6039,6 +6041,24 @@ describe('polygonParts', () => {
         expect(response.status).toBe(httpStatusCodes.OK);
         expect(response).toSatisfyApiSpec();
         expect(response.body).toStrictEqual({ parts: [], smallGeometriesCount: 0, smallHolesCount: 0 });
+
+        expect.assertions(3);
+      });
+
+      it('should return 200 status code when updating existing parts with worse resolution and that only touch their boundaries', async () => {
+        const expected: ValidatePolygonPartsResponseBody = {
+          parts: [],
+          smallGeometriesCount: 0,
+          smallHolesCount: 0,
+        };
+
+        await requestSender.createPolygonParts(polygonPartsPayloadForResolutionConflict);
+        const response = await requestSender.validatePolygonParts(mockUpdateWithTouchPart);
+
+        const responseBody = response.body as ValidatePolygonPartsResponseBody;
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(responseBody).toStrictEqual(expected);
+        expect(response).toSatisfyApiSpec();
 
         expect.assertions(3);
       });

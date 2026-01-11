@@ -107,7 +107,7 @@ export class HistoryManager {
               st_numgeometries(footprint) as geom_count
             FROM ${validationsEntityQualifiedName}
           ) as dumped_geometries
-          ORDER BY id, geom_index;
+          ORDER BY insertion_order, geom_index;
         `);
 
         // Delete the temporary validation table

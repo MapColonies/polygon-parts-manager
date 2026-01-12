@@ -1,5 +1,5 @@
 import { RASTER_PRODUCT_TYPE_LIST, type RasterProductTypes } from '@map-colonies/raster-shared';
-import { Check, Column, CreateDateColumn, Index, PrimaryGeneratedColumn, type MultiPolygon, type Polygon } from 'typeorm';
+import { Check, Column, CreateDateColumn, Index, PrimaryGeneratedColumn, type Polygon } from 'typeorm';
 import type { CommonRecord } from '../models/interfaces';
 
 export class Common implements CommonRecord {
@@ -83,5 +83,5 @@ export class Common implements CommonRecord {
   @Check('footprint', `GeometryType("footprint") IN ('POLYGON','MULTIPOLYGON')`)
   @Check('valid geometry', `ST_IsValid("footprint")`)
   @Check('geometry extent', `Box2D("footprint") @Box2D(ST_GeomFromText('LINESTRING(-180 -90, 180 90)'))`)
-  public footprint!: Polygon ;
+  public footprint!: Polygon;
 }

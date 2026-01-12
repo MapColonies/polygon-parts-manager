@@ -893,9 +893,10 @@ export class PolygonPartsManager {
       .createQueryBuilder('polygon_part')
       .select(idColumn, 'polygon_part_id')
       .addSelect(
-        `${shouldClip
-          ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
-          : geometryColumn
+        `${
+          shouldClip
+            ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
+            : geometryColumn
         }`,
         geometryColumn
       )
@@ -1093,7 +1094,8 @@ export class PolygonPartsManager {
 
     if (!isValidFilterGeometry.valid) {
       throw new BadRequestError(
-        `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
+        `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${
+          isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
         }`
       );
     }

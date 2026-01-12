@@ -8,7 +8,7 @@ import { BasePart } from './basePart';
 @Check('imaging times', `"imaging_time_begin_utc" <= "imaging_time_end_utc"`)
 export class ValidatePart extends BasePart implements ValidatePartRecord {
   @PrimaryColumn({ type: 'text' })
-  public readonly id!: string;
+  public readonly id!: string; // this represents the id received by the part producer
 
   @Column({ type: 'bigint', insert: false, generated: 'identity', generatedIdentity: 'ALWAYS' })
   public readonly insertionOrder!: number;

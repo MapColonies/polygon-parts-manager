@@ -12,7 +12,7 @@ import { z } from 'zod';
 import type { OptionalToNullableRecordValues, ReplaceValuesOfType } from '../../common/types';
 
 //#region public
-interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData' | 'jobType'>, z.infer<typeof partSchema> {}
+interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData' | 'jobType'>, Omit<z.infer<typeof partSchema>, 'id'> { }
 /**
  * Polygonal geometries
  */
@@ -21,15 +21,15 @@ type PolygonalGeometries = Polygon | MultiPolygon;
 /**
  * Properties of part data for insertion
  */
-export interface InsertPartData extends Readonly<Omit<CommonPayload, 'countries' | 'cities' | 'sensors'>> {
+export interface InsertPartDataToHistory extends Readonly<Omit<CommonPayload, 'countries' | 'cities' | 'sensors'>> {
   readonly countries?: string;
   readonly cities?: string;
   readonly sensors: string;
-  readonly footprint: Polygon | MultiPolygon;
+  readonly footprint: Polygon;
 }
 
 //Used for the Base record
-export interface BasePart extends Readonly<Omit<InsertPartData, 'footprint'>> {}
+export interface BasePart extends Readonly<Omit<InsertPartDataToHistory, 'footprint' | 'id'>> { }
 
 export interface ValidatePartData extends Readonly<BasePart> {
   readonly footprint: Polygon | MultiPolygon;
@@ -73,19 +73,20 @@ export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = Fea
 >;
 
 /**
- * Polygon parts ingestion payload
+ * Polygon parts ingestion payload - based on data producer
  */
-export interface PolygonPartsPayload extends PolygonPartsPayloadType {}
+export interface PolygonPartsPayload extends PolygonPartsPayloadType { }
+
 
 /**
  * Polygon parts response
  */
-export interface PolygonPartsResponse extends EntityIdentifierObject {}
+export interface PolygonPartsResponse extends EntityIdentifierObject { }
 
 /**
  * Common record properties of part and polygon part
  */
-export interface CommonRecord extends Omit<InsertPartData, 'footprint'> {
+export interface CommonRecord extends Omit<InsertPartDataToHistory, 'footprint'> {
   readonly id: string;
   readonly ingestionDateUTC: Date;
   readonly footprint: Polygon | MultiPolygon;
@@ -107,7 +108,7 @@ export interface PolygonPartRecord extends CommonRecord {
   readonly insertionOrder: number;
 }
 
-export interface BasePartRecord extends BasePart {}
+export interface BasePartRecord extends BasePart { }
 
 export interface ValidatePartRecord extends ValidatePartData {
   readonly validated: boolean;
@@ -174,7 +175,7 @@ export interface AggregateLayerMetadataOptions {
 /**
  * Get aggregation layer metadata response
  */
-export interface AggregationLayerMetadataResponse extends AggregationFeature {}
+export interface AggregationLayerMetadataResponse extends AggregationFeature { }
 
 /**
  * Get exists options
@@ -187,7 +188,7 @@ export interface ExistsOptions {
 /**
  * Get exists response
  */
-export interface ExistsResponse extends EntityIdentifierObject {}
+export interface ExistsResponse extends EntityIdentifierObject { }
 //#endregion
 
 //#region private

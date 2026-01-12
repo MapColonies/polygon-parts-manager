@@ -334,7 +334,7 @@ paths:
     put:
       tags:
         - history
-      summary: Move polygon parts validation entity to history
+      summary: Transfer polygon parts validation entity to history
       description: >
         Moves validation data from the temporary validation table to a history table. If the history table doesn't exist, it will be created. This operation splits MultiPolygons into Polygons and then drops the validation table.
       operationId: moveValidationsToHistory
@@ -342,7 +342,6 @@ paths:
         - in: query
           name: productType
           required: true
-          description: Product type key.
           schema:
             $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductType
           allowEmptyValue: false

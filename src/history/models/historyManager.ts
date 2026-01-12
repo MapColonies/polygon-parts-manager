@@ -25,14 +25,11 @@ export class HistoryManager {
     const { entityName: validationsEntityName, databaseObjectQualifiedName: validationsEntityQualifiedName } =
       entitiesMetadata.entitiesNames.validations;
 
-    // Construct history table name by replacing the parts suffix with _history
-    const partsEntityName = entitiesMetadata.entitiesNames.history.entityName;
-    const partsSuffix = this.applicationConfig.entities.history.nameSuffix;
-    const historyTableName = partsEntityName.replace(new RegExp(`${partsSuffix}$`), '_history');
-    const historyTableQualifiedName = `${this.schema}.${historyTableName}`;
+    const historyEntityName = entitiesMetadata.entitiesNames.history.entityName;
+    const historyTableQualifiedName = `${this.schema}.${historyEntityName}`;
 
-    const logger = this.logger.child({ validationsEntityName, historyTableName });
-    logger.info({ msg: 'moving validations to history table', validationsEntityQualifiedName, historyTableQualifiedName });
+    const logger = this.logger.child({ validationsEntityName, historyEntityName });
+    logger.info({ msg: 'moving validations to history table', validationsEntityQualifiedName, historyEntityName });
 
     try {
       await this.connectionManager.getDataSource().transaction(async (entityManager) => {
@@ -44,7 +41,7 @@ export class HistoryManager {
         }
 
         // Check if history table exists
-        const historyTableExists = await this.connectionManager.entityExists(entityManager, historyTableName);
+        const historyTableExists = await this.connectionManager.entityExists(entityManager, historyEntityName);
 
         if (!historyTableExists) {
           // Create history table based on history template
@@ -103,8 +100,7 @@ export class HistoryManager {
             SELECT 
               *,
               (st_dump(footprint)).path[1] as geom_index,
-              (st_dump(footprint)).geom as geom,
-              st_numgeometries(footprint) as geom_count
+              (st_dump(footprint)).geom as geom
             FROM ${validationsEntityQualifiedName}
           ) as dumped_geometries
           ORDER BY insertion_order, geom_index;

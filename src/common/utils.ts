@@ -26,7 +26,6 @@ export async function verifyValidationTableInheritance(
   validationsEntityQualifiedName: string,
   logger: Logger
 ): Promise<void> {
-  // Query PostgreSQL catalogs to verify inheritance
   const result = await entityManager.query<number[]>(
     `
       SELECT 1 as res

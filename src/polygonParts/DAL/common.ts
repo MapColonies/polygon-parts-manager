@@ -3,8 +3,6 @@ import { Check, Column, CreateDateColumn, Index, PrimaryGeneratedColumn, type Mu
 import type { CommonRecord } from '../models/interfaces';
 
 export class Common implements CommonRecord {
-  @Column({ type: 'text', collation: 'ucs_basic' })
-  public jobType!: string;
   @PrimaryGeneratedColumn('uuid')
   public readonly id!: string;
 
@@ -85,5 +83,5 @@ export class Common implements CommonRecord {
   @Check('footprint', `GeometryType("footprint") IN ('POLYGON','MULTIPOLYGON')`)
   @Check('valid geometry', `ST_IsValid("footprint")`)
   @Check('geometry extent', `Box2D("footprint") @Box2D(ST_GeomFromText('LINESTRING(-180 -90, 180 90)'))`)
-  public footprint!: Polygon | MultiPolygon;
+  public footprint!: Polygon ;
 }

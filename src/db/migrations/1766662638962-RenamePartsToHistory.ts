@@ -380,9 +380,9 @@ export class RenamePartsToHistory1766662638962 implements MigrationInterface {
             JOIN pg_class AS child ON i.inhrelid = child.oid
             JOIN pg_namespace AS n_parent ON n_parent.oid = parent.relnamespace
             JOIN pg_namespace AS n_child ON n_child.oid = child.relnamespace
-            WHERE n_parent.nspname = 'polygon_parts'
-            AND parent.relname = 'parts'
-            AND n_child.nspname = 'polygon_parts' 
+            WHERE n_parent.nspname = 'polygon_parts' -- schema name
+            AND parent.relname = 'parts' -- entity name
+            AND n_child.nspname = 'polygon_parts' -- schema name
             ORDER BY child.relname;
         `);
 

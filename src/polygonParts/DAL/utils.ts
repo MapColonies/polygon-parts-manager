@@ -1,7 +1,7 @@
-import { DefaultNamingStrategy, type ObjectLiteral, type Repository, type Table } from 'typeorm';
+import { DefaultNamingStrategy, Polygon, type ObjectLiteral, type Repository, type Table } from 'typeorm';
 import type { ApplicationConfig } from '../../common/interfaces';
 import { camelCaseToSnakeCase } from '../../common/utils';
-import type { InsertPartData, ValidatePartData, PolygonPartsPayload } from '../models/interfaces';
+import type { InsertPartDataToHistory, ValidatePartData, PolygonPartsPayload } from '../models/interfaces';
 import { ValidatePolygonPartsRequestBody } from '../controllers/interfaces';
 
 const customNamingStrategy = new DefaultNamingStrategy();
@@ -31,19 +31,21 @@ export const setRepositoryTablePath = <Entity extends ObjectLiteral>(repository:
   return repository;
 };
 
-export const payloadToInsertPartsData = (
+export const payloadToInsertPartsDataToHistory = (
   polygonPartsPayload: PolygonPartsPayload,
   arraySeparator: ApplicationConfig['arraySeparator']
-): InsertPartData[] => {
+): InsertPartDataToHistory[] => {
   const { partsData, ...layerMetadata } = polygonPartsPayload;
 
-  return partsData.map((partData) => {
+  return partsData.features.map((partData) => {
+    const properties = partData.properties;
     return {
       ...layerMetadata,
-      ...partData,
-      sensors: partData.sensors.join(arraySeparator),
-      countries: partData.countries?.join(arraySeparator),
-      cities: partData.cities?.join(arraySeparator),
+      ...properties,
+      footprint: partData.geometry as Polygon, // history only accepts Polygon geometries
+      sensors: partData.properties.sensors.join(arraySeparator),
+      countries: partData.properties.countries?.join(arraySeparator),
+      cities: partData.properties.cities?.join(arraySeparator),
     };
   });
 };

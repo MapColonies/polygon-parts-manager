@@ -73,4 +73,4 @@ export type ValidatePolygonPartsRequestBody = Pick<CommonRecord, 'productId' | '
   partsData: PolygonPartsFeatureCollection;
 };
 
-export type DeleteValidationEntityQuery = Pick<CommonRecord, 'productId' | 'productType'>;
+export type ValidationEntityQuery = Pick<CommonRecord, 'productId' | 'productType'>;

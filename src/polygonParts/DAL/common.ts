@@ -77,8 +77,10 @@ export class Common implements CommonRecord {
   @Column({ type: 'text', collation: 'ucs_basic', nullable: true })
   public description?: string;
 
-  @Column({ type: 'geometry', spatialFeatureType: 'Polygon', srid: 4326, precision: 20 })
+  //TODO: check changes on this footprint with previous implementation
+  @Column({ type: 'geometry', spatialFeatureType: 'Geometry', srid: 4326, precision: 20 })
   @Index({ spatial: true })
+  @Check('footprint', `GeometryType("footprint") IN ('POLYGON','MULTIPOLYGON')`)
   @Check('valid geometry', `ST_IsValid("footprint")`)
   @Check('geometry extent', `Box2D("footprint") @Box2D(ST_GeomFromText('LINESTRING(-180 -90, 180 90)'))`)
   public footprint!: Polygon;

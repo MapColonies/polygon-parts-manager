@@ -6,8 +6,9 @@ import type { PostgresConnectionOptions } from 'typeorm/driver/postgres/Postgres
 import { SERVICES } from '../common/constants';
 import { DBConnectionError } from '../common/errors';
 import type { DbConfig, IConfig } from '../common/interfaces';
-import { Part } from '../polygonParts/DAL/part';
+import { History } from '../polygonParts/DAL/history';
 import { PolygonPart } from '../polygonParts/DAL/polygonPart';
+import { ValidatePart } from '../polygonParts/DAL/validationPart';
 import { namingStrategy } from '../polygonParts/DAL/utils';
 import { DataSourceLogger } from './dataSourceLogger';
 import { createConnectionOptions } from './utils';
@@ -103,7 +104,7 @@ export class ConnectionManager {
 
   private createConnectionOptions(dbConfig: DbConfig): PostgresConnectionOptions {
     const connectionOptions = createConnectionOptions(dbConfig);
-    return { entities: [Part, PolygonPart], namingStrategy, logger: this.dataSourceLogger, ...connectionOptions };
+    return { entities: [History, PolygonPart, ValidatePart], namingStrategy, logger: this.dataSourceLogger, ...connectionOptions };
   }
 
   private async schemaExists(): Promise<boolean> {

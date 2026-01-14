@@ -1,21 +1,35 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 import { faker } from '@faker-js/faker';
-import { CORE_VALIDATIONS, INGESTION_VALIDATIONS, RASTER_PRODUCT_TYPE_LIST, RasterProductTypes, type PolygonPart } from '@map-colonies/raster-shared';
+import {
+  CORE_VALIDATIONS,
+  INGESTION_VALIDATIONS,
+  RASTER_PRODUCT_TYPE_LIST,
+  RasterProductTypes,
+  polygonPartsFeatureSchema,
+} from '@map-colonies/raster-shared';
 import { randomPolygon } from '@turf/random';
 import type { Feature, Polygon } from 'geojson';
 import { randexp } from 'randexp';
 import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
 import { DatabaseCreateContext, createDatabase, dropDatabase } from 'typeorm-extension';
+import { z } from 'zod';
 import { setRepositoryTablePath } from '../../../../src/polygonParts/DAL/utils';
 import type { ExistsRequestBody } from '../../../../src/polygonParts/controllers/interfaces';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 import type { DeepPartial } from './types';
 
+type PolygonPartFeature = z.infer<typeof polygonPartsFeatureSchema>;
+type PartialPolygonPartsPayload = DeepPartial<Omit<PolygonPartsPayload, 'partsData'>> & {
+  partsData?: {
+    type?: 'FeatureCollection';
+    features?: Partial<PolygonPartFeature>[];
+  };
+};
 const generateProductId = (): string => randexp(INGESTION_VALIDATIONS.productId.pattern);
 const generateProductType = (): RasterProductTypes => faker.helpers.arrayElement(RASTER_PRODUCT_TYPE_LIST);
 
 export const createDB = async (options: Partial<DatabaseCreateContext>): Promise<void> => {
-  await createDatabase({ ...options, synchronize: false, ifNotExist: false });
+  await createDatabase({ ...options, synchronize: false, ifNotExist: true });
 };
 
 export const deleteDB = async (options: DataSourceOptions): Promise<void> => {
@@ -36,44 +50,49 @@ export const generatePolygon = (
   return randomPolygon(1, options).features[0].geometry;
 };
 
-export const generatePolygonPart = (): PolygonPart => {
+export const generatePolygonPart = (): PolygonPartFeature => {
   const date1 = faker.date.past();
   const date2 = faker.date.past();
   const [dateOlder, dateRecent] = date1 < date2 ? [date1, date2] : [date2, date1];
   return {
-    footprint: generatePolygon(),
-    horizontalAccuracyCE90: faker.number.float(INGESTION_VALIDATIONS.horizontalAccuracyCE90),
-    imagingTimeBeginUTC: dateOlder,
-    imagingTimeEndUTC: dateRecent,
-    resolutionDegree: faker.number.float(CORE_VALIDATIONS.resolutionDeg),
-    resolutionMeter: faker.number.float(INGESTION_VALIDATIONS.resolutionMeter),
-    sensors: faker.helpers.multiple(
-      () => {
-        return faker.word.words();
-      },
-      { count: { min: 1, max: 3 } }
-    ),
-    sourceName: faker.word.words().replace(' ', '_'),
-    sourceResolutionMeter: faker.number.float(INGESTION_VALIDATIONS.resolutionMeter),
-    cities: faker.helpers.maybe(() => {
-      return faker.helpers.multiple(
+    type: 'Feature',
+    id: generateFeatureId(),
+    geometry: generatePolygon(),
+    properties: {
+      id: faker.string.uuid(),
+      horizontalAccuracyCE90: faker.number.float(INGESTION_VALIDATIONS.horizontalAccuracyCE90),
+      imagingTimeBeginUTC: dateOlder,
+      imagingTimeEndUTC: dateRecent,
+      resolutionDegree: faker.number.float(CORE_VALIDATIONS.resolutionDeg),
+      resolutionMeter: faker.number.float(INGESTION_VALIDATIONS.resolutionMeter),
+      sensors: faker.helpers.multiple(
         () => {
           return faker.word.words();
         },
         { count: { min: 1, max: 3 } }
-      );
-    }),
-    countries: faker.helpers.maybe(() => {
-      return faker.helpers.multiple(
-        () => {
-          return faker.word.words();
-        },
-        { count: { min: 1, max: 3 } }
-      );
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    description: faker.helpers.maybe(() => faker.word.words({ count: { min: 0, max: 10 } })),
-    sourceId: faker.helpers.maybe(() => faker.word.words()),
+      ),
+      sourceName: faker.word.words().replace(' ', '_'),
+      sourceResolutionMeter: faker.number.float(INGESTION_VALIDATIONS.resolutionMeter),
+      cities: faker.helpers.maybe(() => {
+        return faker.helpers.multiple(
+          () => {
+            return faker.word.words();
+          },
+          { count: { min: 1, max: 3 } }
+        );
+      }),
+      countries: faker.helpers.maybe(() => {
+        return faker.helpers.multiple(
+          () => {
+            return faker.word.words();
+          },
+          { count: { min: 1, max: 3 } }
+        );
+      }),
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+      description: faker.helpers.maybe(() => faker.word.words({ count: { min: 0, max: 10 } })),
+      sourceId: faker.helpers.maybe(() => faker.word.words()),
+    },
   };
 };
 
@@ -85,32 +104,55 @@ export const generateExistsPayload = (): ExistsRequestBody => {
 };
 
 export function generatePolygonPartsPayload(partsCount: number): PolygonPartsPayload;
-export function generatePolygonPartsPayload(template: DeepPartial<PolygonPartsPayload>): PolygonPartsPayload;
-export function generatePolygonPartsPayload(input: number | DeepPartial<PolygonPartsPayload>): PolygonPartsPayload {
+export function generatePolygonPartsPayload(template: PartialPolygonPartsPayload): PolygonPartsPayload;
+export function generatePolygonPartsPayload(input: number | PartialPolygonPartsPayload): PolygonPartsPayload {
   const layerMetadata = {
     catalogId: faker.string.uuid(),
     productId: generateProductId(),
     productType: generateProductType(),
     productVersion: randexp(INGESTION_VALIDATIONS.productVersion.pattern),
+    jobType: faker.helpers.arrayElement(['POLYGON_PARTS']),
   } satisfies Omit<PolygonPartsPayload, 'partsData'>;
 
   if (typeof input === 'number') {
     const partsCount = input;
     return {
       ...layerMetadata,
-      partsData: Array.from({ length: partsCount }, generatePolygonPart),
+      partsData: {
+        type: 'FeatureCollection',
+        features: Array.from({ length: partsCount }, generatePolygonPart),
+      },
     };
   }
 
   const { partsData: templatePartsData, ...templateLayerMetadata } = structuredClone(input);
+  const featureCount = templatePartsData?.features?.length ?? 1;
 
   return {
     ...layerMetadata,
     ...templateLayerMetadata,
-    partsData: Array.from({ length: templatePartsData?.length ?? 1 }, generatePolygonPart).map((partData, index) => {
-      const templatePartsDataValues = templatePartsData?.[index];
-      return templatePartsDataValues ? { ...partData, ...templatePartsDataValues } : partData;
-    }),
+    partsData: {
+      type: 'FeatureCollection',
+      features: Array.from({ length: featureCount }, generatePolygonPart).map((partData, index) => {
+        const templateFeature = templatePartsData?.features?.[index];
+
+        if (!templateFeature) {
+          return partData;
+        }
+
+        return {
+          ...partData,
+          ...(templateFeature.id !== undefined && { id: templateFeature.id }),
+          ...(templateFeature.geometry !== undefined && { geometry: templateFeature.geometry }),
+          ...(templateFeature.properties !== undefined && {
+            properties: {
+              ...partData.properties,
+              ...templateFeature.properties,
+            },
+          }),
+        };
+      }),
+    },
   };
 }
 
@@ -130,11 +172,11 @@ export class HelperDB {
   }
 
   public async sync(): Promise<void> {
-    await this.appDataSource.runMigrations({ transaction: 'all' });
+    await this.appDataSource.runMigrations();
   }
 
   public async createSchema(schema: string): Promise<void> {
-    await this.appDataSource.query(`CREATE SCHEMA ${schema}`);
+    await this.appDataSource.query(`CREATE SCHEMA IF NOT EXISTS ${schema}`);
   }
 
   public async dropSchema(schema: string): Promise<void> {
@@ -172,5 +214,11 @@ export class HelperDB {
     const repository = this.appDataSource.getRepository(target);
     setRepositoryTablePath(repository, table);
     await repository.insert(insertValues);
+  }
+
+  public async getTableData(table: string, schema: string): Promise<unknown[]> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const data = await this.appDataSource.query(`SELECT * FROM ${schema}.${table}`);
+    return data as unknown[];
   }
 }

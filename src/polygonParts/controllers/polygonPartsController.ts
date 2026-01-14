@@ -7,7 +7,7 @@ import type {
   AggregatePolygonPartsRequestBody,
   AggregationLayerMetadataParams,
   AggregationLayerMetadataResponseBody,
-  DeleteValidationEntityQuery,
+  ValidationEntityQuery,
   ExistsRequestBody,
   ExistsResponseBody,
   FindPolygonPartsParams,
@@ -63,13 +63,7 @@ export type ValidatePolygonPartsHandler = RequestHandler<
   EntitiesMetadata
 >;
 
-export type DeleteValidationPolygonPartsEntityHandler = RequestHandler<
-  undefined,
-  undefined,
-  undefined,
-  DeleteValidationEntityQuery,
-  EntitiesMetadata
->;
+export type DeleteValidationPolygonPartsEntityHandler = RequestHandler<undefined, undefined, undefined, ValidationEntityQuery, EntitiesMetadata>;
 
 @injectable()
 export class PolygonPartsController {

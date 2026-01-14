@@ -1,10 +1,11 @@
 import { booleanEqual } from '@turf/boolean-equal';
 import { feature, featureCollection } from '@turf/helpers';
+import type { PartFeatureProperties } from '@map-colonies/raster-shared';
 import config from 'config';
 import type { Polygon } from 'geojson';
 import { isMatch } from 'lodash';
 import type { ApplicationConfig } from '../../../../src/common/interfaces';
-import { payloadToInsertPartsData } from '../../../../src/polygonParts/DAL/utils';
+import { payloadToInsertPartsDataToHistory } from '../../../../src/polygonParts/DAL/utils';
 import type { FindPolygonPartsResponseBody } from '../../../../src/polygonParts/controllers/interfaces';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 import { INTERNAL_DB_GEOM_PRECISION } from './constants';
@@ -32,7 +33,7 @@ export const allFindFeaturesEqual = <T extends FindPolygonPartsResponseBody<Shou
 };
 
 export function toExpectedPostgresResponse(polygonPartsPayload: PolygonPartsPayload): ExpectedPostgresResponse {
-  const expectedPostgresResponse = payloadToInsertPartsData(polygonPartsPayload, getApplicationConfig().arraySeparator).map((record) => {
+  const expectedPostgresResponse = payloadToInsertPartsDataToHistory(polygonPartsPayload, getApplicationConfig().arraySeparator).map((record) => {
     const { cities = null, countries = null, description = null, sourceId = null, ...props } = record;
     return { cities, countries, description, sourceId, ...props };
   });
@@ -42,18 +43,11 @@ export function toExpectedPostgresResponse(polygonPartsPayload: PolygonPartsPayl
 
 export function toExpectedFindPolygonPartsResponse(polygonPartsPayload: PolygonPartsPayload, duplicates = 1): FindPolygonPartsResponseBody {
   const { partsData, ...layerMetadata } = polygonPartsPayload;
-  const expectedFeatures = partsData
-    .map((partData) => {
-      const {
-        cities = null,
-        countries = null,
-        description = null,
-        footprint,
-        imagingTimeBeginUTC,
-        imagingTimeEndUTC,
-        sourceId = null,
-        ...props
-      } = partData;
+  const expectedFeatures = partsData.features
+    .map((partFeature) => {
+      const partData: PartFeatureProperties = partFeature.properties;
+      const { cities = null, countries = null, description = null, imagingTimeBeginUTC, imagingTimeEndUTC, sourceId = null, ...props } = partData;
+      const footprint = partFeature.geometry;
 
       return Array.from({ length: duplicates }, () =>
         feature(footprint, {
@@ -74,6 +68,5 @@ export function toExpectedFindPolygonPartsResponse(polygonPartsPayload: PolygonP
     })
     .flat();
 
-  const expectedPostgresResponse = featureCollection(expectedFeatures);
-  return expectedPostgresResponse;
+  return featureCollection(expectedFeatures) as FindPolygonPartsResponseBody;
 }

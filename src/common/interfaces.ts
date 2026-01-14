@@ -10,7 +10,7 @@ export interface ApplicationConfig {
   validateSmallGeometriesFunction: string;
   validateResolutionsFunction: string;
   entities: {
-    parts: {
+    history: {
       namePrefix: Lowercase<string>;
       nameSuffix: Lowercase<string>;
     };

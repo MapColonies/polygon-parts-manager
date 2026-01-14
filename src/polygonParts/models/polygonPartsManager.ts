@@ -9,12 +9,13 @@ import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
-import { Part } from '../DAL/part';
+import { deleteValidationsTable } from '../../common/utils';
+import { History } from '../DAL/history';
 import { PolygonPart } from '../DAL/polygonPart';
-import { payloadToInsertPartsData, payloadToInsertValidationsData, setRepositoryTablePath } from '../DAL/utils';
+import { payloadToInsertPartsDataToHistory, payloadToInsertValidationsData, setRepositoryTablePath } from '../DAL/utils';
 import { ValidateError, ValidatePolygonPartsRequestBody, ValidatePolygonPartsResponseBody } from '../controllers/interfaces';
-import { ValidatePart } from '../DAL/validationPart';
 import { FeatureValidationError } from '../../common/enums';
+import { ValidatePart } from '../DAL/validationPart';
 import {
   findSelectOutputColumns,
   geometryColumn,
@@ -355,19 +356,14 @@ export class PolygonPartsManager {
   }
 
   public async deleteValidationPolygonParts(entitiesMetadata: EntitiesMetadata): Promise<void> {
-    const { entityName: validationsEntityName } = entitiesMetadata.entitiesNames.validations;
+    const { entityName: validationsEntityName, databaseObjectQualifiedName: validationsEntityQualifiedName } =
+      entitiesMetadata.entitiesNames.validations;
 
     const logger = this.logger.child({ validationsEntityName });
     logger.info({ msg: 'deleting validations table', validationsEntityName });
 
     try {
       await this.connectionManager.getDataSource().transaction(async (entityManager) => {
-        const baseValidationContext = {
-          entityManager,
-          logger,
-          entitiesMetadata,
-        };
-
         await entityManager.query(`SET search_path TO ${this.schema},public`);
 
         const entityExists = await this.connectionManager.entityExists(entityManager, validationsEntityName);
@@ -375,7 +371,7 @@ export class PolygonPartsManager {
           throw new NotFoundError(`Table with the name '${validationsEntityName}' doesn't exists`);
         }
 
-        await this.deleteValidationsTable(baseValidationContext);
+        await deleteValidationsTable(entityManager, this.schema, validationsEntityName, validationsEntityQualifiedName, logger);
       });
     } catch (error) {
       const errorMessage = 'Validation table deletes query transaction failed';
@@ -651,57 +647,6 @@ export class PolygonPartsManager {
       return result;
     } catch (error) {
       const errorMessage = `Could not get validate resolutions in: ${validationsEntityQualifiedName}`;
-      logger.error({ msg: errorMessage, error });
-      throw error;
-    }
-  }
-
-  private async deleteValidationsTable(context: { entitiesMetadata: EntitiesMetadata; entityManager: EntityManager; logger: Logger }): Promise<void> {
-    const {
-      entityManager,
-      logger,
-      entitiesMetadata: {
-        entitiesNames: {
-          validations: { entityName: validationsEntityQualifiedName },
-        },
-      },
-    } = context;
-    logger.info({ msg: 'deleting validations table', validationsEntityQualifiedName });
-    try {
-      // Query PostgreSQL catalogs to verify inheritance
-      const result = await entityManager.query<number[]>(
-        `
-      SELECT 1 as res
-      FROM pg_inherits AS i
-      JOIN pg_class AS child ON i.inhrelid = child.oid
-      JOIN pg_namespace AS n_child ON n_child.oid = child.relnamespace
-      JOIN pg_class AS parent ON i.inhparent = parent.oid
-      JOIN pg_namespace AS n_parent ON n_parent.oid = parent.relnamespace
-      WHERE n_parent.nspname = $1
-        AND parent.relname = $2
-        AND n_child.nspname = $1
-        AND child.relname = $3;
-    `,
-        [
-          this.schema,
-          'validation_parts', // <-- base table name
-          validationsEntityQualifiedName,
-        ]
-      );
-
-      const isChildOfValidationRecord = result.length > 0;
-
-      if (!isChildOfValidationRecord) {
-        const errorMessage = `Refused to drop ${validationsEntityQualifiedName} — it is not instance of validation_parts entity.`;
-        logger.error({ msg: errorMessage });
-        throw new BadRequestError(errorMessage);
-      }
-
-      await entityManager.query(`DROP TABLE ${validationsEntityQualifiedName} CASCADE;`);
-
-      logger.debug({ msg: 'validations table dropped', validationsEntityQualifiedName });
-    } catch (error) {
-      const errorMessage = `Could not delete validation table: ${validationsEntityQualifiedName}`;
       logger.error({ msg: errorMessage, error });
       throw error;
     }
@@ -1002,7 +947,7 @@ export class PolygonPartsManager {
     const { entityManager, logger, entitiesMetadata } = context;
     const {
       entitiesNames: {
-        parts: { databaseObjectQualifiedName: partsEntityQualifiedName },
+        history: { databaseObjectQualifiedName: partsEntityQualifiedName },
         polygonParts: { databaseObjectQualifiedName: polygonPartsEntityQualifiedName },
       },
     } = entitiesMetadata;
@@ -1029,7 +974,7 @@ export class PolygonPartsManager {
       logger,
       entitiesMetadata: {
         entitiesNames: {
-          parts: { databaseObjectQualifiedName: partsEntityQualifiedName },
+          history: { databaseObjectQualifiedName: partsEntityQualifiedName },
           polygonParts: { databaseObjectQualifiedName: polygonPartsEntityQualifiedName },
         },
       },
@@ -1083,7 +1028,7 @@ export class PolygonPartsManager {
       entityManager,
       entitiesMetadata: {
         entitiesNames: {
-          parts: { databaseObjectQualifiedName: partsEntityQualifiedName },
+          history: { databaseObjectQualifiedName: partsEntityQualifiedName },
         },
       },
       logger,
@@ -1091,10 +1036,10 @@ export class PolygonPartsManager {
     } = context;
     logger.debug({ msg: 'Inserting polygon parts data' });
 
-    const insertPartsData = payloadToInsertPartsData(polygonPartsPayload, this.applicationConfig.arraySeparator);
+    const insertPartsData = payloadToInsertPartsDataToHistory(polygonPartsPayload, this.applicationConfig.arraySeparator);
 
     try {
-      const part = entityManager.getRepository(Part);
+      const part = entityManager.getRepository(History);
       setRepositoryTablePath(part, partsEntityQualifiedName);
       await part.save(insertPartsData, { chunk: this.applicationConfig.chunkSize });
     } catch (error) {

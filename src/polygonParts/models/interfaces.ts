@@ -1,17 +1,18 @@
 import type {
   AggregationFeature,
-  PolygonPart,
+  partSchema,
   PolygonPartsEntityName,
-  PolygonPartsEntityNameObject,
+  polygonPartsEntityNameSchema,
   PolygonPartsPayload as PolygonPartsPayloadType,
   RoiProperties,
 } from '@map-colonies/raster-shared';
 import type { Feature, FeatureCollection, GeoJsonProperties, Geometry, MultiPolygon, Polygon } from 'geojson';
 import { EntityManager, SelectQueryBuilder } from 'typeorm';
+import { z } from 'zod';
 import type { OptionalToNullableRecordValues, ReplaceValuesOfType } from '../../common/types';
 
 //#region public
-interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData'>, PolygonPart {}
+interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData' | 'jobType'>, Omit<z.infer<typeof partSchema>, 'id'> {}
 /**
  * Polygonal geometries
  */
@@ -20,14 +21,15 @@ type PolygonalGeometries = Polygon | MultiPolygon;
 /**
  * Properties of part data for insertion
  */
-export interface InsertPartData extends Readonly<Omit<CommonPayload, 'countries' | 'cities' | 'sensors'>> {
+export interface InsertPartDataToHistory extends Readonly<Omit<CommonPayload, 'countries' | 'cities' | 'sensors'>> {
   readonly countries?: string;
   readonly cities?: string;
   readonly sensors: string;
+  readonly footprint: Polygon;
 }
 
 //Used for the Base record
-export interface BasePart extends Readonly<Omit<InsertPartData, 'footprint'>> {}
+export interface BasePart extends Readonly<Omit<InsertPartDataToHistory, 'footprint' | 'id'>> {}
 
 export interface ValidatePartData extends Readonly<BasePart> {
   readonly footprint: Polygon | MultiPolygon;
@@ -71,7 +73,7 @@ export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = Fea
 >;
 
 /**
- * Polygon parts ingestion payload
+ * Polygon parts ingestion payload - based on data producer
  */
 export interface PolygonPartsPayload extends PolygonPartsPayloadType {}
 
@@ -83,9 +85,10 @@ export interface PolygonPartsResponse extends EntityIdentifierObject {}
 /**
  * Common record properties of part and polygon part
  */
-export interface CommonRecord extends InsertPartData {
+export interface CommonRecord extends Omit<InsertPartDataToHistory, 'footprint'> {
   readonly id: string;
   readonly ingestionDateUTC: Date;
+  readonly footprint: Polygon | MultiPolygon;
 }
 
 /**
@@ -118,7 +121,7 @@ export type EntityIdentifier = PolygonPartsEntityName;
 /**
  * Entity identifier
  */
-export type EntityIdentifierObject = PolygonPartsEntityNameObject;
+export type EntityIdentifierObject = z.infer<typeof polygonPartsEntityNameSchema>;
 
 /**
  * Name of an entity
@@ -144,7 +147,7 @@ export interface EntityNames {
 export interface EntitiesMetadata {
   entityIdentifier: EntityIdentifier;
   entitiesNames: {
-    parts: EntityNames;
+    history: EntityNames;
     polygonParts: EntityNames;
     validations: EntityNames;
   };

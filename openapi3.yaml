@@ -9,6 +9,7 @@ info:
 paths:
   /polygonParts:
     post:
+      deprecated: true
       tags:
         - polygon-parts
       summary: Create new polygon parts
@@ -47,6 +48,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
     put:
+      deprecated: true
       tags:
         - polygon-parts
       parameters:
@@ -136,9 +138,7 @@ paths:
         - polygon-parts
       summary: Find and filter polygon parts based on spatial criteria
       description: >
-        Search for polygon parts based on spatial intersection with search
-        geometries. Takes a GeoJSON FeatureCollection of search geometries with
-        optional resolution filters.
+        Search for polygon parts based on spatial intersection with search geometries. Takes a GeoJSON FeatureCollection of search geometries with optional resolution filters.
 
           **Filter Logic**
           - Returns polygon parts intersecting with input search geometries
@@ -163,8 +163,7 @@ paths:
         - in: query
           name: shouldClip
           description: >
-            Clips results to search area when true, returns complete geometries
-            when false
+            Clips results to search area when true, returns complete geometries when false
           schema:
             type: boolean
             default: true
@@ -205,11 +204,9 @@ paths:
       tags:
         - polygon-parts
       summary: >
-        Get aggregated polygon parts data by polygon parts entity name and
-        polygon parts filter (optional)
+        Get aggregated polygon parts data by polygon parts entity name and polygon parts filter (optional)
       description: >
-        Get aggregated polygon parts data by polygon parts entity name and
-        polygon parts filter (optional)
+        Get aggregated polygon parts data by polygon parts entity name and polygon parts filter (optional)
       operationId: aggregationLayerMetadata
       parameters:
         - in: path
@@ -257,9 +254,7 @@ paths:
         - polygon-parts
       summary: Validate polygon parts before insertion
       description: >
-        Validates polygon parts data by creating a temporary validation table,
-        inserting the chunk data, and running validation rules. Returns
-        validation errors or empty array if validation passes.
+        Validates polygon parts data by creating a temporary validation table, inserting the chunk data, and running validation rules. Returns validation errors or empty array if validation passes.
       operationId: validatePolygonParts
       requestBody:
         description: Polygon parts validation payload
@@ -305,14 +300,57 @@ paths:
           required: true
           description: Product type key.
           schema:
-            $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductType
+            $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductType
           allowEmptyValue: false
         - in: query
           name: productId
           required: true
           description: Product identifier.
           schema:
-            $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductId
+            $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductId
+          allowEmptyValue: false
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+  /history:
+    put:
+      tags:
+        - history
+      summary: Transfer polygon parts validation entity to history
+      description: >
+        Moves validation data from the temporary validation table to a history table. If the history table doesn't exist, it will be created. This operation splits MultiPolygons into Polygons and then drops the validation table.
+      operationId: moveValidationsToHistory
+      parameters:
+        - in: query
+          name: productType
+          required: true
+          schema:
+            $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductType
+          allowEmptyValue: false
+        - in: query
+          name: productId
+          required: true
+          description: Product identifier.
+          schema:
+            $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductId
           allowEmptyValue: false
       responses:
         '204':
@@ -412,7 +450,7 @@ components:
                     ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/HorizontalAccuracyCE90
                 - description: Minimal horizontal accuracy
             productBoundingBox:
-              $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductBBox
+              $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductBBox
             sensors:
               $ref: >-
                 ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Sensors
@@ -432,9 +470,9 @@ components:
         - productType
       properties:
         productId:
-          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductId
+          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductId
         productType:
-          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductType
+          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductType
     FeatureCollectionFindResponse:
       type: object
       description: GeoJSON Feature collection
@@ -621,7 +659,7 @@ components:
         - sourceResolutionMeter
       properties:
         catalogId:
-          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/LayerId
+          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/LayerId
         cities:
           oneOf:
             - $ref: >-
@@ -661,16 +699,14 @@ components:
             - $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/Id
             - description: Part identifier
         productId:
-          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductId
+          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductId
         productType:
-          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductType
+          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductType
         productVersion:
-          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductVersion
+          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductVersion
         requestFeatureId:
           description: >
-            If shouldClip is set to true, only a single FeatureId is returned
-            per Feature. Otherwise, it can return either a single FeatureId or
-            an array of FeatureIds per Feature
+            If shouldClip is set to true, only a single FeatureId is returned per Feature. Otherwise, it can return either a single FeatureId or an array of FeatureIds per Feature
           oneOf:
             - $ref: '#/components/schemas/FeatureId'
             - type: array
@@ -706,13 +742,13 @@ components:
         - partsData
       properties:
         catalogId:
-          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/LayerId
+          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/LayerId
         productId:
-          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductId
+          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductId
         productType:
-          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductType
+          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductType
         productVersion:
-          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductVersion
+          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductVersion
         partsData:
           $ref: '#/components/schemas/PartsData'
     ErrorMessage:
@@ -736,13 +772,13 @@ components:
         partsData:
           $ref: '#/components/schemas/PolygonPartsFeatureCollection'
         productId:
-          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductId
+          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductId
         catalogId:
-          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/LayerId
+          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/LayerId
         productType:
-          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductType
+          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductType
         productVersion:
-          $ref: ./SchemaRaster/core/layer.yaml#/components/schemas/ProductVersion
+          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductVersion
         jobType:
           type: string
           enum:
@@ -777,8 +813,7 @@ components:
         smallHolesCount:
           type: integer
       description: >-
-        Array of validation results per part (empty array means validation
-        passed)
+        Array of validation results per part (empty array means validation passed)
     PolygonPartsFeatureCollection:
       type: object
       nullable: false

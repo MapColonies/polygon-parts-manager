@@ -35,9 +35,9 @@
     "validateSmallGeometriesFunction": "validate_small_geometries",
     "validateResolutionsFunction": "validate_resolutions",
     "entities": {
-      "parts": {
+      "history": {
         "namePrefix": "",
-        "nameSuffix": "_parts"
+        "nameSuffix": "_history"
       },
       "polygonParts": {
         "find": {

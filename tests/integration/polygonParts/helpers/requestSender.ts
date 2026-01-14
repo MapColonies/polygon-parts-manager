@@ -3,7 +3,7 @@ import * as supertest from 'supertest';
 import type {
   AggregatePolygonPartsRequestBody,
   AggregationLayerMetadataParams,
-  DeleteValidationEntityQuery,
+  ValidationEntityQuery,
   ExistsRequestBody,
   FindPolygonPartsParams,
   FindPolygonPartsQueryParams,
@@ -56,7 +56,11 @@ export class PolygonPartsRequestSender {
     return supertest.agent(this.app).post('/polygonParts/validate').set('Content-Type', 'application/json').send(body);
   }
 
-  public async deleteValidationPolygonParts(query: DeleteValidationEntityQuery): Promise<supertest.Response> {
+  public async deleteValidationPolygonParts(query: ValidationEntityQuery): Promise<supertest.Response> {
     return supertest.agent(this.app).delete('/polygonParts/validate').query(query).send();
+  }
+
+  public async moveValidationsToHistory(query: ValidationEntityQuery): Promise<supertest.Response> {
+    return supertest.agent(this.app).put('/history').query(query).send();
   }
 }

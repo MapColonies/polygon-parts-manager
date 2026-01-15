@@ -8,6 +8,7 @@ import type {
   AggregationLayerMetadataParams,
   AggregationLayerMetadataResponseBody,
   ValidationEntityQuery,
+  ProcessReqParams,
   ExistsRequestBody,
   ExistsResponseBody,
   FindPolygonPartsParams,
@@ -65,9 +66,11 @@ export type ValidatePolygonPartsHandler = RequestHandler<
 
 export type DeleteValidationPolygonPartsEntityHandler = RequestHandler<undefined, undefined, undefined, ValidationEntityQuery, EntitiesMetadata>;
 
+export type ProcessPolygonPartsEntityHandler = RequestHandler<undefined, undefined, undefined, ProcessReqParams, EntitiesMetadata>;
+
 @injectable()
 export class PolygonPartsController {
-  public constructor(@inject(PolygonPartsManager) private readonly polygonPartsManager: PolygonPartsManager) {}
+  public constructor(@inject(PolygonPartsManager) private readonly polygonPartsManager: PolygonPartsManager) { }
 
   public createPolygonParts: CreatePolygonPartsHandler = async (req, res, next) => {
     try {
@@ -137,6 +140,16 @@ export class PolygonPartsController {
   public deleteValidationPolygonParts: DeleteValidationPolygonPartsEntityHandler = async (req, res, next) => {
     try {
       await this.polygonPartsManager.deleteValidationPolygonParts(res.locals);
+      return res.status(httpStatus.NO_CONTENT).json();
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public processPolygonParts: ProcessPolygonPartsEntityHandler = async (req, res, next) => {
+    try {
+      const { jobType } = req.query;
+      await this.polygonPartsManager.processPolygonParts(res.locals, jobType);
       return res.status(httpStatus.NO_CONTENT).json();
     } catch (error) {
       next(error);

@@ -1,6 +1,7 @@
 import { NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
+import type { EntityManager } from 'typeorm';
 import { SERVICES } from '../../common/constants';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
 import { deleteValidationsTable } from '../../common/utils';
@@ -21,7 +22,7 @@ export class HistoryManager {
     this.schema = config.get('db.schema');
   }
 
-  public async moveValidationsToHistory(entitiesMetadata: EntitiesMetadata): Promise<void> {
+  public async moveValidationsToHistory(entitiesMetadata: EntitiesMetadata, entityManager?: EntityManager): Promise<void> {
     const { entityName: validationsEntityName, databaseObjectQualifiedName: validationsEntityQualifiedName } =
       entitiesMetadata.entitiesNames.validations;
 
@@ -31,32 +32,29 @@ export class HistoryManager {
     const logger = this.logger.child({ validationsEntityName, historyEntityName });
     logger.info({ msg: 'moving validations to history table', validationsEntityQualifiedName, historyEntityName });
 
-    try {
-      await this.connectionManager.getDataSource().transaction(async (entityManager) => {
-        await entityManager.query(`SET search_path TO ${this.schema},public`);
+    const executeMoveToHistory = async (currentEntityManager: EntityManager): Promise<void> => {
+      await currentEntityManager.query(`SET search_path TO ${this.schema},public`);
 
-        const entityExists = await this.connectionManager.entityExists(entityManager, validationsEntityName);
-        if (!entityExists) {
-          throw new NotFoundError(`Table with the name '${validationsEntityName}' doesn't exists`);
-        }
+      const entityExists = await this.connectionManager.entityExists(currentEntityManager, validationsEntityName);
+      if (!entityExists) {
+        throw new NotFoundError(`Table with the name '${validationsEntityName}' doesn't exists`);
+      }
 
-        // Check if history table exists
-        const historyTableExists = await this.connectionManager.entityExists(entityManager, historyEntityName);
+      const historyTableExists = await this.connectionManager.entityExists(currentEntityManager, historyEntityName);
 
-        if (!historyTableExists) {
-          // Create history table based on history template
-          const historyTemplateQualifiedName = `${this.schema}.history`;
-          logger.debug({
-            msg: 'creating history table from history template',
-            historyTableQualifiedName,
-            historyTemplateQualifiedName,
-          });
-          await entityManager.query(`CREATE TABLE ${historyTableQualifiedName} (LIKE ${historyTemplateQualifiedName} INCLUDING ALL);`);
-        }
+      if (!historyTableExists) {
+        const historyTemplateQualifiedName = `${this.schema}.history`;
+        logger.debug({
+          msg: 'creating history table from history template',
+          historyTableQualifiedName,
+          historyTemplateQualifiedName,
+        });
+        await currentEntityManager.query(`CREATE TABLE ${historyTableQualifiedName} (LIKE ${historyTemplateQualifiedName} INCLUDING ALL);`);
+      }
 
-        // Insert data into history table, splitting MultiPolygons into Polygons
-        logger.debug({ msg: 'inserting validation data into history table', historyTableQualifiedName });
-        await entityManager.query(`
+      // Insert data into history table, splitting MultiPolygons into Polygons
+      logger.debug({ msg: 'inserting validation data into history table', historyTableQualifiedName });
+      await currentEntityManager.query(`
           INSERT INTO ${historyTableQualifiedName} (
             product_id,
             catalog_id,
@@ -106,11 +104,19 @@ export class HistoryManager {
           ORDER BY insertion_order, geom_index;
         `);
 
-        // Delete the temporary validation table
-        await deleteValidationsTable(entityManager, this.schema, validationsEntityName, validationsEntityQualifiedName, logger);
+      await deleteValidationsTable(currentEntityManager, this.schema, validationsEntityName, validationsEntityQualifiedName, logger);
 
-        logger.info({ msg: 'validations moved to history and temporary table dropped', validationsEntityQualifiedName, historyTableQualifiedName });
-      });
+      logger.info({ msg: 'validations moved to history and temporary table dropped', validationsEntityQualifiedName, historyTableQualifiedName });
+    };
+
+    try {
+      // If entityManager is provided, use it (part of existing transaction)
+      // Otherwise, create a new transaction (independent operation)
+      if (entityManager) {
+        await executeMoveToHistory(entityManager);
+      } else {
+        await this.connectionManager.getDataSource().transaction(executeMoveToHistory);
+      }
     } catch (error) {
       const errorMessage = 'Move validations to history table transaction failed';
       logger.error({ msg: errorMessage, error });

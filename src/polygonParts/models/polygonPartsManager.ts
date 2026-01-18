@@ -9,6 +9,7 @@ import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
+import { HistoryManager } from '../../history/models/historyManager';
 import { deleteValidationsTable } from '../../common/utils';
 import { History } from '../DAL/history';
 import { PolygonPart } from '../DAL/polygonPart';
@@ -66,7 +67,8 @@ export class PolygonPartsManager {
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(SERVICES.CONFIG) private readonly config: IConfig,
-    @inject(SERVICES.CONNECTION_MANAGER) private readonly connectionManager: ConnectionManager
+    @inject(SERVICES.CONNECTION_MANAGER) private readonly connectionManager: ConnectionManager,
+    @inject(HistoryManager) private readonly historyManager: HistoryManager
   ) {
     this.applicationConfig = this.config.get('application');
     this.schema = config.get('db.schema');
@@ -375,6 +377,67 @@ export class PolygonPartsManager {
       });
     } catch (error) {
       const errorMessage = 'Validation table deletes query transaction failed';
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
+  public async processPolygonParts(
+    entitiesMetadata: EntitiesMetadata,
+    jobType: Extract<JobTypes, 'Ingestion_New' | 'Ingestion_Update' | 'Ingestion_Swap_Update'>
+  ): Promise<void> {
+    const { entityName: validationsEntityName } = entitiesMetadata.entitiesNames.validations;
+    const historyEntityName = entitiesMetadata.entitiesNames.history.entityName;
+    const historyTableQualifiedName = entitiesMetadata.entitiesNames.history.databaseObjectQualifiedName;
+    const polygonPartsEntityQualifiedName = entitiesMetadata.entitiesNames.polygonParts.databaseObjectQualifiedName;
+
+    const logger = this.logger.child({ validationsEntityName, historyEntityName, jobType });
+    logger.info({ msg: 'processing polygon parts from validation table', validationsEntityName, historyEntityName });
+
+    try {
+      await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        await entityManager.query(`SET search_path TO ${this.schema},public`);
+
+        const validationTableExists = await this.connectionManager.entityExists(entityManager, validationsEntityName);
+        if (!validationTableExists) {
+          throw new NotFoundError(`Validation table with the name '${validationsEntityName}' doesn't exist`);
+        }
+
+        await this.historyManager.moveValidationsToHistory(entitiesMetadata, entityManager);
+
+        const polygonPartsTableExists = await this.connectionManager.entityExists(
+          entityManager,
+          entitiesMetadata.entitiesNames.polygonParts.entityName
+        );
+
+        if (!polygonPartsTableExists) {
+          if (jobType === JobTypes.Ingestion_New) {
+            logger.debug({ msg: 'creating polygon parts tables for new ingestion' });
+            await entityManager.query(`CREATE TABLE ${polygonPartsEntityQualifiedName} (LIKE "polygon_parts" INCLUDING ALL);`);
+
+          } else {
+            throw new NotFoundError(
+              `Polygon parts table doesn't exist for jobType '${jobType}'. Expected table: '${entitiesMetadata.entitiesNames.polygonParts.entityName}'`
+            );
+          }
+        } else if (jobType === JobTypes.Ingestion_Swap_Update) {
+          logger.debug({ msg: 'truncating polygon parts table for swap update' });
+          await entityManager.query(`TRUNCATE TABLE ${polygonPartsEntityQualifiedName};`);
+        }
+
+        logger.debug({ msg: 'processing history parts into polygon-parts table', historyTableQualifiedName, polygonPartsEntityQualifiedName });
+        await entityManager.query(
+          `CALL ${this.applicationConfig.updatePolygonPartsTablesStoredProcedure}('${historyTableQualifiedName}'::regclass, '${polygonPartsEntityQualifiedName}'::regclass, ${this.applicationConfig.entities.polygonParts.minAreaSquareDeg});`
+        );
+
+        logger.info({
+          msg: 'polygon parts processed successfully',
+          historyTableQualifiedName,
+          polygonPartsEntityQualifiedName,
+        });
+      });
+    } catch (error) {
+      const errorMessage = 'Process polygon parts transaction failed';
       logger.error({ msg: errorMessage, error });
       throw error;
     }
@@ -893,10 +956,9 @@ export class PolygonPartsManager {
       .createQueryBuilder('polygon_part')
       .select(idColumn, 'polygon_part_id')
       .addSelect(
-        `${
-          shouldClip
-            ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
-            : geometryColumn
+        `${shouldClip
+          ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
+          : geometryColumn
         }`,
         geometryColumn
       )
@@ -1094,8 +1156,7 @@ export class PolygonPartsManager {
 
     if (!isValidFilterGeometry.valid) {
       throw new BadRequestError(
-        `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${
-          isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
+        `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
         }`
       );
     }

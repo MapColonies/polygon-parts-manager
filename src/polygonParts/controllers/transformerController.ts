@@ -4,11 +4,10 @@ import { inject, singleton } from 'tsyringe';
 import { SERVICES } from '../../common/constants';
 import { Transformer } from '../../common/middlewares/transformer';
 import type { IsSwapQueryParams, PolygonPartsPayload } from '../models/interfaces';
-import type { ExistsRequestBody, FindPolygonPartsParams, FindPolygonPartsQueryParams, FindPolygonPartsRequestBody, ProcessReqParams } from './interfaces';
+import type { ExistsRequestBody, FindPolygonPartsParams, FindPolygonPartsQueryParams, FindPolygonPartsRequestBody, ProcessPolygonPartsRequestBody } from './interfaces';
 import type {
   AggregationLayerMetadataHandler,
   DeleteValidationPolygonPartsEntityHandler,
-  ProcessPolygonPartsEntityHandler,
   ValidatePolygonPartsHandler,
 } from './polygonPartsController';
 
@@ -40,7 +39,7 @@ type UpdatePolygonPartsTransformerHandler = RequestHandler<undefined, undefined,
 /**
  * Process polygon parts transformer handler
  */
-type ProcessPolygonPartsTransformerHandler = RequestHandler<undefined, undefined, undefined, ProcessReqParams>;
+type ProcessPolygonPartsTransformerHandler = RequestHandler<undefined, undefined, ProcessPolygonPartsRequestBody, undefined>;
 
 @singleton()
 export class TransformerController {
@@ -122,7 +121,7 @@ export class TransformerController {
 
   public readonly parseProcessPolygonParts: ProcessPolygonPartsTransformerHandler = (req, res, next) => {
     try {
-      const entitiesMetadata = this.transformer.parseEntitiesMetadata(req.query);
+      const entitiesMetadata = this.transformer.parseEntitiesMetadata(req.body);
       res.locals = entitiesMetadata;
       next();
     } catch (error) {

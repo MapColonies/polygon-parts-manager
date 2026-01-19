@@ -8,7 +8,7 @@ import type {
   AggregationLayerMetadataParams,
   AggregationLayerMetadataResponseBody,
   ValidationEntityQuery,
-  ProcessReqParams,
+  ProcessPolygonPartsRequestBody,
   ExistsRequestBody,
   ExistsResponseBody,
   FindPolygonPartsParams,
@@ -66,7 +66,7 @@ export type ValidatePolygonPartsHandler = RequestHandler<
 
 export type DeleteValidationPolygonPartsEntityHandler = RequestHandler<undefined, undefined, undefined, ValidationEntityQuery, EntitiesMetadata>;
 
-export type ProcessPolygonPartsEntityHandler = RequestHandler<undefined, undefined, undefined, ProcessReqParams, EntitiesMetadata>;
+export type ProcessPolygonPartsEntityHandler = RequestHandler<undefined, undefined, ProcessPolygonPartsRequestBody, undefined, EntitiesMetadata>;
 
 @injectable()
 export class PolygonPartsController {
@@ -148,7 +148,7 @@ export class PolygonPartsController {
 
   public processPolygonParts: ProcessPolygonPartsEntityHandler = async (req, res, next) => {
     try {
-      const { jobType } = req.query;
+      const { jobType } = req.body;
       await this.polygonPartsManager.processPolygonParts(res.locals, jobType);
       return res.status(httpStatus.NO_CONTENT).json();
     } catch (error) {

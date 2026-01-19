@@ -338,27 +338,13 @@ paths:
       description: >
         Process validation data from the temporary validation table.
       operationId: processPolygonParts
-      parameters:
-      - in: query
-        name: productType
+      requestBody:
+        description: Process polygon parts request body
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessPolygonPartsPayload'
         required: true
-        schema:
-          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductType
-        allowEmptyValue: false
-      - in: query
-        name: productId
-        required: true
-        description: Product identifier.
-        schema:
-          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductId
-        allowEmptyValue: false
-      - in: query
-        name: jobType
-        required: true
-        description: Job type for processing.
-        schema:
-          type: string
-        allowEmptyValue: false
       responses:
         '204':
           description: No Content
@@ -864,6 +850,26 @@ components:
           type: integer
       description: >-
         Array of validation results per part (empty array means validation passed)
+    ProcessPolygonPartsPayload:
+      type: object
+      additionalProperties: false
+      required:
+      - productId
+      - productType
+      - jobType
+      properties:
+        productId:
+          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductId
+        productType:
+          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductType
+        jobType:
+          type: string
+          enum:
+          - Ingestion_New
+          - Ingestion_Update
+          - Ingestion_Swap_Update
+          description: Job type for processing
+      description: Process polygon parts request payload
     PolygonPartsFeatureCollection:
       type: object
       nullable: false

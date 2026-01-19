@@ -414,7 +414,6 @@ export class PolygonPartsManager {
           if (jobType === JobTypes.Ingestion_New) {
             logger.debug({ msg: 'creating polygon parts tables for new ingestion' });
             await entityManager.query(`CREATE TABLE ${polygonPartsEntityQualifiedName} (LIKE "polygon_parts" INCLUDING ALL);`);
-
           } else {
             throw new NotFoundError(
               `Polygon parts table doesn't exist for jobType '${jobType}'. Expected table: '${entitiesMetadata.entitiesNames.polygonParts.entityName}'`
@@ -956,9 +955,10 @@ export class PolygonPartsManager {
       .createQueryBuilder('polygon_part')
       .select(idColumn, 'polygon_part_id')
       .addSelect(
-        `${shouldClip
-          ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
-          : geometryColumn
+        `${
+          shouldClip
+            ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
+            : geometryColumn
         }`,
         geometryColumn
       )
@@ -1156,7 +1156,8 @@ export class PolygonPartsManager {
 
     if (!isValidFilterGeometry.valid) {
       throw new BadRequestError(
-        `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
+        `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${
+          isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
         }`
       );
     }

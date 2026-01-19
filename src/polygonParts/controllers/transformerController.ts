@@ -4,7 +4,13 @@ import { inject, singleton } from 'tsyringe';
 import { SERVICES } from '../../common/constants';
 import { Transformer } from '../../common/middlewares/transformer';
 import type { IsSwapQueryParams, PolygonPartsPayload } from '../models/interfaces';
-import type { ExistsRequestBody, FindPolygonPartsParams, FindPolygonPartsQueryParams, FindPolygonPartsRequestBody, ProcessPolygonPartsRequestBody } from './interfaces';
+import type {
+  ExistsRequestBody,
+  FindPolygonPartsParams,
+  FindPolygonPartsQueryParams,
+  FindPolygonPartsRequestBody,
+  ProcessPolygonPartsRequestBody,
+} from './interfaces';
 import type {
   AggregationLayerMetadataHandler,
   DeleteValidationPolygonPartsEntityHandler,
@@ -43,7 +49,7 @@ type ProcessPolygonPartsTransformerHandler = RequestHandler<undefined, undefined
 
 @singleton()
 export class TransformerController {
-  public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, @inject(Transformer) private readonly transformer: Transformer) { }
+  public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, @inject(Transformer) private readonly transformer: Transformer) {}
 
   public readonly parseCreatePolygonParts: CreatePolygonPartsTransformerHandler = (req, res, next) => {
     try {

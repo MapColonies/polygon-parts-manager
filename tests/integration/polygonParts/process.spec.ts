@@ -105,7 +105,7 @@ describe('process', () => {
 
     getEntitiesMetadata = container.resolve(Transformer).getEntitiesMetadata;
     requestSender = new PolygonPartsRequestSender(app);
-  }, 30000);
+  });
 
   afterEach(async () => {
     try {
@@ -318,7 +318,11 @@ describe('process', () => {
 
           // Verify insertion order is maintained
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/naming-convention
-          const orderedData = historyData.sort((a: any, b: any) => a.insertion_order - b.insertion_order) as { insertion_order: number }[];
+          const orderedData = historyData.sort((a: any, b: any) => a.insertion_order - b.insertion_order) as {
+            insertion_order: number;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            geom: any;
+          }[];
 
           // Insertion order should be 1, 2, 3, 4 (each polygon gets its own insertion_order)
           expect(orderedData[0].insertion_order).toBe(1);
@@ -326,7 +330,17 @@ describe('process', () => {
           expect(orderedData[2].insertion_order).toBe(3); // MultiPolygon parts get sequential insertion orders
           expect(orderedData[3].insertion_order).toBe(4);
 
-          expect.assertions(6);
+          // Verify geometries match the request in the correct order
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          expect(orderedData[0].geom.coordinates).toEqual(polygon1.geometry.coordinates);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          expect(orderedData[1].geom.coordinates).toEqual(multiPoly1.geometry.coordinates[0]);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          expect(orderedData[2].geom.coordinates).toEqual(multiPoly1.geometry.coordinates[1]);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          expect(orderedData[3].geom.coordinates).toEqual(polygon2.geometry.coordinates);
+
+          expect.assertions(10);
         });
       });
 
@@ -482,7 +496,29 @@ describe('process', () => {
           // Should have initial polygon + 2 from multipolygon
           expect(historyData.length).toBeGreaterThanOrEqual(3);
 
-          expect.assertions(2);
+          // Verify insertion order is maintained
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/naming-convention
+          const orderedData = historyData.sort((a: any, b: any) => a.insertion_order - b.insertion_order) as {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            insertion_order: number;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            geom: any;
+          }[];
+
+          // Insertion order should be 1 (initial), 2, 3 (multipolygon parts)
+          expect(orderedData[0].insertion_order).toBe(1);
+          expect(orderedData[1].insertion_order).toBe(2);
+          expect(orderedData[2].insertion_order).toBe(3);
+
+          // Verify geometries match the multipolygon parts in the correct order
+          // First part of multipolygon: [[10, 10], [10, 11], [11, 11], [11, 10], [10, 10]]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          expect(orderedData[1].geom.coordinates).toEqual(multiPolygonGeometry.geometry.coordinates[0]);
+          // Second part of multipolygon: [[20, 20], [20, 21], [21, 21], [21, 20], [20, 20]]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          expect(orderedData[2].geom.coordinates).toEqual(multiPolygonGeometry.geometry.coordinates[1]);
+
+          expect.assertions(7);
         });
       });
 

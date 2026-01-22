@@ -13,8 +13,8 @@ export class HistoryController {
 
   public moveValidationsToHistory: HistoryPolygonPartsEntityHandler = async (req, res, next) => {
     try {
-      await this.historyManager.moveValidationsToHistory(res.locals);
-      return res.status(httpStatus.NO_CONTENT).json();
+      await this.historyManager.moveValidationsToHistory({ entitiesMetadata: res.locals });
+      return res.status(httpStatus.NO_CONTENT).send();
     } catch (error) {
       next(error);
     }

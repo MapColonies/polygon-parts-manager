@@ -44,6 +44,7 @@ import type {
   IsValidDetailsResult,
   PolygonPartsPayload,
   PolygonPartsResponse,
+  ProcessPolygonPartsOptions,
 } from './interfaces';
 
 type EntitiesMetadataWithoutValidations = Pick<EntitiesMetadata, 'entityIdentifier'> & {
@@ -382,14 +383,13 @@ export class PolygonPartsManager {
     }
   }
 
-  public async processPolygonParts(
-    entitiesMetadata: EntitiesMetadata,
-    jobType: Extract<JobTypes, 'Ingestion_New' | 'Ingestion_Update' | 'Ingestion_Swap_Update'>
-  ): Promise<void> {
-    const { entityName: validationsEntityName } = entitiesMetadata.entitiesNames.validations;
-    const historyEntityName = entitiesMetadata.entitiesNames.history.entityName;
-    const historyTableQualifiedName = entitiesMetadata.entitiesNames.history.databaseObjectQualifiedName;
-    const polygonPartsEntityQualifiedName = entitiesMetadata.entitiesNames.polygonParts.databaseObjectQualifiedName;
+  public async process(options: ProcessPolygonPartsOptions): Promise<void> {
+    const { entitiesMetadata, jobType } = options;
+    const {
+      history: { entityName: historyEntityName, databaseObjectQualifiedName: historyTableQualifiedName },
+      polygonParts: { entityName: polygonPartsEntityName, databaseObjectQualifiedName: polygonPartsEntityQualifiedName },
+      validations: { entityName: validationsEntityName },
+    } = entitiesMetadata.entitiesNames;
 
     const logger = this.logger.child({ validationsEntityName, historyEntityName, jobType });
     logger.info({ msg: 'processing polygon parts from validation table', validationsEntityName, historyEntityName });
@@ -403,28 +403,39 @@ export class PolygonPartsManager {
           throw new NotFoundError(`Validation table with the name '${validationsEntityName}' doesn't exist`);
         }
 
-        await this.historyManager.moveValidationsToHistory(entitiesMetadata, entityManager);
+        const polygonPartsTableExists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName);
 
-        const polygonPartsTableExists = await this.connectionManager.entityExists(
-          entityManager,
-          entitiesMetadata.entitiesNames.polygonParts.entityName
-        );
-
-        if (!polygonPartsTableExists) {
-          if (jobType === JobTypes.Ingestion_New) {
-            logger.debug({ msg: 'creating polygon parts tables for new ingestion' });
-            await entityManager.query(`CREATE TABLE ${polygonPartsEntityQualifiedName} (LIKE "polygon_parts" INCLUDING ALL);`);
-          } else {
-            throw new NotFoundError(
-              `Polygon parts table doesn't exist for jobType '${jobType}'. Expected table: '${entitiesMetadata.entitiesNames.polygonParts.entityName}'`
-            );
-          }
-        } else if (jobType === JobTypes.Ingestion_Swap_Update) {
-          logger.debug({ msg: 'truncating polygon parts table for swap update' });
-          await entityManager.query(`TRUNCATE TABLE ${polygonPartsEntityQualifiedName};`);
+        // Validate table existence preconditions
+        if (jobType === JobTypes.Ingestion_New && polygonPartsTableExists) {
+          throw new ConflictError(`Polygon parts table already exists for Ingestion_New. Table: '${polygonPartsEntityName}'`);
         }
 
-        logger.debug({ msg: 'processing history parts into polygon-parts table', historyTableQualifiedName, polygonPartsEntityQualifiedName });
+        if ((jobType === JobTypes.Ingestion_Update || jobType === JobTypes.Ingestion_Swap_Update) && !polygonPartsTableExists) {
+          throw new NotFoundError(`Polygon parts table doesn't exist for jobType '${jobType}'. Expected table: '${polygonPartsEntityName}'`);
+        }
+
+        // Execute job type specific actions BEFORE moving validations to history
+        switch (jobType) {
+          case JobTypes.Ingestion_New:
+            logger.debug({ msg: 'creating polygon parts table for new ingestion' });
+            await entityManager.query(`CREATE TABLE ${polygonPartsEntityQualifiedName} (LIKE "polygon_parts" INCLUDING ALL);`);
+            break;
+
+          case JobTypes.Ingestion_Update:
+            // Table exists, no action needed
+            break;
+
+          case JobTypes.Ingestion_Swap_Update:
+            logger.debug({ msg: 'truncating polygon parts and history tables for swap update' });
+            await entityManager.query(`TRUNCATE TABLE ${polygonPartsEntityQualifiedName};`);
+            await entityManager.query(`TRUNCATE TABLE ${historyTableQualifiedName};`);
+            break;
+        }
+
+        // Move validations to history after truncation (if swap) or as-is
+        await this.historyManager.moveValidationsToHistoryInTransaction({ entitiesMetadata, entityManager });
+
+        logger.debug({ msg: 'processing history parts into polygon parts table', historyTableQualifiedName, polygonPartsEntityQualifiedName });
         await entityManager.query(
           `CALL ${this.applicationConfig.updatePolygonPartsTablesStoredProcedure}('${historyTableQualifiedName}'::regclass, '${polygonPartsEntityQualifiedName}'::regclass, ${this.applicationConfig.entities.polygonParts.minAreaSquareDeg});`
         );
@@ -955,10 +966,9 @@ export class PolygonPartsManager {
       .createQueryBuilder('polygon_part')
       .select(idColumn, 'polygon_part_id')
       .addSelect(
-        `${
-          shouldClip
-            ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
-            : geometryColumn
+        `${shouldClip
+          ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
+          : geometryColumn
         }`,
         geometryColumn
       )
@@ -1156,8 +1166,7 @@ export class PolygonPartsManager {
 
     if (!isValidFilterGeometry.valid) {
       throw new BadRequestError(
-        `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${
-          isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
+        `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
         }`
       );
     }

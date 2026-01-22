@@ -221,4 +221,12 @@ export class HelperDB {
     const data = await this.appDataSource.query(`SELECT * FROM ${schema}.${table}`);
     return data as unknown[];
   }
+
+  public async getTableDataWithGeoJSON(table: string, schema: string, geometryColumn = 'footprint'): Promise<unknown[]> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const data = await this.appDataSource.query(
+      `SELECT *, ST_AsGeoJSON(${geometryColumn})::json as ${geometryColumn}_geojson FROM ${schema}.${table}`
+    );
+    return data as unknown[];
+  }
 }

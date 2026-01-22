@@ -15,16 +15,18 @@ import { createConnectionOptions } from '../../../src/common/utils';
 import { ProcessPolygonPartsRequestBody, ValidatePolygonPartsRequestBody } from '../../../src/polygonParts/controllers/interfaces';
 import { History } from '../../../src/polygonParts/DAL/history';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
-import { namingStrategy, payloadToInsertValidationsData } from '../../../src/polygonParts/DAL/utils';
+import { namingStrategy } from '../../../src/polygonParts/DAL/utils';
 import { ValidatePart } from '../../../src/polygonParts/DAL/validationPart';
 import { EntitiesMetadata, EntityIdentifierObject, PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import { validValidationPolygonPartsPayload } from '../../mocks/requestsMocks';
 import { INITIAL_DB } from './helpers/constants';
 import { createDB, deleteDB, HelperDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
+import { insertValidationDataDirectly } from './helpers/validationHelpers';
 
 let testDataSourceOptions: DataSourceOptions;
 const applicationConfig = config.get<ApplicationConfig>('application');
+const arraySeparator = applicationConfig.arraySeparator;
 const dbConfig = config.get<Required<DbConfig>>('db');
 const { schema } = dbConfig;
 
@@ -34,24 +36,6 @@ describe('process', () => {
   let getEntitiesMetadata: (
     entityIdentifierOptions: EntityIdentifierObject | Pick<PolygonPartsPayload, 'productId' | 'productType'>
   ) => EntitiesMetadata;
-  let connectionManager: ConnectionManager;
-
-  // Helper function to insert validation data directly into the database
-  const insertValidationDataDirectly = async (validateRequest: ValidatePolygonPartsRequestBody): Promise<string> => {
-    const entitiesMetadata = getEntitiesMetadata({
-      productId: validateRequest.productId,
-      productType: validateRequest.productType,
-    });
-    const validationsTableName = entitiesMetadata.entitiesNames.validations.entityName;
-
-    await helperDB.query(`CALL ${schema}.create_polygon_parts_validations_tables('${schema}.${validationsTableName}')`);
-
-    const validationData = payloadToInsertValidationsData(validateRequest, applicationConfig.arraySeparator);
-
-    await helperDB.insert(`${schema}.${validationsTableName}`, ValidatePart, validationData);
-
-    return validationsTableName;
-  };
 
   beforeAll(async () => {
     testDataSourceOptions = {
@@ -83,18 +67,9 @@ describe('process', () => {
   beforeEach(async () => {
     jest.resetAllMocks();
     jest.clearAllMocks();
-
     await helperDB.createSchema(schema);
     await helperDB.sync();
-
-    await helperDB.destroyConnection();
-    await helperDB.initConnection();
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    jest.spyOn(ConnectionManager.prototype as any, 'schemaExists').mockResolvedValue(true);
-
     container.clearInstances();
-
     const app = await getApp({
       override: [
         { token: SERVICES.LOGGER, provider: { useValue: jsLogger({ enabled: false }) } },
@@ -102,22 +77,15 @@ describe('process', () => {
       ],
       useChild: true,
     });
-
     getEntitiesMetadata = container.resolve(Transformer).getEntitiesMetadata;
     requestSender = new PolygonPartsRequestSender(app);
   });
 
   afterEach(async () => {
-    try {
-      connectionManager = container.resolve<ConnectionManager>(ConnectionManager);
-      if (connectionManager.isConnected()) {
-        await connectionManager.destroy();
-      }
-    } catch (error) {
-      // ConnectionManager may not be initialized in some tests
-    }
-
+    const connectionManager = container.resolve<ConnectionManager>(ConnectionManager);
+    await connectionManager.destroy();
     await helperDB.dropSchema(schema);
+    jest.restoreAllMocks();
   });
 
   describe('PUT /polygonParts/process', () => {
@@ -129,7 +97,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_New,
           };
 
-          await insertValidationDataDirectly(validateRequest);
+          await insertValidationDataDirectly(validateRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
 
           const processRequest: ProcessPolygonPartsRequestBody = {
             productId: validateRequest.productId,
@@ -198,7 +166,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_New,
           };
 
-          await insertValidationDataDirectly(validateRequest);
+          await insertValidationDataDirectly(validateRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
 
           const processRequest: ProcessPolygonPartsRequestBody = {
             productId: validateRequest.productId,
@@ -298,7 +266,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_New,
           };
 
-          await insertValidationDataDirectly(validateRequest);
+          await insertValidationDataDirectly(validateRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
 
           const processRequest: ProcessPolygonPartsRequestBody = {
             productId: validateRequest.productId,
@@ -311,7 +279,7 @@ describe('process', () => {
           expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
 
           const entitiesMetadata = getEntitiesMetadata(processRequest);
-          const historyData = await helperDB.getTableData(entitiesMetadata.entitiesNames.history.entityName, schema);
+          const historyData = await helperDB.getTableDataWithGeoJSON(entitiesMetadata.entitiesNames.history.entityName, schema);
 
           // Should have 4 records: 1 from polygon1, 2 from multiPoly1, 1 from polygon2
           expect(historyData).toHaveLength(4);
@@ -319,9 +287,10 @@ describe('process', () => {
           // Verify insertion order is maintained
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/naming-convention
           const orderedData = historyData.sort((a: any, b: any) => a.insertion_order - b.insertion_order) as {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             insertion_order: number;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            geom: any;
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            footprint_geojson: { type: string; coordinates: number[][][] };
           }[];
 
           // Insertion order should be 1, 2, 3, 4 (each polygon gets its own insertion_order)
@@ -330,15 +299,11 @@ describe('process', () => {
           expect(orderedData[2].insertion_order).toBe(3); // MultiPolygon parts get sequential insertion orders
           expect(orderedData[3].insertion_order).toBe(4);
 
-          // Verify geometries match the request in the correct order
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          expect(orderedData[0].geom.coordinates).toEqual(polygon1.geometry.coordinates);
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          expect(orderedData[1].geom.coordinates).toEqual(multiPoly1.geometry.coordinates[0]);
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          expect(orderedData[2].geom.coordinates).toEqual(multiPoly1.geometry.coordinates[1]);
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          expect(orderedData[3].geom.coordinates).toEqual(polygon2.geometry.coordinates);
+          // Verify geometries match the expected coordinates
+          expect(orderedData[0].footprint_geojson.coordinates).toEqual(polygon1.geometry.coordinates);
+          expect(orderedData[1].footprint_geojson.coordinates).toEqual(multiPoly1.geometry.coordinates[0]); // First part of MultiPolygon (unwrapped)
+          expect(orderedData[2].footprint_geojson.coordinates).toEqual(multiPoly1.geometry.coordinates[1]); // Second part of MultiPolygon (unwrapped)
+          expect(orderedData[3].footprint_geojson.coordinates).toEqual(polygon2.geometry.coordinates);
 
           expect.assertions(10);
         });
@@ -368,7 +333,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_New,
           };
 
-          await insertValidationDataDirectly(initialRequest);
+          await insertValidationDataDirectly(initialRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
 
           const initialProcessRequest: ProcessPolygonPartsRequestBody = {
             productId: initialRequest.productId,
@@ -405,7 +370,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_Update,
           };
 
-          await insertValidationDataDirectly(updateRequest);
+          await insertValidationDataDirectly(updateRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
 
           const processRequest: ProcessPolygonPartsRequestBody = {
             productId: updateRequest.productId,
@@ -431,13 +396,20 @@ describe('process', () => {
         });
 
         it('should handle mixed polygon and multipolygon in update scenario', async () => {
-          // Initial data with simple polygon
+          // Initial data with simple polygon (only first feature)
           const initialRequest: ValidatePolygonPartsRequestBody = {
-            ...validValidationPolygonPartsPayload,
+            productId: validValidationPolygonPartsPayload.productId,
+            productType: validValidationPolygonPartsPayload.productType,
+            catalogId: validValidationPolygonPartsPayload.catalogId,
+            productVersion: validValidationPolygonPartsPayload.productVersion,
+            partsData: {
+              type: 'FeatureCollection',
+              features: [validValidationPolygonPartsPayload.partsData.features[0]], // Only the first feature (Italy polygon)
+            },
             jobType: JobTypes.Ingestion_New,
           };
 
-          await insertValidationDataDirectly(initialRequest);
+          await insertValidationDataDirectly(initialRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
           await requestSender.processPolygonParts({
             productId: initialRequest.productId,
             productType: initialRequest.productType,
@@ -467,12 +439,16 @@ describe('process', () => {
           ]);
 
           const updateRequest: ValidatePolygonPartsRequestBody = {
-            ...validValidationPolygonPartsPayload,
+            productId: validValidationPolygonPartsPayload.productId,
+            productType: validValidationPolygonPartsPayload.productType,
+            catalogId: validValidationPolygonPartsPayload.catalogId,
+            productVersion: validValidationPolygonPartsPayload.productVersion,
             partsData: {
-              ...validValidationPolygonPartsPayload.partsData,
+              type: 'FeatureCollection',
               features: [
                 {
-                  ...validValidationPolygonPartsPayload.partsData.features[0],
+                  type: 'Feature',
+                  properties: validValidationPolygonPartsPayload.partsData.features[0].properties,
                   geometry: multiPolygonGeometry.geometry,
                 },
               ],
@@ -480,7 +456,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_Update,
           };
 
-          await insertValidationDataDirectly(updateRequest);
+          await insertValidationDataDirectly(updateRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
 
           const response = await requestSender.processPolygonParts({
             productId: updateRequest.productId,
@@ -491,7 +467,7 @@ describe('process', () => {
           expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
 
           const entitiesMetadata = getEntitiesMetadata(updateRequest);
-          const historyData = await helperDB.getTableData(entitiesMetadata.entitiesNames.history.entityName, schema);
+          const historyData = await helperDB.getTableDataWithGeoJSON(entitiesMetadata.entitiesNames.history.entityName, schema);
 
           // Should have initial polygon + 2 from multipolygon
           expect(historyData.length).toBeGreaterThanOrEqual(3);
@@ -501,8 +477,8 @@ describe('process', () => {
           const orderedData = historyData.sort((a: any, b: any) => a.insertion_order - b.insertion_order) as {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             insertion_order: number;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            geom: any;
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            footprint_geojson: { type: string; coordinates: number[][][] };
           }[];
 
           // Insertion order should be 1 (initial), 2, 3 (multipolygon parts)
@@ -510,15 +486,16 @@ describe('process', () => {
           expect(orderedData[1].insertion_order).toBe(2);
           expect(orderedData[2].insertion_order).toBe(3);
 
-          // Verify geometries match the multipolygon parts in the correct order
-          // First part of multipolygon: [[10, 10], [10, 11], [11, 11], [11, 10], [10, 10]]
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          expect(orderedData[1].geom.coordinates).toEqual(multiPolygonGeometry.geometry.coordinates[0]);
-          // Second part of multipolygon: [[20, 20], [20, 21], [21, 21], [21, 20], [20, 20]]
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          expect(orderedData[2].geom.coordinates).toEqual(multiPolygonGeometry.geometry.coordinates[1]);
+          // Verify geometries exist and are valid Polygon types
+          expect(orderedData[0].footprint_geojson.type).toBe('Polygon');
+          expect(orderedData[1].footprint_geojson.type).toBe('Polygon');
+          expect(orderedData[2].footprint_geojson.type).toBe('Polygon');
 
-          expect.assertions(7);
+          // Verify the MultiPolygon parts match expected coordinates
+          expect(orderedData[1].footprint_geojson.coordinates).toEqual(multiPolygonGeometry.geometry.coordinates[0]);
+          expect(orderedData[2].footprint_geojson.coordinates).toEqual(multiPolygonGeometry.geometry.coordinates[1]);
+
+          expect.assertions(10);
         });
       });
 
@@ -546,7 +523,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_New,
           };
 
-          await insertValidationDataDirectly(initialRequest);
+          await insertValidationDataDirectly(initialRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
           await requestSender.processPolygonParts({
             productId: initialRequest.productId,
             productType: initialRequest.productType,
@@ -581,7 +558,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_Swap_Update,
           };
 
-          await insertValidationDataDirectly(swapRequest);
+          await insertValidationDataDirectly(swapRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
 
           const response = await requestSender.processPolygonParts({
             productId: swapRequest.productId,
@@ -619,7 +596,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_New,
           };
 
-          await insertValidationDataDirectly(initialRequest);
+          await insertValidationDataDirectly(initialRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
           await requestSender.processPolygonParts({
             productId: initialRequest.productId,
             productType: initialRequest.productType,
@@ -675,7 +652,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_Swap_Update,
           };
 
-          await insertValidationDataDirectly(swapRequest);
+          await insertValidationDataDirectly(swapRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
 
           const response = await requestSender.processPolygonParts({
             productId: swapRequest.productId,
@@ -718,7 +695,7 @@ describe('process', () => {
           jobType: JobTypes.Ingestion_Update,
         };
 
-        await insertValidationDataDirectly(validateRequest);
+        await insertValidationDataDirectly(validateRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
 
         const processRequest: ProcessPolygonPartsRequestBody = {
           productId: validateRequest.productId,
@@ -740,7 +717,7 @@ describe('process', () => {
           jobType: JobTypes.Ingestion_Swap_Update,
         };
 
-        await insertValidationDataDirectly(validateRequest);
+        await insertValidationDataDirectly(validateRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
 
         const processRequest: ProcessPolygonPartsRequestBody = {
           productId: validateRequest.productId,

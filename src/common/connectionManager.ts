@@ -41,9 +41,8 @@ export class ConnectionManager {
     try {
       if (!this.isConnected()) {
         this.logger.info({
-          msg: `connecting to database ${this.dataSourceOptions.database as string} ${
-            'host' in this.dataSourceOptions && this.dataSourceOptions.host !== undefined ? `on ${this.dataSourceOptions.host}` : ''
-          }`,
+          msg: `connecting to database ${this.dataSourceOptions.database as string} ${'host' in this.dataSourceOptions && this.dataSourceOptions.host !== undefined ? `on ${this.dataSourceOptions.host}` : ''
+            }`,
         });
         await this.dataSource.initialize();
       }

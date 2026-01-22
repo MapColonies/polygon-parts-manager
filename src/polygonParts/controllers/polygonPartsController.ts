@@ -146,7 +146,7 @@ export class PolygonPartsController {
     }
   };
 
-  public processPolygonParts: ProcessPolygonPartsEntityHandler = async (req, res, next) => {
+  public process: ProcessPolygonPartsEntityHandler = async (req, res, next) => {
     try {
       const { jobType } = req.body;
       await this.polygonPartsManager.process({ entitiesMetadata: res.locals, jobType });

@@ -1,4 +1,4 @@
-import type { JobTypes } from '@map-colonies/raster-shared';
+import type { IngestionJobTypes } from '../models/interfaces';
 import type {
   AggregateLayerMetadataOptions,
   AggregationLayerMetadataResponse,
@@ -68,7 +68,7 @@ export interface ValidatePolygonPartsResponseBody {
 }
 
 export type ValidatePolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType' | 'productVersion' | 'catalogId'> & {
-  jobType: Extract<JobTypes, 'Ingestion_New' | 'Ingestion_Update' | 'Ingestion_Swap_Update'>;
+  jobType: IngestionJobTypes;
 } & {
   partsData: PolygonPartsFeatureCollection;
 };
@@ -76,5 +76,5 @@ export type ValidatePolygonPartsRequestBody = Pick<CommonRecord, 'productId' | '
 export type ValidationEntityQuery = Pick<CommonRecord, 'productId' | 'productType'>;
 
 export type ProcessPolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType'> & {
-  jobType: Extract<JobTypes, 'Ingestion_New' | 'Ingestion_Update' | 'Ingestion_Swap_Update'>;
+  jobType: IngestionJobTypes;
 };

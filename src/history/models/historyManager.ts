@@ -31,7 +31,7 @@ export class HistoryManager {
     const historyTableQualifiedName = `${this.schema}.${historyEntityName}`;
 
     const logger = this.logger.child({ validationsEntityName, historyEntityName });
-    logger.info({ msg: 'moving validations to history table', validationsEntityQualifiedName, historyEntityName });
+    logger.info({ msg: 'moving validations to history table' });
 
     try {
       await this.connectionManager.getDataSource().transaction(async (entityManager) => {
@@ -60,7 +60,7 @@ export class HistoryManager {
     const historyTableQualifiedName = `${this.schema}.${historyEntityName}`;
 
     const logger = this.logger.child({ validationsEntityName, historyEntityName });
-    logger.info({ msg: 'moving validations to history table within existing transaction', validationsEntityQualifiedName, historyEntityName });
+    logger.info({ msg: 'moving validations to history table within existing transaction' });
 
     await this.executeMoveToHistory({
       entityManager,
@@ -98,7 +98,9 @@ export class HistoryManager {
         historyTableQualifiedName,
         historyTemplateQualifiedName,
       });
-      await entityManager.query(`CREATE TABLE ${historyTableQualifiedName} (LIKE ${historyTemplateQualifiedName} INCLUDING ALL);`);
+      await entityManager.query(
+        `CREATE TABLE ${historyTableQualifiedName} (LIKE ${historyTemplateQualifiedName} INCLUDING ALL) INHERITS (${historyTemplateQualifiedName});`
+      );
     }
 
     // Insert data into history table, splitting MultiPolygons into Polygons

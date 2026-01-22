@@ -392,7 +392,7 @@ export class PolygonPartsManager {
     } = entitiesMetadata.entitiesNames;
 
     const logger = this.logger.child({ validationsEntityName, historyEntityName, jobType });
-    logger.info({ msg: 'processing polygon parts from validation table', validationsEntityName, historyEntityName });
+    logger.info({ msg: 'processing polygon parts from validation table' });
 
     try {
       await this.connectionManager.getDataSource().transaction(async (entityManager) => {
@@ -418,7 +418,9 @@ export class PolygonPartsManager {
         switch (jobType) {
           case JobTypes.Ingestion_New:
             logger.debug({ msg: 'creating polygon parts table for new ingestion' });
-            await entityManager.query(`CREATE TABLE ${polygonPartsEntityQualifiedName} (LIKE "polygon_parts" INCLUDING ALL);`);
+            await entityManager.query(
+              `CREATE TABLE ${polygonPartsEntityQualifiedName} (LIKE "polygon_parts" INCLUDING ALL) INHERITS ("polygon_parts");`
+            );
             break;
 
           case JobTypes.Ingestion_Update:

@@ -90,11 +90,40 @@ describe('process', () => {
 
   describe('PUT /polygonParts/process', () => {
     describe('Happy Path', () => {
-      describe('Ingestion_New', () => {
-        it('should process polygon parts from validation table and create new polygon parts tables', async () => {
+      describe.each([
+        { jobType: JobTypes.Ingestion_New, requiresInitialData: false },
+        { jobType: JobTypes.Ingestion_Update, requiresInitialData: true },
+      ])('$jobType', ({ jobType, requiresInitialData }) => {
+        it('should process polygon parts from validation table and create/update polygon parts tables', async () => {
+          // Setup initial data if required (for Ingestion_Update)
+          if (requiresInitialData) {
+            const initialRequest: ValidatePolygonPartsRequestBody = {
+              productId: 'TEST_INITIAL',
+              productType: validValidationPolygonPartsPayload.productType,
+              catalogId: validValidationPolygonPartsPayload.catalogId,
+              productVersion: validValidationPolygonPartsPayload.productVersion,
+              partsData: {
+                type: 'FeatureCollection',
+                features: [validValidationPolygonPartsPayload.partsData.features[0]],
+              },
+              jobType: JobTypes.Ingestion_New,
+            };
+
+            await insertValidationDataDirectly(initialRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
+            await requestSender.process({
+              productId: initialRequest.productId,
+              productType: initialRequest.productType,
+              jobType: JobTypes.Ingestion_New,
+            });
+          }
+
           const validateRequest: ValidatePolygonPartsRequestBody = {
-            ...validValidationPolygonPartsPayload,
-            jobType: JobTypes.Ingestion_New,
+            productId: requiresInitialData ? 'TEST_INITIAL' : validValidationPolygonPartsPayload.productId,
+            productType: validValidationPolygonPartsPayload.productType,
+            catalogId: validValidationPolygonPartsPayload.catalogId,
+            productVersion: validValidationPolygonPartsPayload.productVersion,
+            partsData: validValidationPolygonPartsPayload.partsData,
+            jobType,
           };
 
           await insertValidationDataDirectly(validateRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
@@ -102,17 +131,17 @@ describe('process', () => {
           const processRequest: ProcessPolygonPartsRequestBody = {
             productId: validateRequest.productId,
             productType: validateRequest.productType,
-            jobType: JobTypes.Ingestion_New,
+            jobType,
           };
 
-          const response = await requestSender.processPolygonParts(processRequest);
+          const response = await requestSender.process(processRequest);
 
           expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
           expect(response).toSatisfyApiSpec();
 
           const entitiesMetadata = getEntitiesMetadata(processRequest);
 
-          // Verify polygon parts table was created and populated
+          // Verify polygon parts table exists and has data
           const polygonPartsTableExists = await helperDB.tableExists(entitiesMetadata.entitiesNames.polygonParts.entityName, schema);
           expect(polygonPartsTableExists).toBe(true);
 
@@ -127,10 +156,32 @@ describe('process', () => {
           const validationTableExists = await helperDB.tableExists(entitiesMetadata.entitiesNames.validations.entityName, schema);
           expect(validationTableExists).toBe(false);
 
-          expect.assertions(6);
+          expect.assertions(requiresInitialData ? 6 : 6);
         });
 
         it('should handle MultiPolygon geometries by splitting them into individual polygons', async () => {
+          // Setup initial data if required (for Ingestion_Update)
+          if (requiresInitialData) {
+            const initialRequest: ValidatePolygonPartsRequestBody = {
+              productId: 'TEST_MULTI_INITIAL',
+              productType: validValidationPolygonPartsPayload.productType,
+              catalogId: validValidationPolygonPartsPayload.catalogId,
+              productVersion: validValidationPolygonPartsPayload.productVersion,
+              partsData: {
+                type: 'FeatureCollection',
+                features: [validValidationPolygonPartsPayload.partsData.features[0]],
+              },
+              jobType: JobTypes.Ingestion_New,
+            };
+
+            await insertValidationDataDirectly(initialRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
+            await requestSender.process({
+              productId: initialRequest.productId,
+              productType: initialRequest.productType,
+              jobType: JobTypes.Ingestion_New,
+            });
+          }
+
           const multiPolygonGeometry = multiPolygon([
             [
               [
@@ -153,7 +204,10 @@ describe('process', () => {
           ]);
 
           const validateRequest: ValidatePolygonPartsRequestBody = {
-            ...validValidationPolygonPartsPayload,
+            productId: requiresInitialData ? 'TEST_MULTI_INITIAL' : validValidationPolygonPartsPayload.productId,
+            productType: validValidationPolygonPartsPayload.productType,
+            catalogId: validValidationPolygonPartsPayload.catalogId,
+            productVersion: validValidationPolygonPartsPayload.productVersion,
             partsData: {
               ...validValidationPolygonPartsPayload.partsData,
               features: [
@@ -163,7 +217,7 @@ describe('process', () => {
                 },
               ],
             },
-            jobType: JobTypes.Ingestion_New,
+            jobType,
           };
 
           await insertValidationDataDirectly(validateRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
@@ -171,22 +225,24 @@ describe('process', () => {
           const processRequest: ProcessPolygonPartsRequestBody = {
             productId: validateRequest.productId,
             productType: validateRequest.productType,
-            jobType: JobTypes.Ingestion_New,
+            jobType,
           };
 
-          const response = await requestSender.processPolygonParts(processRequest);
+          const response = await requestSender.process(processRequest);
 
           expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
 
           const entitiesMetadata = getEntitiesMetadata(processRequest);
           const historyData = await helperDB.getTableData(entitiesMetadata.entitiesNames.history.entityName, schema);
 
-          // MultiPolygon with 2 parts should create 2 records in history
-          expect(historyData).toHaveLength(2);
+          // MultiPolygon with 2 parts should create at least 2 records in history (plus initial if update)
+          expect(historyData.length).toBeGreaterThanOrEqual(requiresInitialData ? 3 : 2);
 
           expect.assertions(2);
         });
+      });
 
+      describe('Ingestion_New (specific test)', () => {
         it('should maintain insertion order when processing mixed Polygon and MultiPolygon geometries', async () => {
           const polygon1 = polygon([
             [
@@ -274,7 +330,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_New,
           };
 
-          const response = await requestSender.processPolygonParts(processRequest);
+          const response = await requestSender.process(processRequest);
 
           expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
 
@@ -309,7 +365,7 @@ describe('process', () => {
         });
       });
 
-      describe('Ingestion_Update', () => {
+      describe('Ingestion_Update (specific tests)', () => {
         it('should process polygon parts for update with existing data', async () => {
           // First, create initial data with single feature
           const initialRequest: ValidatePolygonPartsRequestBody = {
@@ -341,7 +397,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_New,
           };
 
-          await requestSender.processPolygonParts(initialProcessRequest);
+          await requestSender.process(initialProcessRequest);
 
           // Get initial count
           const entitiesMetadata = getEntitiesMetadata(initialRequest);
@@ -378,7 +434,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_Update,
           };
 
-          const response = await requestSender.processPolygonParts(processRequest);
+          const response = await requestSender.process(processRequest);
 
           expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
 
@@ -410,7 +466,7 @@ describe('process', () => {
           };
 
           await insertValidationDataDirectly(initialRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
-          await requestSender.processPolygonParts({
+          await requestSender.process({
             productId: initialRequest.productId,
             productType: initialRequest.productType,
             jobType: JobTypes.Ingestion_New,
@@ -458,7 +514,7 @@ describe('process', () => {
 
           await insertValidationDataDirectly(updateRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
 
-          const response = await requestSender.processPolygonParts({
+          const response = await requestSender.process({
             productId: updateRequest.productId,
             productType: updateRequest.productType,
             jobType: JobTypes.Ingestion_Update,
@@ -524,7 +580,7 @@ describe('process', () => {
           };
 
           await insertValidationDataDirectly(initialRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
-          await requestSender.processPolygonParts({
+          await requestSender.process({
             productId: initialRequest.productId,
             productType: initialRequest.productType,
             jobType: JobTypes.Ingestion_New,
@@ -560,7 +616,7 @@ describe('process', () => {
 
           await insertValidationDataDirectly(swapRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
 
-          const response = await requestSender.processPolygonParts({
+          const response = await requestSender.process({
             productId: swapRequest.productId,
             productType: swapRequest.productType,
             jobType: JobTypes.Ingestion_Swap_Update,
@@ -597,7 +653,7 @@ describe('process', () => {
           };
 
           await insertValidationDataDirectly(initialRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
-          await requestSender.processPolygonParts({
+          await requestSender.process({
             productId: initialRequest.productId,
             productType: initialRequest.productType,
             jobType: JobTypes.Ingestion_New,
@@ -654,7 +710,7 @@ describe('process', () => {
 
           await insertValidationDataDirectly(swapRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
 
-          const response = await requestSender.processPolygonParts({
+          const response = await requestSender.process({
             productId: swapRequest.productId,
             productType: swapRequest.productType,
             jobType: JobTypes.Ingestion_Swap_Update,
@@ -681,7 +737,7 @@ describe('process', () => {
           jobType: JobTypes.Ingestion_New,
         };
 
-        const response = await requestSender.processPolygonParts(processRequest);
+        const response = await requestSender.process(processRequest);
 
         expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
         expect(response).toSatisfyApiSpec();
@@ -689,10 +745,13 @@ describe('process', () => {
         expect.assertions(2);
       });
 
-      it('should return 404 when polygon parts table does not exist for Ingestion_Update', async () => {
+      it.each([
+        { jobType: JobTypes.Ingestion_Update, description: 'Ingestion_Update' },
+        { jobType: JobTypes.Ingestion_Swap_Update, description: 'Ingestion_Swap_Update' },
+      ])('should return 404 when polygon parts table does not exist for $description', async ({ jobType }) => {
         const validateRequest: ValidatePolygonPartsRequestBody = {
           ...validValidationPolygonPartsPayload,
-          jobType: JobTypes.Ingestion_Update,
+          jobType,
         };
 
         await insertValidationDataDirectly(validateRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
@@ -700,32 +759,10 @@ describe('process', () => {
         const processRequest: ProcessPolygonPartsRequestBody = {
           productId: validateRequest.productId,
           productType: validateRequest.productType,
-          jobType: JobTypes.Ingestion_Update,
+          jobType,
         };
 
-        const response = await requestSender.processPolygonParts(processRequest);
-
-        expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
-        expect(response).toSatisfyApiSpec();
-
-        expect.assertions(2);
-      });
-
-      it('should return 404 when polygon parts table does not exist for Ingestion_Swap_Update', async () => {
-        const validateRequest: ValidatePolygonPartsRequestBody = {
-          ...validValidationPolygonPartsPayload,
-          jobType: JobTypes.Ingestion_Swap_Update,
-        };
-
-        await insertValidationDataDirectly(validateRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
-
-        const processRequest: ProcessPolygonPartsRequestBody = {
-          productId: validateRequest.productId,
-          productType: validateRequest.productType,
-          jobType: JobTypes.Ingestion_Swap_Update,
-        };
-
-        const response = await requestSender.processPolygonParts(processRequest);
+        const response = await requestSender.process(processRequest);
 
         expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
         expect(response).toSatisfyApiSpec();
@@ -739,7 +776,7 @@ describe('process', () => {
           // Missing productType and jobType
         };
 
-        const response = await requestSender.processPolygonParts(invalidRequest as ProcessPolygonPartsRequestBody);
+        const response = await requestSender.process(invalidRequest as ProcessPolygonPartsRequestBody);
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();

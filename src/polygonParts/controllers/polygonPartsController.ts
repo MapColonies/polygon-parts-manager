@@ -70,7 +70,7 @@ export type ProcessPolygonPartsEntityHandler = RequestHandler<undefined, undefin
 
 @injectable()
 export class PolygonPartsController {
-  public constructor(@inject(PolygonPartsManager) private readonly polygonPartsManager: PolygonPartsManager) { }
+  public constructor(@inject(PolygonPartsManager) private readonly polygonPartsManager: PolygonPartsManager) {}
 
   public createPolygonParts: CreatePolygonPartsHandler = async (req, res, next) => {
     try {

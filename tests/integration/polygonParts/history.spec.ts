@@ -101,8 +101,8 @@ describe('history', () => {
 
     getEntitiesMetadata = container.resolve(Transformer).getEntitiesMetadata;
     requestSender = new PolygonPartsRequestSender(app);
-  }); 
-  
+  });
+
   afterEach(async () => {
     // Ensure all connections are closed before dropping schema
     try {

@@ -5,7 +5,7 @@ import type { EntityManager } from 'typeorm';
 import { SERVICES } from '../../common/constants';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
 import { deleteValidationsTable } from '../../common/utils';
-import type { MoveValidationsToHistoryOptions } from '../../polygonParts/models/interfaces';
+import type { MoveValidationsToHistoryOptions, MoveValidationsToHistoryInTransactionOptions } from '../../polygonParts/models/interfaces';
 import { ConnectionManager } from '../../common/connectionManager';
 
 @injectable()
@@ -22,7 +22,7 @@ export class HistoryManager {
     this.schema = config.get('db.schema');
   }
 
-  public async moveValidationsToHistory(options: Omit<MoveValidationsToHistoryOptions, 'entityManager'>): Promise<void> {
+  public async moveValidationsToHistory(options: MoveValidationsToHistoryOptions): Promise<void> {
     const { entitiesMetadata } = options;
 
     this.logger.info({ msg: 'starting transaction to move validations to history table' });
@@ -41,7 +41,7 @@ export class HistoryManager {
     }
   }
 
-  public async moveValidationsToHistoryInTransaction(options: Required<MoveValidationsToHistoryOptions>): Promise<void> {
+  public async moveValidationsToHistoryInTransaction(options: MoveValidationsToHistoryInTransactionOptions): Promise<void> {
     const { entitiesMetadata, entityManager } = options;
     const { entityName: validationsEntityName, databaseObjectQualifiedName: validationsEntityQualifiedName } =
       entitiesMetadata.entitiesNames.validations;

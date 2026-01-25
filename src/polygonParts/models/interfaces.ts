@@ -13,7 +13,7 @@ import { z } from 'zod';
 import type { OptionalToNullableRecordValues, ReplaceValuesOfType } from '../../common/types';
 
 //#region public
-interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData' | 'jobType'>, Omit<z.infer<typeof partSchema>, 'id'> {}
+interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData' | 'jobType'>, Omit<z.infer<typeof partSchema>, 'id'> { }
 /**
  * Polygonal geometries
  */
@@ -35,7 +35,7 @@ export interface InsertPartDataToHistory extends Readonly<Omit<CommonPayload, 'c
 }
 
 //Used for the Base record
-export interface BasePart extends Readonly<Omit<InsertPartDataToHistory, 'footprint' | 'id'>> {}
+export interface BasePart extends Readonly<Omit<InsertPartDataToHistory, 'footprint' | 'id'>> { }
 
 export interface ValidatePartData extends Readonly<BasePart> {
   readonly footprint: Polygon | MultiPolygon;
@@ -81,12 +81,12 @@ export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = Fea
 /**
  * Polygon parts ingestion payload - based on data producer
  */
-export interface PolygonPartsPayload extends PolygonPartsPayloadType {}
+export interface PolygonPartsPayload extends PolygonPartsPayloadType { }
 
 /**
  * Polygon parts response
  */
-export interface PolygonPartsResponse extends EntityIdentifierObject {}
+export interface PolygonPartsResponse extends EntityIdentifierObject { }
 
 /**
  * Common record properties of part and polygon part
@@ -113,7 +113,7 @@ export interface PolygonPartRecord extends CommonRecord {
   readonly insertionOrder: number;
 }
 
-export interface BasePartRecord extends BasePart {}
+export interface BasePartRecord extends BasePart { }
 
 export interface ValidatePartRecord extends ValidatePartData {
   readonly validated: boolean;
@@ -163,10 +163,15 @@ export interface IsSwapQueryParams {
   isSwap: boolean;
 }
 
-export interface MoveValidationsToHistoryOptions {
-  entitiesMetadata: EntitiesMetadata;
-  entityManager?: EntityManager;
+export interface MoveValidationsToHistoryInTransactionOptions extends MoveValidationsToHistoryOptions {
+
+  entityManager: EntityManager;
 }
+
+export interface MoveValidationsToHistoryOptions {
+  entitiesMetadata: EntitiesMetadata
+}
+
 
 export interface ProcessPolygonPartsOptions {
   entitiesMetadata: EntitiesMetadata;
@@ -190,7 +195,7 @@ export interface AggregateLayerMetadataOptions {
 /**
  * Get aggregation layer metadata response
  */
-export interface AggregationLayerMetadataResponse extends AggregationFeature {}
+export interface AggregationLayerMetadataResponse extends AggregationFeature { }
 
 /**
  * Get exists options
@@ -203,7 +208,7 @@ export interface ExistsOptions {
 /**
  * Get exists response
  */
-export interface ExistsResponse extends EntityIdentifierObject {}
+export interface ExistsResponse extends EntityIdentifierObject { }
 //#endregion
 
 //#region private

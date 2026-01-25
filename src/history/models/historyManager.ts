@@ -24,29 +24,19 @@ export class HistoryManager {
 
   public async moveValidationsToHistory(options: Omit<MoveValidationsToHistoryOptions, 'entityManager'>): Promise<void> {
     const { entitiesMetadata } = options;
-    const { entityName: validationsEntityName, databaseObjectQualifiedName: validationsEntityQualifiedName } =
-      entitiesMetadata.entitiesNames.validations;
 
-    const historyEntityName = entitiesMetadata.entitiesNames.history.entityName;
-    const historyTableQualifiedName = `${this.schema}.${historyEntityName}`;
-
-    const logger = this.logger.child({ validationsEntityName, historyEntityName });
-    logger.info({ msg: 'moving validations to history table' });
+    this.logger.info({ msg: 'starting transaction to move validations to history table' });
 
     try {
       await this.connectionManager.getDataSource().transaction(async (entityManager) => {
-        await this.executeMoveToHistory({
+        await this.moveValidationsToHistoryInTransaction({
+          entitiesMetadata,
           entityManager,
-          validationsEntityName,
-          validationsEntityQualifiedName,
-          historyEntityName,
-          historyTableQualifiedName,
-          logger,
         });
       });
     } catch (error) {
       const errorMessage = 'Move validations to history table transaction failed';
-      logger.error({ msg: errorMessage, error });
+      this.logger.error({ msg: errorMessage, error });
       throw error;
     }
   }
@@ -56,20 +46,25 @@ export class HistoryManager {
     const { entityName: validationsEntityName, databaseObjectQualifiedName: validationsEntityQualifiedName } =
       entitiesMetadata.entitiesNames.validations;
 
-    const historyEntityName = entitiesMetadata.entitiesNames.history.entityName;
-    const historyTableQualifiedName = `${this.schema}.${historyEntityName}`;
+    const { entityName: historyEntityName, databaseObjectQualifiedName: historyTableQualifiedName } = entitiesMetadata.entitiesNames.history;
 
     const logger = this.logger.child({ validationsEntityName, historyEntityName });
     logger.info({ msg: 'moving validations to history table within existing transaction' });
 
-    await this.executeMoveToHistory({
-      entityManager,
-      validationsEntityName,
-      validationsEntityQualifiedName,
-      historyEntityName,
-      historyTableQualifiedName,
-      logger,
-    });
+    try {
+      await this.executeMoveToHistory({
+        entityManager,
+        validationsEntityName,
+        validationsEntityQualifiedName,
+        historyEntityName,
+        historyTableQualifiedName,
+        logger,
+      });
+    } catch (error) {
+      const errorMessage = 'Move validations to history table within transaction failed';
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
   }
 
   private async executeMoveToHistory(params: {
@@ -143,14 +138,34 @@ export class HistoryManager {
             countries,
             cities,
             description,
-            geom as footprint,
+            footprint,
             product_type
           FROM (
             SELECT 
-              *,
-              (st_dump(footprint)).path[1] as geom_index,
-              (st_dump(footprint)).geom as geom
-            FROM ${validationsEntityQualifiedName}
+              product_id,
+              catalog_id,
+              source_id,
+              source_name,
+              product_version,
+              ingestion_date_utc,
+              imaging_time_begin_utc,
+              imaging_time_end_utc,
+              resolution_degree,
+              resolution_meter,
+              source_resolution_meter,
+              horizontal_accuracy_ce90,
+              sensors,
+              countries,
+              cities,
+              description,
+              product_type,
+              insertion_order,
+              (dump).path[1] as geom_index,
+              (dump).geom as footprint
+            FROM (
+              SELECT *, st_dump(footprint) as dump
+              FROM ${validationsEntityQualifiedName}
+            ) as dumped
           ) as dumped_geometries
           ORDER BY insertion_order, geom_index;
         `);

@@ -8,6 +8,7 @@ import type {
   FindPolygonPartsOptions,
   FindPolygonPartsResponse,
   CommonRecord,
+  ProcessPolygonPartsOptions,
 } from '../models/interfaces';
 import { PolygonPartsFeatureCollection } from '../../common/types';
 import { FeatureValidationError } from '../../common/enums';
@@ -75,6 +76,4 @@ export type ValidatePolygonPartsRequestBody = Pick<CommonRecord, 'productId' | '
 
 export type ValidationEntityQuery = Pick<CommonRecord, 'productId' | 'productType'>;
 
-export type ProcessPolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType'> & {
-  jobType: IngestionJobTypes;
-};
+export type ProcessPolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType'> & Pick<ProcessPolygonPartsOptions, 'jobType'>;

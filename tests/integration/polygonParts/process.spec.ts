@@ -109,7 +109,7 @@ describe('process', () => {
               jobType: JobTypes.Ingestion_New,
             };
 
-            await insertValidationDataDirectly(initialRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
+            await requestSender.validatePolygonParts(initialRequest);
             await requestSender.process({
               productId: initialRequest.productId,
               productType: initialRequest.productType,
@@ -126,8 +126,7 @@ describe('process', () => {
             jobType,
           };
 
-          await insertValidationDataDirectly(validateRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
-
+          await requestSender.validatePolygonParts(validateRequest);
           const processRequest: ProcessPolygonPartsRequestBody = {
             productId: validateRequest.productId,
             productType: validateRequest.productType,
@@ -174,7 +173,7 @@ describe('process', () => {
               jobType: JobTypes.Ingestion_New,
             };
 
-            await insertValidationDataDirectly(initialRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
+            await requestSender.validatePolygonParts(initialRequest);
             await requestSender.process({
               productId: initialRequest.productId,
               productType: initialRequest.productType,
@@ -220,8 +219,7 @@ describe('process', () => {
             jobType,
           };
 
-          await insertValidationDataDirectly(validateRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
-
+          await requestSender.validatePolygonParts(validateRequest);
           const processRequest: ProcessPolygonPartsRequestBody = {
             productId: validateRequest.productId,
             productType: validateRequest.productType,
@@ -322,8 +320,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_New,
           };
 
-          await insertValidationDataDirectly(validateRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
-
+          await requestSender.validatePolygonParts(validateRequest);
           const processRequest: ProcessPolygonPartsRequestBody = {
             productId: validateRequest.productId,
             productType: validateRequest.productType,
@@ -389,7 +386,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_New,
           };
 
-          await insertValidationDataDirectly(initialRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
+          await requestSender.validatePolygonParts(initialRequest);
 
           const initialProcessRequest: ProcessPolygonPartsRequestBody = {
             productId: initialRequest.productId,
@@ -465,7 +462,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_New,
           };
 
-          await insertValidationDataDirectly(initialRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
+          await requestSender.validatePolygonParts(initialRequest);
           await requestSender.process({
             productId: initialRequest.productId,
             productType: initialRequest.productType,
@@ -579,7 +576,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_New,
           };
 
-          await insertValidationDataDirectly(initialRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
+          await requestSender.validatePolygonParts(initialRequest);
           await requestSender.process({
             productId: initialRequest.productId,
             productType: initialRequest.productType,
@@ -652,7 +649,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_New,
           };
 
-          await insertValidationDataDirectly(initialRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
+          await requestSender.validatePolygonParts(initialRequest);
           await requestSender.process({
             productId: initialRequest.productId,
             productType: initialRequest.productType,
@@ -754,8 +751,7 @@ describe('process', () => {
           jobType,
         };
 
-        await insertValidationDataDirectly(validateRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
-
+        await requestSender.validatePolygonParts(validateRequest);
         const processRequest: ProcessPolygonPartsRequestBody = {
           productId: validateRequest.productId,
           productType: validateRequest.productType,

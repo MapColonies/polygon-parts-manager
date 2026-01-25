@@ -87,47 +87,22 @@ describe('process', () => {
 
   describe('PUT /polygonParts/process', () => {
     describe('Happy Path', () => {
-      describe.each([
-        { jobType: JobTypes.Ingestion_New, requiresInitialData: false },
-        { jobType: JobTypes.Ingestion_Update, requiresInitialData: true },
-      ])('$jobType', ({ jobType, requiresInitialData }) => {
-        it('should process polygon parts from validation table and create/update polygon parts tables', async () => {
-          // Setup initial data if required (for Ingestion_Update)
-          if (requiresInitialData) {
-            const initialRequest: ValidatePolygonPartsRequestBody = {
-              productId: 'TEST_INITIAL',
-              productType: validValidationPolygonPartsPayload.productType,
-              catalogId: validValidationPolygonPartsPayload.catalogId,
-              productVersion: validValidationPolygonPartsPayload.productVersion,
-              partsData: {
-                type: 'FeatureCollection',
-                features: [validValidationPolygonPartsPayload.partsData.features[0]],
-              },
-              jobType: JobTypes.Ingestion_New,
-            };
-
-            await requestSender.validatePolygonParts(initialRequest);
-            await requestSender.process({
-              productId: initialRequest.productId,
-              productType: initialRequest.productType,
-              jobType: JobTypes.Ingestion_New,
-            });
-          }
-
+      describe('Ingestion_New', () => {
+        it('should process polygon parts from validation table and create polygon parts tables', async () => {
           const validateRequest: ValidatePolygonPartsRequestBody = {
-            productId: requiresInitialData ? 'TEST_INITIAL' : validValidationPolygonPartsPayload.productId,
+            productId: validValidationPolygonPartsPayload.productId,
             productType: validValidationPolygonPartsPayload.productType,
             catalogId: validValidationPolygonPartsPayload.catalogId,
             productVersion: validValidationPolygonPartsPayload.productVersion,
             partsData: validValidationPolygonPartsPayload.partsData,
-            jobType,
+            jobType: JobTypes.Ingestion_New,
           };
 
           await requestSender.validatePolygonParts(validateRequest);
           const processRequest: ProcessPolygonPartsRequestBody = {
             productId: validateRequest.productId,
             productType: validateRequest.productType,
-            jobType,
+            jobType: JobTypes.Ingestion_New,
           };
 
           const response = await requestSender.process(processRequest);
@@ -152,32 +127,10 @@ describe('process', () => {
           const validationTableExists = await helperDB.tableExists(entitiesMetadata.entitiesNames.validations.entityName, schema);
           expect(validationTableExists).toBe(false);
 
-          expect.assertions(requiresInitialData ? 6 : 6);
+          expect.assertions(6);
         });
 
         it('should handle MultiPolygon geometries by splitting them into individual polygons', async () => {
-          // Setup initial data if required (for Ingestion_Update)
-          if (requiresInitialData) {
-            const initialRequest: ValidatePolygonPartsRequestBody = {
-              productId: 'TEST_MULTI_INITIAL',
-              productType: validValidationPolygonPartsPayload.productType,
-              catalogId: validValidationPolygonPartsPayload.catalogId,
-              productVersion: validValidationPolygonPartsPayload.productVersion,
-              partsData: {
-                type: 'FeatureCollection',
-                features: [validValidationPolygonPartsPayload.partsData.features[0]],
-              },
-              jobType: JobTypes.Ingestion_New,
-            };
-
-            await requestSender.validatePolygonParts(initialRequest);
-            await requestSender.process({
-              productId: initialRequest.productId,
-              productType: initialRequest.productType,
-              jobType: JobTypes.Ingestion_New,
-            });
-          }
-
           const multiPolygonGeometry = multiPolygon([
             [
               [
@@ -200,7 +153,7 @@ describe('process', () => {
           ]);
 
           const validateRequest: ValidatePolygonPartsRequestBody = {
-            productId: requiresInitialData ? 'TEST_MULTI_INITIAL' : validValidationPolygonPartsPayload.productId,
+            productId: validValidationPolygonPartsPayload.productId,
             productType: validValidationPolygonPartsPayload.productType,
             catalogId: validValidationPolygonPartsPayload.catalogId,
             productVersion: validValidationPolygonPartsPayload.productVersion,
@@ -213,14 +166,14 @@ describe('process', () => {
                 },
               ],
             },
-            jobType,
+            jobType: JobTypes.Ingestion_New,
           };
 
           await requestSender.validatePolygonParts(validateRequest);
           const processRequest: ProcessPolygonPartsRequestBody = {
             productId: validateRequest.productId,
             productType: validateRequest.productType,
-            jobType,
+            jobType: JobTypes.Ingestion_New,
           };
 
           const response = await requestSender.process(processRequest);
@@ -230,14 +183,12 @@ describe('process', () => {
           const entitiesMetadata = getEntitiesMetadata(processRequest);
           const historyData = await helperDB.getTableData(entitiesMetadata.entitiesNames.history.entityName, schema);
 
-          // MultiPolygon with 2 parts should create at least 2 records in history (plus initial if update)
-          expect(historyData.length).toBeGreaterThanOrEqual(requiresInitialData ? 3 : 2);
+          // MultiPolygon with 2 parts should create 2 records in history
+          expect(historyData.length).toBeGreaterThanOrEqual(2);
 
           expect.assertions(2);
         });
-      });
 
-      describe('Ingestion_New (specific test)', () => {
         it('should maintain insertion order when processing mixed Polygon and MultiPolygon geometries', async () => {
           const polygon1 = polygon([
             [
@@ -359,51 +310,42 @@ describe('process', () => {
         });
       });
 
-      describe('Ingestion_Update (specific tests)', () => {
+      describe('Ingestion_Update', () => {
         it('should process polygon parts for update with existing data', async () => {
           // First, create initial data with single feature
-          const initialRequest: ValidatePolygonPartsRequestBody = {
+          const initialPayload = {
             productId: 'TEST_UPDATE',
             productType: validValidationPolygonPartsPayload.productType,
             catalogId: validValidationPolygonPartsPayload.catalogId,
             productVersion: validValidationPolygonPartsPayload.productVersion,
             partsData: {
-              type: 'FeatureCollection',
-              features: [
-                {
-                  type: 'Feature',
-                  properties: {
-                    ...validValidationPolygonPartsPayload.partsData.features[0].properties,
-                    id: 'initial-part',
-                  },
-                  geometry: validValidationPolygonPartsPayload.partsData.features[0].geometry,
-                },
-              ],
+              type: 'FeatureCollection' as const,
+              features: [validValidationPolygonPartsPayload.partsData.features[0]],
             },
-            jobType: JobTypes.Ingestion_New,
           };
 
-          await requestSender.validatePolygonParts(initialRequest);
+          const entitiesMetadata = getEntitiesMetadata(initialPayload);
+          const polygonPartsTableName = entitiesMetadata.entitiesNames.polygonParts.entityName;
 
-          const initialProcessRequest: ProcessPolygonPartsRequestBody = {
-            productId: initialRequest.productId,
-            productType: initialRequest.productType,
-            jobType: JobTypes.Ingestion_New,
-          };
+          // Create polygon_parts table
+          await helperDB.query(
+            `CREATE TABLE ${schema}.${polygonPartsTableName} (LIKE ${schema}.polygon_parts INCLUDING ALL) INHERITS (${schema}.polygon_parts)`
+          );
 
-          await requestSender.process(initialProcessRequest);
+          // Insert initial data directly into polygon_parts table
+          const arraySeparator = config.get<string>('application.arraySeparator');
+          await helperDB.insertPolygonPartsFromValidationPayload(polygonPartsTableName, schema, initialPayload, arraySeparator);
 
           // Get initial count
-          const entitiesMetadata = getEntitiesMetadata(initialRequest);
-          const initialPolygonPartsData = await helperDB.getTableData(entitiesMetadata.entitiesNames.polygonParts.entityName, schema);
+          const initialPolygonPartsData = await helperDB.getTableData(polygonPartsTableName, schema);
           expect(initialPolygonPartsData).toHaveLength(1);
 
           // Now add new data for update
           const updateRequest: ValidatePolygonPartsRequestBody = {
-            productId: initialRequest.productId, // Same product
-            productType: initialRequest.productType,
-            catalogId: initialRequest.catalogId,
-            productVersion: initialRequest.productVersion,
+            productId: initialPayload.productId, // Same product
+            productType: initialPayload.productType,
+            catalogId: initialPayload.catalogId,
+            productVersion: initialPayload.productVersion,
             partsData: {
               type: 'FeatureCollection',
               features: [
@@ -434,36 +376,40 @@ describe('process', () => {
           const polygonPartsData = await helperDB.getTableData(entitiesMetadata.entitiesNames.polygonParts.entityName, schema);
 
           // Polygon parts should have data from both initial and update
-          expect(polygonPartsData.length).toBeGreaterThanOrEqual(1);
+          expect(polygonPartsData.length).toBeGreaterThanOrEqual(2);
 
           const historyData = await helperDB.getTableData(entitiesMetadata.entitiesNames.history.entityName, schema);
 
-          // History should contain both initial and update records
-          expect(historyData.length).toBeGreaterThanOrEqual(2);
+          // History should contain only the update records (from validation table)
+          expect(historyData.length).toBeGreaterThanOrEqual(1);
 
           expect.assertions(4);
         });
 
         it('should handle mixed polygon and multipolygon in update scenario', async () => {
           // Initial data with simple polygon (only first feature)
-          const initialRequest: ValidatePolygonPartsRequestBody = {
+          const initialPayload = {
             productId: validValidationPolygonPartsPayload.productId,
             productType: validValidationPolygonPartsPayload.productType,
             catalogId: validValidationPolygonPartsPayload.catalogId,
             productVersion: validValidationPolygonPartsPayload.productVersion,
             partsData: {
-              type: 'FeatureCollection',
-              features: [validValidationPolygonPartsPayload.partsData.features[0]], // Only the first feature (Italy polygon)
+              type: 'FeatureCollection' as const,
+              features: [validValidationPolygonPartsPayload.partsData.features[0]],
             },
-            jobType: JobTypes.Ingestion_New,
           };
 
-          await requestSender.validatePolygonParts(initialRequest);
-          await requestSender.process({
-            productId: initialRequest.productId,
-            productType: initialRequest.productType,
-            jobType: JobTypes.Ingestion_New,
-          });
+          let entitiesMetadata = getEntitiesMetadata(initialPayload);
+          const polygonPartsTableName = entitiesMetadata.entitiesNames.polygonParts.entityName;
+
+          // Create polygon_parts table
+          await helperDB.query(
+            `CREATE TABLE ${schema}.${polygonPartsTableName} (LIKE ${schema}.polygon_parts INCLUDING ALL) INHERITS (${schema}.polygon_parts)`
+          );
+
+          // Insert initial data directly into polygon_parts table
+          const arraySeparator = config.get<string>('application.arraySeparator');
+          await helperDB.insertPolygonPartsFromValidationPayload(polygonPartsTableName, schema, initialPayload, arraySeparator);
 
           // Update with MultiPolygon
           const multiPolygonGeometry = multiPolygon([
@@ -514,11 +460,16 @@ describe('process', () => {
 
           expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
 
-          const entitiesMetadata = getEntitiesMetadata(updateRequest);
+          entitiesMetadata = getEntitiesMetadata(updateRequest);
           const historyData = await helperDB.getTableDataWithGeoJSON(entitiesMetadata.entitiesNames.history.entityName, schema);
 
-          // Should have initial polygon + 2 from multipolygon
-          expect(historyData.length).toBeGreaterThanOrEqual(3);
+          // History should have 2 records from multipolygon (validation data only)
+          expect(historyData).toHaveLength(2);
+
+          const polygonPartsData = await helperDB.getTableData(entitiesMetadata.entitiesNames.polygonParts.entityName, schema);
+
+          // Polygon parts should have 3 records: 1 initial + 2 from multipolygon
+          expect(polygonPartsData.length).toBeGreaterThanOrEqual(3);
 
           // Verify insertion order is maintained
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/naming-convention
@@ -529,79 +480,62 @@ describe('process', () => {
             footprint_geojson: { type: string; coordinates: number[][][] };
           }[];
 
-          // Insertion order should be 1 (initial), 2, 3 (multipolygon parts)
+          // Insertion order should be 1, 2 for the multipolygon parts (validation data)
           expect(orderedData[0].insertion_order).toBe(1);
           expect(orderedData[1].insertion_order).toBe(2);
-          expect(orderedData[2].insertion_order).toBe(3);
 
           // Verify geometries exist and are valid Polygon types
           expect(orderedData[0].footprint_geojson.type).toBe('Polygon');
           expect(orderedData[1].footprint_geojson.type).toBe('Polygon');
-          expect(orderedData[2].footprint_geojson.type).toBe('Polygon');
 
           // Verify the MultiPolygon parts match expected coordinates
-          expect(orderedData[1].footprint_geojson.coordinates).toEqual(multiPolygonGeometry.geometry.coordinates[0]);
-          expect(orderedData[2].footprint_geojson.coordinates).toEqual(multiPolygonGeometry.geometry.coordinates[1]);
+          expect(orderedData[0].footprint_geojson.coordinates).toEqual(multiPolygonGeometry.geometry.coordinates[0]);
+          expect(orderedData[1].footprint_geojson.coordinates).toEqual(multiPolygonGeometry.geometry.coordinates[1]);
 
-          expect.assertions(10);
+          expect.assertions(8);
         });
       });
 
       describe('Ingestion_Swap_Update', () => {
         it('should truncate existing polygon parts and process new data', async () => {
           // Create initial data with single feature
-          const initialRequest: ValidatePolygonPartsRequestBody = {
+          const initialPayload = {
             productId: 'TEST_SWAP',
             productType: validValidationPolygonPartsPayload.productType,
             catalogId: validValidationPolygonPartsPayload.catalogId,
             productVersion: validValidationPolygonPartsPayload.productVersion,
             partsData: {
-              type: 'FeatureCollection',
-              features: [
-                {
-                  type: 'Feature',
-                  properties: {
-                    ...validValidationPolygonPartsPayload.partsData.features[0].properties,
-                    id: 'old-part',
-                  },
-                  geometry: validValidationPolygonPartsPayload.partsData.features[0].geometry,
-                },
-              ],
+              type: 'FeatureCollection' as const,
+              features: [validValidationPolygonPartsPayload.partsData.features[0]],
             },
-            jobType: JobTypes.Ingestion_New,
           };
 
-          await requestSender.validatePolygonParts(initialRequest);
-          await requestSender.process({
-            productId: initialRequest.productId,
-            productType: initialRequest.productType,
-            jobType: JobTypes.Ingestion_New,
-          });
+          const entitiesMetadata = getEntitiesMetadata(initialPayload);
+          const polygonPartsTableName = entitiesMetadata.entitiesNames.polygonParts.entityName;
 
-          const entitiesMetadata = getEntitiesMetadata(initialRequest);
-          const initialPolygonPartsData = await helperDB.getTableData(entitiesMetadata.entitiesNames.polygonParts.entityName, schema);
+          // Create polygon_parts table
+          await helperDB.query(
+            `CREATE TABLE ${schema}.${polygonPartsTableName} (LIKE ${schema}.polygon_parts INCLUDING ALL) INHERITS (${schema}.polygon_parts)`
+          );
+
+          // Insert initial data directly into polygon_parts table
+          const arraySeparator = config.get<string>('application.arraySeparator');
+          await helperDB.insertPolygonPartsFromValidationPayload(polygonPartsTableName, schema, initialPayload, arraySeparator);
+
+          const initialPolygonPartsData = await helperDB.getTableData(polygonPartsTableName, schema);
           const initialCount = initialPolygonPartsData.length;
 
           expect(initialCount).toBe(1); // Verify we have 1 initial part
 
           // Now swap with new data (single part)
           const swapRequest: ValidatePolygonPartsRequestBody = {
-            productId: initialRequest.productId, // Same product
-            productType: initialRequest.productType,
-            catalogId: initialRequest.catalogId,
-            productVersion: initialRequest.productVersion,
+            productId: initialPayload.productId, // Same product
+            productType: initialPayload.productType,
+            catalogId: initialPayload.catalogId,
+            productVersion: initialPayload.productVersion,
             partsData: {
               type: 'FeatureCollection',
-              features: [
-                {
-                  type: 'Feature',
-                  properties: {
-                    ...validValidationPolygonPartsPayload.partsData.features[0].properties,
-                    id: 'new-part',
-                  },
-                  geometry: validValidationPolygonPartsPayload.partsData.features[0].geometry,
-                },
-              ],
+              features: [validValidationPolygonPartsPayload.partsData.features[0]],
             },
             jobType: JobTypes.Ingestion_Swap_Update,
           };
@@ -625,30 +559,34 @@ describe('process', () => {
 
         it('should handle swap with multipolygon data', async () => {
           // Initial setup with single feature
-          const initialRequest: ValidatePolygonPartsRequestBody = {
+          const initialPayload = {
             productId: 'TEST_SWAP_MULTI',
             productType: validValidationPolygonPartsPayload.productType,
             catalogId: validValidationPolygonPartsPayload.catalogId,
             productVersion: validValidationPolygonPartsPayload.productVersion,
             partsData: {
-              type: 'FeatureCollection',
+              type: 'FeatureCollection' as const,
               features: [
                 {
-                  type: 'Feature',
+                  type: 'Feature' as const,
                   properties: validValidationPolygonPartsPayload.partsData.features[0].properties,
                   geometry: validValidationPolygonPartsPayload.partsData.features[0].geometry,
                 },
               ],
             },
-            jobType: JobTypes.Ingestion_New,
           };
 
-          await requestSender.validatePolygonParts(initialRequest);
-          await requestSender.process({
-            productId: initialRequest.productId,
-            productType: initialRequest.productType,
-            jobType: JobTypes.Ingestion_New,
-          });
+          let entitiesMetadata = getEntitiesMetadata(initialPayload);
+          const polygonPartsTableName = entitiesMetadata.entitiesNames.polygonParts.entityName;
+
+          // Create polygon_parts table
+          await helperDB.query(
+            `CREATE TABLE ${schema}.${polygonPartsTableName} (LIKE ${schema}.polygon_parts INCLUDING ALL) INHERITS (${schema}.polygon_parts)`
+          );
+
+          // Insert initial data directly into polygon_parts table
+          const arraySeparator = config.get<string>('application.arraySeparator');
+          await helperDB.insertPolygonPartsFromValidationPayload(polygonPartsTableName, schema, initialPayload, arraySeparator);
 
           // Swap with MultiPolygon (3 parts)
           const multiPolygonGeometry = multiPolygon([
@@ -682,10 +620,10 @@ describe('process', () => {
           ]);
 
           const swapRequest: ValidatePolygonPartsRequestBody = {
-            productId: initialRequest.productId, // Same product
-            productType: initialRequest.productType,
-            catalogId: initialRequest.catalogId,
-            productVersion: initialRequest.productVersion,
+            productId: initialPayload.productId, // Same product
+            productType: initialPayload.productType,
+            catalogId: initialPayload.catalogId,
+            productVersion: initialPayload.productVersion,
             partsData: {
               type: 'FeatureCollection',
               features: [
@@ -708,7 +646,7 @@ describe('process', () => {
 
           expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
 
-          const entitiesMetadata = getEntitiesMetadata(swapRequest);
+          entitiesMetadata = getEntitiesMetadata(swapRequest);
           const historyData = await helperDB.getTableData(entitiesMetadata.entitiesNames.history.entityName, schema);
 
           // After swap, history should have 3 parts from the MultiPolygon

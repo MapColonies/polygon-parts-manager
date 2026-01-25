@@ -18,6 +18,32 @@ import type { ExistsRequestBody } from '../../../../src/polygonParts/controllers
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 import type { DeepPartial } from './types';
 
+// Helper type for test data insertion - accepts string dates instead of Date objects
+type InsertPayload = Omit<PolygonPartsPayload, 'jobType' | 'partsData'> & {
+  partsData: {
+    type: 'FeatureCollection';
+    features: {
+      type: string;
+      geometry: Polygon;
+      properties: {
+        id: string;
+        horizontalAccuracyCE90: number;
+        resolutionMeter: number;
+        imagingTimeBeginUTC: string | Date;
+        imagingTimeEndUTC: string | Date;
+        sensors: string[];
+        sourceName: string;
+        resolutionDegree: number;
+        sourceResolutionMeter: number;
+        countries?: string[];
+        cities?: string[];
+        description?: string;
+        sourceId?: string;
+      };
+    }[];
+  };
+};
+
 type PolygonPartFeature = z.infer<typeof polygonPartsFeatureSchema>;
 type PartialPolygonPartsPayload = DeepPartial<Omit<PolygonPartsPayload, 'partsData'>> & {
   partsData?: {
@@ -228,5 +254,77 @@ export class HelperDB {
       `SELECT *, ST_AsGeoJSON(${geometryColumn})::json as ${geometryColumn}_geojson FROM ${schema}.${table}`
     );
     return data as unknown[];
+  }
+
+  /**
+   * Inserts polygon parts data directly into the polygon_parts table from a validation payload
+   * This bypasses the API and inserts data directly for test setup purposes
+   */
+  public async insertPolygonPartsFromValidationPayload(
+    polygonPartsTableName: string,
+    schema: string,
+    payload: InsertPayload,
+    arraySeparator: string
+  ): Promise<void> {
+    const { partsData, ...metadata } = payload;
+
+    for (const [index, feature] of partsData.features.entries()) {
+      const { geometry, properties } = feature;
+      const partId = properties.id;
+      const sensors = Array.isArray(properties.sensors) ? properties.sensors.join(arraySeparator) : properties.sensors;
+      const countries = properties.countries
+        ? Array.isArray(properties.countries)
+          ? properties.countries.join(arraySeparator)
+          : properties.countries
+        : null;
+      const cities = properties.cities ? (Array.isArray(properties.cities) ? properties.cities.join(arraySeparator) : properties.cities) : null;
+
+      await this.appDataSource.query(
+        `INSERT INTO ${schema}.${polygonPartsTableName} (
+          product_id,
+          product_type,
+          catalog_id,
+          source_id,
+          source_name,
+          product_version,
+          imaging_time_begin_utc,
+          imaging_time_end_utc,
+          resolution_degree,
+          resolution_meter,
+          source_resolution_meter,
+          horizontal_accuracy_ce90,
+          sensors,
+          countries,
+          cities,
+          description,
+          footprint,
+          part_id,
+          insertion_order
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, ST_GeomFromGeoJSON($17), $18, $19
+        )`,
+        [
+          metadata.productId,
+          metadata.productType,
+          metadata.catalogId,
+          properties.sourceId ?? null,
+          properties.sourceName,
+          metadata.productVersion,
+          properties.imagingTimeBeginUTC,
+          properties.imagingTimeEndUTC,
+          properties.resolutionDegree,
+          properties.resolutionMeter,
+          properties.sourceResolutionMeter,
+          properties.horizontalAccuracyCE90,
+          sensors,
+          countries,
+          cities,
+          properties.description ?? null,
+          JSON.stringify(geometry),
+          partId,
+          index + 1, // insertion_order starts at 1
+        ]
+      );
+    }
   }
 }

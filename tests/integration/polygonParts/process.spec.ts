@@ -9,7 +9,7 @@ import { DataSourceOptions } from 'typeorm';
 import { getApp } from '../../../src/app';
 import { ConnectionManager } from '../../../src/common/connectionManager';
 import { SERVICES } from '../../../src/common/constants';
-import { ApplicationConfig, DbConfig } from '../../../src/common/interfaces';
+import { DbConfig } from '../../../src/common/interfaces';
 import { Transformer } from '../../../src/common/middlewares/transformer';
 import { createConnectionOptions } from '../../../src/common/utils';
 import { ProcessPolygonPartsRequestBody, ValidatePolygonPartsRequestBody } from '../../../src/polygonParts/controllers/interfaces';
@@ -22,11 +22,8 @@ import { validValidationPolygonPartsPayload } from '../../mocks/requestsMocks';
 import { INITIAL_DB } from './helpers/constants';
 import { createDB, deleteDB, HelperDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
-import { insertValidationDataDirectly } from './helpers/validationHelpers';
 
 let testDataSourceOptions: DataSourceOptions;
-const applicationConfig = config.get<ApplicationConfig>('application');
-const arraySeparator = applicationConfig.arraySeparator;
 const dbConfig = config.get<Required<DbConfig>>('db');
 const { schema } = dbConfig;
 
@@ -423,8 +420,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_Update,
           };
 
-          await insertValidationDataDirectly(updateRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
-
+          await requestSender.validatePolygonParts(updateRequest);
           const processRequest: ProcessPolygonPartsRequestBody = {
             productId: updateRequest.productId,
             productType: updateRequest.productType,
@@ -509,8 +505,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_Update,
           };
 
-          await insertValidationDataDirectly(updateRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
-
+          await requestSender.validatePolygonParts(updateRequest);
           const response = await requestSender.process({
             productId: updateRequest.productId,
             productType: updateRequest.productType,
@@ -611,8 +606,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_Swap_Update,
           };
 
-          await insertValidationDataDirectly(swapRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
-
+          await requestSender.validatePolygonParts(swapRequest);
           const response = await requestSender.process({
             productId: swapRequest.productId,
             productType: swapRequest.productType,
@@ -705,8 +699,7 @@ describe('process', () => {
             jobType: JobTypes.Ingestion_Swap_Update,
           };
 
-          await insertValidationDataDirectly(swapRequest, helperDB, schema, getEntitiesMetadata, arraySeparator);
-
+          await requestSender.validatePolygonParts(swapRequest);
           const response = await requestSender.process({
             productId: swapRequest.productId,
             productType: swapRequest.productType,

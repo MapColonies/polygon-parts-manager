@@ -8,7 +8,7 @@ import {
   polygonPartsFeatureSchema,
 } from '@map-colonies/raster-shared';
 import { randomPolygon } from '@turf/random';
-import type { Feature, Polygon } from 'geojson';
+import type { Feature, MultiPolygon, Polygon } from 'geojson';
 import { randexp } from 'randexp';
 import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
 import { DatabaseCreateContext, createDatabase, dropDatabase } from 'typeorm-extension';
@@ -24,7 +24,7 @@ type InsertPayload = Omit<PolygonPartsPayload, 'jobType' | 'partsData'> & {
     type: 'FeatureCollection';
     features: {
       type: string;
-      geometry: Polygon;
+      geometry: Polygon | MultiPolygon;
       properties: {
         id: string;
         horizontalAccuracyCE90: number;
@@ -254,6 +254,18 @@ export class HelperDB {
       `SELECT *, ST_AsGeoJSON(${geometryColumn})::json as ${geometryColumn}_geojson FROM ${schema}.${table}`
     );
     return data as unknown[];
+  }
+
+  /**
+   * Creates a table that inherits from a parent table for test initialization
+   * @param tableName - The name of the table to create
+   * @param schema - The schema where the table should be created
+   * @param parentTable - The parent table to inherit from (e.g., 'polygon_parts', 'history', 'validation_parts')
+   */
+  public async createInheritedTable(tableName: string, schema: string, parentTable: string): Promise<void> {
+    await this.appDataSource.query(
+      `CREATE TABLE ${schema}.${tableName} (LIKE ${schema}.${parentTable} INCLUDING ALL) INHERITS (${schema}.${parentTable})`
+    );
   }
 
   /**

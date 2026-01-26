@@ -404,14 +404,20 @@ export class PolygonPartsManager {
         }
 
         const polygonPartsTableExists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName);
+        const historyTableExists = await this.connectionManager.entityExists(entityManager, historyEntityName);
 
         // Validate table existence preconditions
         if (jobType === JobTypes.Ingestion_New && polygonPartsTableExists) {
           throw new ConflictError(`Polygon parts table already exists for Ingestion_New. Table: '${polygonPartsEntityName}'`);
         }
 
-        if ((jobType === JobTypes.Ingestion_Update || jobType === JobTypes.Ingestion_Swap_Update) && !polygonPartsTableExists) {
-          throw new NotFoundError(`Polygon parts table doesn't exist for jobType '${jobType}'. Expected table: '${polygonPartsEntityName}'`);
+        if (
+          (jobType === JobTypes.Ingestion_Update || jobType === JobTypes.Ingestion_Swap_Update) &&
+          !(polygonPartsTableExists && historyTableExists)
+        ) {
+          throw new NotFoundError(
+            `Polygon parts table doesn't exist for jobType '${jobType}'. Expected table: '${polygonPartsEntityName} or ${historyEntityName}'`
+          );
         }
 
         // Execute job type specific actions BEFORE moving validations to history

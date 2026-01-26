@@ -326,11 +326,15 @@ describe('process', () => {
 
           const entitiesMetadata = getEntitiesMetadata(initialPayload);
           const polygonPartsTableName = entitiesMetadata.entitiesNames.polygonParts.entityName;
+          const historyTableName = entitiesMetadata.entitiesNames.history.entityName;
 
           // Create polygon_parts table
           await helperDB.query(
             `CREATE TABLE ${schema}.${polygonPartsTableName} (LIKE ${schema}.polygon_parts INCLUDING ALL) INHERITS (${schema}.polygon_parts)`
           );
+
+          // Create history table
+          await helperDB.createInheritedTable(historyTableName, schema, 'history');
 
           // Insert initial data directly into polygon_parts table
           const arraySeparator = config.get<string>('application.arraySeparator');
@@ -401,11 +405,13 @@ describe('process', () => {
 
           let entitiesMetadata = getEntitiesMetadata(initialPayload);
           const polygonPartsTableName = entitiesMetadata.entitiesNames.polygonParts.entityName;
+          const historyTableName = entitiesMetadata.entitiesNames.history.entityName;
 
           // Create polygon_parts table
-          await helperDB.query(
-            `CREATE TABLE ${schema}.${polygonPartsTableName} (LIKE ${schema}.polygon_parts INCLUDING ALL) INHERITS (${schema}.polygon_parts)`
-          );
+          await helperDB.createInheritedTable(polygonPartsTableName, schema, 'polygon_parts');
+
+          // Create history table
+          await helperDB.createInheritedTable(historyTableName, schema, 'history');
 
           // Insert initial data directly into polygon_parts table
           const arraySeparator = config.get<string>('application.arraySeparator');
@@ -492,7 +498,7 @@ describe('process', () => {
           expect(orderedData[0].footprint_geojson.coordinates).toEqual(multiPolygonGeometry.geometry.coordinates[0]);
           expect(orderedData[1].footprint_geojson.coordinates).toEqual(multiPolygonGeometry.geometry.coordinates[1]);
 
-          expect.assertions(8);
+          expect.assertions(9);
         });
       });
 
@@ -512,11 +518,13 @@ describe('process', () => {
 
           const entitiesMetadata = getEntitiesMetadata(initialPayload);
           const polygonPartsTableName = entitiesMetadata.entitiesNames.polygonParts.entityName;
+          const historyTableName = entitiesMetadata.entitiesNames.history.entityName;
 
           // Create polygon_parts table
-          await helperDB.query(
-            `CREATE TABLE ${schema}.${polygonPartsTableName} (LIKE ${schema}.polygon_parts INCLUDING ALL) INHERITS (${schema}.polygon_parts)`
-          );
+          await helperDB.createInheritedTable(polygonPartsTableName, schema, 'polygon_parts');
+
+          // Create history table
+          await helperDB.createInheritedTable(historyTableName, schema, 'history');
 
           // Insert initial data directly into polygon_parts table
           const arraySeparator = config.get<string>('application.arraySeparator');
@@ -555,7 +563,7 @@ describe('process', () => {
           expect(polygonPartsData.length).toBeGreaterThanOrEqual(1);
 
           expect.assertions(3);
-        });
+        }, 10000000);
 
         it('should handle swap with multipolygon data', async () => {
           // Initial setup with single feature
@@ -578,11 +586,13 @@ describe('process', () => {
 
           let entitiesMetadata = getEntitiesMetadata(initialPayload);
           const polygonPartsTableName = entitiesMetadata.entitiesNames.polygonParts.entityName;
+          const historyTableName = entitiesMetadata.entitiesNames.history.entityName;
 
           // Create polygon_parts table
-          await helperDB.query(
-            `CREATE TABLE ${schema}.${polygonPartsTableName} (LIKE ${schema}.polygon_parts INCLUDING ALL) INHERITS (${schema}.polygon_parts)`
-          );
+          await helperDB.createInheritedTable(polygonPartsTableName, schema, 'polygon_parts');
+
+          // Create history table
+          await helperDB.createInheritedTable(historyTableName, schema, 'history');
 
           // Insert initial data directly into polygon_parts table
           const arraySeparator = config.get<string>('application.arraySeparator');

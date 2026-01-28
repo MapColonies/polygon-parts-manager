@@ -41,7 +41,7 @@ describe('process', () => {
       ...createConnectionOptions(dbConfig),
     };
     await createDB({ options: testDataSourceOptions, initialDatabase: INITIAL_DB });
-    helperDB = new HelperDB(testDataSourceOptions);
+    helperDB = new HelperDB(testDataSourceOptions, schema);
     await helperDB.initConnection();
   });
 
@@ -102,7 +102,7 @@ describe('process', () => {
           const processRequest: ProcessPolygonPartsRequestBody = {
             productId: validateRequest.productId,
             productType: validateRequest.productType,
-            jobType: JobTypes.Ingestion_New,
+
           };
 
           const response = await requestSender.process(processRequest);
@@ -173,7 +173,6 @@ describe('process', () => {
           const processRequest: ProcessPolygonPartsRequestBody = {
             productId: validateRequest.productId,
             productType: validateRequest.productType,
-            jobType: JobTypes.Ingestion_New,
           };
 
           const response = await requestSender.process(processRequest);
@@ -272,7 +271,6 @@ describe('process', () => {
           const processRequest: ProcessPolygonPartsRequestBody = {
             productId: validateRequest.productId,
             productType: validateRequest.productType,
-            jobType: JobTypes.Ingestion_New,
           };
 
           const response = await requestSender.process(processRequest);
@@ -370,7 +368,6 @@ describe('process', () => {
           const processRequest: ProcessPolygonPartsRequestBody = {
             productId: updateRequest.productId,
             productType: updateRequest.productType,
-            jobType: JobTypes.Ingestion_Update,
           };
 
           const response = await requestSender.process(processRequest);
@@ -461,7 +458,6 @@ describe('process', () => {
           const response = await requestSender.process({
             productId: updateRequest.productId,
             productType: updateRequest.productType,
-            jobType: JobTypes.Ingestion_Update,
           });
 
           expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
@@ -552,7 +548,7 @@ describe('process', () => {
           const response = await requestSender.process({
             productId: swapRequest.productId,
             productType: swapRequest.productType,
-            jobType: JobTypes.Ingestion_Swap_Update,
+            shouldTruncateTables: true,
           });
 
           expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
@@ -651,7 +647,7 @@ describe('process', () => {
           const response = await requestSender.process({
             productId: swapRequest.productId,
             productType: swapRequest.productType,
-            jobType: JobTypes.Ingestion_Swap_Update,
+            shouldTruncateTables: true,
           });
 
           expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
@@ -672,7 +668,6 @@ describe('process', () => {
         const processRequest: ProcessPolygonPartsRequestBody = {
           productId: validValidationPolygonPartsPayload.productId,
           productType: validValidationPolygonPartsPayload.productType,
-          jobType: JobTypes.Ingestion_New,
         };
 
         const response = await requestSender.process(processRequest);
@@ -684,9 +679,9 @@ describe('process', () => {
       });
 
       it.each([
-        { jobType: JobTypes.Ingestion_Update, description: 'Ingestion_Update' },
-        { jobType: JobTypes.Ingestion_Swap_Update, description: 'Ingestion_Swap_Update' },
-      ])('should return 404 when polygon parts table does not exist for $description', async ({ jobType }) => {
+        { jobType: JobTypes.Ingestion_Update, shouldTruncateTables: false, description: 'Ingestion_Update' },
+        { jobType: JobTypes.Ingestion_Swap_Update, shouldTruncateTables: true, description: 'Ingestion_Swap_Update' },
+      ])('should return 404 when polygon parts table does not exist for $description', async ({ jobType, shouldTruncateTables }) => {
         const validateRequest: ValidatePolygonPartsRequestBody = {
           ...validValidationPolygonPartsPayload,
           jobType,
@@ -696,7 +691,7 @@ describe('process', () => {
         const processRequest: ProcessPolygonPartsRequestBody = {
           productId: validateRequest.productId,
           productType: validateRequest.productType,
-          jobType,
+          shouldTruncateTables,
         };
 
         const response = await requestSender.process(processRequest);
@@ -710,7 +705,7 @@ describe('process', () => {
       it('should return 400 for invalid request body', async () => {
         const invalidRequest = {
           productId: validValidationPolygonPartsPayload.productId,
-          // Missing productType and jobType
+          // Missing productType
         };
 
         const response = await requestSender.process(invalidRequest as ProcessPolygonPartsRequestBody);

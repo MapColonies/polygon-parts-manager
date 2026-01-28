@@ -43,7 +43,7 @@ describe('history', () => {
       ...createConnectionOptions(dbConfig),
     };
     await createDB({ options: testDataSourceOptions, initialDatabase: INITIAL_DB });
-    helperDB = new HelperDB(testDataSourceOptions);
+    helperDB = new HelperDB(testDataSourceOptions, schema);
     await helperDB.initConnection();
   });
 

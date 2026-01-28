@@ -414,7 +414,12 @@ export class PolygonPartsManager {
 
           if (!polygonPartsExists || !historyExists) {
             throw new NotFoundError(
-              `Cannot truncate tables that don't exist. Missing: ${[!polygonPartsExists && polygonPartsEntityName, !historyExists && historyEntityName].filter(Boolean).join(', ')}`
+              `Cannot truncate tables that don't exist. Missing: ${[
+                !polygonPartsExists && polygonPartsEntityName,
+                !historyExists && historyEntityName,
+              ]
+                .filter(Boolean)
+                .join(', ')}`
             );
           }
         }
@@ -423,9 +428,7 @@ export class PolygonPartsManager {
         await entityManager.query(
           `CREATE TABLE IF NOT EXISTS ${polygonPartsEntityQualifiedName} (LIKE "polygon_parts" INCLUDING ALL) INHERITS ("polygon_parts");`
         );
-        await entityManager.query(
-          `CREATE TABLE IF NOT EXISTS ${historyTableQualifiedName} (LIKE "history" INCLUDING ALL) INHERITS ("history");`
-        );
+        await entityManager.query(`CREATE TABLE IF NOT EXISTS ${historyTableQualifiedName} (LIKE "history" INCLUDING ALL) INHERITS ("history");`);
 
         if (shouldTruncateTables) {
           logger.debug({ msg: 'truncating polygon parts and history tables' });
@@ -966,9 +969,10 @@ export class PolygonPartsManager {
       .createQueryBuilder('polygon_part')
       .select(idColumn, 'polygon_part_id')
       .addSelect(
-        `${shouldClip
-          ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
-          : geometryColumn
+        `${
+          shouldClip
+            ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
+            : geometryColumn
         }`,
         geometryColumn
       )
@@ -1166,7 +1170,8 @@ export class PolygonPartsManager {
 
     if (!isValidFilterGeometry.valid) {
       throw new BadRequestError(
-        `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
+        `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${
+          isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
         }`
       );
     }

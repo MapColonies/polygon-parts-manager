@@ -102,7 +102,6 @@ describe('process', () => {
           const processRequest: ProcessPolygonPartsRequestBody = {
             productId: validateRequest.productId,
             productType: validateRequest.productType,
-
           };
 
           const response = await requestSender.process(processRequest);

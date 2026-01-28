@@ -185,10 +185,7 @@ export function generatePolygonPartsPayload(input: number | PartialPolygonPartsP
 export class HelperDB {
   private readonly appDataSource: DataSource;
 
-  public constructor(
-    private readonly dataSourceOptions: DataSourceOptions,
-    private readonly schema: string
-  ) {
+  public constructor(private readonly dataSourceOptions: DataSourceOptions, private readonly schema: string) {
     this.appDataSource = new DataSource(this.dataSourceOptions);
   }
 

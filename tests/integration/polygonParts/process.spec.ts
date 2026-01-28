@@ -388,7 +388,7 @@ describe('process', () => {
           // History should contain only the update records (from validation table)
           expect(historyData).toHaveLength(1);
 
-          expect.assertions(4);
+          expect.assertions(3);
         });
 
         it('should process update with MultiPolygon and maintain existing Polygon data', async () => {

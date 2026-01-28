@@ -264,10 +264,7 @@ export class HelperDB {
    * Inserts polygon parts data directly into the polygon_parts table from a validation payload
    * This bypasses the API and inserts data directly for test setup purposes
    */
-  public async insertPolygonPartsFromValidationPayload(
-    polygonPartsTableName: string,
-    payload: InsertPayload
-  ): Promise<void> {
+  public async insertPolygonPartsFromValidationPayload(polygonPartsTableName: string, payload: InsertPayload): Promise<void> {
     const arraySeparator = config.get<string>('application.arraySeparator');
     const { partsData, ...metadata } = payload;
 

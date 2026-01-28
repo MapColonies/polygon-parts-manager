@@ -384,14 +384,14 @@ export class PolygonPartsManager {
   }
 
   public async process(options: ProcessPolygonPartsOptions): Promise<void> {
-    const { entitiesMetadata, jobType } = options;
+    const { entitiesMetadata, shouldTruncateTables = false } = options;
     const {
-      history: { entityName: historyEntityName, databaseObjectQualifiedName: historyTableQualifiedName },
-      polygonParts: { entityName: polygonPartsEntityName, databaseObjectQualifiedName: polygonPartsEntityQualifiedName },
+      history: { databaseObjectQualifiedName: historyTableQualifiedName },
+      polygonParts: { databaseObjectQualifiedName: polygonPartsEntityQualifiedName },
       validations: { entityName: validationsEntityName },
     } = entitiesMetadata.entitiesNames;
 
-    const logger = this.logger.child({ validationsEntityName, historyEntityName, jobType });
+    const logger = this.logger.child({ validationsEntityName, shouldTruncateTables });
     logger.info({ msg: 'processing polygon parts from validation table' });
 
     try {
@@ -403,44 +403,36 @@ export class PolygonPartsManager {
           throw new NotFoundError(`Validation table with the name '${validationsEntityName}' doesn't exist`);
         }
 
-        const polygonPartsTableExists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName);
-        const historyTableExists = await this.connectionManager.entityExists(entityManager, historyEntityName);
+        const {
+          polygonParts: { entityName: polygonPartsEntityName },
+          history: { entityName: historyEntityName },
+        } = entitiesMetadata.entitiesNames;
 
-        // Validate table existence preconditions
-        if (jobType === JobTypes.Ingestion_New && polygonPartsTableExists) {
-          throw new ConflictError(`Polygon parts table already exists for Ingestion_New. Table: '${polygonPartsEntityName}'`);
-        }
+        if (shouldTruncateTables) {
+          const polygonPartsExists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName);
+          const historyExists = await this.connectionManager.entityExists(entityManager, historyEntityName);
 
-        if (
-          (jobType === JobTypes.Ingestion_Update || jobType === JobTypes.Ingestion_Swap_Update) &&
-          !(polygonPartsTableExists && historyTableExists)
-        ) {
-          throw new NotFoundError(
-            `Polygon parts table doesn't exist for jobType '${jobType}'. Expected table: '${polygonPartsEntityName} or ${historyEntityName}'`
-          );
-        }
-
-        // Execute job type specific actions BEFORE moving validations to history
-        switch (jobType) {
-          case JobTypes.Ingestion_New:
-            logger.debug({ msg: 'creating polygon parts table for new ingestion' });
-            await entityManager.query(
-              `CREATE TABLE ${polygonPartsEntityQualifiedName} (LIKE "polygon_parts" INCLUDING ALL) INHERITS ("polygon_parts");`
+          if (!polygonPartsExists || !historyExists) {
+            throw new NotFoundError(
+              `Cannot truncate tables that don't exist. Missing: ${[!polygonPartsExists && polygonPartsEntityName, !historyExists && historyEntityName].filter(Boolean).join(', ')}`
             );
-            break;
-
-          case JobTypes.Ingestion_Update:
-            // Table exists, no action needed
-            break;
-
-          case JobTypes.Ingestion_Swap_Update:
-            logger.debug({ msg: 'truncating polygon parts and history tables for swap update' });
-            await entityManager.query(`TRUNCATE TABLE ${polygonPartsEntityQualifiedName};`);
-            await entityManager.query(`TRUNCATE TABLE ${historyTableQualifiedName};`);
-            break;
+          }
         }
 
-        // Move validations to history after truncation (if swap) or as-is
+        logger.debug({ msg: 'ensuring polygon parts and history tables exist' });
+        await entityManager.query(
+          `CREATE TABLE IF NOT EXISTS ${polygonPartsEntityQualifiedName} (LIKE "polygon_parts" INCLUDING ALL) INHERITS ("polygon_parts");`
+        );
+        await entityManager.query(
+          `CREATE TABLE IF NOT EXISTS ${historyTableQualifiedName} (LIKE "history" INCLUDING ALL) INHERITS ("history");`
+        );
+
+        if (shouldTruncateTables) {
+          logger.debug({ msg: 'truncating polygon parts and history tables' });
+          await entityManager.query(`TRUNCATE TABLE ${polygonPartsEntityQualifiedName};`);
+          await entityManager.query(`TRUNCATE TABLE ${historyTableQualifiedName};`);
+        }
+
         await this.historyManager.moveValidationsToHistoryInTransaction({ entitiesMetadata, entityManager });
 
         logger.debug({ msg: 'processing history parts into polygon parts table', historyTableQualifiedName, polygonPartsEntityQualifiedName });
@@ -974,10 +966,9 @@ export class PolygonPartsManager {
       .createQueryBuilder('polygon_part')
       .select(idColumn, 'polygon_part_id')
       .addSelect(
-        `${
-          shouldClip
-            ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
-            : geometryColumn
+        `${shouldClip
+          ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
+          : geometryColumn
         }`,
         geometryColumn
       )
@@ -1175,8 +1166,7 @@ export class PolygonPartsManager {
 
     if (!isValidFilterGeometry.valid) {
       throw new BadRequestError(
-        `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${
-          isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
+        `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
         }`
       );
     }

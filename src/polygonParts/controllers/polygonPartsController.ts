@@ -70,7 +70,7 @@ export type ProcessPolygonPartsEntityHandler = RequestHandler<undefined, undefin
 
 @injectable()
 export class PolygonPartsController {
-  public constructor(@inject(PolygonPartsManager) private readonly polygonPartsManager: PolygonPartsManager) {}
+  public constructor(@inject(PolygonPartsManager) private readonly polygonPartsManager: PolygonPartsManager) { }
 
   public createPolygonParts: CreatePolygonPartsHandler = async (req, res, next) => {
     try {
@@ -148,8 +148,8 @@ export class PolygonPartsController {
 
   public process: ProcessPolygonPartsEntityHandler = async (req, res, next) => {
     try {
-      const { jobType } = req.body;
-      await this.polygonPartsManager.process({ entitiesMetadata: res.locals, jobType });
+      const { shouldTruncateTables = false } = req.body;
+      await this.polygonPartsManager.process({ entitiesMetadata: res.locals, shouldTruncateTables });
       return res.status(httpStatus.NO_CONTENT).send();
     } catch (error) {
       next(error);

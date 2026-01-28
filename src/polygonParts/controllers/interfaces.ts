@@ -21,7 +21,7 @@ export type ExistsRequestBody = Pick<ExistsOptions, 'payload'>['payload'];
 /**
  * Exists response body
  */
-export interface ExistsResponseBody extends ExistsResponse {}
+export interface ExistsResponseBody extends ExistsResponse { }
 
 /**
  * Find polygon parts params
@@ -33,7 +33,7 @@ export interface FindPolygonPartsParams {
 /**
  * Find polygon parts query params
  */
-export interface FindPolygonPartsQueryParams extends Readonly<Pick<FindPolygonPartsOptions, 'shouldClip'>> {}
+export interface FindPolygonPartsQueryParams extends Readonly<Pick<FindPolygonPartsOptions, 'shouldClip'>> { }
 
 /**
  * Find polygon parts request body
@@ -44,7 +44,7 @@ export type AggregatePolygonPartsRequestBody = Pick<AggregateLayerMetadataOption
 /**
  * Find polygon parts response body
  */
-export interface FindPolygonPartsResponseBody<ShouldClip extends boolean = boolean> extends FindPolygonPartsResponse<ShouldClip> {}
+export interface FindPolygonPartsResponseBody<ShouldClip extends boolean = boolean> extends FindPolygonPartsResponse<ShouldClip> { }
 
 /**
  * Get aggregation layer metadata params
@@ -56,7 +56,7 @@ export interface AggregationLayerMetadataParams {
 /**
  * Get aggregation layer metadata response body
  */
-export interface AggregationLayerMetadataResponseBody extends AggregationLayerMetadataResponse {}
+export interface AggregationLayerMetadataResponseBody extends AggregationLayerMetadataResponse { }
 
 export interface ValidateError {
   id: string;
@@ -76,4 +76,4 @@ export type ValidatePolygonPartsRequestBody = Pick<CommonRecord, 'productId' | '
 
 export type ValidationEntityQuery = Pick<CommonRecord, 'productId' | 'productType'>;
 
-export type ProcessPolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType'> & Pick<ProcessPolygonPartsOptions, 'jobType'>;
+export type ProcessPolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType'> & Pick<ProcessPolygonPartsOptions, 'shouldTruncateTables'>;

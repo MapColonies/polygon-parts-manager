@@ -8,44 +8,34 @@ import {
   polygonPartsFeatureSchema,
 } from '@map-colonies/raster-shared';
 import { randomPolygon } from '@turf/random';
+import config from 'config';
 import type { Feature, MultiPolygon, Polygon } from 'geojson';
 import { randexp } from 'randexp';
 import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
 import { DatabaseCreateContext, createDatabase, dropDatabase } from 'typeorm-extension';
 import { z } from 'zod';
 import { setRepositoryTablePath } from '../../../../src/polygonParts/DAL/utils';
-import type { ExistsRequestBody } from '../../../../src/polygonParts/controllers/interfaces';
+import type { PolygonPartsProperties } from '../../../../src/common/types';
+import type { ExistsRequestBody, ValidatePolygonPartsRequestBody } from '../../../../src/polygonParts/controllers/interfaces';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
-import type { DeepPartial } from './types';
 
-// Helper type for test data insertion - accepts string dates instead of Date objects
-type InsertPayload = Omit<PolygonPartsPayload, 'jobType' | 'partsData'> & {
+// Helper type for test data insertion - accepts string or Date for date fields
+type InsertPayload = Omit<ValidatePolygonPartsRequestBody, 'jobType'> & {
   partsData: {
     type: 'FeatureCollection';
     features: {
       type: string;
       geometry: Polygon | MultiPolygon;
-      properties: {
-        id: string;
-        horizontalAccuracyCE90: number;
-        resolutionMeter: number;
+      properties: Omit<PolygonPartsProperties, 'imagingTimeBeginUTC' | 'imagingTimeEndUTC'> & {
         imagingTimeBeginUTC: string | Date;
         imagingTimeEndUTC: string | Date;
-        sensors: string[];
-        sourceName: string;
-        resolutionDegree: number;
-        sourceResolutionMeter: number;
-        countries?: string[];
-        cities?: string[];
-        description?: string;
-        sourceId?: string;
       };
     }[];
   };
 };
 
 type PolygonPartFeature = z.infer<typeof polygonPartsFeatureSchema>;
-type PartialPolygonPartsPayload = DeepPartial<Omit<PolygonPartsPayload, 'partsData'>> & {
+type PartialPolygonPartsPayload = Partial<Omit<PolygonPartsPayload, 'partsData'>> & {
   partsData?: {
     type?: 'FeatureCollection';
     features?: Partial<PolygonPartFeature>[];
@@ -152,7 +142,8 @@ export function generatePolygonPartsPayload(input: number | PartialPolygonPartsP
   }
 
   const { partsData: templatePartsData, ...templateLayerMetadata } = structuredClone(input);
-  const featureCount = templatePartsData?.features?.length ?? 1;
+  const features = templatePartsData?.features;
+  const featureCount = features?.length ?? 1;
 
   return {
     ...layerMetadata,
@@ -160,7 +151,7 @@ export function generatePolygonPartsPayload(input: number | PartialPolygonPartsP
     partsData: {
       type: 'FeatureCollection',
       features: Array.from({ length: featureCount }, generatePolygonPart).map((partData, index) => {
-        const templateFeature = templatePartsData?.features?.[index];
+        const templateFeature = features?.[index];
 
         if (!templateFeature) {
           return partData;
@@ -184,9 +175,11 @@ export function generatePolygonPartsPayload(input: number | PartialPolygonPartsP
 
 export class HelperDB {
   private readonly appDataSource: DataSource;
+  private readonly schema: string;
 
-  public constructor(private readonly dataSourceOptions: DataSourceOptions, private readonly schema: string) {
+  public constructor(private readonly dataSourceOptions: DataSourceOptions, schema: string) {
     this.appDataSource = new DataSource(this.dataSourceOptions);
+    this.schema = schema;
   }
 
   public async initConnection(): Promise<void> {
@@ -201,24 +194,24 @@ export class HelperDB {
     await this.appDataSource.runMigrations();
   }
 
-  public async createSchema(schema: string): Promise<void> {
-    await this.appDataSource.query(`CREATE SCHEMA IF NOT EXISTS ${schema}`);
+  public async createSchema(): Promise<void> {
+    await this.appDataSource.query(`CREATE SCHEMA IF NOT EXISTS ${this.schema}`);
   }
 
-  public async dropSchema(schema: string): Promise<void> {
-    await this.appDataSource.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
+  public async dropSchema(): Promise<void> {
+    await this.appDataSource.query(`DROP SCHEMA IF EXISTS ${this.schema} CASCADE`);
   }
 
-  public async createTable(table: string, schema: string): Promise<void> {
-    await this.appDataSource.query(`CREATE TABLE IF NOT EXISTS ${schema}.${table}()`);
+  public async createTable(table: string): Promise<void> {
+    await this.appDataSource.query(`CREATE TABLE IF NOT EXISTS ${this.schema}.${table}()`);
   }
 
-  public async tableExists(table: string, schema: string): Promise<boolean> {
+  public async tableExists(table: string): Promise<boolean> {
     const exists = await this.appDataSource
       .createQueryBuilder()
       .select()
       .from('information_schema.tables', 'information_schema.tables')
-      .where(`table_schema = '${schema}'`)
+      .where(`table_schema = '${this.schema}'`)
       .andWhere(`table_name = '${table}'`)
       .getExists();
     return exists;
@@ -242,16 +235,16 @@ export class HelperDB {
     await repository.insert(insertValues);
   }
 
-  public async getTableData(table: string, schema: string): Promise<unknown[]> {
+  public async getTableData(table: string): Promise<unknown[]> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const data = await this.appDataSource.query(`SELECT * FROM ${schema}.${table}`);
+    const data = await this.appDataSource.query(`SELECT * FROM ${this.schema}.${table}`);
     return data as unknown[];
   }
 
-  public async getTableDataWithGeoJSON(table: string, schema: string, geometryColumn = 'footprint'): Promise<unknown[]> {
+  public async getTableDataWithGeoJSON(table: string, geometryColumn = 'footprint'): Promise<unknown[]> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const data = await this.appDataSource.query(
-      `SELECT *, ST_AsGeoJSON(${geometryColumn})::json as ${geometryColumn}_geojson FROM ${schema}.${table}`
+      `SELECT *, ST_AsGeoJSON(${geometryColumn})::json as ${geometryColumn}_geojson FROM ${this.schema}.${table}`
     );
     return data as unknown[];
   }
@@ -259,12 +252,11 @@ export class HelperDB {
   /**
    * Creates a table that inherits from a parent table for test initialization
    * @param tableName - The name of the table to create
-   * @param schema - The schema where the table should be created
    * @param parentTable - The parent table to inherit from (e.g., 'polygon_parts', 'history', 'validation_parts')
    */
-  public async createInheritedTable(tableName: string, schema: string, parentTable: string): Promise<void> {
+  public async createInheritedTable(tableName: string, parentTable: string): Promise<void> {
     await this.appDataSource.query(
-      `CREATE TABLE ${schema}.${tableName} (LIKE ${schema}.${parentTable} INCLUDING ALL) INHERITS (${schema}.${parentTable})`
+      `CREATE TABLE ${this.schema}.${tableName} (LIKE ${this.schema}.${parentTable} INCLUDING ALL) INHERITS (${this.schema}.${parentTable})`
     );
   }
 
@@ -274,10 +266,9 @@ export class HelperDB {
    */
   public async insertPolygonPartsFromValidationPayload(
     polygonPartsTableName: string,
-    schema: string,
-    payload: InsertPayload,
-    arraySeparator: string
+    payload: InsertPayload
   ): Promise<void> {
+    const arraySeparator = config.get<string>('application.arraySeparator');
     const { partsData, ...metadata } = payload;
 
     for (const [index, feature] of partsData.features.entries()) {
@@ -292,7 +283,7 @@ export class HelperDB {
       const cities = properties.cities ? (Array.isArray(properties.cities) ? properties.cities.join(arraySeparator) : properties.cities) : null;
 
       await this.appDataSource.query(
-        `INSERT INTO ${schema}.${polygonPartsTableName} (
+        `INSERT INTO ${this.schema}.${polygonPartsTableName} (
           product_id,
           product_type,
           catalog_id,

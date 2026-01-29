@@ -173,7 +173,7 @@ export interface MoveValidationsToHistoryOptions {
 
 export interface ProcessPolygonPartsOptions {
   entitiesMetadata: EntitiesMetadata;
-  shouldTruncateTables?: boolean;
+  shouldClearEntities?: boolean;
 }
 
 export interface FilterQueryMetadata {

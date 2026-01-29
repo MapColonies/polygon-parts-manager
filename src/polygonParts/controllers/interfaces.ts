@@ -77,4 +77,4 @@ export type ValidatePolygonPartsRequestBody = Pick<CommonRecord, 'productId' | '
 export type ValidationEntityQuery = Pick<CommonRecord, 'productId' | 'productType'>;
 
 export type ProcessPolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType'> &
-  Pick<ProcessPolygonPartsOptions, 'shouldTruncateTables'>;
+  Pick<ProcessPolygonPartsOptions, 'shouldClearEntities'>;

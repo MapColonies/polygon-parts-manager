@@ -384,14 +384,14 @@ export class PolygonPartsManager {
   }
 
   public async process(options: ProcessPolygonPartsOptions): Promise<void> {
-    const { entitiesMetadata, shouldTruncateTables = false } = options;
+    const { entitiesMetadata, shouldClearEntities = false } = options;
     const {
       history: { databaseObjectQualifiedName: historyTableQualifiedName },
       polygonParts: { databaseObjectQualifiedName: polygonPartsEntityQualifiedName },
       validations: { entityName: validationsEntityName },
     } = entitiesMetadata.entitiesNames;
 
-    const logger = this.logger.child({ validationsEntityName, shouldTruncateTables });
+    const logger = this.logger.child({ validationsEntityName, shouldClearEntities });
     logger.info({ msg: 'processing polygon parts from validation table' });
 
     try {

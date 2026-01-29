@@ -875,7 +875,7 @@ components:
           $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductId
         productType:
           $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductType
-        shouldTruncateTables:
+        shouldClearEntities:
           type: boolean
           description: Whether to truncate existing polygon parts and history tables before processing (for swap operations)
           default: false

@@ -408,7 +408,7 @@ export class PolygonPartsManager {
           history: { entityName: historyEntityName },
         } = entitiesMetadata.entitiesNames;
 
-        if (shouldTruncateTables) {
+        if (shouldClearEntities) {
           const polygonPartsExists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName);
           const historyExists = await this.connectionManager.entityExists(entityManager, historyEntityName);
 
@@ -422,19 +422,15 @@ export class PolygonPartsManager {
                 .join(', ')}`
             );
           }
+
+          logger.debug({ msg: 'truncating polygon parts and history tables' });
+          await this.truncateEntity(entityManager, polygonPartsEntityQualifiedName as EntityName);
+          await this.truncateEntity(entityManager, historyTableQualifiedName as EntityName);
         }
 
         logger.debug({ msg: 'ensuring polygon parts and history tables exist' });
-        await entityManager.query(
-          `CREATE TABLE IF NOT EXISTS ${polygonPartsEntityQualifiedName} (LIKE "polygon_parts" INCLUDING ALL) INHERITS ("polygon_parts");`
-        );
-        await entityManager.query(`CREATE TABLE IF NOT EXISTS ${historyTableQualifiedName} (LIKE "history" INCLUDING ALL) INHERITS ("history");`);
-
-        if (shouldTruncateTables) {
-          logger.debug({ msg: 'truncating polygon parts and history tables' });
-          await entityManager.query(`TRUNCATE TABLE ${polygonPartsEntityQualifiedName};`);
-          await entityManager.query(`TRUNCATE TABLE ${historyTableQualifiedName};`);
-        }
+        await this.connectionManager.createInheritedTable(entityManager, polygonPartsEntityQualifiedName as string, '"polygon_parts"');
+        await this.connectionManager.createInheritedTable(entityManager, historyTableQualifiedName as string, '"history"');
 
         await this.historyManager.moveValidationsToHistoryInTransaction({ entitiesMetadata, entityManager });
 

@@ -173,7 +173,7 @@ export interface MoveValidationsToHistoryOptions {
 
 export interface ProcessPolygonPartsOptions {
   entitiesMetadata: EntitiesMetadata;
-  jobType: IngestionJobTypes;
+  shouldClearEntities?: boolean;
 }
 
 export interface FilterQueryMetadata {

@@ -43,7 +43,7 @@ describe('history', () => {
       ...createConnectionOptions(dbConfig),
     };
     await createDB({ options: testDataSourceOptions, initialDatabase: INITIAL_DB });
-    helperDB = new HelperDB(testDataSourceOptions);
+    helperDB = new HelperDB(testDataSourceOptions, schema);
     await helperDB.initConnection();
   });
 
@@ -72,7 +72,7 @@ describe('history', () => {
     jest.clearAllMocks();
 
     // Create schema and run migrations BEFORE initializing the app
-    await helperDB.createSchema(schema);
+    await helperDB.createSchema();
     await helperDB.sync();
 
     // Close and reinitialize helperDB connection to force commit
@@ -113,7 +113,7 @@ describe('history', () => {
       // ConnectionManager may not be initialized in some tests
     }
 
-    await helperDB.dropSchema(schema);
+    await helperDB.dropSchema();
   });
 
   describe('PUT /history', () => {
@@ -142,15 +142,15 @@ describe('history', () => {
         expect(response).toSatisfyApiSpec();
 
         // Verify history table was created
-        const historyTableExists = await helperDB.tableExists(historyTableName, schema);
+        const historyTableExists = await helperDB.tableExists(historyTableName);
         expect(historyTableExists).toBe(true);
 
         // Verify validation table was deleted
-        const validationTableExists = await helperDB.tableExists(entitiesMetadata.entitiesNames.validations.entityName, schema);
+        const validationTableExists = await helperDB.tableExists(entitiesMetadata.entitiesNames.validations.entityName);
         expect(validationTableExists).toBe(false);
 
         // Verify data was inserted into history table
-        const historyData = await helperDB.getTableData(historyTableName, schema);
+        const historyData = await helperDB.getTableData(historyTableName);
         expect(historyData.length).toBeGreaterThan(0);
 
         expect.assertions(5);
@@ -208,7 +208,7 @@ describe('history', () => {
         expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
 
         // Verify history table contains split polygons
-        const historyData = await helperDB.getTableData(historyTableName, schema);
+        const historyData = await helperDB.getTableData(historyTableName);
         expect(historyData).toHaveLength(2); // MultiPolygon with 2 parts should create 2 records
 
         expect.assertions(2);
@@ -232,7 +232,7 @@ describe('history', () => {
         const historyTableName = partsEntityName.replace(new RegExp(`${partsSuffix}$`), '_history');
 
         // Verify history table doesn't exist yet
-        const historyTableExistsBefore = await helperDB.tableExists(historyTableName, schema);
+        const historyTableExistsBefore = await helperDB.tableExists(historyTableName);
         expect(historyTableExistsBefore).toBe(false);
 
         const response = await requestSender.moveValidationsToHistory(historyQuery);
@@ -240,7 +240,7 @@ describe('history', () => {
         expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
 
         // Verify history table was created
-        const historyTableExistsAfter = await helperDB.tableExists(historyTableName, schema);
+        const historyTableExistsAfter = await helperDB.tableExists(historyTableName);
         expect(historyTableExistsAfter).toBe(true);
 
         expect.assertions(3);
@@ -295,14 +295,14 @@ describe('history', () => {
         await requestSender.validatePolygonParts(validateRequest1);
         await requestSender.moveValidationsToHistory(historyQuery);
 
-        const historyDataAfterFirst = await helperDB.getTableData(historyTableName, schema);
+        const historyDataAfterFirst = await helperDB.getTableData(historyTableName);
         const firstBatchCount = historyDataAfterFirst.length;
 
         // Second batch
         await requestSender.validatePolygonParts(validateRequest2);
         await requestSender.moveValidationsToHistory(historyQuery);
 
-        const historyDataAfterSecond = await helperDB.getTableData(historyTableName, schema);
+        const historyDataAfterSecond = await helperDB.getTableData(historyTableName);
         expect(historyDataAfterSecond).toHaveLength(firstBatchCount + 1);
 
         expect.assertions(1);
@@ -327,7 +327,7 @@ describe('history', () => {
 
         await requestSender.moveValidationsToHistory(historyQuery);
 
-        const historyData = await helperDB.getTableData(historyTableName, schema);
+        const historyData = await helperDB.getTableData(historyTableName);
         const firstRecord = historyData[0];
 
         // Verify essential columns exist

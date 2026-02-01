@@ -338,18 +338,17 @@ paths:
       description: >
         Process validation data from the temporary validation table into the history and polygon parts tables.
 
-        1. Moves validation data to the history table (creating it if it doesn't exist)
+        1. Creates polygon parts and history tables if they don't exist (idempotent operation)
 
-        2. Splits MultiPolygon geometries into individual Polygon records with sequential insertion order
+        2. Optionally truncates existing tables if `shouldClearEntities` is set to true (for swap operations)
 
-        3. Based on job type:
-          - `Ingestion_New`: Creates a new polygon parts table (fails if already exists)
-          - `Ingestion_Update`: Appends to existing polygon parts table (fails if doesn't exist)
-          - `Ingestion_Swap_Update`: Truncates both polygon parts and history tables, then reprocesses (fails if doesn't exist)
+        3. Moves validation data to the history table
 
-        4. Executes stored procedure to process history data into the polygon parts table
+        4. Splits MultiPolygon geometries into individual Polygon records with sequential insertion order
 
-        5. Deletes the validation table after successful processing
+        5. Executes stored procedure to process history data into the polygon parts table
+
+        6. Deletes the validation table after successful processing
 
         **Note:** This operation is atomic - all steps succeed or fail together within a transaction.
       operationId: process
@@ -871,19 +870,15 @@ components:
       required:
         - productId
         - productType
-        - jobType
       properties:
         productId:
           $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductId
         productType:
           $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductType
-        jobType:
-          type: string
-          enum:
-            - Ingestion_New
-            - Ingestion_Update
-            - Ingestion_Swap_Update
-          description: Job type for processing
+        shouldClearEntities:
+          type: boolean
+          description: Whether to truncate existing polygon parts and history tables before processing (for swap operations)
+          default: false
       description: Process polygon parts request payload
     PolygonPartsFeatureCollection:
       type: object

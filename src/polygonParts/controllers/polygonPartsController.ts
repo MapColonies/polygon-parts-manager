@@ -148,8 +148,8 @@ export class PolygonPartsController {
 
   public process: ProcessPolygonPartsEntityHandler = async (req, res, next) => {
     try {
-      const { jobType } = req.body;
-      await this.polygonPartsManager.process({ entitiesMetadata: res.locals, jobType });
+      const { shouldClearEntities = false } = req.body;
+      await this.polygonPartsManager.process({ entitiesMetadata: res.locals, shouldClearEntities });
       return res.status(httpStatus.NO_CONTENT).send();
     } catch (error) {
       next(error);

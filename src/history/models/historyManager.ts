@@ -93,9 +93,7 @@ export class HistoryManager {
         historyTableQualifiedName,
         historyTemplateQualifiedName,
       });
-      await entityManager.query(
-        `CREATE TABLE ${historyTableQualifiedName} (LIKE ${historyTemplateQualifiedName} INCLUDING ALL) INHERITS (${historyTemplateQualifiedName});`
-      );
+      await this.connectionManager.createInheritedTable(entityManager, historyTableQualifiedName, historyTemplateQualifiedName);
     }
 
     // Insert data into history table, splitting MultiPolygons into Polygons

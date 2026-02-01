@@ -561,7 +561,9 @@ describe('process', () => {
 
         expect.assertions(2);
       });
+    });
 
+    describe('Bad Path', () => {
       it('should return 400 for invalid request body', async () => {
         const invalidRequest = {
           productId: validValidationPolygonPartsPayload.productId,
@@ -569,6 +571,58 @@ describe('process', () => {
         };
 
         const response = await requestSender.process(invalidRequest as ProcessPolygonPartsRequestBody);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 when productId is invalid', async () => {
+        const validateRequest = generatePolygonPartsPayload();
+        await requestSender.validatePolygonParts(validateRequest);
+
+        const invalidRequest = {
+          productId: 'invalid id with spaces!',
+          productType: validateRequest.productType,
+        };
+
+        const response = await requestSender.process(invalidRequest);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 when productType is invalid', async () => {
+        const validateRequest = generatePolygonPartsPayload();
+        await requestSender.validatePolygonParts(validateRequest);
+
+        const invalidRequest = {
+          productId: validateRequest.productId,
+          productType: 'InvalidProductType',
+        };
+
+        const response = await requestSender.process(invalidRequest as ProcessPolygonPartsRequestBody);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 400 when shouldClearEntities is not a boolean', async () => {
+        const validateRequest = generatePolygonPartsPayload();
+        await requestSender.validatePolygonParts(validateRequest);
+
+        const invalidRequest = {
+          productId: validateRequest.productId,
+          productType: validateRequest.productType,
+          shouldClearEntities: 'yes' as unknown as boolean,
+        };
+
+        const response = await requestSender.process(invalidRequest);
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();

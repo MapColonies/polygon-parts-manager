@@ -386,8 +386,8 @@ export class PolygonPartsManager {
   public async process(options: ProcessPolygonPartsOptions): Promise<void> {
     const { entitiesMetadata, shouldClearEntities = false } = options;
     const {
-      history: { databaseObjectQualifiedName: historyTableQualifiedName },
-      polygonParts: { databaseObjectQualifiedName: polygonPartsEntityQualifiedName },
+      history: { databaseObjectQualifiedName: historyEntityQualifiedName, entityName: historyEntityName },
+      polygonParts: { databaseObjectQualifiedName: polygonPartsEntityQualifiedName, entityName: polygonPartsEntityName },
       validations: { entityName: validationsEntityName },
     } = entitiesMetadata.entitiesNames;
 
@@ -402,11 +402,6 @@ export class PolygonPartsManager {
         if (!validationTableExists) {
           throw new NotFoundError(`Validation table with the name '${validationsEntityName}' doesn't exist`);
         }
-
-        const {
-          polygonParts: { entityName: polygonPartsEntityName },
-          history: { entityName: historyEntityName },
-        } = entitiesMetadata.entitiesNames;
 
         if (shouldClearEntities) {
           const polygonPartsExists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName);
@@ -424,24 +419,24 @@ export class PolygonPartsManager {
           }
 
           logger.debug({ msg: 'truncating polygon parts and history tables' });
-          await this.truncateEntity(entityManager, polygonPartsEntityQualifiedName as EntityName);
-          await this.truncateEntity(entityManager, historyTableQualifiedName as EntityName);
+          await this.truncateEntity(entityManager, polygonPartsEntityName);
+          await this.truncateEntity(entityManager, historyEntityName);
         }
 
         logger.debug({ msg: 'ensuring polygon parts and history tables exist' });
-        await this.connectionManager.createInheritedTable(entityManager, polygonPartsEntityQualifiedName as string, '"polygon_parts"');
-        await this.connectionManager.createInheritedTable(entityManager, historyTableQualifiedName as string, '"history"');
+        await this.connectionManager.createInheritedTable(entityManager, polygonPartsEntityQualifiedName, '"polygon_parts"');
+        await this.connectionManager.createInheritedTable(entityManager, historyEntityQualifiedName, '"history"');
 
         await this.historyManager.moveValidationsToHistoryInTransaction({ entitiesMetadata, entityManager });
 
-        logger.debug({ msg: 'processing history parts into polygon parts table', historyTableQualifiedName, polygonPartsEntityQualifiedName });
+        logger.debug({ msg: 'processing history parts into polygon parts table', historyEntityQualifiedName, polygonPartsEntityQualifiedName });
         await entityManager.query(
-          `CALL ${this.applicationConfig.updatePolygonPartsTablesStoredProcedure}('${historyTableQualifiedName}'::regclass, '${polygonPartsEntityQualifiedName}'::regclass, ${this.applicationConfig.entities.polygonParts.minAreaSquareDeg});`
+          `CALL ${this.applicationConfig.updatePolygonPartsTablesStoredProcedure}('${historyEntityQualifiedName}'::regclass, '${polygonPartsEntityQualifiedName}'::regclass, ${this.applicationConfig.entities.polygonParts.minAreaSquareDeg});`
         );
 
         logger.info({
           msg: 'polygon parts processed successfully',
-          historyTableQualifiedName,
+          historyEntityQualifiedName,
           polygonPartsEntityQualifiedName,
         });
       });

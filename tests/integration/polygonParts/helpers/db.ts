@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-magic-numbers */
 import { faker } from '@faker-js/faker';
 import {
   CORE_VALIDATIONS,
@@ -9,30 +8,17 @@ import {
 } from '@map-colonies/raster-shared';
 import { randomPolygon } from '@turf/random';
 import config from 'config';
-import type { Feature, MultiPolygon, Polygon } from 'geojson';
+import type { Feature, Polygon } from 'geojson';
 import { randexp } from 'randexp';
 import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
 import { DatabaseCreateContext, createDatabase, dropDatabase } from 'typeorm-extension';
 import { z } from 'zod';
 import { setRepositoryTablePath } from '../../../../src/polygonParts/DAL/utils';
-import type { PolygonPartsProperties } from '../../../../src/common/types';
 import type { ExistsRequestBody, ValidatePolygonPartsRequestBody } from '../../../../src/polygonParts/controllers/interfaces';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 
 // Helper type for test data insertion - accepts string or Date for date fields
-type InsertPayload = Omit<ValidatePolygonPartsRequestBody, 'jobType'> & {
-  partsData: {
-    type: 'FeatureCollection';
-    features: {
-      type: string;
-      geometry: Polygon | MultiPolygon;
-      properties: Omit<PolygonPartsProperties, 'imagingTimeBeginUTC' | 'imagingTimeEndUTC'> & {
-        imagingTimeBeginUTC: string | Date;
-        imagingTimeEndUTC: string | Date;
-      };
-    }[];
-  };
-};
+type InsertPayload = Omit<ValidatePolygonPartsRequestBody, 'jobType'>;
 
 type PolygonPartFeature = z.infer<typeof polygonPartsFeatureSchema>;
 type PartialPolygonPartsPayload = Partial<Omit<PolygonPartsPayload, 'partsData'>> & {
@@ -57,7 +43,9 @@ export const generateFeatureId = (): NonNullable<Feature['id']> => {
 };
 
 export const generatePolygon = (
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   options: Parameters<typeof randomPolygon>[1] = {
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     bbox: [-170, -80, 170, 80],
     // eslint-disable-next-line @typescript-eslint/naming-convention
     max_radial_length: faker.number.float({ min: Number.EPSILON, max: 10 }),

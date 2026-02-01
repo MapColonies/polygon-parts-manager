@@ -340,7 +340,7 @@ paths:
 
         1. Creates polygon parts and history tables if they don't exist (idempotent operation)
 
-        2. Optionally truncates existing tables if `shouldTruncateTables` is set to true (for swap operations)
+        2. Optionally truncates existing tables if `shouldClearEntities` is set to true (for swap operations)
 
         3. Moves validation data to the history table
 

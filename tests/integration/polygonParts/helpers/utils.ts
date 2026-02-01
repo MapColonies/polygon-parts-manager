@@ -14,11 +14,9 @@ import type { ExpectedPostgresResponse } from './types';
 
 const getApplicationConfig = (): ApplicationConfig => config.get<ApplicationConfig>('application');
 
-const FIRST_FEATURE_INDEX = 0;
-
 export type GeneratePolygonPartsPayloadOverrides = Partial<Omit<ValidatePolygonPartsRequestBody, 'partsData'>> & {
   partsData?: ValidatePolygonPartsRequestBody['partsData'];
-  geometry?: ValidatePolygonPartsRequestBody['partsData']['features'][typeof FIRST_FEATURE_INDEX]['geometry'];
+  geometry?: ValidatePolygonPartsRequestBody['partsData']['features'][number]['geometry'];
   features?: ValidatePolygonPartsRequestBody['partsData']['features'];
 };
 
@@ -37,7 +35,7 @@ export const generatePolygonPartsPayload = (overrides?: GeneratePolygonPartsPayl
       : geometry
       ? {
           ...validValidationPolygonPartsPayload.partsData,
-          features: [{ ...validValidationPolygonPartsPayload.partsData.features[FIRST_FEATURE_INDEX], geometry }],
+          features: [{ ...validValidationPolygonPartsPayload.partsData.features[0], geometry }],
         }
       : validValidationPolygonPartsPayload.partsData);
 

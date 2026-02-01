@@ -5,6 +5,7 @@ import config from 'config';
 import { StatusCodes as httpStatusCodes } from 'http-status-codes';
 import { container } from 'tsyringe';
 import { DataSourceOptions } from 'typeorm';
+import { Feature, Polygon } from 'geojson';
 import { getApp } from '../../../src/app';
 import { ConnectionManager } from '../../../src/common/connectionManager';
 import { SERVICES } from '../../../src/common/constants';
@@ -274,17 +275,13 @@ describe('process', () => {
           }[];
 
           expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
-          expect(historyData).toHaveLength(4);
-          expect(historyData[0].insertion_order).toBe(1);
-          expect(historyData[1].insertion_order).toBe(2);
-          expect(historyData[2].insertion_order).toBe(3);
-          expect(historyData[3].insertion_order).toBe(4);
-          expect(historyData[0].footprint_geojson.coordinates).toEqual(polygon1.geometry.coordinates);
-          expect(historyData[1].footprint_geojson.coordinates).toEqual(multiPoly1.geometry.coordinates[0]);
-          expect(historyData[2].footprint_geojson.coordinates).toEqual(multiPoly1.geometry.coordinates[1]);
-          expect(historyData[3].footprint_geojson.coordinates).toEqual(polygon2.geometry.coordinates);
+          const { geometry, ...restMultiPolygon1 } = multiPoly1;
+          const multiPolygonPart1: Feature<Polygon> = { ...restMultiPolygon1, geometry: { coordinates: geometry.coordinates[0], type: 'Polygon' } };
+          const multiPolygonPart2: Feature<Polygon> = { ...restMultiPolygon1, geometry: { coordinates: geometry.coordinates[1], type: 'Polygon' } };
+          const expectedResponse = [polygon1, multiPolygonPart1, multiPolygonPart2, polygon2].map((feature) => feature.geometry);
+          expect(historyData.map((history) => history.footprint_geojson)).toStrictEqual(expectedResponse);
 
-          expect.assertions(10);
+          expect.assertions(2);
         });
       });
 
@@ -393,14 +390,14 @@ describe('process', () => {
           expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
           expect(historyData).toHaveLength(2);
           expect(polygonPartsData).toHaveLength(3);
-          expect(historyData[0].insertion_order).toBe(1);
-          expect(historyData[1].insertion_order).toBe(2);
-          expect(historyData[0].footprint_geojson.type).toBe('Polygon');
-          expect(historyData[1].footprint_geojson.type).toBe('Polygon');
-          expect(historyData[0].footprint_geojson.coordinates).toEqual(multiPolygonGeometry.geometry.coordinates[0]);
-          expect(historyData[1].footprint_geojson.coordinates).toEqual(multiPolygonGeometry.geometry.coordinates[1]);
 
-          expect.assertions(9);
+          const { geometry, ...restMultiPolygon } = multiPolygonGeometry;
+          const multiPolygonPart1: Feature<Polygon> = { ...restMultiPolygon, geometry: { coordinates: geometry.coordinates[0], type: 'Polygon' } };
+          const multiPolygonPart2: Feature<Polygon> = { ...restMultiPolygon, geometry: { coordinates: geometry.coordinates[1], type: 'Polygon' } };
+          const expectedResponse = [multiPolygonPart1, multiPolygonPart2].map((feature) => feature.geometry);
+          expect(historyData.map((history) => history.footprint_geojson)).toStrictEqual(expectedResponse);
+
+          expect.assertions(4);
         });
       });
 
@@ -504,12 +501,30 @@ describe('process', () => {
           });
 
           const entitiesMetadata = getEntitiesMetadata(swapRequest);
-          const historyData = await helperDB.getTableData(entitiesMetadata.entitiesNames.history.entityName);
+          const historyData = (await helperDB.getTableDataWithGeoJSON(entitiesMetadata.entitiesNames.history.entityName)) as {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            footprint_geojson: { type: string; coordinates: number[][][] };
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            product_version: string;
+          }[];
+          const polygonPartsData = await helperDB.getTableData(entitiesMetadata.entitiesNames.polygonParts.entityName);
 
           expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
           expect(historyData).toHaveLength(3);
+          expect(polygonPartsData).toHaveLength(3);
 
-          expect.assertions(2);
+          // Verify old data was cleared - all parts should have the new product version
+          expect(historyData.every((row) => row.product_version === (parseInt(initialPayload.productVersion) + 1).toString())).toBe(true);
+
+          // Verify new data is from the multiPolygonGeometry (check coordinates match)
+          const { geometry, ...restMultiPolygon } = multiPolygonGeometry;
+          const multiPolygonPart1: Feature<Polygon> = { ...restMultiPolygon, geometry: { coordinates: geometry.coordinates[0], type: 'Polygon' } };
+          const multiPolygonPart2: Feature<Polygon> = { ...restMultiPolygon, geometry: { coordinates: geometry.coordinates[1], type: 'Polygon' } };
+          const multiPolygonPart3: Feature<Polygon> = { ...restMultiPolygon, geometry: { coordinates: geometry.coordinates[2], type: 'Polygon' } };
+          const expectedResponse = [multiPolygonPart1, multiPolygonPart2, multiPolygonPart3].map((feature) => feature.geometry);
+          expect(historyData.map((history) => history.footprint_geojson)).toStrictEqual(expectedResponse);
+
+          expect.assertions(5);
         });
       });
     });

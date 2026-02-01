@@ -529,40 +529,6 @@ describe('process', () => {
       });
     });
 
-    describe('Sad Path', () => {
-      it('should return 404 when validation table does not exist', async () => {
-        const processRequest = {
-          productId: validValidationPolygonPartsPayload.productId,
-          productType: validValidationPolygonPartsPayload.productType,
-        };
-
-        const response = await requestSender.process(processRequest);
-
-        expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
-        expect(response).toSatisfyApiSpec();
-
-        expect.assertions(2);
-      });
-
-      it('should return 404 when polygon parts table does not exist and shouldClearEntities is true', async () => {
-        const validateRequest = generatePolygonPartsPayload();
-
-        await requestSender.validatePolygonParts(validateRequest);
-        const processRequest = {
-          productId: validateRequest.productId,
-          productType: validateRequest.productType,
-          shouldClearEntities: true,
-        };
-
-        const response = await requestSender.process(processRequest);
-
-        expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
-        expect(response).toSatisfyApiSpec();
-
-        expect.assertions(2);
-      });
-    });
-
     describe('Bad Path', () => {
       it('should return 400 for invalid request body', async () => {
         const invalidRequest = {
@@ -625,6 +591,40 @@ describe('process', () => {
         const response = await requestSender.process(invalidRequest);
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+    });
+
+    describe('Sad Path', () => {
+      it('should return 404 when validation table does not exist', async () => {
+        const processRequest = {
+          productId: validValidationPolygonPartsPayload.productId,
+          productType: validValidationPolygonPartsPayload.productType,
+        };
+
+        const response = await requestSender.process(processRequest);
+
+        expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
+        expect(response).toSatisfyApiSpec();
+
+        expect.assertions(2);
+      });
+
+      it('should return 404 when polygon parts table does not exist and shouldClearEntities is true', async () => {
+        const validateRequest = generatePolygonPartsPayload();
+
+        await requestSender.validatePolygonParts(validateRequest);
+        const processRequest = {
+          productId: validateRequest.productId,
+          productType: validateRequest.productType,
+          shouldClearEntities: true,
+        };
+
+        const response = await requestSender.process(processRequest);
+
+        expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
         expect(response).toSatisfyApiSpec();
 
         expect.assertions(2);

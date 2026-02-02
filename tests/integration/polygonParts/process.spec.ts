@@ -12,7 +12,7 @@ import { SERVICES } from '../../../src/common/constants';
 import { DbConfig } from '../../../src/common/interfaces';
 import { Transformer } from '../../../src/common/middlewares/transformer';
 import { createConnectionOptions } from '../../../src/common/utils';
-import { ProcessPolygonPartsRequestBody, ValidatePolygonPartsRequestBody } from '../../../src/polygonParts/controllers/interfaces';
+import { ProcessPolygonPartsRequestBody } from '../../../src/polygonParts/controllers/interfaces';
 import { History } from '../../../src/polygonParts/DAL/history';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
 import { namingStrategy } from '../../../src/polygonParts/DAL/utils';
@@ -20,7 +20,7 @@ import { ValidatePart } from '../../../src/polygonParts/DAL/validationPart';
 import { EntitiesMetadata, EntityIdentifierObject, PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import { validValidationPolygonPartsPayload } from '../../mocks/requestsMocks';
 import { INITIAL_DB } from './helpers/constants';
-import { createDB, deleteDB, HelperDB } from './helpers/db';
+import { createDB, deleteDB, HelperDB, InsertPayload } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import { generatePolygonPartsPayload } from './helpers/utils';
 
@@ -40,7 +40,7 @@ describe('process', () => {
    * @param payload - Initial data payload to insert
    * @returns Object containing entity metadata and table names
    */
-  const setupTestTablesWithInitialData = async (payload: Omit<ValidatePolygonPartsRequestBody, 'jobType'>) => {
+  const setupTestTablesWithInitialData = async (payload: InsertPayload) => {
     const entitiesMetadata = getEntitiesMetadata(payload);
     const polygonPartsTableName = entitiesMetadata.entitiesNames.polygonParts.entityName;
     const historyTableName = entitiesMetadata.entitiesNames.history.entityName;

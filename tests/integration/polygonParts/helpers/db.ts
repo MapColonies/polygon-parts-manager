@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-magic-numbers */
 import { faker } from '@faker-js/faker';
 import {
   CORE_VALIDATIONS,
@@ -17,9 +18,6 @@ import { setRepositoryTablePath } from '../../../../src/polygonParts/DAL/utils';
 import type { ExistsRequestBody, ValidatePolygonPartsRequestBody } from '../../../../src/polygonParts/controllers/interfaces';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 
-// Helper type for test data insertion - accepts string or Date for date fields
-type InsertPayload = Omit<ValidatePolygonPartsRequestBody, 'jobType'>;
-
 type PolygonPartFeature = z.infer<typeof polygonPartsFeatureSchema>;
 type PartialPolygonPartsPayload = Partial<Omit<PolygonPartsPayload, 'partsData'>> & {
   partsData?: {
@@ -29,6 +27,9 @@ type PartialPolygonPartsPayload = Partial<Omit<PolygonPartsPayload, 'partsData'>
 };
 const generateProductId = (): string => randexp(INGESTION_VALIDATIONS.productId.pattern);
 const generateProductType = (): RasterProductTypes => faker.helpers.arrayElement(RASTER_PRODUCT_TYPE_LIST);
+
+// Helper type for test data insertion - accepts string or Date for date fields
+export type InsertPayload = Omit<ValidatePolygonPartsRequestBody, 'jobType'>;
 
 export const createDB = async (options: Partial<DatabaseCreateContext>): Promise<void> => {
   await createDatabase({ ...options, synchronize: false, ifNotExist: true });
@@ -43,9 +44,7 @@ export const generateFeatureId = (): NonNullable<Feature['id']> => {
 };
 
 export const generatePolygon = (
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   options: Parameters<typeof randomPolygon>[1] = {
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     bbox: [-170, -80, 170, 80],
     // eslint-disable-next-line @typescript-eslint/naming-convention
     max_radial_length: faker.number.float({ min: Number.EPSILON, max: 10 }),
@@ -93,7 +92,6 @@ export const generatePolygonPart = (): PolygonPartFeature => {
           { count: { min: 1, max: 3 } }
         );
       }),
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
       description: faker.helpers.maybe(() => faker.word.words({ count: { min: 0, max: 10 } })),
       sourceId: faker.helpers.maybe(() => faker.word.words()),
     },

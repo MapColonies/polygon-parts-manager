@@ -163,14 +163,6 @@ export interface IsSwapQueryParams {
   isSwap: boolean;
 }
 
-export interface MoveValidationsToHistoryInTransactionOptions extends MoveValidationsToHistoryOptions {
-  entityManager: EntityManager;
-}
-
-export interface MoveValidationsToHistoryOptions {
-  entitiesMetadata: EntitiesMetadata;
-}
-
 export interface ProcessPolygonPartsOptions {
   entitiesMetadata: EntitiesMetadata;
   shouldClearEntities?: boolean;

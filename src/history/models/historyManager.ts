@@ -5,8 +5,8 @@ import type { EntityManager } from 'typeorm';
 import { SERVICES } from '../../common/constants';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
 import { deleteValidationsTable } from '../../common/utils';
-import type { MoveValidationsToHistoryOptions, MoveValidationsToHistoryInTransactionOptions } from '../../polygonParts/models/interfaces';
 import { ConnectionManager } from '../../common/connectionManager';
+import type { MoveValidationsToHistoryOptions, MoveValidationsToHistoryInTransactionOptions } from './interfaces';
 
 @injectable()
 export class HistoryManager {

@@ -8,6 +8,7 @@ import type {
   AggregationLayerMetadataParams,
   AggregationLayerMetadataResponseBody,
   ValidationEntityQuery,
+  ProcessPolygonPartsRequestBody,
   ExistsRequestBody,
   ExistsResponseBody,
   FindPolygonPartsParams,
@@ -64,6 +65,8 @@ export type ValidatePolygonPartsHandler = RequestHandler<
 >;
 
 export type DeleteValidationPolygonPartsEntityHandler = RequestHandler<undefined, undefined, undefined, ValidationEntityQuery, EntitiesMetadata>;
+
+export type ProcessPolygonPartsEntityHandler = RequestHandler<undefined, undefined, ProcessPolygonPartsRequestBody, undefined, EntitiesMetadata>;
 
 @injectable()
 export class PolygonPartsController {
@@ -137,7 +140,17 @@ export class PolygonPartsController {
   public deleteValidationPolygonParts: DeleteValidationPolygonPartsEntityHandler = async (req, res, next) => {
     try {
       await this.polygonPartsManager.deleteValidationPolygonParts(res.locals);
-      return res.status(httpStatus.NO_CONTENT).json();
+      return res.status(httpStatus.NO_CONTENT).send();
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public process: ProcessPolygonPartsEntityHandler = async (req, res, next) => {
+    try {
+      const { shouldClearEntities = false } = req.body;
+      await this.polygonPartsManager.process({ entitiesMetadata: res.locals, shouldClearEntities });
+      return res.status(httpStatus.NO_CONTENT).send();
     } catch (error) {
       next(error);
     }

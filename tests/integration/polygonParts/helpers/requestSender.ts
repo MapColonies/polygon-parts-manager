@@ -4,6 +4,7 @@ import type {
   AggregatePolygonPartsRequestBody,
   AggregationLayerMetadataParams,
   ValidationEntityQuery,
+  ProcessPolygonPartsRequestBody,
   ExistsRequestBody,
   FindPolygonPartsParams,
   FindPolygonPartsQueryParams,
@@ -62,5 +63,9 @@ export class PolygonPartsRequestSender {
 
   public async moveValidationsToHistory(query: ValidationEntityQuery): Promise<supertest.Response> {
     return supertest.agent(this.app).put('/history').query(query).send();
+  }
+
+  public async process(body: ProcessPolygonPartsRequestBody): Promise<supertest.Response> {
+    return supertest.agent(this.app).put('/polygonParts/process').set('Content-Type', 'application/json').send(body);
   }
 }

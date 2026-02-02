@@ -102,6 +102,12 @@ export class ConnectionManager {
     return exists;
   }
 
+  public async createInheritedTable(entityManager: EntityManager, childTableQualifiedName: string, parentTableQualifiedName: string): Promise<void> {
+    await entityManager.query(
+      `CREATE TABLE IF NOT EXISTS ${childTableQualifiedName} (LIKE ${parentTableQualifiedName} INCLUDING ALL) INHERITS (${parentTableQualifiedName});`
+    );
+  }
+
   private createConnectionOptions(dbConfig: DbConfig): PostgresConnectionOptions {
     const connectionOptions = createConnectionOptions(dbConfig);
     return { entities: [History, PolygonPart, ValidatePart], namingStrategy, logger: this.dataSourceLogger, ...connectionOptions };

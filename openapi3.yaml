@@ -330,6 +330,56 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
+  /polygonParts/process:
+    put:
+      tags:
+        - polygon-parts
+      summary: Process polygon parts validation entity
+      description: >
+        Process validation data from the temporary validation table into the history and polygon parts tables.
+
+        1. Creates polygon parts and history tables if they don't exist (idempotent operation)
+
+        2. Optionally truncates existing tables if `shouldClearEntities` is set to true (for swap operations)
+
+        3. Moves validation data to the history table
+
+        4. Splits MultiPolygon geometries into individual Polygon records with sequential insertion order
+
+        5. Executes stored procedure to process history data into the polygon parts table
+
+        6. Deletes the validation table after successful processing
+
+        **Note:** This operation is atomic - all steps succeed or fail together within a transaction.
+      operationId: process
+      requestBody:
+        description: Process polygon parts request body
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessPolygonPartsPayload'
+        required: true
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
   /history:
     put:
       tags:
@@ -814,6 +864,22 @@ components:
           type: integer
       description: >-
         Array of validation results per part (empty array means validation passed)
+    ProcessPolygonPartsPayload:
+      type: object
+      additionalProperties: false
+      required:
+        - productId
+        - productType
+      properties:
+        productId:
+          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductId
+        productType:
+          $ref: ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductType
+        shouldClearEntities:
+          type: boolean
+          description: Whether to truncate existing polygon parts and history tables before processing (for swap operations)
+          default: false
+      description: Process polygon parts request payload
     PolygonPartsFeatureCollection:
       type: object
       nullable: false

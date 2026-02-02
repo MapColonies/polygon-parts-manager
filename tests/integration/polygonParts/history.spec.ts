@@ -15,7 +15,7 @@ import { createConnectionOptions } from '../../../src/common/utils';
 import { ValidationEntityQuery, ValidatePolygonPartsRequestBody } from '../../../src/polygonParts/controllers/interfaces';
 import { History } from '../../../src/polygonParts/DAL/history';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
-import { namingStrategy, payloadToInsertValidationsData } from '../../../src/polygonParts/DAL/utils';
+import { namingStrategy } from '../../../src/polygonParts/DAL/utils';
 import { ValidatePart } from '../../../src/polygonParts/DAL/validationPart';
 import { EntitiesMetadata, EntityIdentifierObject, PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import { validValidationPolygonPartsPayload } from '../../mocks/requestsMocks';
@@ -29,31 +29,12 @@ const dbConfig = config.get<Required<DbConfig>>('db');
 const { schema } = dbConfig;
 
 describe('history', () => {
-  // jest.setTimeout(60000); // Set timeout for all tests in this suite
-
   let requestSender: PolygonPartsRequestSender;
   let helperDB: HelperDB;
   let getEntitiesMetadata: (
     entityIdentifierOptions: EntityIdentifierObject | Pick<PolygonPartsPayload, 'productId' | 'productType'>
   ) => EntitiesMetadata;
   let connectionManager: ConnectionManager;
-
-  // Helper function to insert validation data directly into the database
-  const insertValidationDataDirectly = async (validateRequest: ValidatePolygonPartsRequestBody): Promise<string> => {
-    const entitiesMetadata = getEntitiesMetadata({
-      productId: validateRequest.productId,
-      productType: validateRequest.productType,
-    });
-    const validationsTableName = entitiesMetadata.entitiesNames.validations.entityName;
-
-    await helperDB.query(`CALL ${schema}.create_polygon_parts_validations_tables('${schema}.${validationsTableName}')`);
-
-    const validationData = payloadToInsertValidationsData(validateRequest, applicationConfig.arraySeparator);
-
-    await helperDB.insert(`${schema}.${validationsTableName}`, ValidatePart, validationData);
-
-    return validationsTableName;
-  };
 
   beforeAll(async () => {
     testDataSourceOptions = {
@@ -62,7 +43,7 @@ describe('history', () => {
       ...createConnectionOptions(dbConfig),
     };
     await createDB({ options: testDataSourceOptions, initialDatabase: INITIAL_DB });
-    helperDB = new HelperDB(testDataSourceOptions);
+    helperDB = new HelperDB(testDataSourceOptions, schema);
     await helperDB.initConnection();
   });
 
@@ -91,7 +72,7 @@ describe('history', () => {
     jest.clearAllMocks();
 
     // Create schema and run migrations BEFORE initializing the app
-    await helperDB.createSchema(schema);
+    await helperDB.createSchema();
     await helperDB.sync();
 
     // Close and reinitialize helperDB connection to force commit
@@ -119,7 +100,7 @@ describe('history', () => {
 
     getEntitiesMetadata = container.resolve(Transformer).getEntitiesMetadata;
     requestSender = new PolygonPartsRequestSender(app);
-  }, 30000); // 30 second timeout for schema creation and migrations
+  });
 
   afterEach(async () => {
     // Ensure all connections are closed before dropping schema
@@ -132,7 +113,7 @@ describe('history', () => {
       // ConnectionManager may not be initialized in some tests
     }
 
-    await helperDB.dropSchema(schema);
+    await helperDB.dropSchema();
   });
 
   describe('PUT /history', () => {
@@ -144,8 +125,7 @@ describe('history', () => {
         };
 
         // Insert validation data directly into database
-        await insertValidationDataDirectly(validateRequest);
-
+        await requestSender.validatePolygonParts(validateRequest);
         const historyQuery: ValidationEntityQuery = {
           productId: validateRequest.productId,
           productType: validateRequest.productType,
@@ -162,15 +142,15 @@ describe('history', () => {
         expect(response).toSatisfyApiSpec();
 
         // Verify history table was created
-        const historyTableExists = await helperDB.tableExists(historyTableName, schema);
+        const historyTableExists = await helperDB.tableExists(historyTableName);
         expect(historyTableExists).toBe(true);
 
         // Verify validation table was deleted
-        const validationTableExists = await helperDB.tableExists(entitiesMetadata.entitiesNames.validations.entityName, schema);
+        const validationTableExists = await helperDB.tableExists(entitiesMetadata.entitiesNames.validations.entityName);
         expect(validationTableExists).toBe(false);
 
         // Verify data was inserted into history table
-        const historyData = await helperDB.getTableData(historyTableName, schema);
+        const historyData = await helperDB.getTableData(historyTableName);
         expect(historyData.length).toBeGreaterThan(0);
 
         expect.assertions(5);
@@ -212,8 +192,7 @@ describe('history', () => {
           jobType: JobTypes.Ingestion_New,
         };
 
-        await insertValidationDataDirectly(validateRequest);
-
+        await requestSender.validatePolygonParts(validateRequest);
         const historyQuery: ValidationEntityQuery = {
           productId: validateRequest.productId,
           productType: validateRequest.productType,
@@ -229,7 +208,7 @@ describe('history', () => {
         expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
 
         // Verify history table contains split polygons
-        const historyData = await helperDB.getTableData(historyTableName, schema);
+        const historyData = await helperDB.getTableData(historyTableName);
         expect(historyData).toHaveLength(2); // MultiPolygon with 2 parts should create 2 records
 
         expect.assertions(2);
@@ -241,8 +220,7 @@ describe('history', () => {
           jobType: JobTypes.Ingestion_New,
         };
 
-        await insertValidationDataDirectly(validateRequest);
-
+        await requestSender.validatePolygonParts(validateRequest);
         const historyQuery: ValidationEntityQuery = {
           productId: validateRequest.productId,
           productType: validateRequest.productType,
@@ -254,7 +232,7 @@ describe('history', () => {
         const historyTableName = partsEntityName.replace(new RegExp(`${partsSuffix}$`), '_history');
 
         // Verify history table doesn't exist yet
-        const historyTableExistsBefore = await helperDB.tableExists(historyTableName, schema);
+        const historyTableExistsBefore = await helperDB.tableExists(historyTableName);
         expect(historyTableExistsBefore).toBe(false);
 
         const response = await requestSender.moveValidationsToHistory(historyQuery);
@@ -262,7 +240,7 @@ describe('history', () => {
         expect(response.status).toBe(httpStatusCodes.NO_CONTENT);
 
         // Verify history table was created
-        const historyTableExistsAfter = await helperDB.tableExists(historyTableName, schema);
+        const historyTableExistsAfter = await helperDB.tableExists(historyTableName);
         expect(historyTableExistsAfter).toBe(true);
 
         expect.assertions(3);
@@ -314,17 +292,17 @@ describe('history', () => {
         const historyTableName = partsEntityName.replace(new RegExp(`${partsSuffix}$`), '_history');
 
         // First batch
-        await insertValidationDataDirectly(validateRequest1);
+        await requestSender.validatePolygonParts(validateRequest1);
         await requestSender.moveValidationsToHistory(historyQuery);
 
-        const historyDataAfterFirst = await helperDB.getTableData(historyTableName, schema);
+        const historyDataAfterFirst = await helperDB.getTableData(historyTableName);
         const firstBatchCount = historyDataAfterFirst.length;
 
         // Second batch
-        await insertValidationDataDirectly(validateRequest2);
+        await requestSender.validatePolygonParts(validateRequest2);
         await requestSender.moveValidationsToHistory(historyQuery);
 
-        const historyDataAfterSecond = await helperDB.getTableData(historyTableName, schema);
+        const historyDataAfterSecond = await helperDB.getTableData(historyTableName);
         expect(historyDataAfterSecond).toHaveLength(firstBatchCount + 1);
 
         expect.assertions(1);
@@ -336,8 +314,7 @@ describe('history', () => {
           jobType: JobTypes.Ingestion_New,
         };
 
-        await insertValidationDataDirectly(validateRequest);
-
+        await requestSender.validatePolygonParts(validateRequest);
         const historyQuery: ValidationEntityQuery = {
           productId: validateRequest.productId,
           productType: validateRequest.productType,
@@ -350,7 +327,7 @@ describe('history', () => {
 
         await requestSender.moveValidationsToHistory(historyQuery);
 
-        const historyData = await helperDB.getTableData(historyTableName, schema);
+        const historyData = await helperDB.getTableData(historyTableName);
         const firstRecord = historyData[0];
 
         // Verify essential columns exist
@@ -388,8 +365,7 @@ describe('history', () => {
           jobType: JobTypes.Ingestion_New,
         };
 
-        await insertValidationDataDirectly(validateRequest);
-
+        await requestSender.validatePolygonParts(validateRequest);
         const historyQuery: ValidationEntityQuery = {
           productId: validateRequest.productId,
           productType: validateRequest.productType,
@@ -417,8 +393,7 @@ describe('history', () => {
         };
 
         // Insert validation data FIRST before setting up mocks
-        await insertValidationDataDirectly(validateRequest);
-
+        await requestSender.validatePolygonParts(validateRequest);
         const historyQuery: ValidationEntityQuery = {
           productId: validateRequest.productId,
           productType: validateRequest.productType,
@@ -473,8 +448,7 @@ describe('history', () => {
           jobType: JobTypes.Ingestion_New,
         };
 
-        await insertValidationDataDirectly(validateRequest);
-
+        await requestSender.validatePolygonParts(validateRequest);
         const historyQuery: ValidationEntityQuery = {
           productId: validateRequest.productId,
           productType: validateRequest.productType,
@@ -523,8 +497,7 @@ describe('history', () => {
           jobType: JobTypes.Ingestion_New,
         };
 
-        await insertValidationDataDirectly(validateRequest);
-
+        await requestSender.validatePolygonParts(validateRequest);
         const historyQuery: ValidationEntityQuery = {
           productId: validateRequest.productId,
           productType: validateRequest.productType,

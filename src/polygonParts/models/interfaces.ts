@@ -1,5 +1,6 @@
 import type {
   AggregationFeature,
+  JobTypes,
   partSchema,
   PolygonPartsEntityName,
   polygonPartsEntityNameSchema,
@@ -17,6 +18,11 @@ interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData' | 'jobType
  * Polygonal geometries
  */
 type PolygonalGeometries = Polygon | MultiPolygon;
+
+/**
+ * Job types for ingestion operations
+ */
+export type IngestionJobTypes = Extract<JobTypes, 'Ingestion_New' | 'Ingestion_Update' | 'Ingestion_Swap_Update'>;
 
 /**
  * Properties of part data for insertion
@@ -155,6 +161,11 @@ export interface EntitiesMetadata {
 
 export interface IsSwapQueryParams {
   isSwap: boolean;
+}
+
+export interface ProcessPolygonPartsOptions {
+  entitiesMetadata: EntitiesMetadata;
+  shouldClearEntities?: boolean;
 }
 
 export interface FilterQueryMetadata {

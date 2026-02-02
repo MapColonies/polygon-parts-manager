@@ -9,6 +9,7 @@ import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
+import { HistoryManager } from '../../history/models/historyManager';
 import { deleteValidationsTable } from '../../common/utils';
 import { History } from '../DAL/history';
 import { PolygonPart } from '../DAL/polygonPart';
@@ -43,6 +44,7 @@ import type {
   IsValidDetailsResult,
   PolygonPartsPayload,
   PolygonPartsResponse,
+  ProcessPolygonPartsOptions,
 } from './interfaces';
 
 type EntitiesMetadataWithoutValidations = Pick<EntitiesMetadata, 'entityIdentifier'> & {
@@ -66,7 +68,8 @@ export class PolygonPartsManager {
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(SERVICES.CONFIG) private readonly config: IConfig,
-    @inject(SERVICES.CONNECTION_MANAGER) private readonly connectionManager: ConnectionManager
+    @inject(SERVICES.CONNECTION_MANAGER) private readonly connectionManager: ConnectionManager,
+    @inject(HistoryManager) private readonly historyManager: HistoryManager
   ) {
     this.applicationConfig = this.config.get('application');
     this.schema = config.get('db.schema');
@@ -375,6 +378,70 @@ export class PolygonPartsManager {
       });
     } catch (error) {
       const errorMessage = 'Validation table deletes query transaction failed';
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
+  public async process(options: ProcessPolygonPartsOptions): Promise<void> {
+    const { entitiesMetadata, shouldClearEntities = false } = options;
+    const {
+      history: { databaseObjectQualifiedName: historyEntityQualifiedName, entityName: historyEntityName },
+      polygonParts: { databaseObjectQualifiedName: polygonPartsEntityQualifiedName, entityName: polygonPartsEntityName },
+      validations: { entityName: validationsEntityName },
+    } = entitiesMetadata.entitiesNames;
+
+    const logger = this.logger.child({ validationsEntityName, shouldClearEntities });
+    logger.info({ msg: 'processing polygon parts from validation table' });
+
+    try {
+      await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        await entityManager.query(`SET search_path TO ${this.schema},public`);
+
+        const validationTableExists = await this.connectionManager.entityExists(entityManager, validationsEntityName);
+        if (!validationTableExists) {
+          throw new NotFoundError(`Validation table with the name '${validationsEntityName}' doesn't exist`);
+        }
+
+        if (shouldClearEntities) {
+          const polygonPartsExists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName);
+          const historyExists = await this.connectionManager.entityExists(entityManager, historyEntityName);
+
+          if (!polygonPartsExists || !historyExists) {
+            throw new NotFoundError(
+              `Cannot truncate tables that don't exist. Missing: ${[
+                !polygonPartsExists && polygonPartsEntityName,
+                !historyExists && historyEntityName,
+              ]
+                .filter(Boolean)
+                .join(', ')}`
+            );
+          }
+
+          logger.debug({ msg: 'truncating polygon parts and history tables' });
+          await this.truncateEntity(entityManager, polygonPartsEntityName);
+          await this.truncateEntity(entityManager, historyEntityName);
+        }
+
+        logger.debug({ msg: 'ensuring polygon parts and history tables exist' });
+        await this.connectionManager.createInheritedTable(entityManager, polygonPartsEntityQualifiedName, '"polygon_parts"');
+        await this.connectionManager.createInheritedTable(entityManager, historyEntityQualifiedName, '"history"');
+
+        await this.historyManager.moveValidationsToHistoryInTransaction({ entitiesMetadata, entityManager });
+
+        logger.debug({ msg: 'processing history parts into polygon parts table', historyEntityQualifiedName, polygonPartsEntityQualifiedName });
+        await entityManager.query(
+          `CALL ${this.applicationConfig.updatePolygonPartsTablesStoredProcedure}('${historyEntityQualifiedName}'::regclass, '${polygonPartsEntityQualifiedName}'::regclass, ${this.applicationConfig.entities.polygonParts.minAreaSquareDeg});`
+        );
+
+        logger.info({
+          msg: 'polygon parts processed successfully',
+          historyEntityQualifiedName,
+          polygonPartsEntityQualifiedName,
+        });
+      });
+    } catch (error) {
+      const errorMessage = 'Process polygon parts transaction failed';
       logger.error({ msg: errorMessage, error });
       throw error;
     }

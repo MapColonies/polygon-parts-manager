@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.0.0](https://github.com/MapColonies/polygon-parts-manager/compare/v2.1.1-alpha.2...v3.0.0) (2026-02-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* add process endpoint (MAPCO-9049) (#66)
+
+### Features
+
+* add process endpoint (MAPCO-9049) ([#66](https://github.com/MapColonies/polygon-parts-manager/issues/66)) ([8617463](https://github.com/MapColonies/polygon-parts-manager/commit/86174632d912923b5aa79e7154f8637f89ecf3b5)), closes [#67](https://github.com/MapColonies/polygon-parts-manager/issues/67)
+
 ### [2.1.1-alpha.1](https://github.com/MapColonies/polygon-parts-manager/compare/v2.1.1-alpha.0...v2.1.1-alpha.1) (2026-01-04)
 
 ### [2.1.1-alpha.0](https://github.com/MapColonies/polygon-parts-manager/compare/v2.1.1-alpha...v2.1.1-alpha.0) (2025-12-30)

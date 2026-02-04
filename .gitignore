@@ -6,7 +6,6 @@ helm/local.yaml
 helm/Chart.lock
 local
 #generated files
-bundledApi.yaml
 SchemaRaster
 
 # Logs

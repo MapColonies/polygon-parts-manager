@@ -6,6 +6,7 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
+security: []
 paths:
   /polygonParts:
     post:
@@ -138,9 +139,7 @@ paths:
         - polygon-parts
       summary: Find and filter polygon parts based on spatial criteria
       description: >
-        Search for polygon parts based on spatial intersection with search
-        geometries. Takes a GeoJSON FeatureCollection of search geometries with
-        optional resolution filters.
+        Search for polygon parts based on spatial intersection with search geometries. Takes a GeoJSON FeatureCollection of search geometries with optional resolution filters.
 
           **Filter Logic**
           - Returns polygon parts intersecting with input search geometries
@@ -165,8 +164,7 @@ paths:
         - in: query
           name: shouldClip
           description: >
-            Clips results to search area when true, returns complete geometries
-            when false
+            Clips results to search area when true, returns complete geometries when false
           schema:
             type: boolean
             default: true
@@ -207,11 +205,9 @@ paths:
       tags:
         - polygon-parts
       summary: >
-        Get aggregated polygon parts data by polygon parts entity name and
-        polygon parts filter (optional)
+        Get aggregated polygon parts data by polygon parts entity name and polygon parts filter (optional)
       description: >
-        Get aggregated polygon parts data by polygon parts entity name and
-        polygon parts filter (optional)
+        Get aggregated polygon parts data by polygon parts entity name and polygon parts filter (optional)
       operationId: aggregationLayerMetadata
       parameters:
         - in: path
@@ -259,9 +255,7 @@ paths:
         - polygon-parts
       summary: Validate polygon parts before insertion
       description: >
-        Validates polygon parts data by creating a temporary validation table,
-        inserting the chunk data, and running validation rules. Returns
-        validation errors or empty array if validation passes.
+        Validates polygon parts data by creating a temporary validation table, inserting the chunk data, and running validation rules. Returns validation errors or empty array if validation passes.
       operationId: validatePolygonParts
       requestBody:
         description: Polygon parts validation payload
@@ -345,27 +339,21 @@ paths:
         - polygon-parts
       summary: Process polygon parts validation entity
       description: >
-        Process validation data from the temporary validation table into the
-        history and polygon parts tables.
+        Process validation data from the temporary validation table into the history and polygon parts tables.
 
-        1. Creates polygon parts and history tables if they don't exist
-        (idempotent operation)
+        1. Creates polygon parts and history tables if they don't exist (idempotent operation)
 
-        2. Optionally truncates existing tables if `shouldClearEntities` is set
-        to true (for swap operations)
+        2. Optionally truncates existing tables if `shouldClearEntities` is set to true (for swap operations)
 
         3. Moves validation data to the history table
 
-        4. Splits MultiPolygon geometries into individual Polygon records with
-        sequential insertion order
+        4. Splits MultiPolygon geometries into individual Polygon records with sequential insertion order
 
-        5. Executes stored procedure to process history data into the polygon
-        parts table
+        5. Executes stored procedure to process history data into the polygon parts table
 
         6. Deletes the validation table after successful processing
 
-        **Note:** This operation is atomic - all steps succeed or fail together
-        within a transaction.
+        **Note:** This operation is atomic - all steps succeed or fail together within a transaction.
       operationId: process
       requestBody:
         description: Process polygon parts request body
@@ -401,10 +389,7 @@ paths:
         - history
       summary: Transfer polygon parts validation entity to history
       description: >
-        Moves validation data from the temporary validation table to a history
-        table. If the history table doesn't exist, it will be created. This
-        operation splits MultiPolygons into Polygons and then drops the
-        validation table.
+        Moves validation data from the temporary validation table to a history table. If the history table doesn't exist, it will be created. This operation splits MultiPolygons into Polygons and then drops the validation table.
       operationId: moveValidationsToHistory
       parameters:
         - in: query
@@ -443,8 +428,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
-security:
-  - {}
 components:
   schemas:
     AggregationFeature:
@@ -780,9 +763,7 @@ components:
             ./SchemaRaster/core/layerMetadata.yaml#/components/schemas/ProductVersion
         requestFeatureId:
           description: >
-            If shouldClip is set to true, only a single FeatureId is returned
-            per Feature. Otherwise, it can return either a single FeatureId or
-            an array of FeatureIds per Feature
+            If shouldClip is set to true, only a single FeatureId is returned per Feature. Otherwise, it can return either a single FeatureId or an array of FeatureIds per Feature
           oneOf:
             - $ref: '#/components/schemas/FeatureId'
             - type: array
@@ -893,8 +874,7 @@ components:
         smallHolesCount:
           type: integer
       description: >-
-        Array of validation results per part (empty array means validation
-        passed)
+        Array of validation results per part (empty array means validation passed)
     ProcessPolygonPartsPayload:
       type: object
       additionalProperties: false
@@ -910,8 +890,7 @@ components:
         shouldClearEntities:
           type: boolean
           description: >-
-            Whether to truncate existing polygon parts and history tables before
-            processing (for swap operations)
+            Whether to truncate existing polygon parts and history tables before processing (for swap operations)
           default: false
       description: Process polygon parts request payload
     PolygonPartsFeatureCollection:

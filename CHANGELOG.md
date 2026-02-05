@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.1.0](https://github.com/MapColonies/polygon-parts-manager/compare/v3.0.0...v3.1.0) (2026-02-05)
+
+
+### Features
+
+* maintance, upgrade node to 24 (MAPCO-7218) ([#68](https://github.com/MapColonies/polygon-parts-manager/issues/68)) ([183f5ff](https://github.com/MapColonies/polygon-parts-manager/commit/183f5ffcd5a18abfa535b1e281f55717ee23cc36))
+
 ## [3.0.0](https://github.com/MapColonies/polygon-parts-manager/compare/v2.1.1-alpha.2...v3.0.0) (2026-02-02)
 
 

@@ -248,6 +248,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
+  /datasets/{id}:
+    put:
+      tags:
+        - datasets
+      summary: >
+        Insert validated datasets into datasets
+      description: >
+        Insert validated datasets into datasets by an id (entity name), creating the resource if it did not existed (upsert).
+        The action also deletes the validated datasets
+      operationId: upsertDataset
+      parameters:
+        - in: path
+          name: id
+          description: Entity name identifying the resource
+          schema:
+            $ref: './SchemaRaster/core/polygon-parts.yaml#/components/schemas/PolygonPartsEntityName'
+          required: true
+      responses:
+        '201':
+          description: Created
+          headers:
+            Location:
+              description: URL of the newly created user resource
+              required: true
+              schema:
+                type: string
+                format: uri
+                example: /datasets/world_orthophoto
+        '204':
+          description: No Content
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
   /polygonParts/validate:
     post:
       tags:

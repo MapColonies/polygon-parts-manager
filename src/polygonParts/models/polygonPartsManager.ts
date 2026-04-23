@@ -2,21 +2,22 @@ import { BadRequestError, ConflictError, InternalServerError, NotFoundError } fr
 import type { Logger } from '@map-colonies/js-logger';
 import { AggregationFeature, CORE_VALIDATIONS, JobTypes } from '@map-colonies/raster-shared';
 import { geometryCollection } from '@turf/helpers';
+import { Geometry, GeometryCollection } from 'geojson';
+import _ from 'lodash';
 import { inject, injectable } from 'tsyringe';
 import type { EntityManager, SelectQueryBuilder } from 'typeorm';
-import _ from 'lodash';
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
+import { FeatureValidationError } from '../../common/enums';
 import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
-import { HistoryManager } from '../../history/models/historyManager';
 import { deleteValidationsTable } from '../../common/utils';
+import { HistoryManager } from '../../history/models/historyManager';
 import { History } from '../DAL/history';
 import { PolygonPart } from '../DAL/polygonPart';
 import { payloadToInsertPartsDataToHistory, payloadToInsertValidationsData, setRepositoryTablePath } from '../DAL/utils';
-import { ValidateError, ValidatePolygonPartsRequestBody, ValidatePolygonPartsResponseBody } from '../controllers/interfaces';
-import { FeatureValidationError } from '../../common/enums';
 import { ValidatePart } from '../DAL/validationPart';
+import { ValidateError, ValidatePolygonPartsRequestBody, ValidatePolygonPartsResponseBody } from '../controllers/interfaces';
 import {
   findSelectOutputColumns,
   geometryColumn,
@@ -25,6 +26,7 @@ import {
   isValidDetailsResult,
   minResolutionDeg,
   requestFeatureId,
+  resolutionDegreeColumn,
 } from './constants';
 import type {
   AggregateLayerMetadataOptions,
@@ -41,6 +43,8 @@ import type {
   FindPolygonPartsResponse,
   FindQueryFilterOptions,
   FindQuerySelectOptions,
+  IntersectionOptions,
+  IntersectionResponse,
   IsValidDetailsResult,
   PolygonPartsPayload,
   PolygonPartsResponse,
@@ -64,6 +68,7 @@ export class PolygonPartsManager {
   private readonly applicationConfig: ApplicationConfig;
   private readonly schema: DbConfig['schema'];
   private readonly findMaxDecimalDigits: ApplicationConfig['entities']['polygonParts']['find']['maxDecimalDigits'];
+  // private readonly intersectionMaxDecimalDigits: ApplicationConfig['entities']['polygonParts']['intersection']['maxDecimalDigits'];
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
@@ -194,6 +199,57 @@ export class PolygonPartsManager {
       return response.geojson;
     } catch (error) {
       const errorMessage = 'Find polygon parts transaction failed';
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
+  public async intersection({ geometry, polygonPartsEntityName }: IntersectionOptions): Promise<IntersectionResponse> {
+    const logger = this.logger.child({ polygonPartsEntityName: polygonPartsEntityName.entityName });
+    logger.info({ msg: 'Intersection' });
+
+    try {
+      const response = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        const exists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName.entityName);
+        if (!exists) {
+          throw new NotFoundError(`Table with the name '${polygonPartsEntityName.entityName}' doesn't exists`);
+        }
+
+        const geometries = geometry.features.map((feature) => feature.geometry);
+        const isValidGeometry = await this.validateGeometries({
+          entityManager,
+          geometries,
+        });
+
+        if (!isValidGeometry.valid) {
+          throw new BadRequestError(
+            `Invalid geometry : ${isValidGeometry.reason}. ${isValidGeometry.location ? `Location: ${JSON.stringify(isValidGeometry.location)}` : ''}`
+          );
+        }
+
+        const intersectionQuery = this.buildIntersectionQuery({
+          entityManager,
+          geometry,
+          polygonPartsEntityName,
+        });
+
+        try {
+          const polygonParts = await intersectionQuery.getRawOne<IntersectionResponse>();
+          return polygonParts;
+        } catch (error) {
+          const errorMessage = `Could not complete intersection '${polygonPartsEntityName.entityName}'`;
+          logger.error({ msg: errorMessage, error });
+          throw error;
+        }
+      });
+
+      if (!response) {
+        throw new InternalServerError('Could not generate response');
+      }
+
+      return response;
+    } catch (error) {
+      const errorMessage = 'Intersection transaction failed';
       logger.error({ msg: errorMessage, error });
       throw error;
     }
@@ -1006,6 +1062,43 @@ export class PolygonPartsManager {
     return filterPolygonPartsQuery;
   }
 
+  private buildIntersectionQuery(
+    context: IntersectionOptions & {
+      entityManager: EntityManager;
+    }
+  ): SelectQueryBuilder<IntersectionResponse> {
+    const { entityManager, geometry, polygonPartsEntityName } = context;
+    const { maxDecimalDigits } = this.applicationConfig.entities.polygonParts.intersection;
+
+    const geometryJSONString = JSON.stringify(geometry.features[0].geometry);
+
+    const outputGeometryCTE = entityManager
+      .createQueryBuilder()
+      .select(`st_setsrid(st_union(st_intersection(${geometryColumn}, st_geomfromgeojson('${geometryJSONString}'))), 4326)`, 'geometry')
+      .from<IntersectionResponse>(polygonPartsEntityName.databaseObjectQualifiedName, polygonPartsEntityName.entityName)
+      .where(`${resolutionDegreeColumn} = :resolutionDegree`, { resolutionDegree: geometry.features[0].properties.resolutionDegree })
+      .andWhere(`st_intersects(${geometryColumn}, st_geomfromgeojson(:geometry))`, { geometry: geometry.features[0].geometry });
+
+    const intersectionQuery = entityManager
+      .createQueryBuilder()
+      .addCommonTableExpression(outputGeometryCTE, 'output_geometry')
+      .select(
+        `jsonb_build_object(
+          'type', 'FeatureCollection',
+          'features', coalesce(jsonb_agg(
+            jsonb_build_object(
+              'type', 'Feature',
+              'geometry', st_asgeojson(geometry, ${maxDecimalDigits})::jsonb,
+              'properties', '{}'::json
+            )
+          ), '[]')
+        ) AS ${'geojson' satisfies keyof FindPolygonPartsQueryResponse}`
+      )
+      .from<IntersectionResponse>('output_geometry', 'output_geometry');
+
+    return intersectionQuery;
+  }
+
   private async calculatePolygonParts(context: {
     entitiesMetadata: EntitiesMetadataWithoutValidations;
     entityManager: EntityManager;
@@ -1150,14 +1243,8 @@ export class PolygonPartsManager {
       return;
     }
 
-    const filterGeometries = filter.features.map((feature) => feature.geometry);
-    const geometriesCollection = geometryCollection(filterGeometries).geometry;
-    const isValidFilterGeometry = (
-      await entityManager.query<IsValidDetailsResult[]>(
-        `select ${isValidDetailsResult.valid}, ${isValidDetailsResult.reason}, st_asgeojson(location) as ${isValidDetailsResult.location} from st_isvaliddetail(st_setsrid(st_geomfromgeojson($1), 4326))`,
-        [JSON.stringify(geometriesCollection)]
-      )
-    )[0];
+    const geometries = filter.features.map((feature) => feature.geometry);
+    const isValidFilterGeometry = await this.validateGeometries({ entityManager, geometries });
 
     if (!isValidFilterGeometry.valid) {
       throw new BadRequestError(
@@ -1166,5 +1253,22 @@ export class PolygonPartsManager {
         }`
       );
     }
+  }
+
+  private async validateGeometries({
+    entityManager,
+    geometries,
+  }: {
+    entityManager: EntityManager;
+    geometries: Exclude<Geometry, GeometryCollection>[];
+  }): Promise<IsValidDetailsResult> {
+    const geometriesCollection = geometryCollection(geometries).geometry;
+    const areValidGeometries = (
+      await entityManager.query<IsValidDetailsResult[]>(
+        `select ${isValidDetailsResult.valid}, ${isValidDetailsResult.reason}, st_asgeojson(location) as ${isValidDetailsResult.location} from st_isvaliddetail(st_setsrid(st_geomfromgeojson($1), 4326))`,
+        [JSON.stringify(geometriesCollection)]
+      )
+    )[0];
+    return areValidGeometries;
   }
 }

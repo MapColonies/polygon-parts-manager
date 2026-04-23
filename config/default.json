@@ -43,6 +43,9 @@
         "find": {
           "maxDecimalDigits": 15
         },
+        "intersection": {
+          "maxDecimalDigits": 15
+        },
         "namePrefix": "",
         "nameSuffix": "",
         "minAreaSquareDeg": 1e-15
@@ -84,7 +87,7 @@
     "schema": "polygon_parts",
     "synchronize": false,
     "migrationsRun": false,
-    "logging": false,
+    "logging": "all",
     "entities": ["**/DAL/*.js"],
     "migrations": ["db/migrations/*.js"],
     "applicationName": "polygon_parts",

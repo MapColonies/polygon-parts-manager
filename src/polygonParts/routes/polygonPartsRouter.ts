@@ -17,6 +17,12 @@ const polygonPartsRouterFactory: FactoryFunction<Router> = (dependencyContainer)
     transformer.parseAggregateLayerMetadata,
     controller.aggregateLayerMetadata
   );
+  router.post(
+    '/:polygonPartsEntityName/intersection',
+    validations.validateIntersection,
+    transformer.parseIntersectionPolygonParts,
+    controller.intersection
+  );
   router.post('/exists', validations.validateExistsPolygonParts, transformer.parseExistsPolygonParts, controller.existsPolygonParts);
   router.post('/', validations.validateCreatePolygonParts, transformer.parseCreatePolygonParts, controller.createPolygonParts);
   router.put('/', validations.validateUpdatePolygonParts, transformer.parseUpdatePolygonParts, controller.updatePolygonParts);

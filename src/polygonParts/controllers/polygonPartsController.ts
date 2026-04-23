@@ -7,16 +7,19 @@ import type {
   AggregatePolygonPartsRequestBody,
   AggregationLayerMetadataParams,
   AggregationLayerMetadataResponseBody,
-  ValidationEntityQuery,
-  ProcessPolygonPartsRequestBody,
   ExistsRequestBody,
   ExistsResponseBody,
   FindPolygonPartsParams,
   FindPolygonPartsQueryParams,
   FindPolygonPartsRequestBody,
   FindPolygonPartsResponseBody,
+  IntersectionParams,
+  IntersectionRequestBody,
+  IntersectionResponseBody,
+  ProcessPolygonPartsRequestBody,
   ValidatePolygonPartsRequestBody,
   ValidatePolygonPartsResponseBody,
+  ValidationEntityQuery,
 } from './interfaces';
 
 /**
@@ -39,6 +42,11 @@ type FindPolygonPartsHandler = RequestHandler<
   FindPolygonPartsQueryParams,
   EntitiesMetadata
 >;
+
+/**
+ * Intersection handler
+ */
+type IntersectionHandler = RequestHandler<IntersectionParams, IntersectionResponseBody, IntersectionRequestBody, undefined, EntitiesMetadata>;
 
 /**
  * Update polygon parts handler
@@ -98,6 +106,18 @@ export class PolygonPartsController {
       const response = await this.polygonPartsManager.findPolygonParts({
         shouldClip: req.query.shouldClip,
         filter: req.body.filter,
+        polygonPartsEntityName: res.locals.entitiesNames.polygonParts,
+      });
+      return res.status(httpStatus.OK).send(response);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public intersection: IntersectionHandler = async (req, res, next) => {
+    try {
+      const response = await this.polygonPartsManager.intersection({
+        geometry: req.body,
         polygonPartsEntityName: res.locals.entitiesNames.polygonParts,
       });
       return res.status(httpStatus.OK).send(response);

@@ -3,6 +3,7 @@ import {
   featureCollectionSchema,
   featureSchema,
   multiPolygonSchema,
+  partSchema,
   polygonPartsEntityPatternSchema,
   polygonSchema,
   roiPropertiesSchema,
@@ -22,7 +23,11 @@ const polygonPartsEntityNamePatternSchema = z
   .string()
   .regex(new RegExp(INGESTION_VALIDATIONS.polygonPartsEntityName.pattern), { message: 'Polygon parts entity name should valid entity name' });
 const findPolygonPartsFeatureSchema = featureSchema(polygonSchema.or(multiPolygonSchema), roiPropertiesSchema.partial().passthrough().nullable());
+const intersectionFeatureSchema = featureSchema(polygonSchema.or(multiPolygonSchema), partSchema._def.schema.pick({ resolutionDegree: true }));
 const findPolygonPartsFeatureCollectionSchema = featureCollectionSchema(findPolygonPartsFeatureSchema);
+const intersectionFeatureCollectionSchema = featureCollectionSchema(intersectionFeatureSchema).and(
+  z.object({ features: intersectionFeatureSchema.array().length(1) })
+);
 
 export const aggregationPolygonPartsRequestBodySchema = z.object({
   filter: aggregatePolygonPartsFeatureCollectionSchema.nullable(),
@@ -35,6 +40,8 @@ export const findPolygonPartsQueryParamsSchema: ZodType<FindPolygonPartsQueryPar
 export const findPolygonPartsRequestBodySchema = z.object({
   filter: findPolygonPartsFeatureCollectionSchema.nullable(),
 });
+
+export const intersectionRequestBodySchema = intersectionFeatureCollectionSchema;
 
 export const updatePolygonPartsQueryParamsSchema: ZodType<IsSwapQueryParams> = z.object({
   isSwap: z.boolean(),

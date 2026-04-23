@@ -2,6 +2,7 @@ import type {
   AggregationFeature,
   JobTypes,
   partSchema,
+  PartFeatureProperties,
   PolygonPartsEntityName,
   polygonPartsEntityNameSchema,
   PolygonPartsPayload as PolygonPartsPayloadType,
@@ -34,7 +35,9 @@ export interface InsertPartDataToHistory extends Readonly<Omit<CommonPayload, 'c
   readonly footprint: Polygon;
 }
 
-//Used for the Base record
+export type IntersectionProperties = Pick<PartFeatureProperties, 'resolutionDegree'>;
+
+// Used for the Base record
 export interface BasePart extends Readonly<Omit<InsertPartDataToHistory, 'footprint' | 'id'>> {}
 
 export interface ValidatePartData extends Readonly<BasePart> {
@@ -43,6 +46,7 @@ export interface ValidatePartData extends Readonly<BasePart> {
 }
 
 export type FeatureCollectionFilter = FeatureCollection<PolygonalGeometries, (GeoJsonProperties & Partial<RoiProperties>) | null>;
+export type FeatureCollectionIntersection = FeatureCollection<PolygonalGeometries, IntersectionProperties>;
 
 /**
  * Find polygon parts options
@@ -77,6 +81,19 @@ export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = Fea
     requestFeatureId?: NonNullable<Feature['id']> | (ShouldClip extends true ? never : NonNullable<Feature['id']>[]);
   }
 >;
+
+/**
+ * Intersection options
+ */
+export interface IntersectionOptions {
+  readonly polygonPartsEntityName: EntityNames;
+  readonly geometry: FeatureCollectionIntersection;
+}
+
+/**
+ * Itersection response
+ */
+export type IntersectionResponse = FeatureCollection<PolygonalGeometries, Record<string, never>>;
 
 /**
  * Polygon parts ingestion payload - based on data producer

@@ -11,6 +11,7 @@ import {
   aggregationPolygonPartsRequestBodySchema,
   findPolygonPartsQueryParamsSchema,
   findPolygonPartsRequestBodySchema,
+  intersectionRequestBodySchema,
   schemaParser,
   updatePolygonPartsQueryParamsSchema,
 } from '../schemas';
@@ -29,6 +30,11 @@ type ExistsPolygonPartsValidationHandler = RequestHandler<undefined, undefined, 
  * Find polygon parts validation handler
  */
 type FindPolygonPartsValidationHandler = RequestHandler<unknown, undefined, unknown, unknown>;
+
+/**
+ * Intersection validation handler
+ */
+type IntersectionValidationHandler = RequestHandler<unknown, undefined, unknown, undefined>;
 
 /**
  * Update polygon parts validation handler
@@ -131,6 +137,24 @@ export class ValidationsController {
       next();
     } catch (error) {
       this.logger.error({ msg: 'aggregate layer metadata validation failed', error });
+      if (error instanceof ValidationError) {
+        throw new BadRequestError(error.message);
+      }
+      next(error);
+    }
+  };
+
+  public readonly validateIntersection: IntersectionValidationHandler = (req, _, next) => {
+    try {
+      schemaParser({ schema: polygonPartsEntityNameSchema, value: req.params, errorMessagePrefix: 'Invalid request params' });
+      schemaParser({
+        schema: intersectionRequestBodySchema,
+        value: req.body,
+        errorMessagePrefix: 'Invalid request body',
+      });
+      next();
+    } catch (error) {
+      this.logger.error({ msg: 'intersection validation failed', error });
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }

@@ -1076,7 +1076,7 @@ export class PolygonPartsManager {
       .createQueryBuilder()
       .select(`st_setsrid(st_union(st_intersection(${geometryColumn}, st_geomfromgeojson('${geometryJSONString}'))), 4326)`, 'geometry')
       .from<IntersectionResponse>(polygonPartsEntityName.databaseObjectQualifiedName, polygonPartsEntityName.entityName)
-      .where(`${resolutionDegreeColumn} = :resolutionDegree`, { resolutionDegree: geometry.features[0].properties.resolutionDegree })
+      .where(`${resolutionDegreeColumn} <= :resolutionDegree`, { resolutionDegree: geometry.features[0].properties.resolutionDegree })
       .andWhere(`st_intersects(${geometryColumn}, st_geomfromgeojson(:geometry))`, { geometry: geometry.features[0].geometry });
 
     const intersectionQuery = entityManager

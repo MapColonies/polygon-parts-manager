@@ -338,7 +338,10 @@ export class PolygonPartsManager {
           .groupBy('id')
           .map((group, id) => ({
             id,
-            errors: _.uniq(group.flatMap((g) => g.errors)),
+            errors: _.uniqBy(
+              group.flatMap((g) => g.errors),
+              'code'
+            ),
           }))
           .value();
 
@@ -508,7 +511,7 @@ export class PolygonPartsManager {
 
       const result: ValidateError[] = rows.map(({ id }) => ({
         id,
-        errors: [FeatureValidationError.GEOMETRY_VALIDITY],
+        errors: [{ code: FeatureValidationError.GEOMETRY_VALIDITY }],
       }));
 
       return result;
@@ -544,7 +547,7 @@ export class PolygonPartsManager {
         count: dbResponse.count,
         parts: dbResponse.ids.map((id) => ({
           id,
-          errors: [FeatureValidationError.SMALL_GEOMETRY],
+          errors: [{ code: FeatureValidationError.SMALL_GEOMETRY }],
         })),
       };
 
@@ -635,7 +638,7 @@ export class PolygonPartsManager {
         count: dbResponse.count,
         parts: dbResponse.ids.map((id) => ({
           id,
-          errors: [FeatureValidationError.SMALL_HOLES],
+          errors: [{ code: FeatureValidationError.SMALL_HOLES }],
         })),
       };
 
@@ -699,18 +702,27 @@ export class PolygonPartsManager {
       }
       const rows = await entityManager
         .createQueryBuilder()
-        .select(`${this.applicationConfig.validateResolutionsFunction}(:qualifiedValidationName, :qualifiedPolygonPartsName)`, 'id')
-        .from('(SELECT 1)', 't')
+        .select('validation_result.id', 'id')
+        .addSelect('validation_result.new_resolution', 'newResolution')
+        .addSelect('validation_result.existing_resolution', 'existingResolution')
+        .from(`${this.applicationConfig.validateResolutionsFunction}(:qualifiedValidationName, :qualifiedPolygonPartsName)`, 'validation_result')
         .setParameters({
           qualifiedValidationName: validationsEntityQualifiedName,
           qualifiedPolygonPartsName: polygonPartsEntityQualifiedName,
         })
-        .getRawMany<{ id: string }>();
+        .getRawMany<{ id: string; newResolution: string; existingResolution: string }>();
 
-      const result: ValidateError[] = rows.map(({ id }) => ({
-        id,
-        errors: [FeatureValidationError.RESOLUTION],
-      }));
+      const resolutionZoomLevelThreshold = this.config.get<number>('application.validation.resolutionZoomLevelThreshold');
+
+      const result: ValidateError[] = rows.map((row) => {
+        const resNew = Number(row.newResolution);
+        const resExisting = Number(row.existingResolution);
+        const zoomLevelDifference = resNew > 0 && resExisting > 0 ? Math.log2(resNew / resExisting) : 0;
+
+        return {
+          id: row.id,
+          errors: [{ code: FeatureValidationError.RESOLUTION, isExceeded: zoomLevelDifference > resolutionZoomLevelThreshold }],
+        }});
       return result;
     } catch (error) {
       const errorMessage = `Could not get validate resolutions in: ${validationsEntityQualifiedName}`;

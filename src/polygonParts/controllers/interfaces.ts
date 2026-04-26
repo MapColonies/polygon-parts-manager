@@ -58,10 +58,22 @@ export interface AggregationLayerMetadataParams {
  */
 export interface AggregationLayerMetadataResponseBody extends AggregationLayerMetadataResponse {}
 
+export interface ValidationErrorDetailResolution {
+  code: FeatureValidationError.RESOLUTION;
+  isExceeded: boolean;
+}
+
+export interface ValidationErrorDetailGeneral {
+  code: Exclude<FeatureValidationError, FeatureValidationError.RESOLUTION>;
+}
+
+export type ValidationErrorDetail = ValidationErrorDetailResolution | ValidationErrorDetailGeneral;
+
 export interface ValidateError {
   id: string;
-  errors: FeatureValidationError[];
+  errors: ValidationErrorDetail[];
 }
+
 export interface ValidatePolygonPartsResponseBody {
   parts: ValidateError[];
   smallGeometriesCount: number;

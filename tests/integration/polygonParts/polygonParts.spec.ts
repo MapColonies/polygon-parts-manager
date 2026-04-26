@@ -8453,11 +8453,11 @@
 //           parts: [
 //             {
 //               id: invalidGeometriesValidateRequest.partsData.features[0].properties.id,
-//               errors: [FeatureValidationError.GEOMETRY_VALIDITY],
+//               errors: [{ code: FeatureValidationError.GEOMETRY_VALIDITY }],
 //             },
 //             {
 //               id: invalidGeometriesValidateRequest.partsData.features[1].properties.id,
-//               errors: [FeatureValidationError.GEOMETRY_VALIDITY],
+//               errors: [{ code: FeatureValidationError.GEOMETRY_VALIDITY }],
 //             },
 //           ],
 //           smallGeometriesCount: 0,
@@ -8480,8 +8480,8 @@
 //       it('should return 422 status code when there are small geometries', async () => {
 //         const expected: ValidatePolygonPartsResponseBody = {
 //           parts: [
-//             { id: invalidSmallGeometriesValidateRequest.partsData.features[0].properties.id, errors: [FeatureValidationError.SMALL_GEOMETRY] },
-//             { id: invalidSmallGeometriesValidateRequest.partsData.features[1].properties.id, errors: [FeatureValidationError.SMALL_GEOMETRY] },
+//             { id: invalidSmallGeometriesValidateRequest.partsData.features[0].properties.id, errors: [{ code: FeatureValidationError.SMALL_GEOMETRY }] },
+//             { id: invalidSmallGeometriesValidateRequest.partsData.features[1].properties.id, errors: [{ code: FeatureValidationError.SMALL_GEOMETRY }] },
 //           ],
 //           smallGeometriesCount: 2,
 //           smallHolesCount: 0,
@@ -8502,8 +8502,8 @@
 //       it('should return 422 status code when there are small holes', async () => {
 //         const expected: ValidatePolygonPartsResponseBody = {
 //           parts: [
-//             { id: invalidSmallHolesValidateRequest.partsData.features[0].properties.id, errors: [FeatureValidationError.SMALL_HOLES] },
-//             { id: invalidSmallHolesValidateRequest.partsData.features[1].properties.id, errors: [FeatureValidationError.SMALL_HOLES] },
+//             { id: invalidSmallHolesValidateRequest.partsData.features[0].properties.id, errors: [{ code: FeatureValidationError.SMALL_HOLES }] },
+//             { id: invalidSmallHolesValidateRequest.partsData.features[1].properties.id, errors: [{ code: FeatureValidationError.SMALL_HOLES }] },
 //           ],
 //           smallGeometriesCount: 0,
 //           smallHolesCount: 2,
@@ -8525,8 +8525,8 @@
 //       it('should return 422 status code when there are small hole and small geo', async () => {
 //         const expected: ValidatePolygonPartsResponseBody = {
 //           parts: [
-//             { id: mockSmallAreaAndHole.partsData.features[0].properties.id, errors: [FeatureValidationError.SMALL_GEOMETRY] },
-//             { id: mockSmallAreaAndHole.partsData.features[1].properties.id, errors: [FeatureValidationError.SMALL_HOLES] },
+//             { id: mockSmallAreaAndHole.partsData.features[0].properties.id, errors: [{ code: FeatureValidationError.SMALL_GEOMETRY }] },
+//             { id: mockSmallAreaAndHole.partsData.features[1].properties.id, errors: [{ code: FeatureValidationError.SMALL_HOLES }] },
 //           ],
 //           smallGeometriesCount: 1,
 //           smallHolesCount: 1,
@@ -8547,11 +8547,11 @@
 //       it('should return 422 status code when there is small hole, small geo and 1 invalid', async () => {
 //         const expected: ValidatePolygonPartsResponseBody = {
 //           parts: [
-//             { id: mockMultipleInvalidGeometries.partsData.features[0].properties.id, errors: [FeatureValidationError.GEOMETRY_VALIDITY] },
-//             { id: mockMultipleInvalidGeometries.partsData.features[2].properties.id, errors: [FeatureValidationError.GEOMETRY_VALIDITY] },
+//             { id: mockMultipleInvalidGeometries.partsData.features[0].properties.id, errors: [{ code: FeatureValidationError.GEOMETRY_VALIDITY }] },
+//             { id: mockMultipleInvalidGeometries.partsData.features[2].properties.id, errors: [{ code: FeatureValidationError.GEOMETRY_VALIDITY }] },
 //             {
 //               id: mockMultipleInvalidGeometries.partsData.features[1].properties.id,
-//               errors: [FeatureValidationError.SMALL_GEOMETRY, FeatureValidationError.SMALL_HOLES],
+//               errors: [{ code: FeatureValidationError.SMALL_GEOMETRY }, { code: FeatureValidationError.SMALL_HOLES }],
 //             },
 //           ],
 //           smallGeometriesCount: 1,
@@ -8573,8 +8573,8 @@
 //       it('should return 422 status code when updating intersecting parts with worse resolution', async () => {
 //         const expected: ValidatePolygonPartsResponseBody = {
 //           parts: [
-//             { id: mockUpdateWithIntersectingParts.partsData.features[0].properties.id, errors: [FeatureValidationError.RESOLUTION] },
-//             { id: mockUpdateWithIntersectingParts.partsData.features[1].properties.id, errors: [FeatureValidationError.RESOLUTION] },
+//             { id: mockUpdateWithIntersectingParts.partsData.features[0].properties.id, errors: [{ code: FeatureValidationError.RESOLUTION, isExceeded: false }] },
+//             { id: mockUpdateWithIntersectingParts.partsData.features[1].properties.id, errors: [{ code: FeatureValidationError.RESOLUTION, isExceeded: false }] },
 //           ],
 //           smallGeometriesCount: 0,
 //           smallHolesCount: 0,

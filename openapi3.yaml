@@ -869,7 +869,6 @@ components:
       additionalProperties: false
       required:
         - parts
-        - smallGeometriesCount
         - smallHolesCount
       properties:
         parts:
@@ -886,14 +885,36 @@ components:
               errors:
                 type: array
                 items:
-                  type: string
-        smallGeometriesCount:
-          type: integer
+                  oneOf:
+                    - type: object
+                      additionalProperties: false
+                      required:
+                        - code
+                        - isExceeded
+                      properties:
+                        code:
+                          type: string
+                          enum:
+                            - Resolution
+                        isExceeded:
+                          type: boolean
+                    - type: object
+                      additionalProperties: false
+                      required:
+                        - code
+                      properties:
+                        code:
+                          type: string
+                          enum:
+                            - Geometry_Validity
+                            - Small_Geometry
+                            - Small_Holes
+                            - Unknown
         smallHolesCount:
           type: integer
       description: >-
-        Array of validation results per part (empty array means validation
-        passed)
+        Validation result with per-part errors. Empty `parts` indicates validation
+        passed.
     ProcessPolygonPartsPayload:
       type: object
       additionalProperties: false

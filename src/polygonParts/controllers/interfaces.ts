@@ -11,7 +11,6 @@ import type {
   ProcessPolygonPartsOptions,
 } from '../models/interfaces';
 import { PolygonPartsFeatureCollection } from '../../common/types';
-import { FeatureValidationError } from '../../common/enums';
 
 /**
  * Exists request body
@@ -57,28 +56,6 @@ export interface AggregationLayerMetadataParams {
  * Get aggregation layer metadata response body
  */
 export interface AggregationLayerMetadataResponseBody extends AggregationLayerMetadataResponse {}
-
-export interface ValidationErrorDetailResolution {
-  code: FeatureValidationError.RESOLUTION;
-  isExceeded: boolean;
-}
-
-export interface ValidationErrorDetailGeneral {
-  code: Exclude<FeatureValidationError, FeatureValidationError.RESOLUTION>;
-}
-
-export type ValidationErrorDetail = ValidationErrorDetailResolution | ValidationErrorDetailGeneral;
-
-export interface ValidateError {
-  id: string;
-  errors: ValidationErrorDetail[];
-}
-
-export interface ValidatePolygonPartsResponseBody {
-  parts: ValidateError[];
-  smallGeometriesCount: number;
-  smallHolesCount: number;
-}
 
 export type ValidatePolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType' | 'productVersion' | 'catalogId'> & {
   jobType: IngestionJobTypes;

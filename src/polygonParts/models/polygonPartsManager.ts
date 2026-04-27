@@ -5,6 +5,8 @@ import { geometryCollection } from '@turf/helpers';
 import { inject, injectable } from 'tsyringe';
 import type { EntityManager, SelectQueryBuilder } from 'typeorm';
 import _ from 'lodash';
+import { ValidationErrorType } from '@map-colonies/raster-shared';
+import type { PolygonPartValidationError, PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';
@@ -14,8 +16,7 @@ import { deleteValidationsTable } from '../../common/utils';
 import { History } from '../DAL/history';
 import { PolygonPart } from '../DAL/polygonPart';
 import { payloadToInsertPartsDataToHistory, payloadToInsertValidationsData, setRepositoryTablePath } from '../DAL/utils';
-import { ValidateError, ValidatePolygonPartsRequestBody, ValidatePolygonPartsResponseBody } from '../controllers/interfaces';
-import { FeatureValidationError } from '../../common/enums';
+import { ValidatePolygonPartsRequestBody } from '../controllers/interfaces';
 import { ValidatePart } from '../DAL/validationPart';
 import {
   findSelectOutputColumns,
@@ -56,7 +57,7 @@ interface CountQueryResponse {
 }
 interface ValidationCountSummary {
   count: number;
-  parts: ValidateError[];
+  parts: PolygonPartValidationError[];
 }
 
 @injectable()
@@ -301,11 +302,11 @@ export class PolygonPartsManager {
   public async validatePolygonParts(
     validationsPayload: ValidatePolygonPartsRequestBody,
     entitiesMetadata: EntitiesMetadata
-  ): Promise<ValidatePolygonPartsResponseBody> {
+  ): Promise<PolygonPartsChunkValidationResult> {
     const { catalogId } = validationsPayload;
     const logger = this.logger.child({ catalogId });
     logger.info({ msg: 'validatePolygonParts', catalogId });
-    let mergedPartsErrors: ValidateError[] = [];
+    let mergedPartsErrors: PolygonPartValidationError[] = [];
 
     try {
       const response = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
@@ -323,7 +324,7 @@ export class PolygonPartsManager {
         const smallGeometriesSummary = await this.smallGeometriesCount(validationsContext);
         const smallHolesSummary = await this.smallHolesCount(validationsContext);
 
-        const errorsSummary: ValidateError[][] = [
+        const errorsSummary: PolygonPartValidationError[][] = [
           stInvalidParts, // e.g. [{id, errors:['Geometry_Validity']}...]
           smallGeometriesSummary.parts, // e.g. [{id, errors:['SMALL_GEOMETRY']}...]
           smallHolesSummary.parts, // e.g. [{id, errors:['SMALL_HOLE']}...]
@@ -346,9 +347,8 @@ export class PolygonPartsManager {
           .value();
 
         await this.updateFinishedValidationsRows(validationsContext);
-        const transactionResponse: ValidatePolygonPartsResponseBody = {
+        const transactionResponse: PolygonPartsChunkValidationResult = {
           parts: mergedPartsErrors,
-          smallGeometriesCount: smallGeometriesSummary.count,
           smallHolesCount: smallHolesSummary.count,
         };
         return transactionResponse;
@@ -489,7 +489,7 @@ export class PolygonPartsManager {
     entitiesMetadata: EntitiesMetadata;
     entityManager: EntityManager;
     logger: Logger;
-  }): Promise<ValidateError[]> {
+  }): Promise<PolygonPartValidationError[]> {
     const {
       entityManager,
       logger,
@@ -509,9 +509,9 @@ export class PolygonPartsManager {
         .andWhere('NOT ST_IsValid(footprint)')
         .getRawMany<{ id: string }>();
 
-      const result: ValidateError[] = rows.map(({ id }) => ({
+      const result: PolygonPartValidationError[] = rows.map(({ id }) => ({
         id,
-        errors: [{ code: FeatureValidationError.GEOMETRY_VALIDITY }],
+        errors: [{ code: ValidationErrorType.GEOMETRY_VALIDITY }],
       }));
 
       return result;
@@ -547,7 +547,7 @@ export class PolygonPartsManager {
         count: dbResponse.count,
         parts: dbResponse.ids.map((id) => ({
           id,
-          errors: [{ code: FeatureValidationError.SMALL_GEOMETRY }],
+          errors: [{ code: ValidationErrorType.SMALL_GEOMETRY }],
         })),
       };
 
@@ -638,7 +638,7 @@ export class PolygonPartsManager {
         count: dbResponse.count,
         parts: dbResponse.ids.map((id) => ({
           id,
-          errors: [{ code: FeatureValidationError.SMALL_HOLES }],
+          errors: [{ code: ValidationErrorType.SMALL_HOLES }],
         })),
       };
 
@@ -683,7 +683,7 @@ export class PolygonPartsManager {
     entitiesMetadata: EntitiesMetadata;
     entityManager: EntityManager;
     logger: Logger;
-  }): Promise<ValidateError[]> {
+  }): Promise<PolygonPartValidationError[]> {
     const {
       entityManager,
       logger,
@@ -714,15 +714,16 @@ export class PolygonPartsManager {
 
       const resolutionZoomLevelThreshold = this.config.get<number>('application.validation.resolutionZoomLevelThreshold');
 
-      const result: ValidateError[] = rows.map((row) => {
+      const result: PolygonPartValidationError[] = rows.map((row) => {
         const resNew = Number(row.newResolution);
         const resExisting = Number(row.existingResolution);
         const zoomLevelDifference = resNew > 0 && resExisting > 0 ? Math.log2(resNew / resExisting) : 0;
 
         return {
           id: row.id,
-          errors: [{ code: FeatureValidationError.RESOLUTION, isExceeded: zoomLevelDifference > resolutionZoomLevelThreshold }],
-        }});
+          errors: [{ code: ValidationErrorType.RESOLUTION, isExceeded: zoomLevelDifference > resolutionZoomLevelThreshold }],
+        };
+      });
       return result;
     } catch (error) {
       const errorMessage = `Could not get validate resolutions in: ${validationsEntityQualifiedName}`;

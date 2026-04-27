@@ -44,6 +44,7 @@ import type {
   FindQueryFilterOptions,
   FindQuerySelectOptions,
   IntersectionOptions,
+  IntersectionQueryResponse,
   IntersectionResponse,
   IsValidDetailsResult,
   PolygonPartsPayload,
@@ -234,7 +235,7 @@ export class PolygonPartsManager {
         });
 
         try {
-          const polygonParts = await intersectionQuery.getRawOne<IntersectionResponse>();
+          const polygonParts = await intersectionQuery.getRawOne<IntersectionQueryResponse>();
           return polygonParts;
         } catch (error) {
           const errorMessage = `Could not complete intersection '${polygonPartsEntityName.entityName}'`;
@@ -247,7 +248,7 @@ export class PolygonPartsManager {
         throw new InternalServerError('Could not generate response');
       }
 
-      return response;
+      return response.geojson;
     } catch (error) {
       const errorMessage = 'Intersection transaction failed';
       logger.error({ msg: errorMessage, error });
@@ -1066,7 +1067,7 @@ export class PolygonPartsManager {
     context: IntersectionOptions & {
       entityManager: EntityManager;
     }
-  ): SelectQueryBuilder<IntersectionResponse> {
+  ): SelectQueryBuilder<IntersectionQueryResponse> {
     const { entityManager, geometry, polygonPartsEntityName } = context;
     const { maxDecimalDigits } = this.applicationConfig.entities.polygonParts.intersection;
 
@@ -1092,9 +1093,9 @@ export class PolygonPartsManager {
               'properties', '{}'::json
             )
           ), '[]')
-        ) AS ${'geojson' satisfies keyof FindPolygonPartsQueryResponse}`
+        ) AS ${'geojson' satisfies keyof IntersectionQueryResponse}`
       )
-      .from<IntersectionResponse>('output_geometry', 'output_geometry');
+      .from<IntersectionQueryResponse>('output_geometry', 'output_geometry');
 
     return intersectionQuery;
   }

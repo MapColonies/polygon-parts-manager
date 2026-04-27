@@ -223,6 +223,9 @@ export type IsValidDetailsResult = { valid: true; reason: null; location: null }
 export interface FindPolygonPartsQueryResponse<ShouldClip extends boolean = boolean> {
   readonly geojson: FindPolygonPartsResponse<ShouldClip>;
 }
+export interface IntersectionQueryResponse {
+  geojson: FeatureCollection<PolygonalGeometries, Record<string, never>>;
+}
 export type FindQueryFilterOptions<ShouldClip extends boolean = boolean> = Omit<FindPolygonPartsOptions<ShouldClip>, 'filter'> & {
   entityManager: EntityManager;
   filter: {

@@ -7,7 +7,7 @@ import type { EntityManager, SelectQueryBuilder } from 'typeorm';
 import _ from 'lodash';
 import { ValidationErrorType } from '@map-colonies/raster-shared';
 import type { PolygonPartValidationError, PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
-import { degreesPerPixelToZoomLevel } from '@map-colonies/mc-utils'
+import { degreesPerPixelToZoomLevel } from '@map-colonies/mc-utils';
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';
@@ -709,15 +709,15 @@ export class PolygonPartsManager {
           qualifiedValidationName: validationsEntityQualifiedName,
           qualifiedPolygonPartsName: polygonPartsEntityQualifiedName,
         })
-        .getRawMany<{ id: string; new_resolution: number; existing_resolution: number }>();
+        .getRawMany<{ id: string; new: number; existing: number }>();
 
       const resolutionZoomLevelThreshold = this.config.get<number>('application.validation.resolutionZoomLevelThreshold');
 
       const result: PolygonPartValidationError[] = rows.map((row) => {
-        const resNew = row.new_resolution;
-        const resExisting = row.existing_resolution;
+        const resNew = row.new;
+        const resExisting = row.existing;
         const zoomLevelDifference = degreesPerPixelToZoomLevel(resExisting) - degreesPerPixelToZoomLevel(resNew);
-        
+
         return {
           id: row.id,
           errors: [{ code: ValidationErrorType.RESOLUTION, isExceeded: zoomLevelDifference > resolutionZoomLevelThreshold }],

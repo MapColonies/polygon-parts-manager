@@ -12,7 +12,7 @@ export class ModifyResolutionValidateToReturnResolutions1767692841432 implements
         qualified_identifier_valid TEXT,   -- e.g. 'polygon_parts.valid'
         qualified_identifier_polygon_parts TEXT    -- e.g. 'polygon_parts.parts'
     )
-    RETURNS TABLE (id text, new_resolution numeric, existing_resolution numeric)
+    RETURNS TABLE (id text, new numeric, existing numeric)
     LANGUAGE plpgsql
     AS $BODY$
     DECLARE
@@ -42,8 +42,8 @@ export class ModifyResolutionValidateToReturnResolutions1767692841432 implements
         -- Build safe SQL with quoted identifiers
         sql := format($q$
             SELECT  v.id AS id,
-                    v.resolution_degree AS new_resolution,
-                    MIN(p.resolution_degree) AS existing_resolution
+                    v.resolution_degree AS new,
+                    MIN(p.resolution_degree) AS existing
             FROM   %I.%I AS v
             JOIN   %I.%I AS p
             ON   ST_Intersects(p.footprint, v.footprint)

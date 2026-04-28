@@ -1095,7 +1095,8 @@ export class PolygonPartsManager {
           ), '[]')
         ) AS ${'geojson' satisfies keyof IntersectionQueryResponse}`
       )
-      .from<IntersectionQueryResponse>('output_geometry', 'output_geometry');
+      .from<IntersectionQueryResponse>('output_geometry', 'output_geometry')
+      .where(`st_geometrytype(geometry) in ('ST_Polygon', 'ST_MultiPolygon')`);
 
     return intersectionQuery;
   }

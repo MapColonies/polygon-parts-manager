@@ -326,9 +326,9 @@ export class PolygonPartsManager {
         const smallHolesSummary = await this.smallHolesCount(validationsContext);
 
         const errorsSummary: PolygonPartValidationError[][] = [
-          stInvalidParts, // e.g. [{id, errors:['Geometry_Validity']}...]
-          smallGeometriesSummary.parts, // e.g. [{id, errors:['SMALL_GEOMETRY']}...]
-          smallHolesSummary.parts, // e.g. [{id, errors:['SMALL_HOLE']}...]
+          stInvalidParts, // e.g. [{id, errors: { "code": 'Geometry_Validity' }}...]
+          smallGeometriesSummary.parts, // e.g. [{id, errors: { "code": 'SMALL_GEOMETRY' }}...]
+          smallHolesSummary.parts, // e.g. [{id, errors: { "code": 'SMALL_HOLE' }}...]
         ];
 
         if (validationsPayload.jobType === JobTypes.Ingestion_Update) {

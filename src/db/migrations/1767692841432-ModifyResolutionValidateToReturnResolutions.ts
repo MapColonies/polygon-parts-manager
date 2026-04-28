@@ -3,6 +3,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class ModifyResolutionValidateToReturnResolutions1767692841432 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`DROP FUNCTION IF EXISTS polygon_parts.validate_resolutions(
+        qualified_identifier_valid TEXT,   -- e.g. 'polygon_parts.valid'
+        qualified_identifier_polygon_parts TEXT    -- e.g. 'polygon_parts.parts'
+    );`);
     await queryRunner.query(`
     CREATE OR REPLACE FUNCTION polygon_parts.validate_resolutions(
         qualified_identifier_valid TEXT,   -- e.g. 'polygon_parts.valid'
@@ -57,6 +61,10 @@ export class ModifyResolutionValidateToReturnResolutions1767692841432 implements
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`DROP FUNCTION IF EXISTS polygon_parts.validate_resolutions(
+          qualified_identifier_valid TEXT,   -- e.g. 'polygon_parts.valid'
+          qualified_identifier_polygon_parts TEXT    -- e.g. 'polygon_parts.parts'
+      );`);
     await queryRunner.query(`
       CREATE OR REPLACE FUNCTION polygon_parts.validate_resolutions(
           qualified_identifier_valid TEXT,   -- e.g. 'polygon_parts.valid'

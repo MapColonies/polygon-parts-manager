@@ -1,12 +1,8 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class FixResolutionValidateWithTouchesUseExists1767692841432 implements MigrationInterface {
+export class ModifyResolutionValidateToReturnResolutions1767692841432 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP FUNCTION IF EXISTS polygon_parts.validate_resolutions(
-        qualified_identifier_valid TEXT,   -- e.g. 'polygon_parts.valid'
-        qualified_identifier_polygon_parts TEXT    -- e.g. 'polygon_parts.parts'
-    );`);
     await queryRunner.query(`
     CREATE OR REPLACE FUNCTION polygon_parts.validate_resolutions(
         qualified_identifier_valid TEXT,   -- e.g. 'polygon_parts.valid'
@@ -41,18 +37,17 @@ export class FixResolutionValidateWithTouchesUseExists1767692841432 implements M
     
         -- Build safe SQL with quoted identifiers
         sql := format($q$
-            SELECT DISTINCT ON (v.id)
-                   v.id,
-                   v.resolution_degree AS new_resolution,
-                   p.resolution_degree AS existing_resolution
+            SELECT  v.id AS id,
+                    v.resolution_degree AS new_resolution,
+                    MIN(p.resolution_degree) AS existing_resolution
             FROM   %I.%I AS v
             JOIN   %I.%I AS p
-              ON   ST_Intersects(p.footprint, v.footprint)
-             AND   NOT ST_Touches(p.footprint, v.footprint)
+            ON   ST_Intersects(p.footprint, v.footprint)
+            AND   NOT ST_Touches(p.footprint, v.footprint)
             WHERE  ST_IsValid(v.footprint)                  -- validity check FIRST
-              AND  v.validated = false
-              AND  p.resolution_degree < v.resolution_degree
-            ORDER BY v.id, p.resolution_degree ASC
+            AND  v.validated = false
+            AND  p.resolution_degree < v.resolution_degree
+            GROUP BY v.id, v.resolution_degree
         $q$, schema_valid, table_valid, schema_parts, table_parts);
     
         RETURN QUERY EXECUTE sql;
@@ -62,10 +57,6 @@ export class FixResolutionValidateWithTouchesUseExists1767692841432 implements M
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP FUNCTION IF EXISTS polygon_parts.validate_resolutions(
-          qualified_identifier_valid TEXT,   -- e.g. 'polygon_parts.valid'
-          qualified_identifier_polygon_parts TEXT    -- e.g. 'polygon_parts.parts'
-      );`);
     await queryRunner.query(`
       CREATE OR REPLACE FUNCTION polygon_parts.validate_resolutions(
           qualified_identifier_valid TEXT,   -- e.g. 'polygon_parts.valid'

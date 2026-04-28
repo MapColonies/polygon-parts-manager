@@ -7,6 +7,7 @@ import type { EntityManager, SelectQueryBuilder } from 'typeorm';
 import _ from 'lodash';
 import { ValidationErrorType } from '@map-colonies/raster-shared';
 import type { PolygonPartValidationError, PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
+import { degreesPerPixelToZoomLevel } from '@map-colonies/mc-utils'
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';
@@ -702,23 +703,21 @@ export class PolygonPartsManager {
       }
       const rows = await entityManager
         .createQueryBuilder()
-        .select('validation_result.id', 'id')
-        .addSelect('validation_result.new_resolution', 'newResolution')
-        .addSelect('validation_result.existing_resolution', 'existingResolution')
-        .from(`${this.applicationConfig.validateResolutionsFunction}(:qualifiedValidationName, :qualifiedPolygonPartsName)`, 'validation_result')
+        .select(`(${this.applicationConfig.validateResolutionsFunction}(:qualifiedValidationName, :qualifiedPolygonPartsName)).*`)
+        .fromDummy()
         .setParameters({
           qualifiedValidationName: validationsEntityQualifiedName,
           qualifiedPolygonPartsName: polygonPartsEntityQualifiedName,
         })
-        .getRawMany<{ id: string; newResolution: string; existingResolution: string }>();
+        .getRawMany<{ id: string; new_resolution: number; existing_resolution: number }>();
 
       const resolutionZoomLevelThreshold = this.config.get<number>('application.validation.resolutionZoomLevelThreshold');
 
       const result: PolygonPartValidationError[] = rows.map((row) => {
-        const resNew = Number(row.newResolution);
-        const resExisting = Number(row.existingResolution);
-        const zoomLevelDifference = resNew > 0 && resExisting > 0 ? Math.log2(resNew / resExisting) : 0;
-
+        const resNew = row.new_resolution;
+        const resExisting = row.existing_resolution;
+        const zoomLevelDifference = degreesPerPixelToZoomLevel(resExisting) - degreesPerPixelToZoomLevel(resNew);
+        
         return {
           id: row.id,
           errors: [{ code: ValidationErrorType.RESOLUTION, isExceeded: zoomLevelDifference > resolutionZoomLevelThreshold }],

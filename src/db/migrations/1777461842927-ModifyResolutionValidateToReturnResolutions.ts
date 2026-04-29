@@ -12,7 +12,7 @@ export class ModifyResolutionValidateToReturnResolutions1777461842927 implements
             qualified_identifier_valid TEXT,   -- e.g. 'polygon_parts.valid'
             qualified_identifier_polygon_parts TEXT    -- e.g. 'polygon_parts.parts'
         )
-        RETURNS TABLE (id text, new numeric, existing numeric)
+        RETURNS TABLE (id text, new_resolution_degree numeric, existing_resolution_degree numeric)
         LANGUAGE plpgsql
         AS $BODY$
         DECLARE

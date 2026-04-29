@@ -701,21 +701,30 @@ export class PolygonPartsManager {
       if (!entityExists) {
         throw new NotFoundError(`Table with the name '${polygonPartsEntityQualifiedName}' doesn't exists`);
       }
+
       const rows = await entityManager
         .createQueryBuilder()
-        .select(`(${this.applicationConfig.validateResolutionsFunction}(:qualifiedValidationName, :qualifiedPolygonPartsName)).*`)
-        .fromDummy()
-        .setParameters({
-          qualifiedValidationName: validationsEntityQualifiedName,
-          qualifiedPolygonPartsName: polygonPartsEntityQualifiedName,
-        })
-        .getRawMany<{ id: string; new: number; existing: number }>();
+        .select('res.id', 'id')
+        .addSelect('res.new_resolution_degree', 'newResolutionDegree')
+        .addSelect('res.existing_resolution_degree', 'existingResolutionDegree')
+        .from(
+          (qb) =>
+            qb
+              .select(`(${this.applicationConfig.validateResolutionsFunction}(:qualifiedValidationName, :qualifiedPolygonPartsName)).*`)
+              .fromDummy()
+              .setParameters({
+                qualifiedValidationName: validationsEntityQualifiedName,
+                qualifiedPolygonPartsName: polygonPartsEntityQualifiedName,
+              }),
+          'res'
+        )
+        .getRawMany<{ id: string; newResolutionDegree: number; existingResolutionDegree: number }>();
 
       const zoomLevelThreshold = this.config.get<number>('application.validation.zoomLevelThreshold');
 
       const result: PolygonPartValidationError[] = rows.map((row) => {
-        const resNew = row.new;
-        const resExisting = row.existing;
+        const resNew = row.newResolutionDegree;
+        const resExisting = row.existingResolutionDegree;
         const zoomLevelDifference = degreesPerPixelToZoomLevel(resExisting) - degreesPerPixelToZoomLevel(resNew);
         const isExceeded = zoomLevelDifference > zoomLevelThreshold;
 

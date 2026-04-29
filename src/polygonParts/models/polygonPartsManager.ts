@@ -711,7 +711,7 @@ export class PolygonPartsManager {
         })
         .getRawMany<{ id: string; new: number; existing: number }>();
 
-      const resolutionZoomLevelThreshold = this.config.get<number>('application.validation.resolutionZoomLevelThreshold');
+      const zoomLevelThreshold = this.config.get<number>('application.validation.zoomLevelThreshold');
 
       const result: PolygonPartValidationError[] = rows.map((row) => {
         const resNew = row.new;
@@ -720,7 +720,7 @@ export class PolygonPartsManager {
 
         return {
           id: row.id,
-          errors: [{ code: ValidationErrorType.RESOLUTION, isExceeded: zoomLevelDifference > resolutionZoomLevelThreshold }],
+          errors: [{ code: ValidationErrorType.RESOLUTION, isExceeded: zoomLevelDifference > zoomLevelThreshold }],
         };
       });
       return result;

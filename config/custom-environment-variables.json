@@ -107,8 +107,8 @@
         "__name": "VALIDATION_AREA_THRESHOLD_SQUARE_METERS",
         "__format": "number"
       },
-      "resolutionZoomLevelThreshold": {
-        "__name": "VALIDATION_RESOLUTION_ZOOM_LEVEL_THRESHOLD",
+      "zoomLevelThreshold": {
+        "__name": "VALIDATION_ZOOM_LEVEL_THRESHOLD",
         "__format": "number"
       }
     }

@@ -66,7 +66,7 @@ export class PolygonPartsManager {
   private readonly applicationConfig: ApplicationConfig;
   private readonly schema: DbConfig['schema'];
   private readonly findMaxDecimalDigits: ApplicationConfig['entities']['polygonParts']['find']['maxDecimalDigits'];
-  private readonly zoomLevelThreshold: number;
+  private readonly zoomLevelThreshold: ApplicationConfig['validation']['zoomLevelThreshold'];
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
@@ -77,7 +77,7 @@ export class PolygonPartsManager {
     this.applicationConfig = this.config.get('application');
     this.schema = config.get('db.schema');
     this.findMaxDecimalDigits = this.config.get('application.entities.polygonParts.find.maxDecimalDigits');
-    this.zoomLevelThreshold = this.config.get<number>('application.validation.zoomLevelThreshold');
+    this.zoomLevelThreshold = this.config.get('application.validation.zoomLevelThreshold');
   }
 
   public async createPolygonParts(polygonPartsPayload: PolygonPartsPayload, entitiesMetadata: EntitiesMetadata): Promise<PolygonPartsResponse> {

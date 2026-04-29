@@ -42,8 +42,8 @@ export class ModifyResolutionValidateToReturnResolutions1777461842927 implements
             -- Build safe SQL with quoted identifiers
             sql := format($q$
                 SELECT  v.id AS id,
-                        v.resolution_degree AS new,
-                        MIN(p.resolution_degree) AS existing
+                        v.resolution_degree AS new_resolution_degree,
+                        MIN(p.resolution_degree) AS existing_resolution_degree
                 FROM   %I.%I AS v
                 JOIN   %I.%I AS p
                 ON   ST_Intersects(p.footprint, v.footprint)

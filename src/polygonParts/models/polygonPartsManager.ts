@@ -66,6 +66,7 @@ export class PolygonPartsManager {
   private readonly applicationConfig: ApplicationConfig;
   private readonly schema: DbConfig['schema'];
   private readonly findMaxDecimalDigits: ApplicationConfig['entities']['polygonParts']['find']['maxDecimalDigits'];
+  private readonly zoomLevelThreshold: number;
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
@@ -76,6 +77,7 @@ export class PolygonPartsManager {
     this.applicationConfig = this.config.get('application');
     this.schema = config.get('db.schema');
     this.findMaxDecimalDigits = this.config.get('application.entities.polygonParts.find.maxDecimalDigits');
+    this.zoomLevelThreshold = this.config.get<number>('application.validation.zoomLevelThreshold');
   }
 
   public async createPolygonParts(polygonPartsPayload: PolygonPartsPayload, entitiesMetadata: EntitiesMetadata): Promise<PolygonPartsResponse> {
@@ -720,13 +722,11 @@ export class PolygonPartsManager {
         )
         .getRawMany<{ id: string; newResolutionDegree: number; existingResolutionDegree: number }>();
 
-      const zoomLevelThreshold = this.config.get<number>('application.validation.zoomLevelThreshold');
-
       const result = rows.map((row) => {
         const resNew = row.newResolutionDegree;
         const resExisting = row.existingResolutionDegree;
         const zoomLevelDifference = degreesPerPixelToZoomLevel(resExisting) - degreesPerPixelToZoomLevel(resNew);
-        const isExceeded = zoomLevelDifference > zoomLevelThreshold;
+        const isExceeded = zoomLevelDifference > this.zoomLevelThreshold;
 
         return {
           id: row.id,

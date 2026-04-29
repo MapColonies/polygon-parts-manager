@@ -348,7 +348,7 @@ export class PolygonPartsManager {
           .value();
 
         await this.updateFinishedValidationsRows(validationsContext);
-        const transactionResponse: PolygonPartsChunkValidationResult = {
+        const transactionResponse = {
           parts: mergedPartsErrors,
           smallHolesCount: smallHolesSummary.count,
         };
@@ -510,7 +510,7 @@ export class PolygonPartsManager {
         .andWhere('NOT ST_IsValid(footprint)')
         .getRawMany<{ id: string }>();
 
-      const result: PolygonPartValidationError[] = rows.map(({ id }) => ({
+      const result = rows.map(({ id }) => ({
         id,
         errors: [{ code: ValidationErrorType.GEOMETRY_VALIDITY }],
       }));
@@ -544,7 +544,7 @@ export class PolygonPartsManager {
         [validationsEntityQualifiedName, this.applicationConfig.validation.areaThresholdSquareMeters]
       );
 
-      const summary: ValidationCountSummary = {
+      const summary = {
         count: dbResponse.count,
         parts: dbResponse.ids.map((id) => ({
           id,
@@ -635,7 +635,7 @@ export class PolygonPartsManager {
         [validationsEntityQualifiedName, this.applicationConfig.validation.areaThresholdSquareMeters]
       );
 
-      const summary: ValidationCountSummary = {
+      const summary = {
         count: dbResponse.count,
         parts: dbResponse.ids.map((id) => ({
           id,
@@ -722,7 +722,7 @@ export class PolygonPartsManager {
 
       const zoomLevelThreshold = this.config.get<number>('application.validation.zoomLevelThreshold');
 
-      const result: PolygonPartValidationError[] = rows.map((row) => {
+      const result = rows.map((row) => {
         const resNew = row.newResolutionDegree;
         const resExisting = row.existingResolutionDegree;
         const zoomLevelDifference = degreesPerPixelToZoomLevel(resExisting) - degreesPerPixelToZoomLevel(resNew);

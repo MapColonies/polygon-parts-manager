@@ -717,10 +717,11 @@ export class PolygonPartsManager {
         const resNew = row.new;
         const resExisting = row.existing;
         const zoomLevelDifference = degreesPerPixelToZoomLevel(resExisting) - degreesPerPixelToZoomLevel(resNew);
+        const isExceeded = zoomLevelDifference > zoomLevelThreshold;
 
         return {
           id: row.id,
-          errors: [{ code: ValidationErrorType.RESOLUTION, isExceeded: zoomLevelDifference > zoomLevelThreshold }],
+          errors: [{ code: ValidationErrorType.RESOLUTION, isExceeded }],
         };
       });
       return result;

@@ -1,7 +1,6 @@
 import type { RequestHandler } from 'express';
 import httpStatus from 'http-status-codes';
 import { inject, injectable } from 'tsyringe';
-import type { PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
 import type { EntitiesMetadata, IsSwapQueryParams, PolygonPartsPayload, PolygonPartsResponse } from '../models/interfaces';
 import { PolygonPartsManager } from '../models/polygonPartsManager';
 import type {
@@ -17,6 +16,7 @@ import type {
   FindPolygonPartsRequestBody,
   FindPolygonPartsResponseBody,
   ValidatePolygonPartsRequestBody,
+  ValidatePolygonPartsResponseBody,
 } from './interfaces';
 
 /**
@@ -58,7 +58,7 @@ export type AggregationLayerMetadataHandler = RequestHandler<
 
 export type ValidatePolygonPartsHandler = RequestHandler<
   undefined,
-  PolygonPartsChunkValidationResult,
+  ValidatePolygonPartsResponseBody,
   ValidatePolygonPartsRequestBody,
   undefined,
   EntitiesMetadata

@@ -1,3 +1,4 @@
+import { PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
 import type { IngestionJobTypes } from '../models/interfaces';
 import type {
   AggregateLayerMetadataOptions,
@@ -56,6 +57,8 @@ export interface AggregationLayerMetadataParams {
  * Get aggregation layer metadata response body
  */
 export interface AggregationLayerMetadataResponseBody extends AggregationLayerMetadataResponse {}
+
+export type ValidatePolygonPartsResponseBody = PolygonPartsChunkValidationResult;
 
 export type ValidatePolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType' | 'productVersion' | 'catalogId'> & {
   jobType: IngestionJobTypes;

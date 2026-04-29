@@ -894,8 +894,7 @@ components:
                       properties:
                         code:
                           type: string
-                          enum:
-                            - Resolution
+                          const: Resolution
                         isExceeded:
                           type: boolean
                     - type: object

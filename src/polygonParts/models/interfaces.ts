@@ -15,6 +15,10 @@ import type { OptionalToNullableRecordValues, ReplaceValuesOfType } from '../../
 
 //#region public
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData' | 'jobType'>, Omit<z.infer<typeof partSchema>, 'id'> {}
+
+type IntersectionProperties = Pick<PartFeatureProperties, 'resolutionDegree'>;
+type FeatureCollectionIntersection = FeatureCollection<PolygonalGeometries, IntersectionProperties>;
+
 /**
  * Polygonal geometries
  */
@@ -35,8 +39,6 @@ export interface InsertPartDataToHistory extends Readonly<Omit<CommonPayload, 'c
   readonly footprint: Polygon;
 }
 
-export type IntersectionProperties = Pick<PartFeatureProperties, 'resolutionDegree'>;
-
 // Used for the Base record
 export interface BasePart extends Readonly<Omit<InsertPartDataToHistory, 'footprint' | 'id'>> {}
 
@@ -46,7 +48,6 @@ export interface ValidatePartData extends Readonly<BasePart> {
 }
 
 export type FeatureCollectionFilter = FeatureCollection<PolygonalGeometries, (GeoJsonProperties & Partial<RoiProperties>) | null>;
-export type FeatureCollectionIntersection = FeatureCollection<PolygonalGeometries, IntersectionProperties>;
 
 /**
  * Find polygon parts options

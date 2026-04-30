@@ -69,7 +69,6 @@ export class PolygonPartsManager {
   private readonly applicationConfig: ApplicationConfig;
   private readonly schema: DbConfig['schema'];
   private readonly findMaxDecimalDigits: ApplicationConfig['entities']['polygonParts']['find']['maxDecimalDigits'];
-  // private readonly intersectionMaxDecimalDigits: ApplicationConfig['entities']['polygonParts']['intersection']['maxDecimalDigits'];
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,

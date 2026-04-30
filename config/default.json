@@ -87,7 +87,7 @@
     "schema": "polygon_parts",
     "synchronize": false,
     "migrationsRun": false,
-    "logging": "all",
+    "logging": false,
     "entities": ["**/DAL/*.js"],
     "migrations": ["db/migrations/*.js"],
     "applicationName": "polygon_parts",

@@ -3,6 +3,7 @@ import { faker } from '@faker-js/faker';
 import {
   CORE_VALIDATIONS,
   INGESTION_VALIDATIONS,
+  JobTypes,
   RASTER_PRODUCT_TYPE_LIST,
   RasterProductTypes,
   polygonPartsFeatureSchema,
@@ -113,7 +114,7 @@ export function generatePolygonPartsPayload(input: number | PartialPolygonPartsP
     productId: generateProductId(),
     productType: generateProductType(),
     productVersion: randexp(INGESTION_VALIDATIONS.productVersion.pattern),
-    jobType: faker.helpers.arrayElement(['POLYGON_PARTS']),
+    jobType: faker.helpers.arrayElement([JobTypes.Ingestion_New, JobTypes.Ingestion_Swap_Update, JobTypes.Ingestion_Update]),
   } satisfies Omit<PolygonPartsPayload, 'partsData'>;
 
   if (typeof input === 'number') {

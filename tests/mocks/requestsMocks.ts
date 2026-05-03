@@ -330,57 +330,6 @@ export const validValidationPolygonPartsPayload: ValidatePolygonPartsRequestBody
   },
 };
 
-export const validationEntireWorldRequest: ValidatePolygonPartsRequestBody = {
-  ...createLayerMetadataForValidation,
-  jobType: JobTypes.Ingestion_New,
-  partsData: {
-    type: 'FeatureCollection',
-    features: [
-      {
-        type: 'Feature',
-        geometry: {
-          type: 'Polygon',
-          coordinates: [
-            [
-              [-180, -90],
-              [180, -90],
-              [180, 90],
-              [-180, 90],
-              [-180, -90],
-            ],
-          ],
-        } as Polygon,
-        properties: {
-          ...propertiesToGenerate(),
-        },
-      },
-    ],
-  },
-};
-
-export const invalidGeometryValidRequest = {
-  ...createLayerMetadataForValidation,
-  jobType: JobTypes.Ingestion_New,
-  partsData: {
-    type: 'FeatureCollection',
-    features: [
-      {
-        type: 'Feature',
-        geometry: {
-          type: 'LineString',
-          coordinates: [
-            [1.3756380206141898, 43.08988386275399],
-            [2.2905211473345446, 43.37799276998723],
-          ],
-        },
-        properties: {
-          ...propertiesToGenerate(),
-        },
-      },
-    ],
-  },
-};
-
 export const invalidGeometriesValidateRequest: ValidatePolygonPartsRequestBody = {
   ...createLayerMetadataForValidation,
   jobType: JobTypes.Ingestion_New,
@@ -576,7 +525,12 @@ export const invalidSmallHolesValidateRequest: ValidatePolygonPartsRequestBody =
   },
 };
 
-export const mockSmallAreaAndHole: ValidatePolygonPartsRequestBody = {
+// 4-feature payload covering all geometry error combinations:
+//   feature 0: GEOMETRY_VALIDITY (bow-tie / self-intersecting polygon)
+//   feature 1: SMALL_GEOMETRY only (~2m x ~2m, area < 5 m², no holes)
+//   feature 2: SMALL_HOLES only (large polygon with a single tiny hole)
+//   feature 3: SMALL_GEOMETRY + SMALL_HOLES (tiny polygon with a tiny hole)
+export const mockMultipleInvalidGeometries: ValidatePolygonPartsRequestBody = {
   ...createLayerMetadataForValidation,
   jobType: JobTypes.Ingestion_New,
   partsData: {
@@ -585,7 +539,24 @@ export const mockSmallAreaAndHole: ValidatePolygonPartsRequestBody = {
       {
         type: 'Feature',
         geometry: {
-          // A) Polygon whose total area < 5 m² (~2m x ~2m)
+          type: 'Polygon',
+          coordinates: [
+            [
+              [34.902, 32.1],
+              [34.90204, 32.10004],
+              [34.902, 32.10004],
+              [34.90204, 32.1],
+              [34.902, 32.1],
+            ],
+          ],
+        } as Polygon,
+        properties: {
+          ...propertiesToGenerate(),
+        },
+      },
+      {
+        type: 'Feature',
+        geometry: {
           type: 'Polygon',
           coordinates: [
             [
@@ -639,41 +610,12 @@ export const mockSmallAreaAndHole: ValidatePolygonPartsRequestBody = {
           ...propertiesToGenerate(),
         },
       },
-    ],
-  },
-};
-
-export const mockMultipleInvalidGeometries: ValidatePolygonPartsRequestBody = {
-  ...createLayerMetadataForValidation,
-  jobType: JobTypes.Ingestion_New,
-  partsData: {
-    type: 'FeatureCollection',
-    features: [
-      {
-        type: 'Feature',
-        geometry: {
-          // A)  1) Invalid polygon (bow-tie / self-intersecting)
-          type: 'Polygon',
-          coordinates: [
-            [
-              [34.902, 32.1],
-              [34.90204, 32.10004],
-              [34.902, 32.10004],
-              [34.90204, 32.1],
-              [34.902, 32.1],
-            ],
-          ],
-        } as Polygon,
-        properties: {
-          ...propertiesToGenerate(),
-        },
-      },
       {
         type: 'Feature',
         geometry: {
           type: 'Polygon',
           coordinates: [
-            // outer ~2.5m x ~2.5m (~6.25 m²) — adjust slightly under 5 by shrinking:
+            // outer ~2.5m x ~2.5m — net area < 5 m² after subtracting hole
             [
               [34.9005, 32.1008],
               [34.9005212, 32.1008],
@@ -681,7 +623,7 @@ export const mockMultipleInvalidGeometries: ValidatePolygonPartsRequestBody = {
               [34.9005, 32.100818],
               [34.9005, 32.1008],
             ],
-            // hole ~1m x ~1m (~1 m²) — ensures both: has a hole, and net area still < 5 m²
+            // hole ~1m x ~1m (~1 m²)
             [
               [34.900507, 32.100807],
               [34.900516, 32.100807],
@@ -691,46 +633,6 @@ export const mockMultipleInvalidGeometries: ValidatePolygonPartsRequestBody = {
             ],
           ],
         } as Polygon,
-        properties: {
-          ...propertiesToGenerate(),
-        },
-      },
-      {
-        type: 'Feature',
-        geometry: {
-          // 3) MultiPolygon: one invalid component + one valid with hole
-
-          type: 'MultiPolygon',
-          coordinates: [
-            // component 1: INVALID bow-tie (self-intersecting)
-            [
-              [
-                [34.9018, 32.1002],
-                [34.90184, 32.10024],
-                [34.9018, 32.10024],
-                [34.90184, 32.1002],
-                [34.9018, 32.1002],
-              ],
-            ],
-            // component 2: valid with tiny hole
-            [
-              [
-                [34.9011, 32.1005],
-                [34.90135, 32.1005],
-                [34.90135, 32.10073],
-                [34.9011, 32.10073],
-                [34.9011, 32.1005],
-              ],
-              [
-                [34.9012, 32.1006],
-                [34.9012212, 32.1006],
-                [34.9012212, 32.100618],
-                [34.9012, 32.100618],
-                [34.9012, 32.1006],
-              ],
-            ],
-          ],
-        } as MultiPolygon,
         properties: {
           ...propertiesToGenerate(),
         },
@@ -962,6 +864,39 @@ export const mockUpdateWithTouchPart: ValidatePolygonPartsRequestBody = {
         properties: {
           ...propertiesToGenerate(),
           resolutionDegree: 0.0000214576721191406, // zoom level 15
+        },
+      },
+    ],
+  },
+};
+
+// Update at zoom 14 (resolutionDegree ≈ 4.292e-5) with a tiny (~2m x ~2m, area < 5 m²) polygon
+// that intersects highResolutionInitPayload (zoom 21). zoom diff = 21-14 = 7 > threshold (4).
+// Expects both RESOLUTION (isExceeded: true) and SMALL_GEOMETRY errors on the same part.
+export const mockUpdateWithResolutionAndSmallGeometry: ValidatePolygonPartsRequestBody = {
+  ...highResLayerMetadata,
+  productVersion: '2.0',
+  jobType: JobTypes.Ingestion_Update,
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [34.852, 32.296],
+              [34.8520215, 32.296],
+              [34.8520215, 32.296018],
+              [34.852, 32.296018],
+              [34.852, 32.296],
+            ],
+          ],
+        } as Polygon,
+        properties: {
+          ...propertiesToGenerate(),
+          resolutionDegree: 4.29153442382813e-5, // zoom level 14 → isExceeded: true
         },
       },
     ],

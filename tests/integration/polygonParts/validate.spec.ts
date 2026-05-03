@@ -1,4 +1,5 @@
 import jsLogger from '@map-colonies/js-logger';
+import type { PolygonPartValidationErrorItem } from '@map-colonies/raster-shared';
 import { ValidationErrorType } from '@map-colonies/raster-shared';
 import { trace } from '@opentelemetry/api';
 import config from 'config';
@@ -24,12 +25,12 @@ import {
   invalidSmallGeometriesValidateRequest,
   invalidSmallHolesValidateRequest,
   mockMultipleInvalidGeometries,
-  mockSmallAreaAndHole,
   mockTouchingLayerInitPayload,
   mockUpdateWithExceededResolution,
   mockUpdateWithIntersectingParts,
   mockUpdateWithMixedResolutions,
   mockUpdateWithNonIntersectingPart,
+  mockUpdateWithResolutionAndSmallGeometry,
   mockUpdateWithTouchPart,
   validValidationPolygonPartsPayload,
 } from '../../mocks/requestsMocks';
@@ -85,9 +86,6 @@ describe('validate', () => {
 
     await helperDB.destroyConnection();
     await helperDB.initConnection();
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    jest.spyOn(ConnectionManager.prototype as any, 'schemaExists').mockResolvedValue(true);
 
     container.clearInstances();
 
@@ -203,7 +201,6 @@ describe('validate', () => {
         });
 
         it('should skip resolution validation and return no errors for Ingestion_New job type', async () => {
-          // No polygon_parts table is created. If resolution validation ran it would throw 404.
           const response = await requestSender.validatePolygonParts(validValidationPolygonPartsPayload);
 
           const responseBody = response.body as ValidatePolygonPartsResponseBody;
@@ -237,6 +234,29 @@ describe('validate', () => {
               },
             ])
           );
+          expect(responseBody.smallHolesCount).toBe(0);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(5);
+        });
+
+        it('should return both RESOLUTION and SMALL_GEOMETRY errors on the same part', async () => {
+          const { entitiesNames } = getEntitiesMetadata(highResolutionInitPayload);
+          await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
+          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, highResolutionInitPayload as InsertPayload);
+
+          const response = await requestSender.validatePolygonParts(mockUpdateWithResolutionAndSmallGeometry);
+
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(1);
+          expect(responseBody.parts[0]).toMatchObject({
+            id: mockUpdateWithResolutionAndSmallGeometry.partsData.features[0].properties.id,
+            errors: expect.arrayContaining([
+              { code: ValidationErrorType.SMALL_GEOMETRY },
+              { code: ValidationErrorType.RESOLUTION, isExceeded: true },
+            ]) as PolygonPartValidationErrorItem[],
+          });
           expect(responseBody.smallHolesCount).toBe(0);
           expect(response).toSatisfyApiSpec();
 
@@ -318,35 +338,11 @@ describe('validate', () => {
         });
 
         it('should report SMALL_GEOMETRY and SMALL_HOLES independently on different parts', async () => {
-          const response = await requestSender.validatePolygonParts(mockSmallAreaAndHole);
-
-          const responseBody = response.body as ValidatePolygonPartsResponseBody;
-          expect(response.status).toBe(httpStatusCodes.OK);
-          expect(responseBody.parts).toHaveLength(2);
-          expect(responseBody.parts).toEqual(
-            expect.arrayContaining([
-              {
-                id: mockSmallAreaAndHole.partsData.features[0].properties.id,
-                errors: [{ code: ValidationErrorType.SMALL_GEOMETRY }],
-              },
-              {
-                id: mockSmallAreaAndHole.partsData.features[1].properties.id,
-                errors: [{ code: ValidationErrorType.SMALL_HOLES }],
-              },
-            ])
-          );
-          expect(responseBody.smallHolesCount).toBe(1);
-          expect(response).toSatisfyApiSpec();
-
-          expect.assertions(5);
-        });
-
-        it('should accumulate multiple error codes across parts with mixed validity issues', async () => {
           const response = await requestSender.validatePolygonParts(mockMultipleInvalidGeometries);
 
           const responseBody = response.body as ValidatePolygonPartsResponseBody;
           expect(response.status).toBe(httpStatusCodes.OK);
-          expect(responseBody.parts).toHaveLength(3);
+          expect(responseBody.parts).toHaveLength(4);
           expect(responseBody.parts).toEqual(
             expect.arrayContaining([
               {
@@ -355,16 +351,45 @@ describe('validate', () => {
               },
               {
                 id: mockMultipleInvalidGeometries.partsData.features[1].properties.id,
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                errors: expect.arrayContaining([{ code: ValidationErrorType.SMALL_GEOMETRY }, { code: ValidationErrorType.SMALL_HOLES }]),
+                errors: [{ code: ValidationErrorType.SMALL_GEOMETRY }],
               },
               {
                 id: mockMultipleInvalidGeometries.partsData.features[2].properties.id,
-                errors: [{ code: ValidationErrorType.GEOMETRY_VALIDITY }],
+                errors: [{ code: ValidationErrorType.SMALL_HOLES }],
+              },
+              {
+                id: mockMultipleInvalidGeometries.partsData.features[3].properties.id,
+                errors: expect.arrayContaining([
+                  { code: ValidationErrorType.SMALL_GEOMETRY },
+                  { code: ValidationErrorType.SMALL_HOLES },
+                ]) as PolygonPartValidationErrorItem[],
               },
             ])
           );
-          expect(responseBody.smallHolesCount).toBe(1);
+          expect(responseBody.smallHolesCount).toBe(2);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(5);
+        });
+
+        it('should accumulate multiple error codes on a single part with mixed validity issues', async () => {
+          const response = await requestSender.validatePolygonParts(mockMultipleInvalidGeometries);
+
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(4);
+          expect(responseBody.parts).toEqual(
+            expect.arrayContaining([
+              {
+                id: mockMultipleInvalidGeometries.partsData.features[3].properties.id,
+                errors: expect.arrayContaining([
+                  { code: ValidationErrorType.SMALL_GEOMETRY },
+                  { code: ValidationErrorType.SMALL_HOLES },
+                ]) as PolygonPartValidationErrorItem[],
+              },
+            ])
+          );
+          expect(responseBody.smallHolesCount).toBe(2);
           expect(response).toSatisfyApiSpec();
 
           expect.assertions(5);

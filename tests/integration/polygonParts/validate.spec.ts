@@ -116,103 +116,234 @@ describe('validate', () => {
   });
 
   describe('POST /polygonParts/validate', () => {
-    describe('Resolution validation', () => {
-      it('should set isExceeded: false when zoom level difference is within the threshold', async () => {
-        const initPayload = createCustomInitPayloadRequestForAggregation as unknown as InsertPayload;
-        const { entitiesNames } = getEntitiesMetadata(initPayload);
-        await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
-        await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, initPayload);
+    describe('Happy Path', () => {
+      describe('Resolution validation', () => {
+        it('should set isExceeded: false when zoom level difference is within the threshold', async () => {
+          const initPayload = createCustomInitPayloadRequestForAggregation as unknown as InsertPayload;
+          const { entitiesNames } = getEntitiesMetadata(initPayload);
+          await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
+          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, initPayload);
 
-        const response = await requestSender.validatePolygonParts(mockUpdateWithIntersectingParts);
+          const response = await requestSender.validatePolygonParts(mockUpdateWithIntersectingParts);
 
-        const responseBody = response.body as ValidatePolygonPartsResponseBody;
-        expect(response.status).toBe(httpStatusCodes.OK);
-        expect(responseBody.parts).toHaveLength(2);
-        expect(responseBody.parts).toEqual(
-          expect.arrayContaining([
-            {
-              id: mockUpdateWithIntersectingParts.partsData.features[0].properties.id,
-              errors: [{ code: ValidationErrorType.RESOLUTION, isExceeded: false }],
-            },
-            {
-              id: mockUpdateWithIntersectingParts.partsData.features[1].properties.id,
-              errors: [{ code: ValidationErrorType.RESOLUTION, isExceeded: false }],
-            },
-          ])
-        );
-        expect(responseBody.smallHolesCount).toBe(0);
-        expect(response).toSatisfyApiSpec();
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(2);
+          expect(responseBody.parts).toEqual(
+            expect.arrayContaining([
+              {
+                id: mockUpdateWithIntersectingParts.partsData.features[0].properties.id,
+                errors: [{ code: ValidationErrorType.RESOLUTION, isExceeded: false }],
+              },
+              {
+                id: mockUpdateWithIntersectingParts.partsData.features[1].properties.id,
+                errors: [{ code: ValidationErrorType.RESOLUTION, isExceeded: false }],
+              },
+            ])
+          );
+          expect(responseBody.smallHolesCount).toBe(0);
+          expect(response).toSatisfyApiSpec();
 
-        expect.assertions(5);
-      });
-
-      it('should set isExceeded: true when zoom level difference exceeds the threshold', async () => {
-        const { entitiesNames } = getEntitiesMetadata(highResolutionInitPayload);
-        await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
-        await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, highResolutionInitPayload as InsertPayload);
-
-        const response = await requestSender.validatePolygonParts(mockUpdateWithExceededResolution);
-
-        const responseBody = response.body as ValidatePolygonPartsResponseBody;
-        expect(response.status).toBe(httpStatusCodes.OK);
-        expect(responseBody.parts).toHaveLength(1);
-        expect(responseBody.parts[0]).toMatchObject({
-          id: mockUpdateWithExceededResolution.partsData.features[0].properties.id,
-          errors: [{ code: ValidationErrorType.RESOLUTION, isExceeded: true }],
+          expect.assertions(5);
         });
-        expect(responseBody.smallHolesCount).toBe(0);
-        expect(response).toSatisfyApiSpec();
 
-        expect.assertions(5);
+        it('should set isExceeded: true when zoom level difference exceeds the threshold', async () => {
+          const { entitiesNames } = getEntitiesMetadata(highResolutionInitPayload);
+          await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
+          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, highResolutionInitPayload as InsertPayload);
+
+          const response = await requestSender.validatePolygonParts(mockUpdateWithExceededResolution);
+
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(1);
+          expect(responseBody.parts[0]).toMatchObject({
+            id: mockUpdateWithExceededResolution.partsData.features[0].properties.id,
+            errors: [{ code: ValidationErrorType.RESOLUTION, isExceeded: true }],
+          });
+          expect(responseBody.smallHolesCount).toBe(0);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(5);
+        });
+
+        it('should return no resolution errors when new parts do not intersect existing parts', async () => {
+          const initPayload = createCustomInitPayloadRequestForAggregation as unknown as InsertPayload;
+          const { entitiesNames } = getEntitiesMetadata(initPayload);
+          await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
+          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, initPayload);
+
+          const response = await requestSender.validatePolygonParts(mockUpdateWithNonIntersectingPart);
+
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(0);
+          expect(responseBody.smallHolesCount).toBe(0);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(4);
+        });
+
+        it('should return no resolution errors when new parts only touch (share a boundary with) existing parts', async () => {
+          const initPayload = mockTouchingLayerInitPayload as unknown as InsertPayload;
+          const { entitiesNames } = getEntitiesMetadata(mockUpdateWithTouchPart);
+          await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
+          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, initPayload);
+
+          const response = await requestSender.validatePolygonParts(mockUpdateWithTouchPart);
+
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(0);
+          expect(responseBody.smallHolesCount).toBe(0);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(4);
+        });
+
+        it('should skip resolution validation and return no errors for Ingestion_New job type', async () => {
+          // No polygon_parts table is created. If resolution validation ran it would throw 404.
+          const response = await requestSender.validatePolygonParts(validValidationPolygonPartsPayload);
+
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(0);
+          expect(responseBody.smallHolesCount).toBe(0);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(4);
+        });
       });
 
-      it('should return no resolution errors when new parts do not intersect existing parts', async () => {
-        const initPayload = createCustomInitPayloadRequestForAggregation as unknown as InsertPayload;
-        const { entitiesNames } = getEntitiesMetadata(initPayload);
-        await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
-        await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, initPayload);
+      describe('Geometry validation', () => {
+        it('should return GEOMETRY_VALIDITY errors for self-intersecting geometries', async () => {
+          const response = await requestSender.validatePolygonParts(invalidGeometriesValidateRequest);
 
-        const response = await requestSender.validatePolygonParts(mockUpdateWithNonIntersectingPart);
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(2);
+          expect(responseBody.parts).toEqual(
+            expect.arrayContaining([
+              {
+                id: invalidGeometriesValidateRequest.partsData.features[0].properties.id,
+                errors: [{ code: ValidationErrorType.GEOMETRY_VALIDITY }],
+              },
+              {
+                id: invalidGeometriesValidateRequest.partsData.features[1].properties.id,
+                errors: [{ code: ValidationErrorType.GEOMETRY_VALIDITY }],
+              },
+            ])
+          );
+          expect(responseBody.smallHolesCount).toBe(0);
+          expect(response).toSatisfyApiSpec();
 
-        const responseBody = response.body as ValidatePolygonPartsResponseBody;
-        expect(response.status).toBe(httpStatusCodes.OK);
-        expect(responseBody.parts).toHaveLength(0);
-        expect(responseBody.smallHolesCount).toBe(0);
-        expect(response).toSatisfyApiSpec();
+          expect.assertions(5);
+        });
 
-        expect.assertions(4);
+        it('should return SMALL_GEOMETRY errors for parts whose area is below the threshold', async () => {
+          const response = await requestSender.validatePolygonParts(invalidSmallGeometriesValidateRequest);
+
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(2);
+          expect(responseBody.parts).toEqual(
+            expect.arrayContaining([
+              {
+                id: invalidSmallGeometriesValidateRequest.partsData.features[0].properties.id,
+                errors: [{ code: ValidationErrorType.SMALL_GEOMETRY }],
+              },
+              {
+                id: invalidSmallGeometriesValidateRequest.partsData.features[1].properties.id,
+                errors: [{ code: ValidationErrorType.SMALL_GEOMETRY }],
+              },
+            ])
+          );
+          expect(responseBody.smallHolesCount).toBe(0);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(5);
+        });
+
+        it('should return SMALL_HOLES errors for parts containing holes below the area threshold', async () => {
+          const response = await requestSender.validatePolygonParts(invalidSmallHolesValidateRequest);
+
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(2);
+          expect(responseBody.parts).toEqual(
+            expect.arrayContaining([
+              {
+                id: invalidSmallHolesValidateRequest.partsData.features[0].properties.id,
+                errors: [{ code: ValidationErrorType.SMALL_HOLES }],
+              },
+              {
+                id: invalidSmallHolesValidateRequest.partsData.features[1].properties.id,
+                errors: [{ code: ValidationErrorType.SMALL_HOLES }],
+              },
+            ])
+          );
+          expect(responseBody.smallHolesCount).toBe(2);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(5);
+        });
+
+        it('should report SMALL_GEOMETRY and SMALL_HOLES independently on different parts', async () => {
+          const response = await requestSender.validatePolygonParts(mockSmallAreaAndHole);
+
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(2);
+          expect(responseBody.parts).toEqual(
+            expect.arrayContaining([
+              {
+                id: mockSmallAreaAndHole.partsData.features[0].properties.id,
+                errors: [{ code: ValidationErrorType.SMALL_GEOMETRY }],
+              },
+              {
+                id: mockSmallAreaAndHole.partsData.features[1].properties.id,
+                errors: [{ code: ValidationErrorType.SMALL_HOLES }],
+              },
+            ])
+          );
+          expect(responseBody.smallHolesCount).toBe(1);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(5);
+        });
+
+        it('should accumulate multiple error codes across parts with mixed validity issues', async () => {
+          const response = await requestSender.validatePolygonParts(mockMultipleInvalidGeometries);
+
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(3);
+          expect(responseBody.parts).toEqual(
+            expect.arrayContaining([
+              {
+                id: mockMultipleInvalidGeometries.partsData.features[0].properties.id,
+                errors: [{ code: ValidationErrorType.GEOMETRY_VALIDITY }],
+              },
+              {
+                id: mockMultipleInvalidGeometries.partsData.features[1].properties.id,
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                errors: expect.arrayContaining([{ code: ValidationErrorType.SMALL_GEOMETRY }, { code: ValidationErrorType.SMALL_HOLES }]),
+              },
+              {
+                id: mockMultipleInvalidGeometries.partsData.features[2].properties.id,
+                errors: [{ code: ValidationErrorType.GEOMETRY_VALIDITY }],
+              },
+            ])
+          );
+          expect(responseBody.smallHolesCount).toBe(1);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(5);
+        });
       });
+    });
 
-      it('should return no resolution errors when new parts only touch (share a boundary with) existing parts', async () => {
-        const initPayload = mockTouchingLayerInitPayload as unknown as InsertPayload;
-        const { entitiesNames } = getEntitiesMetadata(mockUpdateWithTouchPart);
-        await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
-        await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, initPayload);
-
-        const response = await requestSender.validatePolygonParts(mockUpdateWithTouchPart);
-
-        const responseBody = response.body as ValidatePolygonPartsResponseBody;
-        expect(response.status).toBe(httpStatusCodes.OK);
-        expect(responseBody.parts).toHaveLength(0);
-        expect(responseBody.smallHolesCount).toBe(0);
-        expect(response).toSatisfyApiSpec();
-
-        expect.assertions(4);
-      });
-
-      it('should skip resolution validation and return no errors for Ingestion_New job type', async () => {
-        // No polygon_parts table is created. If resolution validation ran it would throw 404.
-        const response = await requestSender.validatePolygonParts(validValidationPolygonPartsPayload);
-
-        const responseBody = response.body as ValidatePolygonPartsResponseBody;
-        expect(response.status).toBe(httpStatusCodes.OK);
-        expect(responseBody.parts).toHaveLength(0);
-        expect(responseBody.smallHolesCount).toBe(0);
-        expect(response).toSatisfyApiSpec();
-
-        expect.assertions(4);
-      });
-
+    describe('Sad Path', () => {
       it('should return 404 when the polygon_parts table does not exist for an Ingestion_Update request', async () => {
         // No polygon_parts table is created for mockUpdateWithTouchPart's layer.
         const response = await requestSender.validatePolygonParts(mockUpdateWithTouchPart);
@@ -220,133 +351,6 @@ describe('validate', () => {
         expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
 
         expect.assertions(1);
-      });
-    });
-
-    describe('Geometry validation', () => {
-      it('should return GEOMETRY_VALIDITY errors for self-intersecting geometries', async () => {
-        const response = await requestSender.validatePolygonParts(invalidGeometriesValidateRequest);
-
-        const responseBody = response.body as ValidatePolygonPartsResponseBody;
-        expect(response.status).toBe(httpStatusCodes.OK);
-        expect(responseBody.parts).toHaveLength(2);
-        expect(responseBody.parts).toEqual(
-          expect.arrayContaining([
-            {
-              id: invalidGeometriesValidateRequest.partsData.features[0].properties.id,
-              errors: [{ code: ValidationErrorType.GEOMETRY_VALIDITY }],
-            },
-            {
-              id: invalidGeometriesValidateRequest.partsData.features[1].properties.id,
-              errors: [{ code: ValidationErrorType.GEOMETRY_VALIDITY }],
-            },
-          ])
-        );
-        expect(responseBody.smallHolesCount).toBe(0);
-        expect(response).toSatisfyApiSpec();
-
-        expect.assertions(5);
-      });
-
-      it('should return SMALL_GEOMETRY errors for parts whose area is below the threshold', async () => {
-        const response = await requestSender.validatePolygonParts(invalidSmallGeometriesValidateRequest);
-
-        const responseBody = response.body as ValidatePolygonPartsResponseBody;
-        expect(response.status).toBe(httpStatusCodes.OK);
-        expect(responseBody.parts).toHaveLength(2);
-        expect(responseBody.parts).toEqual(
-          expect.arrayContaining([
-            {
-              id: invalidSmallGeometriesValidateRequest.partsData.features[0].properties.id,
-              errors: [{ code: ValidationErrorType.SMALL_GEOMETRY }],
-            },
-            {
-              id: invalidSmallGeometriesValidateRequest.partsData.features[1].properties.id,
-              errors: [{ code: ValidationErrorType.SMALL_GEOMETRY }],
-            },
-          ])
-        );
-        expect(responseBody.smallHolesCount).toBe(0);
-        expect(response).toSatisfyApiSpec();
-
-        expect.assertions(5);
-      });
-
-      it('should return SMALL_HOLES errors for parts containing holes below the area threshold', async () => {
-        const response = await requestSender.validatePolygonParts(invalidSmallHolesValidateRequest);
-
-        const responseBody = response.body as ValidatePolygonPartsResponseBody;
-        expect(response.status).toBe(httpStatusCodes.OK);
-        expect(responseBody.parts).toHaveLength(2);
-        expect(responseBody.parts).toEqual(
-          expect.arrayContaining([
-            {
-              id: invalidSmallHolesValidateRequest.partsData.features[0].properties.id,
-              errors: [{ code: ValidationErrorType.SMALL_HOLES }],
-            },
-            {
-              id: invalidSmallHolesValidateRequest.partsData.features[1].properties.id,
-              errors: [{ code: ValidationErrorType.SMALL_HOLES }],
-            },
-          ])
-        );
-        expect(responseBody.smallHolesCount).toBe(2);
-        expect(response).toSatisfyApiSpec();
-
-        expect.assertions(5);
-      });
-
-      it('should report SMALL_GEOMETRY and SMALL_HOLES independently on different parts', async () => {
-        const response = await requestSender.validatePolygonParts(mockSmallAreaAndHole);
-
-        const responseBody = response.body as ValidatePolygonPartsResponseBody;
-        expect(response.status).toBe(httpStatusCodes.OK);
-        expect(responseBody.parts).toHaveLength(2);
-        expect(responseBody.parts).toEqual(
-          expect.arrayContaining([
-            {
-              id: mockSmallAreaAndHole.partsData.features[0].properties.id,
-              errors: [{ code: ValidationErrorType.SMALL_GEOMETRY }],
-            },
-            {
-              id: mockSmallAreaAndHole.partsData.features[1].properties.id,
-              errors: [{ code: ValidationErrorType.SMALL_HOLES }],
-            },
-          ])
-        );
-        expect(responseBody.smallHolesCount).toBe(1);
-        expect(response).toSatisfyApiSpec();
-
-        expect.assertions(5);
-      });
-
-      it('should accumulate multiple error codes across parts with mixed validity issues', async () => {
-        const response = await requestSender.validatePolygonParts(mockMultipleInvalidGeometries);
-
-        const responseBody = response.body as ValidatePolygonPartsResponseBody;
-        expect(response.status).toBe(httpStatusCodes.OK);
-        expect(responseBody.parts).toHaveLength(3);
-        expect(responseBody.parts).toEqual(
-          expect.arrayContaining([
-            {
-              id: mockMultipleInvalidGeometries.partsData.features[0].properties.id,
-              errors: [{ code: ValidationErrorType.GEOMETRY_VALIDITY }],
-            },
-            {
-              id: mockMultipleInvalidGeometries.partsData.features[1].properties.id,
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              errors: expect.arrayContaining([{ code: ValidationErrorType.SMALL_GEOMETRY }, { code: ValidationErrorType.SMALL_HOLES }]),
-            },
-            {
-              id: mockMultipleInvalidGeometries.partsData.features[2].properties.id,
-              errors: [{ code: ValidationErrorType.GEOMETRY_VALIDITY }],
-            },
-          ])
-        );
-        expect(responseBody.smallHolesCount).toBe(1);
-        expect(response).toSatisfyApiSpec();
-
-        expect.assertions(5);
       });
     });
   });

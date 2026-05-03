@@ -374,8 +374,10 @@ describe('validate', () => {
 
     describe('Bad Path', () => {
       it('should return 400 when productId is missing from the request body', async () => {
-        const { productId: _omitted, ...bodyWithoutProductId } = validValidationPolygonPartsPayload;
-        const response = await requestSender.validatePolygonParts(bodyWithoutProductId as unknown as ValidatePolygonPartsRequestBody);
+        const response = await requestSender.validatePolygonParts({
+          ...validValidationPolygonPartsPayload,
+          productId: undefined,
+        } as unknown as ValidatePolygonPartsRequestBody);
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
 
@@ -383,8 +385,10 @@ describe('validate', () => {
       });
 
       it('should return 400 when productType is missing from the request body', async () => {
-        const { productType: _omitted, ...bodyWithoutProductType } = validValidationPolygonPartsPayload;
-        const response = await requestSender.validatePolygonParts(bodyWithoutProductType as unknown as ValidatePolygonPartsRequestBody);
+        const response = await requestSender.validatePolygonParts({
+          ...validValidationPolygonPartsPayload,
+          productType: undefined,
+        } as unknown as ValidatePolygonPartsRequestBody);
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
 

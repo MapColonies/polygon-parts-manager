@@ -853,6 +853,58 @@ export const mockUpdateWithExceededResolution: ValidatePolygonPartsRequestBody =
   },
 };
 
+// Update payload with two parts intersecting highResolutionInitPayload (zoom 21):
+//   part A at zoom 14 → degreesPerPixelToZoomLevel diff = 21-13 = 8 > threshold (4) → isExceeded: true
+//   part B at zoom 19 → degreesPerPixelToZoomLevel diff = 21-19 = 2 ≤ threshold (4) → isExceeded: false
+export const mockUpdateWithMixedResolutions: ValidatePolygonPartsRequestBody = {
+  ...highResLayerMetadata,
+  productVersion: '2.0',
+  jobType: JobTypes.Ingestion_Update,
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [34.85149443279957, 32.30543192283443],
+              [34.85149443279957, 32.29430955805424],
+              [34.86824157112912, 32.29430955805424],
+              [34.86824157112912, 32.30543192283443],
+              [34.85149443279957, 32.30543192283443],
+            ],
+          ],
+        },
+        properties: {
+          ...propertiesToGenerate(),
+          resolutionDegree: 4.29153442382813e-5, // zoom level 14 → isExceeded: true
+        },
+      },
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [34.85149443279957, 32.30543192283443],
+              [34.85149443279957, 32.29430955805424],
+              [34.86824157112912, 32.29430955805424],
+              [34.86824157112912, 32.30543192283443],
+              [34.85149443279957, 32.30543192283443],
+            ],
+          ],
+        },
+        properties: {
+          ...propertiesToGenerate(),
+          resolutionDegree: 1.34110450744629e-6, // zoom level 19 → isExceeded: false
+        },
+      },
+    ],
+  },
+};
+
 // Existing layer occupying the polygon immediately to the left of mockUpdateWithTouchPart.
 // The two polygons share the vertical edge at x=34.86824157112912 — they touch but do not overlap.
 export const mockTouchingLayerInitPayload: ValidatePolygonPartsRequestBody = {

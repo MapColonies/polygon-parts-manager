@@ -15,7 +15,7 @@ import { History } from '../../../src/polygonParts/DAL/history';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
 import { namingStrategy } from '../../../src/polygonParts/DAL/utils';
 import { ValidatePart } from '../../../src/polygonParts/DAL/validationPart';
-import type { ValidatePolygonPartsResponseBody } from '../../../src/polygonParts/controllers/interfaces';
+import type { ValidatePolygonPartsRequestBody, ValidatePolygonPartsResponseBody } from '../../../src/polygonParts/controllers/interfaces';
 import { EntitiesMetadata, EntityIdentifierObject, PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import {
   createCustomInitPayloadRequestForAggregation,
@@ -28,6 +28,7 @@ import {
   mockTouchingLayerInitPayload,
   mockUpdateWithExceededResolution,
   mockUpdateWithIntersectingParts,
+  mockUpdateWithMixedResolutions,
   mockUpdateWithNonIntersectingPart,
   mockUpdateWithTouchPart,
   validValidationPolygonPartsPayload,
@@ -213,6 +214,34 @@ describe('validate', () => {
 
           expect.assertions(4);
         });
+
+        it('should return mixed isExceeded values when parts have different zoom level differences relative to the existing layer', async () => {
+          const { entitiesNames } = getEntitiesMetadata(highResolutionInitPayload);
+          await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
+          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, highResolutionInitPayload as InsertPayload);
+
+          const response = await requestSender.validatePolygonParts(mockUpdateWithMixedResolutions);
+
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(2);
+          expect(responseBody.parts).toEqual(
+            expect.arrayContaining([
+              {
+                id: mockUpdateWithMixedResolutions.partsData.features[0].properties.id,
+                errors: [{ code: ValidationErrorType.RESOLUTION, isExceeded: true }],
+              },
+              {
+                id: mockUpdateWithMixedResolutions.partsData.features[1].properties.id,
+                errors: [{ code: ValidationErrorType.RESOLUTION, isExceeded: false }],
+              },
+            ])
+          );
+          expect(responseBody.smallHolesCount).toBe(0);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(5);
+        });
       });
 
       describe('Geometry validation', () => {
@@ -340,6 +369,26 @@ describe('validate', () => {
 
           expect.assertions(5);
         });
+      });
+    });
+
+    describe('Bad Path', () => {
+      it('should return 400 when productId is missing from the request body', async () => {
+        const { productId: _omitted, ...bodyWithoutProductId } = validValidationPolygonPartsPayload;
+        const response = await requestSender.validatePolygonParts(bodyWithoutProductId as unknown as ValidatePolygonPartsRequestBody);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+
+        expect.assertions(1);
+      });
+
+      it('should return 400 when productType is missing from the request body', async () => {
+        const { productType: _omitted, ...bodyWithoutProductType } = validValidationPolygonPartsPayload;
+        const response = await requestSender.validatePolygonParts(bodyWithoutProductType as unknown as ValidatePolygonPartsRequestBody);
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+
+        expect.assertions(1);
       });
     });
 

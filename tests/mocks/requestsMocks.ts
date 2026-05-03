@@ -40,6 +40,22 @@ const propertiesToGenerate = (): PolygonPartsProperties => ({
   sensors: ['Sensor_X', 'Sensor_Y'],
 });
 
+// productId/type/catalogId shared between highResolutionInitPayload and mockUpdateWithExceededResolution
+const highResLayerMetadata: LayerMetadata = {
+  productId: 'HIGH_RES_EXCEEDED_TEST',
+  productType: RasterProductTypes.ORTHOPHOTO,
+  catalogId: 'e7a3f109-0000-4321-abcd-111111111111',
+  productVersion: '1.0',
+};
+
+// productId/type/catalogId shared between mockTouchingLayerInitPayload and mockUpdateWithTouchPart
+const touchingLayerMetadata: LayerMetadata = {
+  productId: 'Resolution_Conflict_Test',
+  productType: RasterProductTypes.ORTHOPHOTO,
+  catalogId: faker.string.uuid(),
+  productVersion: '1.0',
+};
+
 export const worldFootprint: Polygon = {
   type: 'Polygon',
   coordinates: [
@@ -774,10 +790,104 @@ export const mockUpdateWithIntersectingParts: ValidatePolygonPartsRequestBody = 
   },
 };
 
+// Existing layer at zoom 21 (resolutionDegree ≈ 3.353e-7). Used as the pre-existing
+// polygon_parts table data when testing the isExceeded=true path.
+export const highResolutionInitPayload: ValidatePolygonPartsRequestBody = {
+  ...highResLayerMetadata,
+  jobType: JobTypes.Ingestion_New,
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [34.85149443279957, 32.30543192283443],
+              [34.85149443279957, 32.29430955805424],
+              [34.86824157112912, 32.29430955805424],
+              [34.86824157112912, 32.30543192283443],
+              [34.85149443279957, 32.30543192283443],
+            ],
+          ],
+        },
+        properties: {
+          ...propertiesToGenerate(),
+          resolutionDegree: 3.35276126861572e-7, // zoom level 21
+        },
+      },
+    ],
+  },
+};
+
+// Update payload at zoom 14 (resolutionDegree ≈ 4.292e-5) intersecting highResolutionInitPayload.
+// zoom diff = 21 - 14 = 7 > threshold (4) → isExceeded: true
+export const mockUpdateWithExceededResolution: ValidatePolygonPartsRequestBody = {
+  ...highResLayerMetadata,
+  productVersion: '2.0',
+  jobType: JobTypes.Ingestion_Update,
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [34.85149443279957, 32.30543192283443],
+              [34.85149443279957, 32.29430955805424],
+              [34.86824157112912, 32.29430955805424],
+              [34.86824157112912, 32.30543192283443],
+              [34.85149443279957, 32.30543192283443],
+            ],
+          ],
+        },
+        properties: {
+          ...propertiesToGenerate(),
+          resolutionDegree: 4.29153442382813e-5, // zoom level 14
+        },
+      },
+    ],
+  },
+};
+
+// Existing layer occupying the polygon immediately to the left of mockUpdateWithTouchPart.
+// The two polygons share the vertical edge at x=34.86824157112912 — they touch but do not overlap.
+export const mockTouchingLayerInitPayload: ValidatePolygonPartsRequestBody = {
+  ...touchingLayerMetadata,
+  jobType: JobTypes.Ingestion_New,
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [34.85149443279957, 32.29430955805424],
+              [34.85149443279957, 32.30543192283443],
+              [34.86824157112912, 32.30543192283443],
+              [34.86824157112912, 32.29430955805424],
+              [34.85149443279957, 32.29430955805424],
+            ],
+          ],
+        },
+        properties: {
+          ...propertiesToGenerate(),
+          resolutionDegree: 0.0000214576721191406, // zoom level 15
+        },
+      },
+    ],
+  },
+};
+
+// Update payload at zoom 15 (resolutionDegree ≈ 2.146e-5) that only touches (shares an edge with)
+// the mockTouchingLayerInitPayload polygon. ST_Intersects && NOT ST_Touches → false → no resolution error.
 export const mockUpdateWithTouchPart: ValidatePolygonPartsRequestBody = {
-  productId: 'Resolution_Conflict_Test',
-  productType: RasterProductTypes.ORTHOPHOTO,
-  catalogId: faker.string.uuid(),
+  ...touchingLayerMetadata,
   productVersion: '2.0',
   jobType: JobTypes.Ingestion_Update,
   partsData: {
@@ -800,6 +910,40 @@ export const mockUpdateWithTouchPart: ValidatePolygonPartsRequestBody = {
         properties: {
           ...propertiesToGenerate(),
           resolutionDegree: 0.0000214576721191406, // zoom level 15
+        },
+      },
+    ],
+  },
+};
+
+// Update payload with geometry completely disjoint from the pre-existing AGGREGATED_EXAMPLE parts.
+// Used to verify that the resolution check produces no errors when there is no spatial intersection.
+export const mockUpdateWithNonIntersectingPart: ValidatePolygonPartsRequestBody = {
+  productId: createCustomInitPayloadRequestForAggregation.productId,
+  productType: RasterProductTypes.ORTHOPHOTO,
+  catalogId: createCustomInitPayloadRequestForAggregation.catalogId,
+  productVersion: '2.0',
+  jobType: JobTypes.Ingestion_Update,
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [33.0, 30.0],
+              [33.01, 30.0],
+              [33.01, 30.01],
+              [33.0, 30.01],
+              [33.0, 30.0],
+            ],
+          ],
+        },
+        properties: {
+          ...propertiesToGenerate(),
+          resolutionDegree: 0.0001,
         },
       },
     ],

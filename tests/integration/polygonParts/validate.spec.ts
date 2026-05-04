@@ -24,14 +24,18 @@ import {
   invalidGeometriesValidateRequest,
   invalidSmallGeometriesValidateRequest,
   invalidSmallHolesValidateRequest,
+  lowerResolutionInitPayload,
   mockMultipleInvalidGeometries,
   mockTouchingLayerInitPayload,
+  mockUpdateIntersectingTwoHighResParts,
   mockUpdateWithExceededResolution,
+  mockUpdateWithHighResIntersectingLowRes,
   mockUpdateWithIntersectingParts,
   mockUpdateWithMixedResolutions,
   mockUpdateWithNonIntersectingPart,
   mockUpdateWithResolutionAndSmallGeometry,
   mockUpdateWithTouchPart,
+  twoHighResExistingPartsInitPayload,
   validValidationPolygonPartsPayload,
 } from '../../mocks/requestsMocks';
 import { INITIAL_DB } from './helpers/constants';
@@ -238,6 +242,40 @@ describe('validate', () => {
           expect(response).toSatisfyApiSpec();
 
           expect.assertions(5);
+        });
+
+        it('should return no resolution error when the existing intersecting part has lower resolution than the new part', async () => {
+          const { entitiesNames } = getEntitiesMetadata(lowerResolutionInitPayload);
+          await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
+          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, lowerResolutionInitPayload as InsertPayload);
+
+          const response = await requestSender.validatePolygonParts(mockUpdateWithHighResIntersectingLowRes);
+
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(0);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(3);
+        });
+
+        it('should return the new part id only once when it intersects two existing parts with higher resolution', async () => {
+          const { entitiesNames } = getEntitiesMetadata(twoHighResExistingPartsInitPayload);
+          await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
+          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, twoHighResExistingPartsInitPayload as InsertPayload);
+
+          const response = await requestSender.validatePolygonParts(mockUpdateIntersectingTwoHighResParts);
+
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(1);
+          expect(responseBody.parts[0]).toMatchObject({
+            id: mockUpdateIntersectingTwoHighResParts.partsData.features[0].properties.id,
+            errors: [{ code: ValidationErrorType.RESOLUTION, isExceeded: true }],
+          });
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(4);
         });
 
         it('should return both RESOLUTION and SMALL_GEOMETRY errors on the same part', async () => {

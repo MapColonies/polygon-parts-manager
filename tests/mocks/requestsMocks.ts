@@ -40,16 +40,8 @@ const propertiesToGenerate = (): PolygonPartsProperties => ({
   sensors: ['Sensor_X', 'Sensor_Y'],
 });
 
-// productId/type/catalogId shared between highResolutionInitPayload and mockUpdateWithExceededResolution
-const highResLayerMetadata: LayerMetadata = {
-  productId: 'HIGH_RES_EXCEEDED_TEST',
-  productType: RasterProductTypes.ORTHOPHOTO,
-  catalogId: 'e7a3f109-0000-4321-abcd-111111111111',
-  productVersion: '1.0',
-};
-
 // productId/type/catalogId shared between mockTouchingLayerInitPayload and mockUpdateWithTouchPart
-const touchingLayerMetadata: LayerMetadata = {
+const layerMetadata: LayerMetadata = {
   productId: 'Resolution_Conflict_Test',
   productType: RasterProductTypes.ORTHOPHOTO,
   catalogId: faker.string.uuid(),
@@ -695,7 +687,7 @@ export const mockUpdateWithIntersectingParts: ValidatePolygonPartsRequestBody = 
 // Existing layer at zoom 21 (resolutionDegree ≈ 3.353e-7). Used as the pre-existing
 // polygon_parts table data when testing the isExceeded=true path.
 export const highResolutionInitPayload: ValidatePolygonPartsRequestBody = {
-  ...highResLayerMetadata,
+  ...layerMetadata,
   jobType: JobTypes.Ingestion_New,
   partsData: {
     type: 'FeatureCollection',
@@ -726,7 +718,7 @@ export const highResolutionInitPayload: ValidatePolygonPartsRequestBody = {
 // Update payload at zoom 14 (resolutionDegree ≈ 4.292e-5) intersecting highResolutionInitPayload.
 // zoom diff = 21 - 14 = 7 > threshold (4) → isExceeded: true
 export const mockUpdateWithExceededResolution: ValidatePolygonPartsRequestBody = {
-  ...highResLayerMetadata,
+  ...layerMetadata,
   productVersion: '2.0',
   jobType: JobTypes.Ingestion_Update,
   partsData: {
@@ -759,7 +751,7 @@ export const mockUpdateWithExceededResolution: ValidatePolygonPartsRequestBody =
 //   part A at zoom 14 → degreesPerPixelToZoomLevel diff = 21-13 = 8 > threshold (4) → isExceeded: true
 //   part B at zoom 19 → degreesPerPixelToZoomLevel diff = 21-19 = 2 ≤ threshold (4) → isExceeded: false
 export const mockUpdateWithMixedResolutions: ValidatePolygonPartsRequestBody = {
-  ...highResLayerMetadata,
+  ...layerMetadata,
   productVersion: '2.0',
   jobType: JobTypes.Ingestion_Update,
   partsData: {
@@ -810,7 +802,7 @@ export const mockUpdateWithMixedResolutions: ValidatePolygonPartsRequestBody = {
 // Existing layer occupying the polygon immediately to the left of mockUpdateWithTouchPart.
 // The two polygons share the vertical edge at x=34.86824157112912 — they touch but do not overlap.
 export const mockTouchingLayerInitPayload: ValidatePolygonPartsRequestBody = {
-  ...touchingLayerMetadata,
+  ...layerMetadata,
   jobType: JobTypes.Ingestion_New,
   partsData: {
     type: 'FeatureCollection',
@@ -841,7 +833,7 @@ export const mockTouchingLayerInitPayload: ValidatePolygonPartsRequestBody = {
 // Update payload at zoom 15 (resolutionDegree ≈ 2.146e-5) that only touches (shares an edge with)
 // the mockTouchingLayerInitPayload polygon. ST_Intersects && NOT ST_Touches → false → no resolution error.
 export const mockUpdateWithTouchPart: ValidatePolygonPartsRequestBody = {
-  ...touchingLayerMetadata,
+  ...layerMetadata,
   productVersion: '2.0',
   jobType: JobTypes.Ingestion_Update,
   partsData: {
@@ -874,7 +866,7 @@ export const mockUpdateWithTouchPart: ValidatePolygonPartsRequestBody = {
 // that intersects highResolutionInitPayload (zoom 21). zoom diff = 21-14 = 7 > threshold (4).
 // Expects both RESOLUTION (isExceeded: true) and SMALL_GEOMETRY errors on the same part.
 export const mockUpdateWithResolutionAndSmallGeometry: ValidatePolygonPartsRequestBody = {
-  ...highResLayerMetadata,
+  ...layerMetadata,
   productVersion: '2.0',
   jobType: JobTypes.Ingestion_Update,
   partsData: {
@@ -897,6 +889,155 @@ export const mockUpdateWithResolutionAndSmallGeometry: ValidatePolygonPartsReque
         properties: {
           ...propertiesToGenerate(),
           resolutionDegree: 4.29153442382813e-5, // zoom level 14 → isExceeded: true
+        },
+      },
+    ],
+  },
+};
+
+// Existing layer at zoom ~10 (resolutionDegree ≈ 6.87e-4, low resolution). Used as the pre-existing
+// polygon_parts table data when testing that a lower-resolution existing part produces no resolution error.
+export const lowerResolutionInitPayload: ValidatePolygonPartsRequestBody = {
+  ...layerMetadata,
+  jobType: JobTypes.Ingestion_New,
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [34.85149443279957, 32.30543192283443],
+              [34.85149443279957, 32.29430955805424],
+              [34.86824157112912, 32.29430955805424],
+              [34.86824157112912, 32.30543192283443],
+              [34.85149443279957, 32.30543192283443],
+            ],
+          ],
+        },
+        properties: {
+          ...propertiesToGenerate(),
+          resolutionDegree: 0.0006866455078125, // zoom level ~10, low resolution
+        },
+      },
+    ],
+  },
+};
+
+// Update payload at zoom 21 (resolutionDegree ≈ 3.35e-7) intersecting lowerResolutionInitPayload.
+// Existing part has higher resolutionDegree (lower resolution) than the new part →
+// SQL condition p.resolution_degree < v.resolution_degree is NOT satisfied → no resolution error.
+export const mockUpdateWithHighResIntersectingLowRes: ValidatePolygonPartsRequestBody = {
+  ...layerMetadata,
+  productVersion: '2.0',
+  jobType: JobTypes.Ingestion_Update,
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [34.85149443279957, 32.30543192283443],
+              [34.85149443279957, 32.29430955805424],
+              [34.86824157112912, 32.29430955805424],
+              [34.86824157112912, 32.30543192283443],
+              [34.85149443279957, 32.30543192283443],
+            ],
+          ],
+        },
+        properties: {
+          ...propertiesToGenerate(),
+          resolutionDegree: 3.35276126861572e-7, // zoom level 21, high resolution
+        },
+      },
+    ],
+  },
+};
+
+// Existing layer with two spatially distinct parts, both at zoom 21 (resolutionDegree ≈ 3.35e-7).
+// Used to verify that a new part intersecting multiple higher-resolution existing parts
+// appears only once in the validation response (GROUP BY deduplication in the SQL query).
+export const twoHighResExistingPartsInitPayload: ValidatePolygonPartsRequestBody = {
+  ...layerMetadata,
+  jobType: JobTypes.Ingestion_New,
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [34.852, 32.305],
+              [34.852, 32.300],
+              [34.854, 32.300],
+              [34.854, 32.305],
+              [34.852, 32.305],
+            ],
+          ],
+        },
+        properties: {
+          ...propertiesToGenerate(),
+          resolutionDegree: 3.35276126861572e-7, // zoom level 21
+        },
+      },
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [34.864, 32.298],
+              [34.864, 32.295],
+              [34.866, 32.295],
+              [34.866, 32.298],
+              [34.864, 32.298],
+            ],
+          ],
+        },
+        properties: {
+          ...propertiesToGenerate(),
+          resolutionDegree: 3.35276126861572e-7, // zoom level 21
+        },
+      },
+    ],
+  },
+};
+
+// Update payload at zoom 14 (resolutionDegree ≈ 4.29e-5) with a single part that spatially
+// contains both parts of twoHighResExistingPartsInitPayload.
+// The single new part's id must appear exactly once in the validation response,
+// even though it joins two existing higher-resolution parts.
+export const mockUpdateIntersectingTwoHighResParts: ValidatePolygonPartsRequestBody = {
+  ...layerMetadata,
+  productVersion: '2.0',
+  jobType: JobTypes.Ingestion_Update,
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [34.850, 32.307],
+              [34.850, 32.293],
+              [34.868, 32.293],
+              [34.868, 32.307],
+              [34.850, 32.307],
+            ],
+          ],
+        },
+        properties: {
+          ...propertiesToGenerate(),
+          resolutionDegree: 4.29153442382813e-5, // zoom level 14
         },
       },
     ],

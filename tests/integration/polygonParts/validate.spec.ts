@@ -262,7 +262,10 @@ describe('validate', () => {
         it('should return the new part id only once when it intersects two existing parts with higher resolution', async () => {
           const { entitiesNames } = getEntitiesMetadata(twoHighResExistingPartsInitPayload);
           await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
-          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, twoHighResExistingPartsInitPayload as InsertPayload);
+          await helperDB.insertPolygonPartsFromValidationPayload(
+            entitiesNames.polygonParts.entityName,
+            twoHighResExistingPartsInitPayload as InsertPayload
+          );
 
           const response = await requestSender.validatePolygonParts(mockUpdateIntersectingTwoHighResParts);
 

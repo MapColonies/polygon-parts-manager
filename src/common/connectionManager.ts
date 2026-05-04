@@ -110,7 +110,7 @@ export class ConnectionManager {
 
   private createConnectionOptions(dbConfig: DbConfig): PostgresConnectionOptions {
     const connectionOptions = createConnectionOptions(dbConfig);
-    return { namingStrategy, logger: this.dataSourceLogger, ...connectionOptions, entities: [History, PolygonPart, ValidatePart] };
+    return { entities: [History, PolygonPart, ValidatePart], namingStrategy, logger: this.dataSourceLogger, ...connectionOptions };
   }
 
   private async schemaExists(): Promise<boolean> {

@@ -11,5 +11,11 @@
     "migrations": ["src/db/migrations/*.ts"],
     "synchronize": false,
     "migrationsRun": false
+  },
+  "application": {
+    "validation": {
+      "zoomLevelThreshold": 4,
+      "areaThresholdSquareMeters": 5
+    }
   }
 }

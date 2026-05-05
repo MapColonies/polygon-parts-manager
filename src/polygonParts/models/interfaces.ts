@@ -1,12 +1,13 @@
 import type {
   AggregationFeature,
+  IntersectedFeatureCollection,
+  IntersectionFeatureCollection,
   JobTypes,
-  partSchema,
-  PartFeatureProperties,
   PolygonPartsEntityName,
-  polygonPartsEntityNameSchema,
   PolygonPartsPayload as PolygonPartsPayloadType,
   RoiProperties,
+  partSchema,
+  polygonPartsEntityNameSchema,
 } from '@map-colonies/raster-shared';
 import type { Feature, FeatureCollection, GeoJsonProperties, Geometry, MultiPolygon, Polygon } from 'geojson';
 import { EntityManager, SelectQueryBuilder } from 'typeorm';
@@ -15,9 +16,6 @@ import type { OptionalToNullableRecordValues, ReplaceValuesOfType } from '../../
 
 //#region public
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData' | 'jobType'>, Omit<z.infer<typeof partSchema>, 'id'> {}
-
-type IntersectionProperties = Pick<PartFeatureProperties, 'resolutionDegree'>;
-type FeatureCollectionIntersection = FeatureCollection<PolygonalGeometries, IntersectionProperties>;
 
 /**
  * Polygonal geometries
@@ -88,13 +86,13 @@ export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = Fea
  */
 export interface IntersectionOptions {
   readonly polygonPartsEntityName: EntityNames;
-  readonly geometry: FeatureCollectionIntersection;
+  readonly geometry: IntersectionFeatureCollection;
 }
 
 /**
  * Itersection response
  */
-export type IntersectionResponse = FeatureCollection<PolygonalGeometries, Record<string, never>>;
+export type IntersectionResponse = IntersectedFeatureCollection;
 
 /**
  * Polygon parts ingestion payload - based on data producer
@@ -221,12 +219,15 @@ export interface ExistsResponse extends EntityIdentifierObject {}
 
 //#region private
 export type IsValidDetailsResult = { valid: true; reason: null; location: null } | { valid: false; reason: string; location: Geometry | null };
+
 export interface FindPolygonPartsQueryResponse<ShouldClip extends boolean = boolean> {
   readonly geojson: FindPolygonPartsResponse<ShouldClip>;
 }
+
 export interface IntersectionQueryResponse {
-  geojson: FeatureCollection<PolygonalGeometries, Record<string, never>>;
+  geojson: IntersectionResponse;
 }
+
 export type FindQueryFilterOptions<ShouldClip extends boolean = boolean> = Omit<FindPolygonPartsOptions<ShouldClip>, 'filter'> & {
   entityManager: EntityManager;
   filter: {
@@ -236,6 +237,7 @@ export type FindQueryFilterOptions<ShouldClip extends boolean = boolean> = Omit<
     selectOutputColumns: string[];
   };
 };
+
 export interface FindQuerySelectOptions {
   geometryColumn: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

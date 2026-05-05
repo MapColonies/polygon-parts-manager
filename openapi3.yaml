@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Polygon-Parts Manager
   description: CRUD operations to manage polygon parts
-  version: 3.1.0
+  version: 3.2.0
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -913,8 +913,8 @@ components:
         smallHolesCount:
           type: integer
       description: >-
-        Validation result with per-part errors. Empty `parts` indicates validation
-        passed.
+        Validation result with per-part errors. Empty `parts` indicates
+        validation passed.
     ProcessPolygonPartsPayload:
       type: object
       additionalProperties: false

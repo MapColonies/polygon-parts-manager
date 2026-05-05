@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Polygon-Parts Manager
   description: CRUD operations to manage polygon parts
-  version: 3.1.0
+  version: 3.2.0
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -1014,7 +1014,6 @@ components:
       additionalProperties: false
       required:
         - parts
-        - smallGeometriesCount
         - smallHolesCount
       properties:
         parts:
@@ -1031,14 +1030,36 @@ components:
               errors:
                 type: array
                 items:
-                  type: string
-        smallGeometriesCount:
-          type: integer
+                  oneOf:
+                    - type: object
+                      additionalProperties: false
+                      required:
+                        - code
+                        - isExceeded
+                      properties:
+                        code:
+                          type: string
+                          enum:
+                            - Resolution
+                        isExceeded:
+                          type: boolean
+                    - type: object
+                      additionalProperties: false
+                      required:
+                        - code
+                      properties:
+                        code:
+                          type: string
+                          enum:
+                            - Geometry_Validity
+                            - Small_Geometry
+                            - Small_Holes
+                            - Unknown
         smallHolesCount:
           type: integer
       description: >-
-        Array of validation results per part (empty array means validation
-        passed)
+        Validation result with per-part errors. Empty `parts` indicates
+        validation passed.
     ProcessPolygonPartsPayload:
       type: object
       additionalProperties: false

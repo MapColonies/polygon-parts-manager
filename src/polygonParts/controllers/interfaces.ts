@@ -1,3 +1,4 @@
+import { PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
 import type { IngestionJobTypes } from '../models/interfaces';
 import type {
   AggregateLayerMetadataOptions,
@@ -11,7 +12,6 @@ import type {
   ProcessPolygonPartsOptions,
 } from '../models/interfaces';
 import { PolygonPartsFeatureCollection } from '../../common/types';
-import { FeatureValidationError } from '../../common/enums';
 
 /**
  * Exists request body
@@ -58,15 +58,7 @@ export interface AggregationLayerMetadataParams {
  */
 export interface AggregationLayerMetadataResponseBody extends AggregationLayerMetadataResponse {}
 
-export interface ValidateError {
-  id: string;
-  errors: FeatureValidationError[];
-}
-export interface ValidatePolygonPartsResponseBody {
-  parts: ValidateError[];
-  smallGeometriesCount: number;
-  smallHolesCount: number;
-}
+export type ValidatePolygonPartsResponseBody = PolygonPartsChunkValidationResult;
 
 export type ValidatePolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType' | 'productVersion' | 'catalogId'> & {
   jobType: IngestionJobTypes;

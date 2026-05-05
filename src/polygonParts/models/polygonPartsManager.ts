@@ -1094,10 +1094,10 @@ export class PolygonPartsManager {
 
     const outputGeometryCTE = entityManager
       .createQueryBuilder()
-      .select(`st_setsrid(st_union(st_intersection(${geometryColumn}, st_geomfromgeojson('${polygonalGeoJSONGeometryString}'))), 4326)`, 'geometry')
+      .select(`st_union(st_intersection(${geometryColumn}, st_setsrid(st_geomfromgeojson('${polygonalGeoJSONGeometryString}'), 4326)))`, 'geometry')
       .from<IntersectionResponse>(polygonPartsEntityName.databaseObjectQualifiedName, polygonPartsEntityName.entityName)
       .where(`${resolutionDegreeColumn} <= :resolutionDegree`, { resolutionDegree: geometry.features[0].properties.resolutionDegree })
-      .andWhere(`st_intersects(${geometryColumn}, st_geomfromgeojson(:geometry))`, { geometry: geometry.features[0].geometry });
+      .andWhere(`st_intersects(${geometryColumn}, st_setsrid(st_geomfromgeojson(:geometry), 4326))`, { geometry: geometry.features[0].geometry });
 
     const intersectionQuery = entityManager
       .createQueryBuilder()

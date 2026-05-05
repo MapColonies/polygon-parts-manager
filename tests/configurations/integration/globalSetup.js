@@ -6,6 +6,10 @@ const POSTGRES_IMAGE = process.env.POSTGRES_IMAGE ?? 'postgis/postgis:17-3.5';
 const POSTGRES_INTERNAL_PORT = 5432;
 
 module.exports = async function () {
+  if (process.env.USE_EXTERNAL_DB === 'true') {
+    return;
+  }
+
   const container = await new GenericContainer(POSTGRES_IMAGE)
     .withExposedPorts(POSTGRES_INTERNAL_PORT)
     .withEnvironment({

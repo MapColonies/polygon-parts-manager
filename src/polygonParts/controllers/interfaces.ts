@@ -1,17 +1,19 @@
 import { PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
-import type { IngestionJobTypes } from '../models/interfaces';
+import { PolygonPartsFeatureCollection } from '../../common/types';
 import type {
   AggregateLayerMetadataOptions,
   AggregationLayerMetadataResponse,
+  CommonRecord,
   EntityIdentifier,
   ExistsOptions,
   ExistsResponse,
   FindPolygonPartsOptions,
   FindPolygonPartsResponse,
-  CommonRecord,
+  IngestionJobTypes,
+  IntersectionOptions,
+  IntersectionResponse,
   ProcessPolygonPartsOptions,
 } from '../models/interfaces';
-import { PolygonPartsFeatureCollection } from '../../common/types';
 
 /**
  * Exists request body
@@ -45,6 +47,23 @@ export type AggregatePolygonPartsRequestBody = Pick<AggregateLayerMetadataOption
  * Find polygon parts response body
  */
 export interface FindPolygonPartsResponseBody<ShouldClip extends boolean = boolean> extends FindPolygonPartsResponse<ShouldClip> {}
+
+/**
+ * Intersection params
+ */
+export interface IntersectionParams {
+  readonly polygonPartsEntityName: EntityIdentifier;
+}
+
+/**
+ * Intersection request body
+ */
+export type IntersectionRequestBody = Pick<IntersectionOptions, 'geometry'>['geometry'];
+
+/**
+ * Intersection response body
+ */
+export type IntersectionResponseBody = IntersectionResponse;
 
 /**
  * Get aggregation layer metadata params

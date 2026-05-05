@@ -2,6 +2,7 @@ import {
   INGESTION_VALIDATIONS,
   featureCollectionSchema,
   featureSchema,
+  intersectionFeatureCollectionSchema,
   multiPolygonSchema,
   polygonPartsEntityPatternSchema,
   polygonSchema,
@@ -35,6 +36,8 @@ export const findPolygonPartsQueryParamsSchema: ZodType<FindPolygonPartsQueryPar
 export const findPolygonPartsRequestBodySchema = z.object({
   filter: findPolygonPartsFeatureCollectionSchema.nullable(),
 });
+
+export const intersectionRequestBodySchema = intersectionFeatureCollectionSchema;
 
 export const updatePolygonPartsQueryParamsSchema: ZodType<IsSwapQueryParams> = z.object({
   isSwap: z.boolean(),

@@ -74,6 +74,8 @@ env:
       polygonParts:
         find:
           maxDecimalDigits: 15
+        intersection:
+          maxDecimalDigits: 15
         namePrefix: ''
         nameSuffix: ''
         minAreaSquareDeg: 1e-15

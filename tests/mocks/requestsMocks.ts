@@ -247,7 +247,7 @@ export const createCustomInitPayloadRequestForAggregation: PolygonPartsPayload =
   productId: 'AGGREGATED_EXAMPLE',
   productType: RasterProductTypes.ORTHOPHOTO,
   productVersion: '1.5',
-  jobType: 'POLYGON_PARTS',
+  jobType: 'Ingestion_New',
   partsData: {
     type: 'FeatureCollection',
     features: [

@@ -18,6 +18,9 @@ export interface ApplicationConfig {
       find: {
         maxDecimalDigits: number;
       };
+      intersection: {
+        maxDecimalDigits: number;
+      };
       namePrefix: Lowercase<string>;
       nameSuffix: Lowercase<string>;
       minAreaSquareDeg: number;

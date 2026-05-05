@@ -31,6 +31,7 @@ const FIND_OUTPUT_PROPERTIES: MapValues<Required<Omit<PolygonPartRecord, 'footpr
 export const geometryColumn = getMappedColumnName('footprint' satisfies keyof Pick<PolygonPartRecord, 'footprint'>);
 export const idColumn = getMappedColumnName('id' satisfies keyof Pick<PolygonPartRecord, 'id'>);
 export const insertionOrderColumn = getMappedColumnName('insertionOrder' satisfies keyof Pick<PolygonPartRecord, 'insertionOrder'>);
+export const resolutionDegreeColumn = getMappedColumnName('resolutionDegree' satisfies keyof Pick<PolygonPartRecord, 'resolutionDegree'>);
 export const isValidDetailsResult: IdenticalKeyValuePairs<IsValidDetailsResult> = {
   valid: 'valid',
   reason: 'reason',

@@ -44,6 +44,7 @@ export interface ApplicationConfig {
   };
   validation: {
     areaThresholdSquareMeters: number;
+    zoomLevelThreshold: number;
   };
 }
 

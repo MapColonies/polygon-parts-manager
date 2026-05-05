@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.2.0](https://github.com/MapColonies/polygon-parts-manager/compare/v3.1.0...v3.2.0) (2026-05-04)
+
+
+### Features
+
+* **validations:** add resolution exceeds parameter to validation and change errors structure (MAPCO-10455) ([#91](https://github.com/MapColonies/polygon-parts-manager/issues/91)) ([58a8f85](https://github.com/MapColonies/polygon-parts-manager/commit/58a8f857426e02303ad21a3e7f4a3c3142cb79b1))
+
 ## [3.1.0](https://github.com/MapColonies/polygon-parts-manager/compare/v3.0.0...v3.1.0) (2026-02-05)
 
 

@@ -68,7 +68,8 @@
       }
     },
     "validation": {
-      "areaThresholdSquareMeters": 5
+      "areaThresholdSquareMeters": 5,
+      "zoomLevelThreshold": 4
     }
   },
   "db": {

@@ -1,6 +1,8 @@
 import { BadRequestError, ConflictError, InternalServerError, NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
-import { AggregationFeature, CORE_VALIDATIONS, JobTypes } from '@map-colonies/raster-shared';
+import { degreesPerPixelToZoomLevel } from '@map-colonies/mc-utils';
+import type { PolygonPartValidationError, PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
+import { AggregationFeature, CORE_VALIDATIONS, JobTypes, ValidationErrorType } from '@map-colonies/raster-shared';
 import { geometryCollection } from '@turf/helpers';
 import { Geometry, GeometryCollection } from 'geojson';
 import _ from 'lodash';
@@ -8,7 +10,6 @@ import { inject, injectable } from 'tsyringe';
 import type { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
-import { FeatureValidationError } from '../../common/enums';
 import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
 import { deleteValidationsTable } from '../../common/utils';
@@ -17,7 +18,7 @@ import { History } from '../DAL/history';
 import { PolygonPart } from '../DAL/polygonPart';
 import { payloadToInsertPartsDataToHistory, payloadToInsertValidationsData, setRepositoryTablePath } from '../DAL/utils';
 import { ValidatePart } from '../DAL/validationPart';
-import { ValidateError, ValidatePolygonPartsRequestBody, ValidatePolygonPartsResponseBody } from '../controllers/interfaces';
+import { ValidatePolygonPartsRequestBody } from '../controllers/interfaces';
 import {
   findSelectOutputColumns,
   geometryColumn,
@@ -61,7 +62,7 @@ interface CountQueryResponse {
 }
 interface ValidationCountSummary {
   count: number;
-  parts: ValidateError[];
+  parts: PolygonPartValidationError[];
 }
 
 @injectable()
@@ -69,6 +70,7 @@ export class PolygonPartsManager {
   private readonly applicationConfig: ApplicationConfig;
   private readonly schema: DbConfig['schema'];
   private readonly findMaxDecimalDigits: ApplicationConfig['entities']['polygonParts']['find']['maxDecimalDigits'];
+  private readonly zoomLevelThreshold: ApplicationConfig['validation']['zoomLevelThreshold'];
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
@@ -79,6 +81,7 @@ export class PolygonPartsManager {
     this.applicationConfig = this.config.get('application');
     this.schema = config.get('db.schema');
     this.findMaxDecimalDigits = this.config.get('application.entities.polygonParts.find.maxDecimalDigits');
+    this.zoomLevelThreshold = this.config.get('application.validation.zoomLevelThreshold');
   }
 
   public async createPolygonParts(polygonPartsPayload: PolygonPartsPayload, entitiesMetadata: EntitiesMetadata): Promise<PolygonPartsResponse> {
@@ -357,11 +360,11 @@ export class PolygonPartsManager {
   public async validatePolygonParts(
     validationsPayload: ValidatePolygonPartsRequestBody,
     entitiesMetadata: EntitiesMetadata
-  ): Promise<ValidatePolygonPartsResponseBody> {
+  ): Promise<PolygonPartsChunkValidationResult> {
     const { catalogId } = validationsPayload;
     const logger = this.logger.child({ catalogId });
     logger.info({ msg: 'validatePolygonParts', catalogId });
-    let mergedPartsErrors: ValidateError[] = [];
+    let mergedPartsErrors: PolygonPartValidationError[] = [];
 
     try {
       const response = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
@@ -379,10 +382,10 @@ export class PolygonPartsManager {
         const smallGeometriesSummary = await this.smallGeometriesCount(validationsContext);
         const smallHolesSummary = await this.smallHolesCount(validationsContext);
 
-        const errorsSummary: ValidateError[][] = [
-          stInvalidParts, // e.g. [{id, errors:['Geometry_Validity']}...]
-          smallGeometriesSummary.parts, // e.g. [{id, errors:['SMALL_GEOMETRY']}...]
-          smallHolesSummary.parts, // e.g. [{id, errors:['SMALL_HOLE']}...]
+        const errorsSummary: PolygonPartValidationError[][] = [
+          stInvalidParts, // e.g. [{id, errors: { "code": 'Geometry_Validity' }}...]
+          smallGeometriesSummary.parts, // e.g. [{id, errors: { "code": 'SMALL_GEOMETRY' }}...]
+          smallHolesSummary.parts, // e.g. [{id, errors: { "code": 'SMALL_HOLE' }}...]
         ];
 
         if (validationsPayload.jobType === JobTypes.Ingestion_Update) {
@@ -394,14 +397,16 @@ export class PolygonPartsManager {
           .groupBy('id')
           .map((group, id) => ({
             id,
-            errors: _.uniq(group.flatMap((g) => g.errors)),
+            errors: _.uniqBy(
+              group.flatMap((g) => g.errors),
+              'code'
+            ),
           }))
           .value();
 
         await this.updateFinishedValidationsRows(validationsContext);
-        const transactionResponse: ValidatePolygonPartsResponseBody = {
+        const transactionResponse = {
           parts: mergedPartsErrors,
-          smallGeometriesCount: smallGeometriesSummary.count,
           smallHolesCount: smallHolesSummary.count,
         };
         return transactionResponse;
@@ -542,7 +547,7 @@ export class PolygonPartsManager {
     entitiesMetadata: EntitiesMetadata;
     entityManager: EntityManager;
     logger: Logger;
-  }): Promise<ValidateError[]> {
+  }): Promise<PolygonPartValidationError[]> {
     const {
       entityManager,
       logger,
@@ -562,9 +567,9 @@ export class PolygonPartsManager {
         .andWhere('NOT ST_IsValid(footprint)')
         .getRawMany<{ id: string }>();
 
-      const result: ValidateError[] = rows.map(({ id }) => ({
+      const result = rows.map(({ id }) => ({
         id,
-        errors: [FeatureValidationError.GEOMETRY_VALIDITY],
+        errors: [{ code: ValidationErrorType.GEOMETRY_VALIDITY }],
       }));
 
       return result;
@@ -596,11 +601,11 @@ export class PolygonPartsManager {
         [validationsEntityQualifiedName, this.applicationConfig.validation.areaThresholdSquareMeters]
       );
 
-      const summary: ValidationCountSummary = {
+      const summary = {
         count: dbResponse.count,
         parts: dbResponse.ids.map((id) => ({
           id,
-          errors: [FeatureValidationError.SMALL_GEOMETRY],
+          errors: [{ code: ValidationErrorType.SMALL_GEOMETRY }],
         })),
       };
 
@@ -687,11 +692,11 @@ export class PolygonPartsManager {
         [validationsEntityQualifiedName, this.applicationConfig.validation.areaThresholdSquareMeters]
       );
 
-      const summary: ValidationCountSummary = {
+      const summary = {
         count: dbResponse.count,
         parts: dbResponse.ids.map((id) => ({
           id,
-          errors: [FeatureValidationError.SMALL_HOLES],
+          errors: [{ code: ValidationErrorType.SMALL_HOLES }],
         })),
       };
 
@@ -736,7 +741,7 @@ export class PolygonPartsManager {
     entitiesMetadata: EntitiesMetadata;
     entityManager: EntityManager;
     logger: Logger;
-  }): Promise<ValidateError[]> {
+  }): Promise<PolygonPartValidationError[]> {
     const {
       entityManager,
       logger,
@@ -753,20 +758,36 @@ export class PolygonPartsManager {
       if (!entityExists) {
         throw new NotFoundError(`Table with the name '${polygonPartsEntityQualifiedName}' doesn't exists`);
       }
+
       const rows = await entityManager
         .createQueryBuilder()
-        .select(`${this.applicationConfig.validateResolutionsFunction}(:qualifiedValidationName, :qualifiedPolygonPartsName)`, 'id')
-        .from('(SELECT 1)', 't')
-        .setParameters({
-          qualifiedValidationName: validationsEntityQualifiedName,
-          qualifiedPolygonPartsName: polygonPartsEntityQualifiedName,
-        })
-        .getRawMany<{ id: string }>();
+        .select('res.id', 'id')
+        .addSelect('res.new_resolution_degree', 'newResolutionDegree')
+        .addSelect('res.existing_resolution_degree', 'existingResolutionDegree')
+        .from(
+          (qb) =>
+            qb
+              .select(`(${this.applicationConfig.validateResolutionsFunction}(:qualifiedValidationName, :qualifiedPolygonPartsName)).*`)
+              .fromDummy()
+              .setParameters({
+                qualifiedValidationName: validationsEntityQualifiedName,
+                qualifiedPolygonPartsName: polygonPartsEntityQualifiedName,
+              }),
+          'res'
+        )
+        .getRawMany<{ id: string; newResolutionDegree: number; existingResolutionDegree: number }>();
 
-      const result: ValidateError[] = rows.map(({ id }) => ({
-        id,
-        errors: [FeatureValidationError.RESOLUTION],
-      }));
+      const result = rows.map((row) => {
+        const resNew = row.newResolutionDegree;
+        const resExisting = row.existingResolutionDegree;
+        const zoomLevelDifference = degreesPerPixelToZoomLevel(resExisting) - degreesPerPixelToZoomLevel(resNew);
+        const isExceeded = zoomLevelDifference > this.zoomLevelThreshold;
+
+        return {
+          id: row.id,
+          errors: [{ code: ValidationErrorType.RESOLUTION, isExceeded }],
+        };
+      });
       return result;
     } catch (error) {
       const errorMessage = `Could not get validate resolutions in: ${validationsEntityQualifiedName}`;

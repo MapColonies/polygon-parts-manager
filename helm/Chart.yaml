@@ -2,8 +2,8 @@ apiVersion: v2
 name: polygon-parts-manager
 description: A Helm chart for polygon-parts-manager service
 type: application
-version: 3.1.0
-appVersion: 3.1.0
+version: 3.2.0
+appVersion: 3.2.0
 dependencies:
   - name: mclabels
     version: 1.0.1

@@ -1,4 +1,4 @@
-import { FeatureValidationError } from '../../common/enums';
+import { PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
 import { PolygonPartsFeatureCollection } from '../../common/types';
 import type {
   AggregateLayerMetadataOptions,
@@ -77,15 +77,7 @@ export interface AggregationLayerMetadataParams {
  */
 export interface AggregationLayerMetadataResponseBody extends AggregationLayerMetadataResponse {}
 
-export interface ValidateError {
-  id: string;
-  errors: FeatureValidationError[];
-}
-export interface ValidatePolygonPartsResponseBody {
-  parts: ValidateError[];
-  smallGeometriesCount: number;
-  smallHolesCount: number;
-}
+export type ValidatePolygonPartsResponseBody = PolygonPartsChunkValidationResult;
 
 export type ValidatePolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType' | 'productVersion' | 'catalogId'> & {
   jobType: IngestionJobTypes;

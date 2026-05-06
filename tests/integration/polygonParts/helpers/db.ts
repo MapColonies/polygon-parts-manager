@@ -31,14 +31,6 @@ const generateProductType = (): RasterProductTypes => faker.helpers.arrayElement
 // Helper type for test data insertion - accepts string or Date for date fields
 export type InsertPayload = Omit<ValidatePolygonPartsRequestBody, 'jobType'>;
 
-export const createDB = async (options: Partial<DatabaseCreateContext>): Promise<void> => {
-  await createDatabase({ ...options, synchronize: false, ifNotExist: true });
-};
-
-export const deleteDB = async (options: DataSourceOptions): Promise<void> => {
-  await dropDatabase({ options });
-};
-
 export const generateFeatureId = (): NonNullable<Feature['id']> => {
   return faker.helpers.arrayElement([faker.number.float({ max: Number.MAX_VALUE }), faker.string.uuid(), faker.string.alphanumeric({ length: 20 })]);
 };

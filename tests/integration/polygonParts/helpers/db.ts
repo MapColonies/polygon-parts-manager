@@ -19,19 +19,21 @@ import { z } from 'zod';
 import { setRepositoryTablePath } from '../../../../src/polygonParts/DAL/utils';
 import type { ExistsRequestBody, ValidatePolygonPartsRequestBody } from '../../../../src/polygonParts/controllers/interfaces';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
+import { DeepPartial } from './types';
 
 type PolygonPartFeature = z.infer<typeof polygonPartsFeatureSchema>;
-type PartialPolygonPartsPayload = Partial<Omit<PolygonPartsPayload, 'partsData'>> & {
-  partsData?: {
-    type?: 'FeatureCollection';
-    features?: Partial<PolygonPartFeature>[];
-  };
-};
 const generateProductId = (): string => randexp(INGESTION_VALIDATIONS.productId.pattern);
 const generateProductType = (): RasterProductTypes => faker.helpers.arrayElement(RASTER_PRODUCT_TYPE_LIST);
 
 // Helper type for test data insertion - accepts string or Date for date fields
 export type InsertPayload = Omit<ValidatePolygonPartsRequestBody, 'jobType'>;
+
+export type PartialPolygonPartsPayload = Partial<Omit<PolygonPartsPayload, 'partsData'>> & {
+  partsData?: {
+    type?: 'FeatureCollection';
+    features?: (Pick<PolygonPartFeature, 'type'> & DeepPartial<Omit<PolygonPartFeature, 'type'>>)[];
+  };
+};
 
 export const createDB = async (options: Partial<DatabaseCreateContext>): Promise<void> => {
   await createDatabase({ ...options, synchronize: false, ifNotExist: true });
@@ -44,6 +46,9 @@ export const deleteDB = async (options: DataSourceOptions): Promise<void> => {
 export const generateFeatureId = (): NonNullable<Feature['id']> => {
   return faker.helpers.arrayElement([faker.number.float({ max: Number.MAX_VALUE }), faker.string.uuid(), faker.string.alphanumeric({ length: 20 })]);
 };
+
+export const generateResolutionDegree = (): PolygonPartFeature['properties']['resolutionDegree'] =>
+  faker.number.float(CORE_VALIDATIONS.resolutionDeg);
 
 export const generatePolygon = (
   options: Parameters<typeof randomPolygon>[1] = {
@@ -68,7 +73,7 @@ export const generatePolygonPart = (): PolygonPartFeature => {
       horizontalAccuracyCE90: faker.number.float(INGESTION_VALIDATIONS.horizontalAccuracyCE90),
       imagingTimeBeginUTC: dateOlder,
       imagingTimeEndUTC: dateRecent,
-      resolutionDegree: faker.number.float(CORE_VALIDATIONS.resolutionDeg),
+      resolutionDegree: generateResolutionDegree(),
       resolutionMeter: faker.number.float(INGESTION_VALIDATIONS.resolutionMeter),
       sensors: faker.helpers.multiple(
         () => {
@@ -145,7 +150,7 @@ export function generatePolygonPartsPayload(input: number | PartialPolygonPartsP
           return partData;
         }
 
-        return {
+        const feature = {
           ...partData,
           ...(templateFeature.id !== undefined && { id: templateFeature.id }),
           ...(templateFeature.geometry !== undefined && { geometry: templateFeature.geometry }),
@@ -156,6 +161,8 @@ export function generatePolygonPartsPayload(input: number | PartialPolygonPartsP
             },
           }),
         };
+
+        return feature;
       }),
     },
   };

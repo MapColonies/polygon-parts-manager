@@ -18,7 +18,7 @@ module.exports = async function () {
       POSTGRES_DB: 'test',
     })
     .withWaitStrategy(Wait.forSuccessfulCommand('pg_isready -U postgres -d test'))
-    .withStartupTimeout(120_000)
+    .withStartupTimeout(30_000)
     .start();
 
   process.env.DB_HOST = container.getHost();

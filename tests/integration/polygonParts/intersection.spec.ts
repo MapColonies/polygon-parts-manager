@@ -1219,7 +1219,6 @@ describe('intersection', () => {
 
       describe('topological error', () => {
         let entityIdentifier: EntityIdentifier;
-        let maxResolutionDegree: number;
         const { max: maxResolutionDeg, min: minResolutionDeg } = CORE_VALIDATIONS.resolutionDeg;
 
         beforeEach(async () => {
@@ -1271,7 +1270,6 @@ describe('intersection', () => {
             },
           });
           entityIdentifier = initialPolygonParts.entityIdentifier;
-          maxResolutionDegree = initialPolygonParts.maxResolutionDegree;
         });
 
         it.each(invalidGeometryTopologyTestCases)(

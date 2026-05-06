@@ -43,7 +43,7 @@ npm run start
 
 ## Running Tests
 
-By default tests run with [testcontainers](https://testcontainers.com/) in order to deploy a isolated DB for each test.
+By default tests run with [testcontainers](https://testcontainers.com/) in order to deploy an isolated DB for each test.
 Default DB image is `postgis/postgis:17-3.5`, this can be changed by setting the `POSTGRES_IMAGE` env variable.
 You can run with an external DB defined in your config by setting the `USE_EXTERNAL_DB` env variable to `true`.
 

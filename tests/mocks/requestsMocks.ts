@@ -1,13 +1,12 @@
 /* eslint-disable  @typescript-eslint/no-magic-numbers */
-import { JobTypes, RasterProductTypes } from '@map-colonies/raster-shared';
-import { zoomLevelToResolutionDeg } from '@map-colonies/mc-utils';
-import type { MultiPolygon, Polygon } from 'geojson';
 import { faker } from '@faker-js/faker/.';
+import { zoomLevelToResolutionDeg } from '@map-colonies/mc-utils';
+import { JobTypes, PartFeatureProperties, RasterProductTypes } from '@map-colonies/raster-shared';
 import config from 'config';
+import type { MultiPolygon, Polygon } from 'geojson';
+import { ValidatePolygonPartsRequestBody } from '../../src/polygonParts/controllers/interfaces';
 import type { PolygonPartsPayload } from '../../src/polygonParts/models/interfaces';
 import { generatePolygonPartsPayload } from '../integration/polygonParts/helpers/db';
-import { ValidatePolygonPartsRequestBody } from '../../src/polygonParts/controllers/interfaces';
-import { PolygonPartsProperties } from '../../src/common/types';
 
 const zoomLevelThreshold = config.get<number>('application.validation.zoomLevelThreshold');
 
@@ -43,11 +42,11 @@ const updateLayerMetadata: LayerMetadata = {
   productVersion: '2.0',
 };
 
-const propertiesToGenerate = (): PolygonPartsProperties => ({
+const propertiesToGenerate = (): PartFeatureProperties => ({
   id: faker.string.uuid(),
   sourceName: 'Blue Marble Source',
-  imagingTimeBeginUTC: '2024-01-01T00:00:00.000Z',
-  imagingTimeEndUTC: '2024-12-31T23:59:59.000Z',
+  imagingTimeBeginUTC: new Date('2024-01-01T00:00:00.000Z'),
+  imagingTimeEndUTC: new Date('2024-12-31T23:59:59.000Z'),
   resolutionDegree: 0.0001,
   resolutionMeter: 10,
   sourceResolutionMeter: 10,

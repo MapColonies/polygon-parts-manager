@@ -1,5 +1,4 @@
 import { PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
-import { PolygonPartsFeatureCollection } from '../../common/types';
 import type {
   AggregateLayerMetadataOptions,
   AggregationLayerMetadataResponse,
@@ -9,9 +8,9 @@ import type {
   ExistsResponse,
   FindPolygonPartsOptions,
   FindPolygonPartsResponse,
-  IngestionJobTypes,
   IntersectionOptions,
   IntersectionResponse,
+  PolygonPartsPayload,
   ProcessPolygonPartsOptions,
 } from '../models/interfaces';
 
@@ -79,11 +78,7 @@ export interface AggregationLayerMetadataResponseBody extends AggregationLayerMe
 
 export type ValidatePolygonPartsResponseBody = PolygonPartsChunkValidationResult;
 
-export type ValidatePolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType' | 'productVersion' | 'catalogId'> & {
-  jobType: IngestionJobTypes;
-} & {
-  partsData: PolygonPartsFeatureCollection;
-};
+export type ValidatePolygonPartsRequestBody = PolygonPartsPayload;
 
 export type ValidationEntityQuery = Pick<CommonRecord, 'productId' | 'productType'>;
 

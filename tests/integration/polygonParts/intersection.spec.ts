@@ -502,7 +502,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -514,7 +513,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -526,7 +524,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -538,7 +535,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -550,7 +546,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -562,7 +557,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -591,7 +585,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -603,7 +596,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -615,7 +607,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -639,7 +630,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -662,7 +652,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -677,7 +666,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -692,7 +680,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -707,7 +694,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -729,7 +715,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -750,7 +735,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -771,7 +755,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -792,7 +775,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -818,7 +800,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -839,7 +820,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -869,7 +849,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -893,7 +872,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -916,7 +894,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -957,7 +934,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -989,7 +965,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -1019,7 +994,6 @@ describe('intersection', () => {
 
         expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(2);
       });
 
@@ -1291,7 +1265,6 @@ describe('intersection', () => {
 
             expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
             expect(response).toSatisfyApiSpec();
-
             expect.assertions(2);
           }
         );
@@ -1315,7 +1288,6 @@ describe('intersection', () => {
 
             expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
             expect(response).toSatisfyApiSpec();
-
             expect.assertions(2);
           }
         );
@@ -1352,7 +1324,6 @@ describe('intersection', () => {
 
           expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
           expect(response).toSatisfyApiSpec();
-
           expect.assertions(2);
         });
 
@@ -1387,7 +1358,6 @@ describe('intersection', () => {
 
           expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
           expect(response).toSatisfyApiSpec();
-
           expect.assertions(2);
         });
 
@@ -1411,7 +1381,6 @@ describe('intersection', () => {
 
           expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
           expect(response).toSatisfyApiSpec();
-
           expect.assertions(2);
         });
       });
@@ -1499,7 +1468,6 @@ describe('intersection', () => {
         expect(response.status).toBe(httpStatusCodes.NOT_FOUND);
         expect(response.body).toMatchObject({ message: `Table with the name '${polygonPartsEntityName}' doesn't exists` });
         expect(response).toSatisfyApiSpec();
-
         expect.assertions(3);
       });
 
@@ -1564,7 +1532,6 @@ describe('intersection', () => {
         expect(response.body).toMatchObject({ message: expectedErrorMessage });
         expect(response).toSatisfyApiSpec();
         expect(spyGetRawOne).toHaveBeenCalledTimes(1);
-
         expect.assertions(4);
       });
 
@@ -1581,7 +1548,6 @@ describe('intersection', () => {
         expect(response.body).toMatchObject({ message: expectedErrorMessage });
         expect(response).toSatisfyApiSpec();
         expect(spyGetRawOne).toHaveBeenCalledTimes(1);
-
         expect.assertions(4);
       });
     });

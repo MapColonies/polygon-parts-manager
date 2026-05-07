@@ -1516,6 +1516,7 @@ describe('intersection', () => {
         expect(response.body).toMatchObject({ message: expectedErrorMessage });
         expect(response).toSatisfyApiSpec();
         expect(spyQuery).toHaveBeenCalledTimes(1);
+        expect.assertions(4);
       });
 
       it('should return 500 status code for a database error - entity exists check query error', async () => {
@@ -1531,6 +1532,7 @@ describe('intersection', () => {
         expect(response.body).toMatchObject({ message: expectedErrorMessage });
         expect(response).toSatisfyApiSpec();
         expect(spyQuery).toHaveBeenCalledTimes(1);
+        expect.assertions(4);
       });
 
       it('should return 500 status code for a database error - geometry validity check query error', async () => {
@@ -1546,6 +1548,7 @@ describe('intersection', () => {
         expect(response.body).toMatchObject({ message: expectedErrorMessage });
         expect(response).toSatisfyApiSpec();
         expect(spyQuery).toHaveBeenCalledTimes(1);
+        expect.assertions(4);
       });
 
       it('should return 500 status code for a database error - intersection query error', async () => {

@@ -2,7 +2,7 @@ import type { Logger } from '@map-colonies/js-logger';
 import { RequestHandler } from 'express';
 import { inject, singleton } from 'tsyringe';
 import { SERVICES } from '../../common/constants';
-import { Transformer } from '../../common/middlewares/transformer';
+import { Transformer } from '../../middlewares/transformer';
 import type { IsSwapQueryParams, PolygonPartsPayload } from '../models/interfaces';
 import type {
   ExistsRequestBody,

@@ -11,8 +11,8 @@ import {
 import { ZodType, z, type ZodTypeDef } from 'zod';
 import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig } from '../../common/interfaces';
-import { Transformer } from '../../common/middlewares/transformer';
 import type { DeepMapValues } from '../../common/types';
+import { Transformer } from '../../middlewares/transformer';
 import type { FindPolygonPartsQueryParams } from '../controllers/interfaces';
 import type { EntitiesMetadata, EntityNames, IsSwapQueryParams } from '../models/interfaces';
 

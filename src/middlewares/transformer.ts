@@ -1,19 +1,19 @@
 import { BadRequestError } from '@map-colonies/error-types';
 import { inject, singleton } from 'tsyringe';
 import { ZodType, type ZodTypeDef } from 'zod';
-import type { ExistsRequestBody, ValidatePolygonPartsRequestBody } from '../../polygonParts/controllers/interfaces';
+import { SERVICES } from '../common/constants';
+import { ValidationError } from '../common/errors';
+import type { ApplicationConfig, DbConfig, IConfig } from '../common/interfaces';
+import type { DeepMapValues } from '../common/types';
+import type { ExistsRequestBody, ValidatePolygonPartsRequestBody } from '../polygonParts/controllers/interfaces';
 import type {
   EntitiesMetadata,
   EntityIdentifier,
   EntityIdentifierObject,
   EntityNames,
   PolygonPartsPayload,
-} from '../../polygonParts/models/interfaces';
-import { getEntitiesMetadataSchemaFactory, schemaParser } from '../../polygonParts/schemas';
-import { SERVICES } from '../constants';
-import { ValidationError } from '../errors';
-import type { ApplicationConfig, DbConfig, IConfig } from '../interfaces';
-import type { DeepMapValues } from '../types';
+} from '../polygonParts/models/interfaces';
+import { getEntitiesMetadataSchemaFactory, schemaParser } from '../polygonParts/schemas';
 
 @singleton()
 export class Transformer {

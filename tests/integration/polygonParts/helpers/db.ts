@@ -12,7 +12,6 @@ import config from 'config';
 import type { Feature, Polygon } from 'geojson';
 import { randexp } from 'randexp';
 import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
-import { DatabaseCreateContext, createDatabase, dropDatabase } from 'typeorm-extension';
 import { z } from 'zod';
 import { setRepositoryTablePath } from '../../../../src/polygonParts/DAL/utils';
 import type { ExistsRequestBody, ValidatePolygonPartsRequestBody } from '../../../../src/polygonParts/controllers/interfaces';

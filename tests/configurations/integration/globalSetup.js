@@ -17,6 +17,7 @@ module.exports = async function () {
       POSTGRES_PASSWORD: '1234',
       POSTGRES_DB: 'test',
     })
+    .withName('postgres-test-container')
     .withWaitStrategy(Wait.forSuccessfulCommand('pg_isready -U postgres -d test'))
     .withStartupTimeout(30_000)
     .start();

@@ -6,14 +6,9 @@ import { ValidationError } from '../common/errors';
 import type { ApplicationConfig, DbConfig, IConfig } from '../common/interfaces';
 import type { DeepMapValues } from '../common/types';
 import type { ExistsRequestBody, ValidatePolygonPartsRequestBody } from '../polygonParts/controllers/interfaces';
-import type {
-  EntitiesMetadata,
-  EntityIdentifier,
-  EntityIdentifierObject,
-  EntityNames,
-  PolygonPartsPayload,
-} from '../polygonParts/models/interfaces';
-import { getEntitiesMetadataSchemaFactory, schemaParser } from '../polygonParts/schemas';
+import type { EntitiesMetadata, EntityIdentifier, EntityIdentifierObject, EntityNames, PolygonPartsPayload } from '../polygonParts/models/interfaces';
+import { getEntitiesMetadataSchemaFactory } from '../polygonParts/schemas';
+import { Validator } from './validator';
 
 @singleton()
 export class Transformer {
@@ -21,7 +16,7 @@ export class Transformer {
   private readonly schema: DbConfig['schema'];
   private readonly entitiesMetadataSchema: ZodType<EntitiesMetadata, ZodTypeDef, DeepMapValues<EntitiesMetadata, string>>;
 
-  public constructor(@inject(SERVICES.CONFIG) private readonly config: IConfig) {
+  public constructor(@inject(SERVICES.CONFIG) private readonly config: IConfig, @inject(Validator) private readonly validator: Validator) {
     this.applicationConfig = this.config.get<ApplicationConfig>('application');
     this.schema = this.config.get<DbConfig['schema']>('db.schema');
     this.entitiesMetadataSchema = getEntitiesMetadataSchemaFactory({
@@ -77,7 +72,7 @@ export class Transformer {
   ): EntitiesMetadata => {
     try {
       const entitiesMetadata = this.getEntitiesMetadata(input);
-      return schemaParser({
+      return this.validator.schemaParser({
         schema: this.entitiesMetadataSchema,
         value: entitiesMetadata,
         errorMessagePrefix: 'Invalid request parameter resource identifier',

@@ -1,10 +1,8 @@
-import { BadRequestError, ConflictError, InternalServerError, NotFoundError } from '@map-colonies/error-types';
+import { ConflictError, InternalServerError, NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
 import { degreesPerPixelToZoomLevel } from '@map-colonies/mc-utils';
 import type { PolygonPartValidationError, PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
 import { AggregationFeature, CORE_VALIDATIONS, JobTypes, ValidationErrorType } from '@map-colonies/raster-shared';
-import { geometryCollection } from '@turf/helpers';
-import { Geometry, GeometryCollection } from 'geojson';
 import _ from 'lodash';
 import { inject, injectable } from 'tsyringe';
 import type { EntityManager, SelectQueryBuilder } from 'typeorm';
@@ -24,7 +22,6 @@ import {
   geometryColumn,
   idColumn,
   insertionOrderColumn,
-  isValidDetailsResult,
   minResolutionDeg,
   requestFeatureId,
   resolutionDegreeColumn,
@@ -47,7 +44,6 @@ import type {
   IntersectionOptions,
   IntersectionQueryResponse,
   IntersectionResponse,
-  IsValidDetailsResult,
   PolygonPartsPayload,
   PolygonPartsResponse,
   ProcessPolygonPartsOptions,
@@ -172,11 +168,6 @@ export class PolygonPartsManager {
           throw new NotFoundError(`Table with the name '${polygonPartsEntityName.entityName}' doesn't exists`);
         }
 
-        await this.validateFeatureCollectionFilter({
-          entityManager,
-          filter,
-        });
-
         const findPolygonPartsQuery = this.buildFindQuery<ShouldClip>({
           shouldClip,
           entityManager,
@@ -216,18 +207,6 @@ export class PolygonPartsManager {
         const exists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName.entityName);
         if (!exists) {
           throw new NotFoundError(`Table with the name '${polygonPartsEntityName.entityName}' doesn't exists`);
-        }
-
-        const geometries = geometry.features.map((feature) => feature.geometry);
-        const isValidGeometry = await this.validateGeometries({
-          entityManager,
-          geometries,
-        });
-
-        if (!isValidGeometry.valid) {
-          throw new BadRequestError(
-            `Invalid geometry : ${isValidGeometry.reason}. ${isValidGeometry.location ? `Location: ${JSON.stringify(isValidGeometry.location)}` : ''}`
-          );
         }
 
         const intersectionQuery = this.buildIntersectionQuery({
@@ -313,11 +292,7 @@ export class PolygonPartsManager {
           throw new NotFoundError(`Table with the name '${polygonPartsEntityName.entityName}' doesn't exists`);
         }
 
-        const { filterQueryMetadata, filteredPolygonPartsQuery } = await this.prepareAggregationFilterQuery(
-          entityManager,
-          polygonPartsEntityName,
-          filter
-        );
+        const { filterQueryMetadata, filteredPolygonPartsQuery } = this.prepareAggregationFilterQuery(entityManager, polygonPartsEntityName, filter);
 
         const aggregationQueryToExecute = this.buildAggregationLayerMetadataQuery({
           entityManager,
@@ -508,17 +483,15 @@ export class PolygonPartsManager {
     }
   }
 
-  private async prepareAggregationFilterQuery(
+  private prepareAggregationFilterQuery(
     entityManager: EntityManager,
     polygonPartsEntityName: EntityNames,
     filter: FindPolygonPartsOptions<true>['filter']
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ): Promise<{ filterQueryMetadata?: FilterQueryMetadata; filteredPolygonPartsQuery?: SelectQueryBuilder<any> }> {
+  ): { filterQueryMetadata?: FilterQueryMetadata; filteredPolygonPartsQuery?: SelectQueryBuilder<any> } {
     if (!filter) {
       return { filterQueryMetadata: undefined, filteredPolygonPartsQuery: undefined };
     }
-
-    await this.validateFeatureCollectionFilter({ filter, entityManager });
 
     const filterQueryMetadata: FilterQueryMetadata = {
       filterQueryAlias: 'filtered_parts',
@@ -1254,42 +1227,5 @@ export class PolygonPartsManager {
 
   private async truncateEntity(entityManager: EntityManager, entityName: EntityName): Promise<void> {
     await entityManager.query(`TRUNCATE ${entityName} RESTART IDENTITY CASCADE;`);
-  }
-
-  private async validateFeatureCollectionFilter(context: { entityManager: EntityManager; filter: FindPolygonPartsOptions['filter'] }): Promise<void> {
-    // TODO: move function to a validation middleware
-    const { entityManager, filter } = context;
-
-    if (!filter) {
-      return;
-    }
-
-    const geometries = filter.features.map((feature) => feature.geometry);
-    const isValidFilterGeometry = await this.validateGeometries({ entityManager, geometries });
-
-    if (!isValidFilterGeometry.valid) {
-      throw new BadRequestError(
-        `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${
-          isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
-        }`
-      );
-    }
-  }
-
-  private async validateGeometries({
-    entityManager,
-    geometries,
-  }: {
-    entityManager: EntityManager;
-    geometries: Exclude<Geometry, GeometryCollection>[];
-  }): Promise<IsValidDetailsResult> {
-    const geometriesCollection = geometryCollection(geometries).geometry;
-    const areValidGeometries = (
-      await entityManager.query<IsValidDetailsResult[]>(
-        `select ${isValidDetailsResult.valid}, ${isValidDetailsResult.reason}, st_asgeojson(location) as ${isValidDetailsResult.location} from st_isvaliddetail(st_setsrid(st_geomfromgeojson($1), 4326))`,
-        [JSON.stringify(geometriesCollection)]
-      )
-    )[0];
-    return areValidGeometries;
   }
 }

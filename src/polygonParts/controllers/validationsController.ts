@@ -2,17 +2,16 @@ import { BadRequestError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
 import { polygonPartsEntityNameSchema, polygonPartsPayloadSchema } from '@map-colonies/raster-shared';
 import type { RequestHandler } from 'express';
-import type { Feature } from 'geojson';
 import { inject, singleton } from 'tsyringe';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';
+import { Validator } from '../../middlewares/validator';
 import type { AggregationLayerMetadataParams, AggregationLayerMetadataResponseBody } from '../../polygonParts/controllers/interfaces';
 import {
-  aggregationPolygonPartsRequestBodySchema,
+  aggregationPolygonPartsRequestBodySchemaFactory,
   findPolygonPartsQueryParamsSchema,
-  findPolygonPartsRequestBodySchema,
-  intersectionRequestBodySchema,
-  schemaParser,
+  findPolygonPartsRequestBodySchemaFactory,
+  intersectionRequestBodySchemaFactory,
   updatePolygonPartsQueryParamsSchema,
 } from '../schemas';
 
@@ -50,11 +49,11 @@ type AggregationLayerMetadataValidationHandler = RequestHandler<
 
 @singleton()
 export class ValidationsController {
-  public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger) {}
+  public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, @inject(Validator) private readonly validator: Validator) {}
 
   public readonly validateCreatePolygonParts: CreatePolygonPartsValidationHandler = (req, _, next) => {
     try {
-      schemaParser({ schema: polygonPartsPayloadSchema, value: req.body, errorMessagePrefix: 'Invalid request body' });
+      this.validator.schemaParser({ schema: polygonPartsPayloadSchema, value: req.body, errorMessagePrefix: 'Invalid request body' });
       next();
     } catch (error) {
       this.logger.error({ msg: 'create polygon parts validation failed', error });
@@ -67,8 +66,8 @@ export class ValidationsController {
 
   public readonly validateUpdatePolygonParts: UpdatePolygonPartsValidationHandler = (req, _, next) => {
     try {
-      schemaParser({ schema: polygonPartsPayloadSchema, value: req.body, errorMessagePrefix: 'Invalid request body' });
-      schemaParser({ schema: updatePolygonPartsQueryParamsSchema, value: req.query, errorMessagePrefix: 'Invalid query params' });
+      this.validator.schemaParser({ schema: polygonPartsPayloadSchema, value: req.body, errorMessagePrefix: 'Invalid request body' });
+      this.validator.schemaParser({ schema: updatePolygonPartsQueryParamsSchema, value: req.query, errorMessagePrefix: 'Invalid query params' });
       next();
     } catch (error) {
       this.logger.error({ msg: 'update polygon parts validation failed', error });
@@ -81,7 +80,7 @@ export class ValidationsController {
 
   public readonly validateExistsPolygonParts: ExistsPolygonPartsValidationHandler = (req, _, next) => {
     try {
-      schemaParser({
+      this.validator.schemaParser({
         schema: polygonPartsPayloadSchema.pick({ productId: true, productType: true }),
         value: req.body,
         errorMessagePrefix: 'Invalid request body',
@@ -96,22 +95,12 @@ export class ValidationsController {
     }
   };
 
-  public readonly validateFindPolygonParts: FindPolygonPartsValidationHandler = (req, _, next) => {
+  public readonly validateFindPolygonParts: FindPolygonPartsValidationHandler = async (req, _, next) => {
     try {
-      schemaParser({ schema: polygonPartsEntityNameSchema, value: req.params, errorMessagePrefix: 'Invalid request params' });
-      schemaParser({ schema: findPolygonPartsQueryParamsSchema, value: req.query, errorMessagePrefix: 'Invalid query params' });
-      schemaParser({
-        schema: findPolygonPartsRequestBodySchema.refine((body) => {
-          if (!body.filter) {
-            return true;
-          }
-
-          const featureIds = body.filter.features
-            .map((feature) => feature.id)
-            .filter((featureId): featureId is NonNullable<Feature['id']> => featureId !== undefined);
-          const uniqueFeatureIds = new Set(featureIds);
-          return uniqueFeatureIds.size === featureIds.length;
-        }, 'Input features should have unique ids'),
+      this.validator.schemaParser({ schema: polygonPartsEntityNameSchema, value: req.params, errorMessagePrefix: 'Invalid request params' });
+      this.validator.schemaParser({ schema: findPolygonPartsQueryParamsSchema, value: req.query, errorMessagePrefix: 'Invalid query params' });
+      await this.validator.asyncSchemaParser({
+        schema: findPolygonPartsRequestBodySchemaFactory(this.validator),
         value: req.body,
         errorMessagePrefix: 'Invalid request body',
       });
@@ -119,17 +108,17 @@ export class ValidationsController {
     } catch (error) {
       this.logger.error({ msg: 'find polygon parts validation failed', error });
       if (error instanceof ValidationError) {
-        throw new BadRequestError(error.message);
+        return next(new BadRequestError(error.message));
       }
       next(error);
     }
   };
 
-  public readonly validateAggregateLayerMetadata: AggregationLayerMetadataValidationHandler = (req, _, next) => {
+  public readonly validateAggregateLayerMetadata: AggregationLayerMetadataValidationHandler = async (req, _, next) => {
     try {
-      schemaParser({ schema: polygonPartsEntityNameSchema, value: req.params, errorMessagePrefix: 'Invalid request params' });
-      const validReqBody = schemaParser({
-        schema: aggregationPolygonPartsRequestBodySchema,
+      this.validator.schemaParser({ schema: polygonPartsEntityNameSchema, value: req.params, errorMessagePrefix: 'Invalid request params' });
+      const validReqBody = await this.validator.asyncSchemaParser({
+        schema: aggregationPolygonPartsRequestBodySchemaFactory(this.validator),
         value: req.body,
         errorMessagePrefix: 'Invalid request body',
       });
@@ -138,17 +127,17 @@ export class ValidationsController {
     } catch (error) {
       this.logger.error({ msg: 'aggregate layer metadata validation failed', error });
       if (error instanceof ValidationError) {
-        throw new BadRequestError(error.message);
+        return next(new BadRequestError(error.message));
       }
       next(error);
     }
   };
 
-  public readonly validateIntersection: IntersectionValidationHandler = (req, _, next) => {
+  public readonly validateIntersection: IntersectionValidationHandler = async (req, _, next) => {
     try {
-      schemaParser({ schema: polygonPartsEntityNameSchema, value: req.params, errorMessagePrefix: 'Invalid request params' });
-      schemaParser({
-        schema: intersectionRequestBodySchema,
+      this.validator.schemaParser({ schema: polygonPartsEntityNameSchema, value: req.params, errorMessagePrefix: 'Invalid request params' });
+      await this.validator.asyncSchemaParser({
+        schema: intersectionRequestBodySchemaFactory(this.validator),
         value: req.body,
         errorMessagePrefix: 'Invalid request body',
       });
@@ -156,7 +145,7 @@ export class ValidationsController {
     } catch (error) {
       this.logger.error({ msg: 'intersection validation failed', error });
       if (error instanceof ValidationError) {
-        throw new BadRequestError(error.message);
+        return next(new BadRequestError(error.message));
       }
       next(error);
     }

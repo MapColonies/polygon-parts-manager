@@ -9,7 +9,7 @@ import type {
   partSchema,
   polygonPartsEntityNameSchema,
 } from '@map-colonies/raster-shared';
-import type { Feature, FeatureCollection, GeoJsonProperties, Geometry, MultiPolygon, Polygon } from 'geojson';
+import type { Feature, FeatureCollection, GeoJsonProperties, MultiPolygon, Polygon } from 'geojson';
 import { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { z } from 'zod';
 import type { OptionalToNullableRecordValues, ReplaceValuesOfType } from '../../common/types';
@@ -218,8 +218,6 @@ export interface ExistsResponse extends EntityIdentifierObject {}
 //#endregion
 
 //#region private
-export type IsValidDetailsResult = { valid: true; reason: null; location: null } | { valid: false; reason: string; location: Geometry | null };
-
 export interface FindPolygonPartsQueryResponse<ShouldClip extends boolean = boolean> {
   readonly geojson: FindPolygonPartsResponse<ShouldClip>;
 }

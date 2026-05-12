@@ -43,6 +43,10 @@ npm run start
 
 ## Running Tests
 
+By default tests run with [testcontainers](https://testcontainers.com/) in order to deploy an isolated DB for each test.
+Default DB image is `postgis/postgis:17-3.5`, this can be changed by setting the `POSTGRES_IMAGE` env variable.
+You can run with an external DB defined in your config by setting the `USE_EXTERNAL_DB` env variable to `true`.
+
 To run tests, run the following command
 
 ```bash
@@ -60,7 +64,7 @@ npm run test:integration
 ```
 
 > [!CAUTION]
-> set database connection properties in test.json and local.json for a __non-existing__ database or else you might cause damage to your database when running tests
+> When running with `USE_EXTERNAL_DB=true`, set database connection properties in test.json and local.json for a __non-existing__ database or else you might cause damage to your database when running tests
 
 # Migrations
 

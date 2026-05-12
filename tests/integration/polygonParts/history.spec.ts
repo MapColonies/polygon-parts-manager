@@ -19,8 +19,7 @@ import { namingStrategy } from '../../../src/polygonParts/DAL/utils';
 import { ValidatePart } from '../../../src/polygonParts/DAL/validationPart';
 import { EntitiesMetadata, EntityIdentifierObject, PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import { validValidationPolygonPartsPayload } from '../../mocks/requestsMocks';
-import { INITIAL_DB } from './helpers/constants';
-import { createDB, deleteDB, HelperDB } from './helpers/db';
+import { HelperDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 
 let testDataSourceOptions: DataSourceOptions;
@@ -42,28 +41,15 @@ describe('history', () => {
       namingStrategy,
       ...createConnectionOptions(dbConfig),
     };
-    await createDB({ options: testDataSourceOptions, initialDatabase: INITIAL_DB });
     helperDB = new HelperDB(testDataSourceOptions, schema);
     await helperDB.initConnection();
   });
 
   afterAll(async () => {
-    // Ensure helperDB connection is properly closed
     try {
       await helperDB.destroyConnection();
     } catch (error) {
       console.error('Error destroying helperDB connection:', error);
-    }
-
-    // Small delay to ensure all connections are fully closed
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    // Now safe to delete the database
-    try {
-      await deleteDB(testDataSourceOptions);
-    } catch (error) {
-      console.error('Error deleting database:', error);
-      // Don't fail the test suite if cleanup fails
     }
   });
 
@@ -71,25 +57,11 @@ describe('history', () => {
     jest.resetAllMocks();
     jest.clearAllMocks();
 
-    // Create schema and run migrations BEFORE initializing the app
     await helperDB.createSchema();
     await helperDB.sync();
 
-    // Close and reinitialize helperDB connection to force commit
-    // This ensures schema changes are committed and visible to other connections
-    await helperDB.destroyConnection();
-    await helperDB.initConnection();
-
-    // Mock ConnectionManager's schemaExists to always return true
-    // This works around a PostgreSQL connection metadata caching issue where
-    // a new connection immediately after schema creation might not see the schema
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    jest.spyOn(ConnectionManager.prototype as any, 'schemaExists').mockResolvedValue(true);
-
-    // Clear container to ensure fresh dependencies
     container.clearInstances();
 
-    // Now it's safe to initialize the app - schema exists and is committed
     const app = await getApp({
       override: [
         { token: SERVICES.LOGGER, provider: { useValue: jsLogger({ enabled: false }) } },
@@ -114,6 +86,7 @@ describe('history', () => {
     }
 
     await helperDB.dropSchema();
+    jest.restoreAllMocks();
   });
 
   describe('PUT /history', () => {

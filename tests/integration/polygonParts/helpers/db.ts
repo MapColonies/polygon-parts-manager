@@ -3,6 +3,7 @@ import { faker } from '@faker-js/faker';
 import {
   CORE_VALIDATIONS,
   INGESTION_VALIDATIONS,
+  JobTypes,
   RASTER_PRODUCT_TYPE_LIST,
   RasterProductTypes,
   polygonPartsFeatureSchema,
@@ -12,7 +13,6 @@ import config from 'config';
 import type { Feature, Polygon } from 'geojson';
 import { randexp } from 'randexp';
 import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
-import { DatabaseCreateContext, createDatabase, dropDatabase } from 'typeorm-extension';
 import { z } from 'zod';
 import { setRepositoryTablePath } from '../../../../src/polygonParts/DAL/utils';
 import type { ExistsRequestBody, ValidatePolygonPartsRequestBody } from '../../../../src/polygonParts/controllers/interfaces';
@@ -30,14 +30,6 @@ const generateProductType = (): RasterProductTypes => faker.helpers.arrayElement
 
 // Helper type for test data insertion - accepts string or Date for date fields
 export type InsertPayload = Omit<ValidatePolygonPartsRequestBody, 'jobType'>;
-
-export const createDB = async (options: Partial<DatabaseCreateContext>): Promise<void> => {
-  await createDatabase({ ...options, synchronize: false, ifNotExist: true });
-};
-
-export const deleteDB = async (options: DataSourceOptions): Promise<void> => {
-  await dropDatabase({ options });
-};
 
 export const generateFeatureId = (): NonNullable<Feature['id']> => {
   return faker.helpers.arrayElement([faker.number.float({ max: Number.MAX_VALUE }), faker.string.uuid(), faker.string.alphanumeric({ length: 20 })]);
@@ -113,7 +105,7 @@ export function generatePolygonPartsPayload(input: number | PartialPolygonPartsP
     productId: generateProductId(),
     productType: generateProductType(),
     productVersion: randexp(INGESTION_VALIDATIONS.productVersion.pattern),
-    jobType: faker.helpers.arrayElement(['POLYGON_PARTS']),
+    jobType: faker.helpers.arrayElement([JobTypes.Ingestion_New, JobTypes.Ingestion_Update, JobTypes.Ingestion_Swap_Update]),
   } satisfies Omit<PolygonPartsPayload, 'partsData'>;
 
   if (typeof input === 'number') {

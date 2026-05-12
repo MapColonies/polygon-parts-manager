@@ -913,8 +913,8 @@ components:
         smallHolesCount:
           type: integer
       description: >-
-        Validation result with per-part errors. Empty `parts` indicates
-        validation passed.
+        Validation result with per-part errors. Empty `parts` indicates validation
+        passed.
     ProcessPolygonPartsPayload:
       type: object
       additionalProperties: false

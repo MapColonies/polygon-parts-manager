@@ -1,5 +1,7 @@
 /** @type {import('jest').Config} */
 module.exports = {
+  globalSetup: '<rootDir>/tests/configurations/integration/globalSetup.js',
+  globalTeardown: '<rootDir>/tests/configurations/integration/globalTeardown.js',
   transform: {
     '^.+\\.ts$': ['ts-jest', { tsconfig: 'tsconfig.test.json' }],
   },

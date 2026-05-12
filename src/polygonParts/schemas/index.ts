@@ -13,7 +13,6 @@ import { ZodType, z, type ZodTypeDef } from 'zod';
 import type { ApplicationConfig, DbConfig } from '../../common/interfaces';
 import type { DeepMapValues } from '../../common/types';
 import { Transformer } from '../../middlewares/transformer';
-import type { Validator } from '../../middlewares/validator';
 import type { FindPolygonPartsQueryParams } from '../controllers/interfaces';
 import type { EntitiesMetadata, EntityNames, IsSwapQueryParams } from '../models/interfaces';
 
@@ -52,60 +51,31 @@ const polygonPartsEntityNamePatternSchema = z
 const findPolygonPartsFeatureSchema = featureSchema(polygonSchema.or(multiPolygonSchema), roiPropertiesSchema.partial().passthrough().nullable());
 const findPolygonPartsFeatureCollectionSchema = featureCollectionSchema(findPolygonPartsFeatureSchema);
 
-export const aggregationPolygonPartsRequestBodySchemaFactory = (
-  validator: Validator
-): ZodType<{ filter: z.infer<typeof aggregatePolygonPartsFeatureCollectionSchema> | null }, ZodTypeDef, unknown> =>
-  z
-    .object({
-      filter: aggregatePolygonPartsFeatureCollectionSchema.nullable(),
-    })
-    .superRefine(async (body, ctx): Promise<void> => {
-      if (!body.filter) {
-        return;
-      }
-      await validator.validateGeometriesSuperRefine(body.filter, ctx);
-    });
+export const aggregationPolygonPartsRequestBodySchema = z.object({
+  filter: aggregatePolygonPartsFeatureCollectionSchema.nullable(),
+});
 
 export const findPolygonPartsQueryParamsSchema: ZodType<FindPolygonPartsQueryParams> = z.object({
   shouldClip: z.boolean(),
 });
 
-export const findPolygonPartsRequestBodySchemaFactory = (
-  validator: Validator
-): ZodType<{ filter: z.infer<typeof findPolygonPartsFeatureCollectionSchema> | null }, ZodTypeDef, unknown> =>
-  z
-    .object({
-      filter: findPolygonPartsFeatureCollectionSchema.nullable(),
-    })
-    .superRefine((body, ctx) => {
-      if (!body.filter) {
-        return true;
-      }
-      const featureIds = body.filter.features
-        .map((feature) => feature.id)
-        .filter((featureId): featureId is NonNullable<Feature['id']> => featureId !== undefined);
-      const uniqueFeatureIds = new Set(featureIds);
-      if (uniqueFeatureIds.size !== featureIds.length) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Input features should have unique ids',
-          fatal: true,
-        });
+export const findPolygonPartsRequestBodySchema = z
+  .object({
+    filter: findPolygonPartsFeatureCollectionSchema.nullable(),
+  })
+  .refine((body) => {
+    if (!body.filter) {
+      return true;
+    }
 
-        return z.NEVER;
-      }
-    })
-    .superRefine(async (body, ctx): Promise<void> => {
-      if (!body.filter) {
-        return;
-      }
-      await validator.validateGeometriesSuperRefine(body.filter, ctx);
-    });
+    const featureIds = body.filter.features
+      .map((feature) => feature.id)
+      .filter((featureId): featureId is NonNullable<Feature['id']> => featureId !== undefined);
+    const uniqueFeatureIds = new Set(featureIds);
+    return uniqueFeatureIds.size === featureIds.length;
+  }, 'Input features should have unique ids');
 
-export const intersectionRequestBodySchemaFactory = (
-  validator: Validator
-): ZodType<z.infer<typeof intersectionFeatureCollectionSchema>, ZodTypeDef, unknown> =>
-  intersectionFeatureCollectionSchema.superRefine(validator.validateGeometriesSuperRefine);
+export const intersectionRequestBodySchema = intersectionFeatureCollectionSchema;
 
 export const updatePolygonPartsQueryParamsSchema: ZodType<IsSwapQueryParams> = z.object({
   isSwap: z.boolean(),

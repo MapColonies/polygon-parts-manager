@@ -1487,6 +1487,22 @@ describe('intersection', () => {
         expect.assertions(4);
       });
 
+      it('should return 500 status code for a database error - input geometry validity query error', async () => {
+        const expectedErrorMessage = 'geometry validity query error';
+        const spyQuery = jest.spyOn(DataSource.prototype, 'query').mockRejectedValueOnce(new Error(expectedErrorMessage));
+
+        const response = await requestSender.intersection({
+          params: { polygonPartsEntityName: entityIdentifier },
+          body: validBody,
+        });
+
+        expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
+        expect(response.body).toMatchObject({ message: expectedErrorMessage });
+        expect(response).toSatisfyApiSpec();
+        expect(spyQuery).toHaveBeenCalledTimes(1);
+        expect.assertions(4);
+      });
+
       it('should return 500 status code for a database error - entity exists check query error', async () => {
         const expectedErrorMessage = 'entity exists error';
         const spyQuery = jest.spyOn(SelectQueryBuilder.prototype, 'getExists').mockRejectedValueOnce(new Error(expectedErrorMessage));

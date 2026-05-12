@@ -23,11 +23,9 @@ import { namingStrategy } from '../../../src/polygonParts/DAL/utils';
 import { ValidatePart } from '../../../src/polygonParts/DAL/validationPart';
 import { IntersectionRequestBody, IntersectionResponseBody, ValidatePolygonPartsRequestBody } from '../../../src/polygonParts/controllers/interfaces';
 import { EntitiesMetadata, EntityIdentifier, EntityIdentifierObject, PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
-import { INITIAL_DB } from './helpers/constants';
 import {
   HelperDB,
   PartialPolygonPartsPayload,
-  createDB,
   generatePolygon,
   generatePolygonPartsPayload as generatePolygonPartsValidationPayload,
   generateResolutionDegree,
@@ -92,7 +90,6 @@ describe('intersection', () => {
       namingStrategy,
       ...createConnectionOptions(dbConfig),
     };
-    await createDB({ options: testDataSourceOptions, initialDatabase: INITIAL_DB });
     helperDB = new HelperDB(testDataSourceOptions, schema);
     await helperDB.initConnection();
   });
@@ -103,23 +100,17 @@ describe('intersection', () => {
     } catch (error) {
       console.error('Error destroying helperDB connection:', error);
     }
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    /* uncomment this when running locally, this deletes the created db after all tests,
-    instead of removing it manually after each run.*/
-    // try {
-    //   await deleteDB(testDataSourceOptions);
-    // } catch (error) {
-    //   console.error('Error deleting database:', error);
-    // }
   });
 
   beforeEach(async () => {
     jest.resetAllMocks();
     jest.clearAllMocks();
+
     await helperDB.createSchema();
     await helperDB.sync();
+
     container.clearInstances();
+
     const app = await getApp({
       override: [
         { token: SERVICES.LOGGER, provider: { useValue: jsLogger({ enabled: false }) } },
@@ -127,6 +118,7 @@ describe('intersection', () => {
       ],
       useChild: true,
     });
+
     getEntitiesMetadata = container.resolve(Transformer).getEntitiesMetadata;
     requestSender = new PolygonPartsRequestSender(app);
   });

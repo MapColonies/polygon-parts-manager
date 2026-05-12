@@ -48,18 +48,6 @@ jobs:
 
     strategy: *node-strategy
 
-    services:
-      postgres:
-        image: postgis/postgis:15-3.3
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: 1234
-          POSTGRES_DB: postgres
-        ports:
-        - 5432:5432
-        options: >-
-          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-
     steps:
     - name: Check out TS Project Git repository
       uses: actions/checkout@v6
@@ -72,11 +60,7 @@ jobs:
     - name: Run tests
       run: npm run test
       env:
-        POSTGRES_HOST: localhost
-        POSTGRES_PORT: 5432
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: 1234
-        POSTGRES_DB: test
+        POSTGRES_IMAGE: postgis/postgis:17-3.5
 
     - uses: actions/upload-artifact@v6
       with:

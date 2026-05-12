@@ -38,8 +38,7 @@ import {
   twoHighResExistingPartsInitPayload,
   validValidationPolygonPartsPayload,
 } from '../../mocks/requestsMocks';
-import { INITIAL_DB } from './helpers/constants';
-import { createDB, deleteDB, HelperDB, InsertPayload } from './helpers/db';
+import { HelperDB, InsertPayload } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 
 let testDataSourceOptions: DataSourceOptions;
@@ -60,7 +59,6 @@ describe('validate', () => {
       namingStrategy,
       ...createConnectionOptions(dbConfig),
     };
-    await createDB({ options: testDataSourceOptions, initialDatabase: INITIAL_DB });
     helperDB = new HelperDB(testDataSourceOptions, schema);
     await helperDB.initConnection();
   });
@@ -71,14 +69,6 @@ describe('validate', () => {
     } catch (error) {
       console.error('Error destroying helperDB connection:', error);
     }
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    try {
-      await deleteDB(testDataSourceOptions);
-    } catch (error) {
-      console.error('Error deleting database:', error);
-    }
   });
 
   beforeEach(async () => {
@@ -87,9 +77,6 @@ describe('validate', () => {
 
     await helperDB.createSchema();
     await helperDB.sync();
-
-    await helperDB.destroyConnection();
-    await helperDB.initConnection();
 
     container.clearInstances();
 

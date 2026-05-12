@@ -3,7 +3,6 @@ import { faker } from '@faker-js/faker';
 import {
   CORE_VALIDATIONS,
   INGESTION_VALIDATIONS,
-  IngestionJobType,
   JobTypes,
   RASTER_PRODUCT_TYPE_LIST,
   RasterProductTypes,
@@ -14,7 +13,6 @@ import config from 'config';
 import type { Feature, Polygon } from 'geojson';
 import { randexp } from 'randexp';
 import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
-import { DatabaseCreateContext, createDatabase, dropDatabase } from 'typeorm-extension';
 import { z } from 'zod';
 import { setRepositoryTablePath } from '../../../../src/polygonParts/DAL/utils';
 import type { ExistsRequestBody, ValidatePolygonPartsRequestBody } from '../../../../src/polygonParts/controllers/interfaces';
@@ -33,14 +31,6 @@ export type PartialPolygonPartsPayload = Partial<Omit<PolygonPartsPayload, 'part
     type?: 'FeatureCollection';
     features?: (Pick<PolygonPartFeature, 'type'> & DeepPartial<Omit<PolygonPartFeature, 'type'>>)[];
   };
-};
-
-export const createDB = async (options: Partial<DatabaseCreateContext>): Promise<void> => {
-  await createDatabase({ ...options, synchronize: false, ifNotExist: true });
-};
-
-export const deleteDB = async (options: DataSourceOptions): Promise<void> => {
-  await dropDatabase({ options });
 };
 
 export const generateFeatureId = (): NonNullable<Feature['id']> => {
@@ -120,7 +110,7 @@ export function generatePolygonPartsPayload(input: number | PartialPolygonPartsP
     productId: generateProductId(),
     productType: generateProductType(),
     productVersion: randexp(INGESTION_VALIDATIONS.productVersion.pattern),
-    jobType: faker.helpers.arrayElement<IngestionJobType>([JobTypes.Ingestion_New, JobTypes.Ingestion_Swap_Update, JobTypes.Ingestion_Update]),
+    jobType: faker.helpers.arrayElement([JobTypes.Ingestion_New, JobTypes.Ingestion_Update, JobTypes.Ingestion_Swap_Update]),
   } satisfies Omit<PolygonPartsPayload, 'partsData'>;
 
   if (typeof input === 'number') {

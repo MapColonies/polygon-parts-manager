@@ -19,8 +19,7 @@ import { namingStrategy } from '../../../src/polygonParts/DAL/utils';
 import { ValidatePart } from '../../../src/polygonParts/DAL/validationPart';
 import { EntitiesMetadata, EntityIdentifierObject, PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import { validValidationPolygonPartsPayload } from '../../mocks/requestsMocks';
-import { INITIAL_DB } from './helpers/constants';
-import { createDB, deleteDB, HelperDB, InsertPayload } from './helpers/db';
+import { HelperDB, InsertPayload } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import { generatePolygonPartsPayload } from './helpers/utils';
 
@@ -65,7 +64,6 @@ describe('process', () => {
       namingStrategy,
       ...createConnectionOptions(dbConfig),
     };
-    await createDB({ options: testDataSourceOptions, initialDatabase: INITIAL_DB });
     helperDB = new HelperDB(testDataSourceOptions, schema);
     await helperDB.initConnection();
   });
@@ -75,14 +73,6 @@ describe('process', () => {
       await helperDB.destroyConnection();
     } catch (error) {
       console.error('Error destroying helperDB connection:', error);
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    try {
-      await deleteDB(testDataSourceOptions);
-    } catch (error) {
-      console.error('Error deleting database:', error);
     }
   });
 

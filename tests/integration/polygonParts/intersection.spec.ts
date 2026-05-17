@@ -5,33 +5,29 @@ import { CORE_VALIDATIONS } from '@map-colonies/raster-shared';
 import { trace } from '@opentelemetry/api';
 import { feature, featureCollection, multiPolygon, polygon, polygons } from '@turf/helpers';
 import config from 'config';
-import { BBox, MultiPolygon, Polygon } from 'geojson';
+import type { BBox, MultiPolygon, Polygon } from 'geojson';
 import { StatusCodes as httpStatusCodes } from 'http-status-codes';
 import { cloneDeep, get as getValue, merge, omit } from 'lodash';
 import { xor } from 'martinez-polygon-clipping';
 import { container } from 'tsyringe';
-import { DataSource, DataSourceOptions, SelectQueryBuilder } from 'typeorm';
+import { DataSource, type DataSourceOptions, SelectQueryBuilder } from 'typeorm';
 import { getApp } from '../../../src/app';
 import { ConnectionManager } from '../../../src/common/connectionManager';
 import { SERVICES } from '../../../src/common/constants';
-import { ApplicationConfig, DbConfig } from '../../../src/common/interfaces';
+import type { ApplicationConfig, DbConfig } from '../../../src/common/interfaces';
 import { createConnectionOptions } from '../../../src/common/utils';
 import { Transformer } from '../../../src/middlewares/transformer';
 import { History } from '../../../src/polygonParts/DAL/history';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
 import { namingStrategy } from '../../../src/polygonParts/DAL/utils';
 import { ValidatePart } from '../../../src/polygonParts/DAL/validationPart';
-import { IntersectionRequestBody, IntersectionResponseBody, ValidatePolygonPartsRequestBody } from '../../../src/polygonParts/controllers/interfaces';
-import { EntitiesMetadata, EntityIdentifier, EntityIdentifierObject, PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
-import {
-  HelperDB,
-  PartialPolygonPartsPayload,
-  generatePolygon,
-  generatePolygonPartsPayload as generatePolygonPartsValidationPayload,
-  generateResolutionDegree,
-} from './helpers/db';
+import type { IntersectionRequestBody, IntersectionResponseBody } from '../../../src/polygonParts/controllers/interfaces';
+import type { EntityIdentifier } from '../../../src/polygonParts/models/interfaces';
+import { invalidGeometryTopologyTestCases } from '../../mocks/geometryTestCases';
+import { HelperDB, generatePolygon, generateResolutionDegree } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
-import { DeepPartial } from './helpers/types';
+import type { DeepPartial, GetEntitiesMetadata } from './helpers/types';
+import { insertInitialPolygonParts } from './helpers/utils';
 
 type ConfigImport = typeof import('config') & { application: ApplicationConfig };
 
@@ -62,27 +58,7 @@ const { schema } = dbConfig;
 describe('intersection', () => {
   let requestSender: PolygonPartsRequestSender;
   let helperDB: HelperDB;
-  let getEntitiesMetadata: (
-    entityIdentifierOptions: EntityIdentifierObject | Pick<PolygonPartsPayload, 'productId' | 'productType'>
-  ) => EntitiesMetadata;
-
-  const insertInitialPolygonParts = async (
-    input: PartialPolygonPartsPayload
-  ): Promise<{ entityIdentifier: EntityIdentifier; maxResolutionDegree: number; minResolutionDegree: number }> => {
-    const { partsData, ...layerMetadata } = generatePolygonPartsValidationPayload(input);
-    const validatePartsData = structuredClone(partsData);
-    const validateRequest: ValidatePolygonPartsRequestBody = { ...layerMetadata, jobType: 'Ingestion_New', partsData: validatePartsData };
-    await requestSender.validatePolygonParts(validateRequest);
-    const processRequest = {
-      productId: validateRequest.productId,
-      productType: validateRequest.productType,
-    };
-    const resolutionDegrees = validateRequest.partsData.features.map((feature) => feature.properties.resolutionDegree);
-    const [maxResolutionDegree, minResolutionDegree] = [Math.max(...resolutionDegrees), Math.min(...resolutionDegrees)];
-    const { entityIdentifier } = getEntitiesMetadata(processRequest);
-    await requestSender.process(processRequest);
-    return { entityIdentifier, maxResolutionDegree, minResolutionDegree };
-  };
+  let getEntitiesMetadata: GetEntitiesMetadata;
 
   beforeAll(async () => {
     testDataSourceOptions = {
@@ -180,9 +156,13 @@ describe('intersection', () => {
         );
         const polygons = [polygon1, polygon2];
         const initialPolygonParts = await insertInitialPolygonParts({
-          partsData: {
-            features: polygons,
+          input: {
+            partsData: {
+              features: polygons,
+            },
           },
+          getEntitiesMetadata,
+          requestSender,
         });
         entityIdentifier = initialPolygonParts.entityIdentifier;
         maxResolutionDegree = initialPolygonParts.maxResolutionDegree;
@@ -1026,163 +1006,6 @@ describe('intersection', () => {
         expect.assertions(2);
       });
 
-      const invalidGeometryTopologyTestCases = [
-        {
-          testCase: 'exterior ring must not cross itself',
-          coordinates: [
-            [
-              [0, 0],
-              [2, 0],
-              [1, 1],
-              [0, 2],
-              [2, 2],
-              [1, -1],
-              [0, 0],
-            ],
-          ],
-        },
-        {
-          testCase: 'exterior ring must not self-touch',
-          coordinates: [
-            [
-              [0, 0],
-              [2, 0],
-              [1, 1],
-              [1, 2],
-              [1, 1],
-              [0, 0],
-            ],
-          ],
-        },
-        {
-          testCase: 'interior hole ring must not cross the exterior',
-          coordinates: [
-            [
-              [0, 0],
-              [3, 0],
-              [3, 3],
-              [0, 3],
-              [0, 0],
-            ],
-            [
-              [1, 1],
-              [2, 1],
-              [2, 4],
-              [1, 4],
-              [1, 1],
-            ],
-          ],
-        },
-        {
-          testCase: 'interior hole rings must not cross each other',
-          coordinates: [
-            [
-              [0, 0],
-              [4, 0],
-              [4, 4],
-              [0, 4],
-              [0, 0],
-            ],
-            [
-              [1, 1],
-              [2, 1],
-              [2, 3],
-              [1, 3],
-              [1, 1],
-            ],
-            [
-              [1, 1],
-              [1, 2],
-              [3, 2],
-              [3, 1],
-              [1, 1],
-            ],
-          ],
-        },
-        {
-          testCase: 'interior hole ring must not touch the exterior ring along a line',
-          coordinates: [
-            [
-              [0, 0],
-              [3, 0],
-              [3, 3],
-              [0, 3],
-              [0, 0],
-            ],
-            [
-              [0, 1],
-              [2, 1],
-              [2, 2],
-              [0, 2],
-              [0, 1],
-            ],
-          ],
-        },
-        {
-          testCase: 'interior hole rings must not touch each other along a line',
-          coordinates: [
-            [
-              [0, 0],
-              [4, 0],
-              [4, 4],
-              [0, 4],
-              [0, 0],
-            ],
-            [
-              [1, 1],
-              [2, 1],
-              [2, 2],
-              [1, 2],
-              [1, 1],
-            ],
-            [
-              [2, 1],
-              [3, 1],
-              [3, 2],
-              [2, 2],
-              [2, 1],
-            ],
-          ],
-        },
-        {
-          testCase: 'interior hole rings must be contained in exterior ring',
-          coordinates: [
-            [
-              [0, 0],
-              [2, 0],
-              [2, 2],
-              [0, 2],
-              [0, 0],
-            ],
-            [
-              [3, 3],
-              [4, 3],
-              [4, 4],
-              [3, 4],
-              [3, 3],
-            ],
-          ],
-        },
-        {
-          testCase: 'interior hole rings must not split the geometry into more than one part',
-          coordinates: [
-            [
-              [0, 0],
-              [4, 0],
-              [4, 4],
-              [0, 4],
-              [0, 0],
-            ],
-            [
-              [2, 1],
-              [4, 2],
-              [0, 2],
-              [2, 1],
-            ],
-          ],
-        },
-      ] satisfies { testCase: string; coordinates: Polygon['coordinates'] }[];
-
       describe('topological error', () => {
         let entityIdentifier: EntityIdentifier;
         const { max: maxResolutionDeg, min: minResolutionDeg } = CORE_VALIDATIONS.resolutionDeg;
@@ -1231,9 +1054,13 @@ describe('intersection', () => {
           );
           const polygons = [polygon1, polygon2];
           const initialPolygonParts = await insertInitialPolygonParts({
-            partsData: {
-              features: polygons,
+            input: {
+              partsData: {
+                features: polygons,
+              },
             },
+            getEntitiesMetadata,
+            requestSender,
           });
           entityIdentifier = initialPolygonParts.entityIdentifier;
         });
@@ -1426,9 +1253,13 @@ describe('intersection', () => {
         );
         const polygons = [polygon1, polygon2];
         const initialPolygonParts = await insertInitialPolygonParts({
-          partsData: {
-            features: polygons,
+          input: {
+            partsData: {
+              features: polygons,
+            },
           },
+          getEntitiesMetadata,
+          requestSender,
         });
         entityIdentifier = initialPolygonParts.entityIdentifier;
       });

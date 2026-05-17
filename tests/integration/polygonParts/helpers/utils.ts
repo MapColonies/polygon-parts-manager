@@ -1,16 +1,18 @@
+import { JobTypes, type PartFeatureProperties } from '@map-colonies/raster-shared';
 import { booleanEqual } from '@turf/boolean-equal';
 import { feature, featureCollection } from '@turf/helpers';
-import { JobTypes, type PartFeatureProperties } from '@map-colonies/raster-shared';
 import config from 'config';
 import type { Polygon } from 'geojson';
 import { isMatch } from 'lodash';
 import type { ApplicationConfig } from '../../../../src/common/interfaces';
 import { payloadToInsertPartsDataToHistory } from '../../../../src/polygonParts/DAL/utils';
 import type { FindPolygonPartsResponseBody, ValidatePolygonPartsRequestBody } from '../../../../src/polygonParts/controllers/interfaces';
-import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
+import type { EntityIdentifier, PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 import { validValidationPolygonPartsPayload } from '../../../mocks/requestsMocks';
 import { INTERNAL_DB_GEOM_PRECISION } from './constants';
-import type { ExpectedPostgresResponse } from './types';
+import { type PartialPolygonPartsPayload, generatePolygonPartsPayload as generatePolygonPartsValidationPayload } from './db';
+import type { PolygonPartsRequestSender } from './requestSender';
+import type { ExpectedPostgresResponse, GetEntitiesMetadata } from './types';
 
 const getApplicationConfig = (): ApplicationConfig => config.get<ApplicationConfig>('application');
 
@@ -64,6 +66,30 @@ export const allFindFeaturesEqual = <T extends FindPolygonPartsResponseBody<Shou
     const sucessfullyRemoveProperty = expectedProperties ? expectedProperties.splice(index, 1).length === 1 : true;
     return sucessfullyRemoveGeometry && sucessfullyRemoveProperty;
   };
+};
+
+export const insertInitialPolygonParts = async ({
+  input,
+  requestSender,
+  getEntitiesMetadata,
+}: {
+  input: PartialPolygonPartsPayload;
+  requestSender: PolygonPartsRequestSender;
+  getEntitiesMetadata: GetEntitiesMetadata;
+}): Promise<{ entityIdentifier: EntityIdentifier; maxResolutionDegree: number; minResolutionDegree: number }> => {
+  const { partsData, ...layerMetadata } = generatePolygonPartsValidationPayload(input);
+  const validatePartsData = structuredClone(partsData);
+  const validateRequest: ValidatePolygonPartsRequestBody = { ...layerMetadata, jobType: 'Ingestion_New', partsData: validatePartsData };
+  await requestSender.validatePolygonParts(validateRequest);
+  const processRequest = {
+    productId: validateRequest.productId,
+    productType: validateRequest.productType,
+  };
+  const resolutionDegrees = validateRequest.partsData.features.map((feature) => feature.properties.resolutionDegree);
+  const [maxResolutionDegree, minResolutionDegree] = [Math.max(...resolutionDegrees), Math.min(...resolutionDegrees)];
+  const { entityIdentifier } = getEntitiesMetadata(processRequest);
+  await requestSender.process(processRequest);
+  return { entityIdentifier, maxResolutionDegree, minResolutionDegree };
 };
 
 export function toExpectedPostgresResponse(polygonPartsPayload: PolygonPartsPayload): ExpectedPostgresResponse {

@@ -1,5 +1,5 @@
 import type { OptionalToNullableRecordValues } from '../../../../src/common/types';
-import type { InsertPartDataToHistory } from '../../../../src/polygonParts/models/interfaces';
+import type { EntitiesMetadata, EntityIdentifierObject, InsertPartDataToHistory, PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 
 export type DeepPartial<T> = T extends object
   ? {
@@ -8,3 +8,7 @@ export type DeepPartial<T> = T extends object
   : T;
 
 export type ExpectedPostgresResponse = OptionalToNullableRecordValues<InsertPartDataToHistory>[];
+
+export type GetEntitiesMetadata = (
+    entityIdentifierOptions: EntityIdentifierObject | Pick<PolygonPartsPayload, 'productId' | 'productType'>
+  ) => EntitiesMetadata;

@@ -102,9 +102,9 @@ export const generateExistsPayload = (): ExistsRequestBody => {
   };
 };
 
-export function generatePolygonPartsPayload(partsCount: number): PolygonPartsPayload;
-export function generatePolygonPartsPayload(template: PartialPolygonPartsPayload): PolygonPartsPayload;
-export function generatePolygonPartsPayload(input: number | PartialPolygonPartsPayload): PolygonPartsPayload {
+export function generatePolygonPartsPayload(partsCount?: number): PolygonPartsPayload;
+export function generatePolygonPartsPayload(template?: PartialPolygonPartsPayload): PolygonPartsPayload;
+export function generatePolygonPartsPayload(input?: number | PartialPolygonPartsPayload): PolygonPartsPayload {
   const layerMetadata = {
     catalogId: faker.string.uuid(),
     productId: generateProductId(),
@@ -113,8 +113,8 @@ export function generatePolygonPartsPayload(input: number | PartialPolygonPartsP
     jobType: faker.helpers.arrayElement([JobTypes.Ingestion_New, JobTypes.Ingestion_Update, JobTypes.Ingestion_Swap_Update]),
   } satisfies Omit<PolygonPartsPayload, 'partsData'>;
 
-  if (typeof input === 'number') {
-    const partsCount = input;
+  if (typeof input === 'number' || input === undefined) {
+    const partsCount = input ?? 1;
     return {
       ...layerMetadata,
       partsData: {

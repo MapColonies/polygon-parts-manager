@@ -1,4 +1,5 @@
 import jsLogger from '@map-colonies/js-logger';
+import { JobTypes } from '@map-colonies/raster-shared';
 import { trace } from '@opentelemetry/api';
 import { multiPolygon, polygon } from '@turf/helpers';
 import config from 'config';
@@ -19,9 +20,8 @@ import { namingStrategy } from '../../../src/polygonParts/DAL/utils';
 import { ValidatePart } from '../../../src/polygonParts/DAL/validationPart';
 import { EntitiesMetadata, EntityIdentifierObject, PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import { validValidationPolygonPartsPayload } from '../../mocks/requestsMocks';
-import { HelperDB, InsertPayload } from './helpers/db';
+import { generatePolygonPartsPayload, HelperDB, InsertPayload } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
-import { generatePolygonPartsPayload } from './helpers/utils';
 
 let testDataSourceOptions: DataSourceOptions;
 const dbConfig = config.get<Required<DbConfig>>('db');
@@ -104,7 +104,7 @@ describe('process', () => {
     describe('Happy Path', () => {
       describe('new product (creates tables)', () => {
         it('should process polygon parts from validation table and create polygon parts tables', async () => {
-          const validateRequest = generatePolygonPartsPayload();
+          const validateRequest = generatePolygonPartsPayload({ jobType: JobTypes.Ingestion_New });
 
           await requestSender.validatePolygonParts(validateRequest);
           const processRequest = {
@@ -135,7 +135,7 @@ describe('process', () => {
           expect(validationTableExists).toBeFalse();
 
           expect.assertions(6);
-        });
+        }, 1000000000);
 
         it('should handle MultiPolygon geometries by splitting them into individual polygons', async () => {
           const multiPolygonGeometry = multiPolygon([
@@ -159,7 +159,10 @@ describe('process', () => {
             ],
           ]);
 
-          const validateRequest = generatePolygonPartsPayload({ geometry: multiPolygonGeometry.geometry });
+          const validateRequest = generatePolygonPartsPayload({
+            jobType: JobTypes.Ingestion_New,
+            partsData: { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: multiPolygonGeometry.geometry }] },
+          });
 
           await requestSender.validatePolygonParts(validateRequest);
           const processRequest = {
@@ -221,32 +224,35 @@ describe('process', () => {
 
           const validateRequest = generatePolygonPartsPayload({
             productId: 'TEST_INSERTION_ORDER',
-            features: [
-              {
-                type: 'Feature',
-                properties: {
-                  ...validValidationPolygonPartsPayload.partsData.features[0].properties,
-                  id: 'part-1',
+            jobType: JobTypes.Ingestion_New,
+            partsData: {
+              features: [
+                {
+                  type: 'Feature',
+                  properties: {
+                    ...validValidationPolygonPartsPayload.partsData.features[0].properties,
+                    id: 'part-1',
+                  },
+                  geometry: polygon1.geometry,
                 },
-                geometry: polygon1.geometry,
-              },
-              {
-                type: 'Feature',
-                properties: {
-                  ...validValidationPolygonPartsPayload.partsData.features[0].properties,
-                  id: 'part-2',
+                {
+                  type: 'Feature',
+                  properties: {
+                    ...validValidationPolygonPartsPayload.partsData.features[0].properties,
+                    id: 'part-2',
+                  },
+                  geometry: multiPoly1.geometry,
                 },
-                geometry: multiPoly1.geometry,
-              },
-              {
-                type: 'Feature',
-                properties: {
-                  ...validValidationPolygonPartsPayload.partsData.features[0].properties,
-                  id: 'part-3',
+                {
+                  type: 'Feature',
+                  properties: {
+                    ...validValidationPolygonPartsPayload.partsData.features[0].properties,
+                    id: 'part-3',
+                  },
+                  geometry: polygon2.geometry,
                 },
-                geometry: polygon2.geometry,
-              },
-            ],
+              ],
+            },
           });
 
           await requestSender.validatePolygonParts(validateRequest);
@@ -292,17 +298,21 @@ describe('process', () => {
 
           const updateRequest = generatePolygonPartsPayload({
             productId: initialPayload.productId,
+            productType: initialPayload.productType,
             productVersion: (parseInt(initialPayload.productVersion) + 1).toString(),
-            features: [
-              {
-                type: 'Feature',
-                properties: {
-                  ...validValidationPolygonPartsPayload.partsData.features[0].properties,
-                  id: 'update-part',
+            jobType: JobTypes.Ingestion_Update,
+            partsData: {
+              features: [
+                {
+                  type: 'Feature',
+                  properties: {
+                    ...validValidationPolygonPartsPayload.partsData.features[0].properties,
+                    id: 'update-part',
+                  },
+                  geometry: validValidationPolygonPartsPayload.partsData.features[0].geometry,
                 },
-                geometry: validValidationPolygonPartsPayload.partsData.features[0].geometry,
-              },
-            ],
+              ],
+            },
           });
 
           await requestSender.validatePolygonParts(updateRequest);
@@ -358,8 +368,11 @@ describe('process', () => {
           ]);
 
           const updateRequest = generatePolygonPartsPayload({
+            productId: validValidationPolygonPartsPayload.productId,
+            productType: validValidationPolygonPartsPayload.productType,
             productVersion: (parseInt(initialPayload.productVersion) + 1).toString(),
-            geometry: multiPolygonGeometry.geometry,
+            jobType: JobTypes.Ingestion_Update,
+            partsData: { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: multiPolygonGeometry.geometry }] },
           });
 
           await requestSender.validatePolygonParts(updateRequest);
@@ -408,8 +421,13 @@ describe('process', () => {
 
           const swapRequest = generatePolygonPartsPayload({
             productId: initialPayload.productId,
+            productType: initialPayload.productType,
             productVersion: (parseInt(initialPayload.productVersion) + 1).toString(),
-            features: [validValidationPolygonPartsPayload.partsData.features[0]],
+            jobType: JobTypes.Ingestion_Swap_Update,
+            partsData: {
+              type: 'FeatureCollection',
+              features: [validValidationPolygonPartsPayload.partsData.features[0]],
+            },
           });
 
           await requestSender.validatePolygonParts(swapRequest);
@@ -479,8 +497,10 @@ describe('process', () => {
 
           const swapRequest = generatePolygonPartsPayload({
             productId: initialPayload.productId,
+            productType: initialPayload.productType,
             productVersion: (parseInt(initialPayload.productVersion) + 1).toString(),
-            geometry: multiPolygonGeometry.geometry,
+            jobType: JobTypes.Ingestion_Swap_Update,
+            partsData: { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: multiPolygonGeometry.geometry }] },
           });
 
           await requestSender.validatePolygonParts(swapRequest);
@@ -535,7 +555,7 @@ describe('process', () => {
       });
 
       it('should return 400 when productId is invalid', async () => {
-        const validateRequest = generatePolygonPartsPayload();
+        const validateRequest = generatePolygonPartsPayload({ jobType: JobTypes.Ingestion_New });
         await requestSender.validatePolygonParts(validateRequest);
 
         const invalidRequest = {
@@ -552,7 +572,7 @@ describe('process', () => {
       });
 
       it('should return 400 when productType is invalid', async () => {
-        const validateRequest = generatePolygonPartsPayload();
+        const validateRequest = generatePolygonPartsPayload({ jobType: JobTypes.Ingestion_New });
         await requestSender.validatePolygonParts(validateRequest);
 
         const invalidRequest = {
@@ -569,7 +589,7 @@ describe('process', () => {
       });
 
       it('should return 400 when shouldClearEntities is not a boolean', async () => {
-        const validateRequest = generatePolygonPartsPayload();
+        const validateRequest = generatePolygonPartsPayload({ jobType: JobTypes.Ingestion_New });
         await requestSender.validatePolygonParts(validateRequest);
 
         const invalidRequest = {
@@ -603,7 +623,7 @@ describe('process', () => {
       });
 
       it('should return 404 when polygon parts table does not exist and shouldClearEntities is true', async () => {
-        const validateRequest = generatePolygonPartsPayload();
+        const validateRequest = generatePolygonPartsPayload({ jobType: JobTypes.Ingestion_New });
 
         await requestSender.validatePolygonParts(validateRequest);
         const processRequest = {

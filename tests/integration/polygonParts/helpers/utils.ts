@@ -1,4 +1,4 @@
-import { JobTypes, type PartFeatureProperties } from '@map-colonies/raster-shared';
+import { type PartFeatureProperties } from '@map-colonies/raster-shared';
 import { booleanEqual } from '@turf/boolean-equal';
 import { feature, featureCollection } from '@turf/helpers';
 import config from 'config';
@@ -8,7 +8,6 @@ import type { ApplicationConfig } from '../../../../src/common/interfaces';
 import { payloadToInsertPartsDataToHistory } from '../../../../src/polygonParts/DAL/utils';
 import type { FindPolygonPartsResponseBody, ValidatePolygonPartsRequestBody } from '../../../../src/polygonParts/controllers/interfaces';
 import type { EntityIdentifier, PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
-import { validValidationPolygonPartsPayload } from '../../../mocks/requestsMocks';
 import { INTERNAL_DB_GEOM_PRECISION } from './constants';
 import { type PartialPolygonPartsPayload, generatePolygonPartsPayload as generatePolygonPartsValidationPayload } from './db';
 import type { PolygonPartsRequestSender } from './requestSender';
@@ -20,33 +19,6 @@ export type GeneratePolygonPartsPayloadOverrides = Partial<Omit<ValidatePolygonP
   partsData?: ValidatePolygonPartsRequestBody['partsData'];
   geometry?: ValidatePolygonPartsRequestBody['partsData']['features'][number]['geometry'];
   features?: ValidatePolygonPartsRequestBody['partsData']['features'];
-};
-
-/**
- * Helper function to generate polygon parts payload with flexible overrides
- * @param overrides - Optional overrides for payload fields (partsData > features > geometry priority)
- * @returns ValidatePolygonPartsRequestBody
- */
-export const generatePolygonPartsPayload = (overrides?: GeneratePolygonPartsPayloadOverrides): ValidatePolygonPartsRequestBody => {
-  const { geometry, features, partsData, ...rest } = overrides ?? {};
-
-  const finalPartsData =
-    partsData ??
-    (features
-      ? { ...validValidationPolygonPartsPayload.partsData, features }
-      : geometry
-      ? {
-          ...validValidationPolygonPartsPayload.partsData,
-          features: [{ ...validValidationPolygonPartsPayload.partsData.features[0], geometry }],
-        }
-      : validValidationPolygonPartsPayload.partsData);
-
-  return {
-    ...validValidationPolygonPartsPayload,
-    partsData: finalPartsData,
-    jobType: JobTypes.Ingestion_New,
-    ...rest,
-  };
 };
 
 export const allFindFeaturesEqual = <T extends FindPolygonPartsResponseBody<ShouldClip>['features'][number], ShouldClip extends boolean = boolean>(

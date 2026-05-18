@@ -17,10 +17,7 @@ import { isMatch } from 'lodash';
 import { randexp } from 'randexp';
 import type { ApplicationConfig } from '../../../../src/common/interfaces';
 import { payloadToInsertPartsDataToHistory } from '../../../../src/polygonParts/DAL/utils';
-import type {
-  FindPolygonPartsResponseBody,
-  ValidatePolygonPartsRequestBody
-} from '../../../../src/polygonParts/controllers/interfaces';
+import type { FindPolygonPartsResponseBody, ValidatePolygonPartsRequestBody } from '../../../../src/polygonParts/controllers/interfaces';
 import type { EntityIdentifier, PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 import { INTERNAL_DB_GEOM_PRECISION } from './constants';
 import type { PolygonPartsRequestSender } from './requestSender';

@@ -18,19 +18,18 @@ import { randexp } from 'randexp';
 import type { ApplicationConfig } from '../../../../src/common/interfaces';
 import { payloadToInsertPartsDataToHistory } from '../../../../src/polygonParts/DAL/utils';
 import type {
-  ExistsRequestBody,
   FindPolygonPartsResponseBody,
-  ValidatePolygonPartsRequestBody,
+  ValidatePolygonPartsRequestBody
 } from '../../../../src/polygonParts/controllers/interfaces';
 import type { EntityIdentifier, PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 import { INTERNAL_DB_GEOM_PRECISION } from './constants';
 import type { PolygonPartsRequestSender } from './requestSender';
 import type { ExpectedPostgresResponse, GetEntitiesMetadata, PartialPolygonPartsPayload, PolygonPartFeature } from './types';
 
+const getApplicationConfig = (): ApplicationConfig => config.get<ApplicationConfig>('application');
+
 const generateProductId = (): string => randexp(INGESTION_VALIDATIONS.productId.pattern);
 const generateProductType = (): RasterProductTypes => faker.helpers.arrayElement(RASTER_PRODUCT_TYPE_LIST);
-
-const getApplicationConfig = (): ApplicationConfig => config.get<ApplicationConfig>('application');
 
 export const generateFeatureId = (): NonNullable<Feature['id']> => {
   return faker.helpers.arrayElement([faker.number.float({ max: Number.MAX_VALUE }), faker.string.uuid(), faker.string.alphanumeric({ length: 20 })]);
@@ -91,13 +90,6 @@ export const generatePolygonPart = (): PolygonPartFeature => {
       description: faker.helpers.maybe(() => faker.word.words({ count: { min: 0, max: 10 } })),
       sourceId: faker.helpers.maybe(() => faker.word.words()),
     },
-  };
-};
-
-export const generateExistsPayload = (): ExistsRequestBody => {
-  return {
-    productId: generateProductId(),
-    productType: generateProductType(),
   };
 };
 

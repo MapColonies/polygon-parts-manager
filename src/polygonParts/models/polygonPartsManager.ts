@@ -1,32 +1,30 @@
-import { BadRequestError, ConflictError, InternalServerError, NotFoundError } from '@map-colonies/error-types';
+import { ConflictError, InternalServerError, NotFoundError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
-import { AggregationFeature, CORE_VALIDATIONS, JobTypes } from '@map-colonies/raster-shared';
-import { geometryCollection } from '@turf/helpers';
+import { degreesPerPixelToZoomLevel } from '@map-colonies/mc-utils';
+import type { PolygonPartValidationError, PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
+import { AggregationFeature, CORE_VALIDATIONS, JobTypes, ValidationErrorType } from '@map-colonies/raster-shared';
+import _ from 'lodash';
 import { inject, injectable } from 'tsyringe';
 import type { EntityManager, SelectQueryBuilder } from 'typeorm';
-import _ from 'lodash';
-import { ValidationErrorType } from '@map-colonies/raster-shared';
-import type { PolygonPartValidationError, PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
-import { degreesPerPixelToZoomLevel } from '@map-colonies/mc-utils';
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';
 import type { ApplicationConfig, DbConfig, IConfig } from '../../common/interfaces';
-import { HistoryManager } from '../../history/models/historyManager';
 import { deleteValidationsTable } from '../../common/utils';
+import { HistoryManager } from '../../history/models/historyManager';
 import { History } from '../DAL/history';
 import { PolygonPart } from '../DAL/polygonPart';
 import { payloadToInsertPartsDataToHistory, payloadToInsertValidationsData, setRepositoryTablePath } from '../DAL/utils';
-import { ValidatePolygonPartsRequestBody } from '../controllers/interfaces';
 import { ValidatePart } from '../DAL/validationPart';
+import { ValidatePolygonPartsRequestBody } from '../controllers/interfaces';
 import {
   findSelectOutputColumns,
   geometryColumn,
   idColumn,
   insertionOrderColumn,
-  isValidDetailsResult,
   minResolutionDeg,
   requestFeatureId,
+  resolutionDegreeColumn,
 } from './constants';
 import type {
   AggregateLayerMetadataOptions,
@@ -43,7 +41,9 @@ import type {
   FindPolygonPartsResponse,
   FindQueryFilterOptions,
   FindQuerySelectOptions,
-  IsValidDetailsResult,
+  IntersectionOptions,
+  IntersectionQueryResponse,
+  IntersectionResponse,
   PolygonPartsPayload,
   PolygonPartsResponse,
   ProcessPolygonPartsOptions,
@@ -168,11 +168,6 @@ export class PolygonPartsManager {
           throw new NotFoundError(`Table with the name '${polygonPartsEntityName.entityName}' doesn't exists`);
         }
 
-        await this.validateFeatureCollectionFilter({
-          entityManager,
-          filter,
-        });
-
         const findPolygonPartsQuery = this.buildFindQuery<ShouldClip>({
           shouldClip,
           entityManager,
@@ -198,6 +193,45 @@ export class PolygonPartsManager {
       return response.geojson;
     } catch (error) {
       const errorMessage = 'Find polygon parts transaction failed';
+      logger.error({ msg: errorMessage, error });
+      throw error;
+    }
+  }
+
+  public async intersection({ geometry, polygonPartsEntityName }: IntersectionOptions): Promise<IntersectionResponse> {
+    const logger = this.logger.child({ polygonPartsEntityName: polygonPartsEntityName.entityName });
+    logger.info({ msg: 'Intersection' });
+
+    try {
+      const response = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        const exists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName.entityName);
+        if (!exists) {
+          throw new NotFoundError(`Table with the name '${polygonPartsEntityName.entityName}' doesn't exists`);
+        }
+
+        const intersectionQuery = this.buildIntersectionQuery({
+          entityManager,
+          geometry,
+          polygonPartsEntityName,
+        });
+
+        try {
+          const polygonParts = await intersectionQuery.getRawOne<IntersectionQueryResponse>();
+          return polygonParts;
+        } catch (error) {
+          const errorMessage = `Could not complete intersection '${polygonPartsEntityName.entityName}'`;
+          logger.error({ msg: errorMessage, error });
+          throw error;
+        }
+      });
+
+      if (!response) {
+        throw new InternalServerError('Could not generate response');
+      }
+
+      return response.geojson;
+    } catch (error) {
+      const errorMessage = 'Intersection transaction failed';
       logger.error({ msg: errorMessage, error });
       throw error;
     }
@@ -258,11 +292,7 @@ export class PolygonPartsManager {
           throw new NotFoundError(`Table with the name '${polygonPartsEntityName.entityName}' doesn't exists`);
         }
 
-        const { filterQueryMetadata, filteredPolygonPartsQuery } = await this.prepareAggregationFilterQuery(
-          entityManager,
-          polygonPartsEntityName,
-          filter
-        );
+        const { filterQueryMetadata, filteredPolygonPartsQuery } = this.prepareAggregationFilterQuery(entityManager, polygonPartsEntityName, filter);
 
         const aggregationQueryToExecute = this.buildAggregationLayerMetadataQuery({
           entityManager,
@@ -453,17 +483,15 @@ export class PolygonPartsManager {
     }
   }
 
-  private async prepareAggregationFilterQuery(
+  private prepareAggregationFilterQuery(
     entityManager: EntityManager,
     polygonPartsEntityName: EntityNames,
     filter: FindPolygonPartsOptions<true>['filter']
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ): Promise<{ filterQueryMetadata?: FilterQueryMetadata; filteredPolygonPartsQuery?: SelectQueryBuilder<any> }> {
+  ): { filterQueryMetadata?: FilterQueryMetadata; filteredPolygonPartsQuery?: SelectQueryBuilder<any> } {
     if (!filter) {
       return { filterQueryMetadata: undefined, filteredPolygonPartsQuery: undefined };
     }
-
-    await this.validateFeatureCollectionFilter({ filter, entityManager });
 
     const filterQueryMetadata: FilterQueryMetadata = {
       filterQueryAlias: 'filtered_parts',
@@ -1028,6 +1056,43 @@ export class PolygonPartsManager {
     return filterPolygonPartsQuery;
   }
 
+  private buildIntersectionQuery(
+    context: IntersectionOptions & {
+      entityManager: EntityManager;
+    }
+  ): SelectQueryBuilder<IntersectionQueryResponse> {
+    const { entityManager, geometry, polygonPartsEntityName } = context;
+    const { maxDecimalDigits } = this.applicationConfig.entities.polygonParts.intersection;
+    const polygonalGeoJSONGeometryString = JSON.stringify(geometry.features[0].geometry);
+
+    const outputGeometryCTE = entityManager
+      .createQueryBuilder()
+      .select(`st_union(st_intersection(${geometryColumn}, st_setsrid(st_geomfromgeojson('${polygonalGeoJSONGeometryString}'), 4326)))`, 'geometry')
+      .from<IntersectionResponse>(polygonPartsEntityName.databaseObjectQualifiedName, polygonPartsEntityName.entityName)
+      .where(`${resolutionDegreeColumn} <= :resolutionDegree`, { resolutionDegree: geometry.features[0].properties.resolutionDegree })
+      .andWhere(`st_intersects(${geometryColumn}, st_setsrid(st_geomfromgeojson(:geometry), 4326))`, { geometry: geometry.features[0].geometry });
+
+    const intersectionQuery = entityManager
+      .createQueryBuilder()
+      .addCommonTableExpression(outputGeometryCTE, 'output_geometry')
+      .select(
+        `jsonb_build_object(
+          'type', 'FeatureCollection',
+          'features', coalesce(jsonb_agg(
+            jsonb_build_object(
+              'type', 'Feature',
+              'geometry', st_asgeojson(geometry, ${maxDecimalDigits})::jsonb,
+              'properties', '{}'::json
+            )
+          ), '[]')
+        ) AS ${'geojson' satisfies keyof IntersectionQueryResponse}`
+      )
+      .from<IntersectionQueryResponse>('output_geometry', 'output_geometry')
+      .where(`st_geometrytype(geometry) in ('ST_Polygon', 'ST_MultiPolygon')`);
+
+    return intersectionQuery;
+  }
+
   private async calculatePolygonParts(context: {
     entitiesMetadata: EntitiesMetadataWithoutValidations;
     entityManager: EntityManager;
@@ -1162,31 +1227,5 @@ export class PolygonPartsManager {
 
   private async truncateEntity(entityManager: EntityManager, entityName: EntityName): Promise<void> {
     await entityManager.query(`TRUNCATE ${entityName} RESTART IDENTITY CASCADE;`);
-  }
-
-  private async validateFeatureCollectionFilter(context: { entityManager: EntityManager; filter: FindPolygonPartsOptions['filter'] }): Promise<void> {
-    // TODO: move function to a validation middleware
-    const { entityManager, filter } = context;
-
-    if (!filter) {
-      return;
-    }
-
-    const filterGeometries = filter.features.map((feature) => feature.geometry);
-    const geometriesCollection = geometryCollection(filterGeometries).geometry;
-    const isValidFilterGeometry = (
-      await entityManager.query<IsValidDetailsResult[]>(
-        `select ${isValidDetailsResult.valid}, ${isValidDetailsResult.reason}, st_asgeojson(location) as ${isValidDetailsResult.location} from st_isvaliddetail(st_setsrid(st_geomfromgeojson($1), 4326))`,
-        [JSON.stringify(geometriesCollection)]
-      )
-    )[0];
-
-    if (!isValidFilterGeometry.valid) {
-      throw new BadRequestError(
-        `Invalid geometry filter: ${isValidFilterGeometry.reason}. ${
-          isValidFilterGeometry.location ? `Location: ${JSON.stringify(isValidFilterGeometry.location)}` : ''
-        }`
-      );
-    }
   }
 }

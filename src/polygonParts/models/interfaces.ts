@@ -1,19 +1,22 @@
 import type {
   AggregationFeature,
+  IntersectedFeatureCollection,
+  IntersectionFeatureCollection,
   JobTypes,
-  partSchema,
   PolygonPartsEntityName,
-  polygonPartsEntityNameSchema,
   PolygonPartsPayload as PolygonPartsPayloadType,
   RoiProperties,
+  partSchema,
+  polygonPartsEntityNameSchema,
 } from '@map-colonies/raster-shared';
-import type { Feature, FeatureCollection, GeoJsonProperties, Geometry, MultiPolygon, Polygon } from 'geojson';
+import type { Feature, FeatureCollection, GeoJsonProperties, MultiPolygon, Polygon } from 'geojson';
 import { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { z } from 'zod';
 import type { OptionalToNullableRecordValues, ReplaceValuesOfType } from '../../common/types';
 
 //#region public
 interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData' | 'jobType'>, Omit<z.infer<typeof partSchema>, 'id'> {}
+
 /**
  * Polygonal geometries
  */
@@ -34,7 +37,7 @@ export interface InsertPartDataToHistory extends Readonly<Omit<CommonPayload, 'c
   readonly footprint: Polygon;
 }
 
-//Used for the Base record
+// Used for the Base record
 export interface BasePart extends Readonly<Omit<InsertPartDataToHistory, 'footprint' | 'id'>> {}
 
 export interface ValidatePartData extends Readonly<BasePart> {
@@ -77,6 +80,19 @@ export type FindPolygonPartsResponse<ShouldClip extends boolean = boolean> = Fea
     requestFeatureId?: NonNullable<Feature['id']> | (ShouldClip extends true ? never : NonNullable<Feature['id']>[]);
   }
 >;
+
+/**
+ * Intersection options
+ */
+export interface IntersectionOptions {
+  readonly polygonPartsEntityName: EntityNames;
+  readonly geometry: IntersectionFeatureCollection;
+}
+
+/**
+ * Itersection response
+ */
+export type IntersectionResponse = IntersectedFeatureCollection;
 
 /**
  * Polygon parts ingestion payload - based on data producer
@@ -202,10 +218,14 @@ export interface ExistsResponse extends EntityIdentifierObject {}
 //#endregion
 
 //#region private
-export type IsValidDetailsResult = { valid: true; reason: null; location: null } | { valid: false; reason: string; location: Geometry | null };
 export interface FindPolygonPartsQueryResponse<ShouldClip extends boolean = boolean> {
   readonly geojson: FindPolygonPartsResponse<ShouldClip>;
 }
+
+export interface IntersectionQueryResponse {
+  geojson: IntersectionResponse;
+}
+
 export type FindQueryFilterOptions<ShouldClip extends boolean = boolean> = Omit<FindPolygonPartsOptions<ShouldClip>, 'filter'> & {
   entityManager: EntityManager;
   filter: {
@@ -215,6 +235,7 @@ export type FindQueryFilterOptions<ShouldClip extends boolean = boolean> = Omit<
     selectOutputColumns: string[];
   };
 };
+
 export interface FindQuerySelectOptions {
   geometryColumn: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

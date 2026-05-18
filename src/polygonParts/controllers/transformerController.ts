@@ -2,13 +2,15 @@ import type { Logger } from '@map-colonies/js-logger';
 import { RequestHandler } from 'express';
 import { inject, singleton } from 'tsyringe';
 import { SERVICES } from '../../common/constants';
-import { Transformer } from '../../common/middlewares/transformer';
+import { Transformer } from '../../middlewares/transformer';
 import type { IsSwapQueryParams, PolygonPartsPayload } from '../models/interfaces';
 import type {
   ExistsRequestBody,
   FindPolygonPartsParams,
   FindPolygonPartsQueryParams,
   FindPolygonPartsRequestBody,
+  IntersectionParams,
+  IntersectionRequestBody,
   ProcessPolygonPartsRequestBody,
 } from './interfaces';
 import type {
@@ -36,6 +38,11 @@ type FindPolygonPartsTransformerHandler = RequestHandler<
   FindPolygonPartsRequestBody | Record<PropertyKey, never>,
   FindPolygonPartsQueryParams
 >;
+
+/**
+ * Intersection transformer handler
+ */
+type IntersectionTransformerHandler = RequestHandler<IntersectionParams, undefined, IntersectionRequestBody, undefined>;
 
 /**
  * Update polygon parts transformer handler
@@ -80,6 +87,17 @@ export class TransformerController {
       next();
     } catch (error) {
       this.logger.error({ msg: 'find polygon parts transformer failed', error });
+      next(error);
+    }
+  };
+
+  public readonly parseIntersectionPolygonParts: IntersectionTransformerHandler = (req, res, next) => {
+    try {
+      const entitiesMetadata = this.transformer.parseEntitiesMetadata(req.params);
+      res.locals = entitiesMetadata;
+      next();
+    } catch (error) {
+      this.logger.error({ msg: 'interesection transformer failed', error });
       next(error);
     }
   };

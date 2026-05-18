@@ -1,17 +1,18 @@
 import { PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
-import type { IngestionJobTypes } from '../models/interfaces';
 import type {
   AggregateLayerMetadataOptions,
   AggregationLayerMetadataResponse,
+  CommonRecord,
   EntityIdentifier,
   ExistsOptions,
   ExistsResponse,
   FindPolygonPartsOptions,
   FindPolygonPartsResponse,
-  CommonRecord,
+  IntersectionOptions,
+  IntersectionResponse,
+  PolygonPartsPayload,
   ProcessPolygonPartsOptions,
 } from '../models/interfaces';
-import { PolygonPartsFeatureCollection } from '../../common/types';
 
 /**
  * Exists request body
@@ -47,6 +48,23 @@ export type AggregatePolygonPartsRequestBody = Pick<AggregateLayerMetadataOption
 export interface FindPolygonPartsResponseBody<ShouldClip extends boolean = boolean> extends FindPolygonPartsResponse<ShouldClip> {}
 
 /**
+ * Intersection params
+ */
+export interface IntersectionParams {
+  readonly polygonPartsEntityName: EntityIdentifier;
+}
+
+/**
+ * Intersection request body
+ */
+export type IntersectionRequestBody = Pick<IntersectionOptions, 'geometry'>['geometry'];
+
+/**
+ * Intersection response body
+ */
+export type IntersectionResponseBody = IntersectionResponse;
+
+/**
  * Get aggregation layer metadata params
  */
 export interface AggregationLayerMetadataParams {
@@ -60,11 +78,7 @@ export interface AggregationLayerMetadataResponseBody extends AggregationLayerMe
 
 export type ValidatePolygonPartsResponseBody = PolygonPartsChunkValidationResult;
 
-export type ValidatePolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType' | 'productVersion' | 'catalogId'> & {
-  jobType: IngestionJobTypes;
-} & {
-  partsData: PolygonPartsFeatureCollection;
-};
+export type ValidatePolygonPartsRequestBody = PolygonPartsPayload;
 
 export type ValidationEntityQuery = Pick<CommonRecord, 'productId' | 'productType'>;
 

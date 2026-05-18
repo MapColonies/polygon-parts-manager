@@ -68,6 +68,12 @@
             "__name": "ENTITY_POLYGON_PARTS_FIND_MAX_DECIMAL_DIGITS",
             "__format": "number"
           }
+        },
+        "intersection": {
+          "maxDecimalDigits": {
+            "__name": "ENTITY_POLYGON_PARTS_INTERSECTION_MAX_DECIMAL_DIGITS",
+            "__format": "number"
+          }
         }
       },
       "validations": {

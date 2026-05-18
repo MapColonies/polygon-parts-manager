@@ -3,13 +3,15 @@ import * as supertest from 'supertest';
 import type {
   AggregatePolygonPartsRequestBody,
   AggregationLayerMetadataParams,
-  ValidationEntityQuery,
-  ProcessPolygonPartsRequestBody,
   ExistsRequestBody,
   FindPolygonPartsParams,
   FindPolygonPartsQueryParams,
   FindPolygonPartsRequestBody,
+  IntersectionParams,
+  IntersectionRequestBody,
+  ProcessPolygonPartsRequestBody,
   ValidatePolygonPartsRequestBody,
+  ValidationEntityQuery,
 } from '../../../../src/polygonParts/controllers/interfaces';
 import type { PolygonPartsPayload } from '../../../../src/polygonParts/models/interfaces';
 
@@ -40,6 +42,10 @@ export class PolygonPartsRequestSender {
       .post(`/polygonParts/${params.polygonPartsEntityName}/find`)
       .query(query ?? {})
       .send(body);
+  }
+
+  public async intersection({ params, body }: { params: IntersectionParams; body: IntersectionRequestBody }): Promise<supertest.Response> {
+    return supertest.agent(this.app).post(`/polygonParts/${params.polygonPartsEntityName}/intersection`).send(body);
   }
 
   public async updatePolygonParts(body: PolygonPartsPayload, isSwap: boolean): Promise<supertest.Response> {

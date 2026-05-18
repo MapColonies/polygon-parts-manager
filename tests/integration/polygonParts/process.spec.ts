@@ -135,7 +135,7 @@ describe('process', () => {
           expect(validationTableExists).toBeFalse();
 
           expect.assertions(6);
-        }, 1000000000);
+        });
 
         it('should handle MultiPolygon geometries by splitting them into individual polygons', async () => {
           const multiPolygonGeometry = multiPolygon([

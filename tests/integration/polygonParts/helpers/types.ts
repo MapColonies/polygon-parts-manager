@@ -1,4 +1,7 @@
+import type { polygonPartsFeatureSchema } from '@map-colonies/raster-shared';
+import type { z } from 'zod';
 import type { OptionalToNullableRecordValues } from '../../../../src/common/types';
+import type { ValidatePolygonPartsRequestBody } from '../../../../src/polygonParts/controllers/interfaces';
 import type {
   EntitiesMetadata,
   EntityIdentifierObject,
@@ -17,3 +20,15 @@ export type ExpectedPostgresResponse = OptionalToNullableRecordValues<InsertPart
 export type GetEntitiesMetadata = (
   entityIdentifierOptions: EntityIdentifierObject | Pick<PolygonPartsPayload, 'productId' | 'productType'>
 ) => EntitiesMetadata;
+
+// Helper type for test data insertion - accepts string or Date for date fields
+export type InsertPayload = Omit<ValidatePolygonPartsRequestBody, 'jobType'>;
+
+export type PolygonPartFeature = z.infer<typeof polygonPartsFeatureSchema>;
+
+export type PartialPolygonPartsPayload = Partial<Omit<PolygonPartsPayload, 'partsData'>> & {
+  partsData?: {
+    type?: 'FeatureCollection';
+    features?: (Pick<PolygonPartFeature, 'type'> & DeepPartial<Omit<PolygonPartFeature, 'type'>>)[];
+  };
+};

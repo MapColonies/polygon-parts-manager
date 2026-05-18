@@ -20,10 +20,10 @@ import { namingStrategy } from '../../../src/polygonParts/DAL/utils';
 import { ValidatePart } from '../../../src/polygonParts/DAL/validationPart';
 import type { EntityIdentifier } from '../../../src/polygonParts/models/interfaces';
 import { invalidGeometryTopologyTestCases } from '../../mocks/geometryTestCases';
-import { HelperDB, generateResolutionDegree } from './helpers/db';
+import { HelperDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import type { GetEntitiesMetadata } from './helpers/types';
-import { insertInitialPolygonParts } from './helpers/utils';
+import { generateResolutionDegree, insertInitialPolygonParts } from './helpers/utils';
 
 let testDataSourceOptions: DataSourceOptions;
 

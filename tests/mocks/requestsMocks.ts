@@ -6,7 +6,7 @@ import config from 'config';
 import type { MultiPolygon, Polygon } from 'geojson';
 import { ValidatePolygonPartsRequestBody } from '../../src/polygonParts/controllers/interfaces';
 import type { PolygonPartsPayload } from '../../src/polygonParts/models/interfaces';
-import { generatePolygonPartsPayload } from '../integration/polygonParts/helpers/db';
+import { generatePolygonPartsPayload } from '../integration/polygonParts/helpers/utils';
 
 const zoomLevelThreshold = config.get<number>('application.validation.zoomLevelThreshold');
 

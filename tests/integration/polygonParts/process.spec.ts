@@ -20,8 +20,10 @@ import { namingStrategy } from '../../../src/polygonParts/DAL/utils';
 import { ValidatePart } from '../../../src/polygonParts/DAL/validationPart';
 import { EntitiesMetadata, EntityIdentifierObject, PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import { validValidationPolygonPartsPayload } from '../../mocks/requestsMocks';
-import { generatePolygonPartsPayload, HelperDB, InsertPayload } from './helpers/db';
+import { HelperDB } from './helpers/db';
+import { InsertPayload } from './helpers/types';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
+import { generatePolygonPartsPayload } from './helpers/utils';
 
 let testDataSourceOptions: DataSourceOptions;
 const dbConfig = config.get<Required<DbConfig>>('db');

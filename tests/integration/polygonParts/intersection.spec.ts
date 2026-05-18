@@ -24,10 +24,10 @@ import { ValidatePart } from '../../../src/polygonParts/DAL/validationPart';
 import type { IntersectionRequestBody, IntersectionResponseBody } from '../../../src/polygonParts/controllers/interfaces';
 import type { EntityIdentifier } from '../../../src/polygonParts/models/interfaces';
 import { invalidGeometryTopologyTestCases } from '../../mocks/geometryTestCases';
-import { HelperDB, generatePolygon, generateResolutionDegree } from './helpers/db';
+import { HelperDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import type { DeepPartial, GetEntitiesMetadata } from './helpers/types';
-import { insertInitialPolygonParts } from './helpers/utils';
+import { generatePolygon, generateResolutionDegree, insertInitialPolygonParts } from './helpers/utils';
 
 type ConfigImport = typeof import('config') & { application: ApplicationConfig };
 

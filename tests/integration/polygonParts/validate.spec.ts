@@ -38,7 +38,8 @@ import {
   twoHighResExistingPartsInitPayload,
   validValidationPolygonPartsPayload,
 } from '../../mocks/requestsMocks';
-import { HelperDB, InsertPayload } from './helpers/db';
+import { HelperDB } from './helpers/db';
+import { InsertPayload } from './helpers/types';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 
 let testDataSourceOptions: DataSourceOptions;

@@ -23,7 +23,7 @@ import { invalidGeometryTopologyTestCases } from '../../mocks/geometryTestCases'
 import { HelperDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import type { GetEntitiesMetadata } from './helpers/types';
-import { generateResolutionDegree, insertInitialPolygonParts } from './helpers/utils';
+import { generateResolutionDegree, ingestPolygonParts } from './helpers/utils';
 
 let testDataSourceOptions: DataSourceOptions;
 
@@ -138,7 +138,7 @@ describe('find', () => {
             }
           );
           const polygons = [polygon1, polygon2];
-          const initialPolygonParts = await insertInitialPolygonParts({
+          const initialPolygonParts = await ingestPolygonParts({
             input: {
               partsData: {
                 features: polygons,

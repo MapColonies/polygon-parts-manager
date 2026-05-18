@@ -27,7 +27,7 @@ import { invalidGeometryTopologyTestCases } from '../../mocks/geometryTestCases'
 import { HelperDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import type { DeepPartial, GetEntitiesMetadata } from './helpers/types';
-import { generatePolygon, generateResolutionDegree, insertInitialPolygonParts } from './helpers/utils';
+import { generatePolygon, generateResolutionDegree, ingestPolygonParts } from './helpers/utils';
 
 type ConfigImport = typeof import('config') & { application: ApplicationConfig };
 
@@ -155,7 +155,7 @@ describe('intersection', () => {
           }
         );
         const polygons = [polygon1, polygon2];
-        const initialPolygonParts = await insertInitialPolygonParts({
+        const initialPolygonParts = await ingestPolygonParts({
           input: {
             partsData: {
               features: polygons,
@@ -1053,7 +1053,7 @@ describe('intersection', () => {
             }
           );
           const polygons = [polygon1, polygon2];
-          const initialPolygonParts = await insertInitialPolygonParts({
+          const initialPolygonParts = await ingestPolygonParts({
             input: {
               partsData: {
                 features: polygons,
@@ -1252,7 +1252,7 @@ describe('intersection', () => {
           }
         );
         const polygons = [polygon1, polygon2];
-        const initialPolygonParts = await insertInitialPolygonParts({
+        const initialPolygonParts = await ingestPolygonParts({
           input: {
             partsData: {
               features: polygons,

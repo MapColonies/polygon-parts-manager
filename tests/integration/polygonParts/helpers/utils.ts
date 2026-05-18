@@ -168,7 +168,7 @@ export const allFindFeaturesEqual = <T extends FindPolygonPartsResponseBody<Shou
   };
 };
 
-export const insertInitialPolygonParts = async ({
+export const ingestPolygonParts = async ({
   input,
   requestSender,
   getEntitiesMetadata,

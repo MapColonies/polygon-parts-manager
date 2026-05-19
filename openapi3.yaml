@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Polygon-Parts Manager
   description: CRUD operations to manage polygon parts
-  version: 3.2.0
+  version: 3.3.0
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -258,12 +258,18 @@ paths:
     post:
       tags:
         - polygon-parts
-      summary: |
-        Intersection of input polygon or multi-polygon, at a given resolution, with polygon parts
-      description: |
-        Intersection of input polygon or multi-polygon GeoJSON feature collection,
-        at a given resolution defined in feature collection properties, with polygon parts.
-        Response is a GeoJSON feature collection of polygon or a multi-polygon of the intersection.
+      summary: >
+        Intersection of input polygon or multi-polygon, at a given resolution,
+        with polygon parts
+      description: >
+        Intersection of input polygon or multi-polygon GeoJSON feature
+        collection,
+
+        at a given resolution defined in feature collection properties, with
+        polygon parts.
+
+        Response is a GeoJSON feature collection of polygon or a multi-polygon
+        of the intersection.
       operationId: intersection
       parameters:
         - in: path
@@ -690,12 +696,14 @@ components:
             - resolutionDegree
           properties:
             resolutionDegree:
-              $ref: ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
+              $ref: >-
+                ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/ResolutionDegree
         geometry:
           type: object
           oneOf:
             - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
-            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
+            - $ref: >-
+                ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
         bbox:
           $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
     FeatureIntersectionResponse:
@@ -717,7 +725,8 @@ components:
           type: object
           oneOf:
             - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/Polygon
-            - $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
+            - $ref: >-
+                ./SchemaRaster/core/geojson.yaml#/components/schemas/MultiPolygon
         bbox:
           $ref: ./SchemaRaster/core/geojson.yaml#/components/schemas/BBox
     IntersectionPayload:
@@ -1058,8 +1067,8 @@ components:
         smallHolesCount:
           type: integer
       description: >-
-        Validation result with per-part errors. Empty `parts` indicates validation
-        passed.
+        Validation result with per-part errors. Empty `parts` indicates
+        validation passed.
     ProcessPolygonPartsPayload:
       type: object
       additionalProperties: false

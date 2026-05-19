@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.3.0](https://github.com/MapColonies/polygon-parts-manager/compare/v3.2.0...v3.3.0) (2026-05-19)
+
+
+### Features
+
+* implement intersection API (MAPCO-10423) ([#95](https://github.com/MapColonies/polygon-parts-manager/issues/95)) ([9f57af9](https://github.com/MapColonies/polygon-parts-manager/commit/9f57af941449b28ebcf5e7214ecc094148785d04))
+
 ## [3.2.0](https://github.com/MapColonies/polygon-parts-manager/compare/v3.1.0...v3.2.0) (2026-05-04)
 
 

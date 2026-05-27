@@ -3,9 +3,9 @@ import type { Logger } from '@map-colonies/js-logger';
 import { degreesPerPixelToZoomLevel } from '@map-colonies/mc-utils';
 import type { PolygonPartValidationError, PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
 import { AggregationFeature, CORE_VALIDATIONS, JobTypes, ValidationErrorType } from '@map-colonies/raster-shared';
-import _ from 'lodash';
+import _, { union } from 'lodash';
 import { inject, injectable } from 'tsyringe';
-import type { EntityManager, SelectQueryBuilder } from 'typeorm';
+import { Not, NotBrackets, type EntityManager, type SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';
@@ -227,7 +227,7 @@ export class PolygonPartsManager {
 
       if (!response) {
         throw new InternalServerError('Could not generate response');
-      }
+      }  
 
       return response.geojson;
     } catch (error) {
@@ -1012,8 +1012,8 @@ export class PolygonPartsManager {
       .addSelect(
         `${
           shouldClip
-            ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
-            : geometryColumn
+          ? `case when not ( select is_empty_filter from is_empty_filter ) then st_intersection(${geometryColumn}, filter_geometry) else ${geometryColumn} end`
+          : geometryColumn
         }`,
         geometryColumn
       )
@@ -1067,14 +1067,21 @@ export class PolygonPartsManager {
 
     const outputGeometryCTE = entityManager
       .createQueryBuilder()
-      .select(`st_union(st_intersection(${geometryColumn}, st_setsrid(st_geomfromgeojson('${polygonalGeoJSONGeometryString}'), 4326)))`, 'geometry')
+      .select(`st_intersection(${geometryColumn}, st_setsrid(st_geomfromgeojson('${polygonalGeoJSONGeometryString}'), 4326))`, 'geometry')
       .from<IntersectionResponse>(polygonPartsEntityName.databaseObjectQualifiedName, polygonPartsEntityName.entityName)
       .where(`${resolutionDegreeColumn} <= :resolutionDegree`, { resolutionDegree: geometry.features[0].properties.resolutionDegree })
-      .andWhere(`st_intersects(${geometryColumn}, st_setsrid(st_geomfromgeojson(:geometry), 4326))`, { geometry: geometry.features[0].geometry });
+      .andWhere(`st_intersects(${geometryColumn}, st_setsrid(st_geomfromgeojson(:geometry), 4326))`, { geometry: geometry.features[0].geometry })
+
+    const unionedGeometriesCTE = entityManager
+      .createQueryBuilder()
+      .select(`st_union(geometry)`, 'geometry')
+      .from('output_geometry', 'output_geometry')
+      .where(`st_geometrytype(geometry) in ('ST_Polygon', 'ST_MultiPolygon')`)
 
     const intersectionQuery = entityManager
       .createQueryBuilder()
       .addCommonTableExpression(outputGeometryCTE, 'output_geometry')
+      .addCommonTableExpression(unionedGeometriesCTE, 'unioned_geometries')
       .select(
         `jsonb_build_object(
           'type', 'FeatureCollection',
@@ -1087,8 +1094,9 @@ export class PolygonPartsManager {
           ), '[]')
         ) AS ${'geojson' satisfies keyof IntersectionQueryResponse}`
       )
-      .from<IntersectionQueryResponse>('output_geometry', 'output_geometry')
-      .where(`st_geometrytype(geometry) in ('ST_Polygon', 'ST_MultiPolygon')`);
+      .from<IntersectionQueryResponse>('unioned_geometries', 'unioned_geometries')
+      .where('geometry is not null')
+
 
     return intersectionQuery;
   }

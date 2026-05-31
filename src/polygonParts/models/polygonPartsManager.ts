@@ -1079,7 +1079,8 @@ export class PolygonPartsManager {
       .createQueryBuilder()
       .select(`st_union(geometry)`, 'geometry')
       .from('output_geometry', 'output_geometry')
-      .where(`st_geometrytype(geometry) in ('ST_Polygon', 'ST_MultiPolygon')`);
+      .where(`st_geometrytype(geometry) in ('ST_Polygon', 'ST_MultiPolygon')`)
+      .andWhere(`st_area(geometry) >= :minArea`, { minArea: this.applicationConfig.entities.polygonParts.intersection.minAreaSquareDeg });
 
     const intersectionQuery = entityManager
       .createQueryBuilder()

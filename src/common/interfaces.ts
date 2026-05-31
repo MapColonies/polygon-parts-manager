@@ -20,6 +20,7 @@ export interface ApplicationConfig {
       };
       intersection: {
         maxDecimalDigits: number;
+        minAreaSquareDeg: number;
       };
       namePrefix: Lowercase<string>;
       nameSuffix: Lowercase<string>;

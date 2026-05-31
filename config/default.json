@@ -44,7 +44,8 @@
           "maxDecimalDigits": 15
         },
         "intersection": {
-          "maxDecimalDigits": 15
+          "maxDecimalDigits": 15,
+          "minAreaSquareDeg": 1e-12
         },
         "namePrefix": "",
         "nameSuffix": "",

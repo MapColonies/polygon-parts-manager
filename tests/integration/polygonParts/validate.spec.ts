@@ -296,7 +296,7 @@ describe('validate', () => {
           expect.assertions(5);
         });
 
-        it('should return no resolution error when the intersection area is below the minAreaSquareDeg threshold (sliver intersection - tiny overlap)', async () => {
+        it('should not return resolution error when the intersection area is below the minAreaSquareDeg threshold - sliver (tiny) intersection', async () => {
           const { entitiesNames } = getEntitiesMetadata(sliverIntersectionInitPayload);
           await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
           await helperDB.insertPolygonPartsFromValidationPayload(
@@ -315,7 +315,7 @@ describe('validate', () => {
           expect.assertions(4);
         });
 
-        it('should return no resolution error when ST_Intersection yields a zero-area LineString (ST_GeometryType filter)', async () => {
+        it('should not return resolution error when intersection between existing polygon parts and validated polygons result in non-area intersections', async () => {
           const { entitiesNames } = getEntitiesMetadata(lineIntersectionInitPayload);
           await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
           await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, lineIntersectionInitPayload as InsertPayload);

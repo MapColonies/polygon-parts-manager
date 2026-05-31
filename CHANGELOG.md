@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.3.1](https://github.com/MapColonies/polygon-parts-manager/compare/v3.3.0...v3.3.1) (2026-05-31)
+
+
+### Bug Fixes
+
+* seperated unioned filter intersection geometries ([#99](https://github.com/MapColonies/polygon-parts-manager/issues/99)) ([c224754](https://github.com/MapColonies/polygon-parts-manager/commit/c2247544bb30d91c540ae8e1e50668a68b3e3bc8))
+
 ## [3.3.0](https://github.com/MapColonies/polygon-parts-manager/compare/v3.2.0...v3.3.0) (2026-05-19)
 
 

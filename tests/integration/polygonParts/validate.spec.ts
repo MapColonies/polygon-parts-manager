@@ -60,10 +60,9 @@ describe('validate', () => {
 
   beforeAll(async () => {
     testDataSourceOptions = {
+      entities: [History, PolygonPart, ValidatePart],
       namingStrategy,
       ...createConnectionOptions(dbConfig),
-      entities: [History, PolygonPart, ValidatePart],
-      migrations: ['src/db/migrations/*.ts'],
     };
     helperDB = new HelperDB(testDataSourceOptions, schema);
     await helperDB.initConnection();

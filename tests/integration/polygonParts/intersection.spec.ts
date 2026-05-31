@@ -62,10 +62,9 @@ describe('intersection', () => {
 
   beforeAll(async () => {
     testDataSourceOptions = {
-      ...createConnectionOptions(dbConfig),
       entities: [History, PolygonPart, ValidatePart],
-      migrations: ['src/db/migrations/*.ts'],
       namingStrategy,
+      ...createConnectionOptions(dbConfig),
     };
     helperDB = new HelperDB(testDataSourceOptions, schema);
     await helperDB.initConnection();
@@ -449,7 +448,7 @@ describe('intersection', () => {
         expect.assertions(4);
       });
 
-      it('should return 200 status code and empty geometry when input polygon only shares an edge with a polygon part (ST_Intersection yields a zero-area LineString, filtered by ST_GeometryType)', async () => {
+      it('should return 200 status code and empty geometry when input polygon only shares an edge with a polygon part', async () => {
         // polygon1 occupies [-5,-5] to [5,5].
         // The request polygon starts at x=5 — touching polygon1 along that edge only.
         // ST_Intersection returns a LineString (zero area), which the
@@ -482,7 +481,7 @@ describe('intersection', () => {
         expect.assertions(3);
       });
 
-      it('should return 200 status code and empty geometry when input polygon produces a near-zero area sliver intersection with a polygon part (ST_Intersection yields a tiny ST_Polygon, filtered by ST_Area)', async () => {
+      it('should return 200 status code and empty geometry when input polygon produces a sliver (tiny) intersection', async () => {
         // polygon1 occupies [-5,-5] to [5,5].
         // The request polygon's left edge is at x = 4.999999999999999, which is the
         // largest IEEE 754 double less than 5 (ULP at 5 ≈ 8.88e-16). The intersection

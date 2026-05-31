@@ -5,7 +5,7 @@ import type { PolygonPartValidationError, PolygonPartsChunkValidationResult } fr
 import { AggregationFeature, CORE_VALIDATIONS, JobTypes, ValidationErrorType } from '@map-colonies/raster-shared';
 import _ from 'lodash';
 import { inject, injectable } from 'tsyringe';
-import { type EntityManager, type SelectQueryBuilder } from 'typeorm';
+import type { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
 import { SERVICES } from '../../common/constants';
 import { ValidationError } from '../../common/errors';

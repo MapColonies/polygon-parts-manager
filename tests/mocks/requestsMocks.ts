@@ -1123,6 +1123,75 @@ export const mockUpdateWithSliverIntersection: ValidatePolygonPartsRequestBody =
   },
 };
 
+// Existing layer for testing the ST_GeometryType filter in validate_resolutions.
+// A rectangle at HIGH_RES_EXISTING_ZOOM whose right edge is at x=34.88.
+// When the new part (mockUpdateWithLineIntersection) shares exactly this edge,
+// ST_Intersection returns a ST_LineString with ST_Area = 0.
+// The ST_GeometryType IN ('ST_Polygon', 'ST_MultiPolygon') condition filters it out,
+// so no resolution error is raised.
+export const lineIntersectionInitPayload: ValidatePolygonPartsRequestBody = {
+  ...layerMetadata,
+  jobType: JobTypes.Ingestion_New,
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [34.87, 32.29],
+              [34.88, 32.29],
+              [34.88, 32.30],
+              [34.87, 32.30],
+              [34.87, 32.29],
+            ],
+          ],
+        },
+        properties: {
+          ...propertiesToGenerate(),
+          resolutionDegree: zoomLevelToResolutionDeg(HIGH_RES_EXISTING_ZOOM) as number,
+        },
+      },
+    ],
+  },
+};
+
+// Update at EXCEEDED_NEW_PART_ZOOM whose left edge is exactly x=34.88 — the right edge of
+// lineIntersectionInitPayload. The two polygons share precisely that vertical line segment,
+// so ST_Intersection(p.footprint, v.footprint) = ST_LineString with ST_Area = 0.
+// The ST_GeometryType filter removes this row; no resolution error is returned.
+export const mockUpdateWithLineIntersection: ValidatePolygonPartsRequestBody = {
+  ...layerMetadata,
+  productVersion: '2.0',
+  jobType: JobTypes.Ingestion_Update,
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [34.88, 32.29],
+              [34.89, 32.29],
+              [34.89, 32.30],
+              [34.88, 32.30],
+              [34.88, 32.29],
+            ],
+          ],
+        },
+        properties: {
+          ...propertiesToGenerate(),
+          resolutionDegree: zoomLevelToResolutionDeg(EXCEEDED_NEW_PART_ZOOM) as number,
+        },
+      },
+    ],
+  },
+};
+
 // Update payload with geometry completely disjoint from the pre-existing AGGREGATED_EXAMPLE parts.
 // Used to verify that the resolution check produces no errors when there is no spatial intersection.
 export const mockUpdateWithNonIntersectingPart: ValidatePolygonPartsRequestBody = {

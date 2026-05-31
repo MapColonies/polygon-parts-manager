@@ -34,6 +34,8 @@ import {
   mockUpdateWithMixedResolutions,
   mockUpdateWithNonIntersectingPart,
   mockUpdateWithResolutionAndSmallGeometry,
+  lineIntersectionInitPayload,
+  mockUpdateWithLineIntersection,
   mockUpdateWithSliverIntersection,
   mockUpdateWithTouchPart,
   sliverIntersectionInitPayload,
@@ -301,6 +303,22 @@ describe('validate', () => {
           await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, sliverIntersectionInitPayload as InsertPayload);
 
           const response = await requestSender.validatePolygonParts(mockUpdateWithSliverIntersection);
+
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(0);
+          expect(responseBody.smallHolesCount).toBe(0);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(4);
+        });
+
+        it('should return no resolution error when ST_Intersection yields a zero-area LineString (ST_GeometryType filter)', async () => {
+          const { entitiesNames } = getEntitiesMetadata(lineIntersectionInitPayload);
+          await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
+          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, lineIntersectionInitPayload as InsertPayload);
+
+          const response = await requestSender.validatePolygonParts(mockUpdateWithLineIntersection);
 
           const responseBody = response.body as ValidatePolygonPartsResponseBody;
           expect(response.status).toBe(httpStatusCodes.OK);

@@ -740,11 +740,12 @@ export class PolygonPartsManager {
         .from(
           (qb) =>
             qb
-              .select(`(${this.applicationConfig.validateResolutionsFunction}(:qualifiedValidationName, :qualifiedPolygonPartsName)).*`)
+              .select(`(${this.applicationConfig.validateResolutionsFunction}(:qualifiedValidationName, :qualifiedPolygonPartsName, :minAreaSquareDeg)).*`)
               .fromDummy()
               .setParameters({
                 qualifiedValidationName: validationsEntityQualifiedName,
                 qualifiedPolygonPartsName: polygonPartsEntityQualifiedName,
+                minAreaSquareDeg: this.applicationConfig.validation.resolution.minAreaSquareDeg,
               }),
           'res'
         )

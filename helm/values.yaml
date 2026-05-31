@@ -94,6 +94,9 @@ env:
         toleranceDeg: 0.000006
     validation:
       areaThresholdSquareMeters: 5
+      zoomLevelThreshold: 4
+      resolution:
+        minAreaSquareDeg: 1e-12
 # external
 db:
   host: ''

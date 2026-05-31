@@ -116,6 +116,12 @@
       "zoomLevelThreshold": {
         "__name": "VALIDATION_ZOOM_LEVEL_THRESHOLD",
         "__format": "number"
+      },
+      "resolution": {
+        "minAreaSquareDeg": {
+          "__name": "VALIDATION_RESOLUTION_MIN_AREA_SQUARE_DEG",
+          "__format": "number"
+        }
       }
     }
   },

@@ -33,6 +33,8 @@ data:
   AGGREGATION_FIX_GEOMETRY_BUFFER_STYLE_PARAMETERS: {{ .Values.env.application.aggregation.fixGeometry.bufferStyleParameters | quote }}
   {{- end }}
   VALIDATION_AREA_THRESHOLD_SQUARE_METERS: {{ .Values.env.application.validation.areaThresholdSquareMeters | quote }}
+  VALIDATION_ZOOM_LEVEL_THRESHOLD: {{ .Values.env.application.validation.zoomLevelThreshold | quote }}
+  VALIDATION_RESOLUTION_MIN_AREA_SQUARE_DEG: {{ .Values.env.application.validation.resolution.minAreaSquareDeg | quote }}
   {{- if .Values.env.application.aggregation.simplifyGeometry.enabled }}
   AGGREGATION_SIMPLIFY_GEOMETRY_TOLERANCE_DEG: {{ .Values.env.application.aggregation.simplifyGeometry.toleranceDeg | quote }}
   {{- end }}

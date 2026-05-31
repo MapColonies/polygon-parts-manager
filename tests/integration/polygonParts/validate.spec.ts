@@ -34,7 +34,11 @@ import {
   mockUpdateWithMixedResolutions,
   mockUpdateWithNonIntersectingPart,
   mockUpdateWithResolutionAndSmallGeometry,
+  lineIntersectionInitPayload,
+  mockUpdateWithLineIntersection,
+  mockUpdateWithSliverIntersection,
   mockUpdateWithTouchPart,
+  sliverIntersectionInitPayload,
   twoHighResExistingPartsInitPayload,
   validValidationPolygonPartsPayload,
 } from '../../mocks/requestsMocks';
@@ -290,6 +294,41 @@ describe('validate', () => {
           expect(response).toSatisfyApiSpec();
 
           expect.assertions(5);
+        });
+
+        it('should not return resolution error when the intersection area is below the minAreaSquareDeg threshold - sliver (tiny) intersection', async () => {
+          const { entitiesNames } = getEntitiesMetadata(sliverIntersectionInitPayload);
+          await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
+          await helperDB.insertPolygonPartsFromValidationPayload(
+            entitiesNames.polygonParts.entityName,
+            sliverIntersectionInitPayload as InsertPayload
+          );
+
+          const response = await requestSender.validatePolygonParts(mockUpdateWithSliverIntersection);
+
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(0);
+          expect(responseBody.smallHolesCount).toBe(0);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(4);
+        });
+
+        it('should not return resolution error when intersection between existing polygon parts and validated polygons result in non-area intersections', async () => {
+          const { entitiesNames } = getEntitiesMetadata(lineIntersectionInitPayload);
+          await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
+          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, lineIntersectionInitPayload as InsertPayload);
+
+          const response = await requestSender.validatePolygonParts(mockUpdateWithLineIntersection);
+
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(0);
+          expect(responseBody.smallHolesCount).toBe(0);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(4);
         });
       });
 

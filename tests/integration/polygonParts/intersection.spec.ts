@@ -447,6 +447,73 @@ describe('intersection', () => {
         expect(response).toSatisfyApiSpec();
         expect.assertions(4);
       });
+
+      it('should return 200 status code and empty geometry when input polygon only shares an edge with a polygon part', async () => {
+        // polygon1 occupies [-5,-5] to [5,5].
+        // The request polygon starts at x=5 — touching polygon1 along that edge only.
+        // ST_Intersection returns a LineString (zero area), which the
+        // ST_GeometryType IN ('ST_Polygon','ST_MultiPolygon') filter discards.
+        const request = featureCollection([
+          polygon(
+            [
+              [
+                [5, -5],
+                [10, -5],
+                [10, 5],
+                [5, 5],
+                [5, -5],
+              ],
+            ],
+            { resolutionDegree: maxResolutionDegree }
+          ),
+        ]);
+
+        const response = await requestSender.intersection({
+          params: { polygonPartsEntityName: entityIdentifier },
+          body: request,
+        });
+
+        const expected = featureCollection([]);
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response.body).toStrictEqual(expected);
+        expect(response).toSatisfyApiSpec();
+        expect.assertions(3);
+      });
+
+      it('should return 200 status code and empty geometry when input polygon produces a sliver (tiny) intersection', async () => {
+        // polygon1 occupies [-5,-5] to [5,5].
+        // The request polygon's left edge is at x = 4.999999999999999, which is the
+        // largest IEEE 754 double less than 5 (ULP at 5 ≈ 8.88e-16). The intersection
+        // sliver has width ≈ 8.88e-16 degrees and height 10 degrees → ST_Area ≈ 8.88e-15.
+        // The ST_Area filter in unionedGeometriesCTE discards it → empty result.
+        const request = featureCollection([
+          polygon(
+            [
+              [
+                [4.999999999999999, -5],
+                [10, -5],
+                [10, 5],
+                [4.999999999999999, 5],
+                [4.999999999999999, -5],
+              ],
+            ],
+            { resolutionDegree: maxResolutionDegree }
+          ),
+        ]);
+
+        const response = await requestSender.intersection({
+          params: { polygonPartsEntityName: entityIdentifier },
+          body: request,
+        });
+
+        const expected = featureCollection([]);
+
+        expect(response.status).toBe(httpStatusCodes.OK);
+        expect(response.body).toStrictEqual(expected);
+        expect(response).toSatisfyApiSpec();
+        expect.assertions(3);
+      });
     });
 
     describe('Bad Path', () => {

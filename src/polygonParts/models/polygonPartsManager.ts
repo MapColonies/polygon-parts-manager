@@ -740,11 +740,14 @@ export class PolygonPartsManager {
         .from(
           (qb) =>
             qb
-              .select(`(${this.applicationConfig.validateResolutionsFunction}(:qualifiedValidationName, :qualifiedPolygonPartsName)).*`)
+              .select(
+                `(${this.applicationConfig.validateResolutionsFunction}(:qualifiedValidationName, :qualifiedPolygonPartsName, :minAreaSquareDeg)).*`
+              )
               .fromDummy()
               .setParameters({
                 qualifiedValidationName: validationsEntityQualifiedName,
                 qualifiedPolygonPartsName: polygonPartsEntityQualifiedName,
+                minAreaSquareDeg: this.applicationConfig.validation.resolution.minAreaSquareDeg,
               }),
           'res'
         )
@@ -1067,14 +1070,22 @@ export class PolygonPartsManager {
 
     const outputGeometryCTE = entityManager
       .createQueryBuilder()
-      .select(`st_union(st_intersection(${geometryColumn}, st_setsrid(st_geomfromgeojson('${polygonalGeoJSONGeometryString}'), 4326)))`, 'geometry')
+      .select(`st_intersection(${geometryColumn}, st_setsrid(st_geomfromgeojson('${polygonalGeoJSONGeometryString}'), 4326))`, 'geometry')
       .from<IntersectionResponse>(polygonPartsEntityName.databaseObjectQualifiedName, polygonPartsEntityName.entityName)
       .where(`${resolutionDegreeColumn} <= :resolutionDegree`, { resolutionDegree: geometry.features[0].properties.resolutionDegree })
       .andWhere(`st_intersects(${geometryColumn}, st_setsrid(st_geomfromgeojson(:geometry), 4326))`, { geometry: geometry.features[0].geometry });
 
+    const unionedGeometriesCTE = entityManager
+      .createQueryBuilder()
+      .select(`st_union(geometry)`, 'geometry')
+      .from('output_geometry', 'output_geometry')
+      .where(`st_geometrytype(geometry) in ('ST_Polygon', 'ST_MultiPolygon')`)
+      .andWhere(`st_area(geometry) >= :minArea`, { minArea: this.applicationConfig.entities.polygonParts.intersection.minAreaSquareDeg });
+
     const intersectionQuery = entityManager
       .createQueryBuilder()
       .addCommonTableExpression(outputGeometryCTE, 'output_geometry')
+      .addCommonTableExpression(unionedGeometriesCTE, 'unioned_geometries')
       .select(
         `jsonb_build_object(
           'type', 'FeatureCollection',
@@ -1087,8 +1098,8 @@ export class PolygonPartsManager {
           ), '[]')
         ) AS ${'geojson' satisfies keyof IntersectionQueryResponse}`
       )
-      .from<IntersectionQueryResponse>('output_geometry', 'output_geometry')
-      .where(`st_geometrytype(geometry) in ('ST_Polygon', 'ST_MultiPolygon')`);
+      .from<IntersectionQueryResponse>('unioned_geometries', 'unioned_geometries')
+      .where('geometry is not null');
 
     return intersectionQuery;
   }

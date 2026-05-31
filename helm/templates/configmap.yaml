@@ -21,6 +21,7 @@ data:
   ENTITY_PARTS_NAME_SUFFIX: {{ .Values.env.application.entities.history.nameSuffix | quote }}
   ENTITY_POLYGON_PARTS_FIND_MAX_DECIMAL_DIGITS: {{ .Values.env.application.entities.polygonParts.find.maxDecimalDigits | quote }}
   ENTITY_POLYGON_PARTS_INTERSECTION_MAX_DECIMAL_DIGITS: {{ .Values.env.application.entities.polygonParts.intersection.maxDecimalDigits | quote }}
+  ENTITY_POLYGON_PARTS_INTERSECTION_MIN_AREA_SQUARE_DEG: {{ .Values.env.application.entities.polygonParts.intersection.minAreaSquareDeg | quote }}
   ENTITY_POLYGON_PARTS_NAME_PREFIX: {{ .Values.env.application.entities.polygonParts.namePrefix | quote }}
   ENTITY_POLYGON_PARTS_NAME_SUFFIX: {{ .Values.env.application.entities.polygonParts.nameSuffix | quote }}
   ENTITY_POLYGON_PARTS_MIN_AREA_SQUARE_DEG: {{ .Values.env.application.entities.polygonParts.minAreaSquareDeg | quote }}
@@ -33,6 +34,8 @@ data:
   AGGREGATION_FIX_GEOMETRY_BUFFER_STYLE_PARAMETERS: {{ .Values.env.application.aggregation.fixGeometry.bufferStyleParameters | quote }}
   {{- end }}
   VALIDATION_AREA_THRESHOLD_SQUARE_METERS: {{ .Values.env.application.validation.areaThresholdSquareMeters | quote }}
+  VALIDATION_ZOOM_LEVEL_THRESHOLD: {{ .Values.env.application.validation.zoomLevelThreshold | quote }}
+  VALIDATION_RESOLUTION_MIN_AREA_SQUARE_DEG: {{ .Values.env.application.validation.resolution.minAreaSquareDeg | quote }}
   {{- if .Values.env.application.aggregation.simplifyGeometry.enabled }}
   AGGREGATION_SIMPLIFY_GEOMETRY_TOLERANCE_DEG: {{ .Values.env.application.aggregation.simplifyGeometry.toleranceDeg | quote }}
   {{- end }}

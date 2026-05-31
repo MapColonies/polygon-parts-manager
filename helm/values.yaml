@@ -76,6 +76,7 @@ env:
           maxDecimalDigits: 15
         intersection:
           maxDecimalDigits: 15
+          minAreaSquareDeg: &intersectionMinAreaSquareDeg 1e-12
         namePrefix: ''
         nameSuffix: ''
         minAreaSquareDeg: 1e-15
@@ -94,6 +95,9 @@ env:
         toleranceDeg: 0.000006
     validation:
       areaThresholdSquareMeters: 5
+      zoomLevelThreshold: 4
+      resolution:
+        minAreaSquareDeg: *intersectionMinAreaSquareDeg
 # external
 db:
   host: ''

@@ -73,6 +73,10 @@
           "maxDecimalDigits": {
             "__name": "ENTITY_POLYGON_PARTS_INTERSECTION_MAX_DECIMAL_DIGITS",
             "__format": "number"
+          },
+          "minAreaSquareDeg": {
+            "__name": "ENTITY_POLYGON_PARTS_INTERSECTION_MIN_AREA_SQUARE_DEG",
+            "__format": "number"
           }
         }
       },
@@ -116,6 +120,12 @@
       "zoomLevelThreshold": {
         "__name": "VALIDATION_ZOOM_LEVEL_THRESHOLD",
         "__format": "number"
+      },
+      "resolution": {
+        "minAreaSquareDeg": {
+          "__name": "VALIDATION_RESOLUTION_MIN_AREA_SQUARE_DEG",
+          "__format": "number"
+        }
       }
     }
   },

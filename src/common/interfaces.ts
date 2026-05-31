@@ -20,6 +20,7 @@ export interface ApplicationConfig {
       };
       intersection: {
         maxDecimalDigits: number;
+        minAreaSquareDeg: number;
       };
       namePrefix: Lowercase<string>;
       nameSuffix: Lowercase<string>;
@@ -45,6 +46,9 @@ export interface ApplicationConfig {
   validation: {
     areaThresholdSquareMeters: number;
     zoomLevelThreshold: number;
+    resolution: {
+      minAreaSquareDeg: number;
+    };
   };
 }
 

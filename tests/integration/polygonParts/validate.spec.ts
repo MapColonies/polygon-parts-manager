@@ -34,7 +34,9 @@ import {
   mockUpdateWithMixedResolutions,
   mockUpdateWithNonIntersectingPart,
   mockUpdateWithResolutionAndSmallGeometry,
+  mockUpdateWithSliverIntersection,
   mockUpdateWithTouchPart,
+  sliverIntersectionInitPayload,
   twoHighResExistingPartsInitPayload,
   validValidationPolygonPartsPayload,
 } from '../../mocks/requestsMocks';
@@ -56,9 +58,10 @@ describe('validate', () => {
 
   beforeAll(async () => {
     testDataSourceOptions = {
-      entities: [History, PolygonPart, ValidatePart],
       namingStrategy,
       ...createConnectionOptions(dbConfig),
+      entities: [History, PolygonPart, ValidatePart],
+      migrations: ['src/db/migrations/*.ts'],
     };
     helperDB = new HelperDB(testDataSourceOptions, schema);
     await helperDB.initConnection();
@@ -290,6 +293,22 @@ describe('validate', () => {
           expect(response).toSatisfyApiSpec();
 
           expect.assertions(5);
+        });
+
+        it('should return no resolution error when the intersection area is below the minAreaSquareDeg threshold (sliver intersection - tiny overlap)', async () => {
+          const { entitiesNames } = getEntitiesMetadata(sliverIntersectionInitPayload);
+          await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
+          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, sliverIntersectionInitPayload as InsertPayload);
+
+          const response = await requestSender.validatePolygonParts(mockUpdateWithSliverIntersection);
+
+          const responseBody = response.body as ValidatePolygonPartsResponseBody;
+          expect(response.status).toBe(httpStatusCodes.OK);
+          expect(responseBody.parts).toHaveLength(0);
+          expect(responseBody.smallHolesCount).toBe(0);
+          expect(response).toSatisfyApiSpec();
+
+          expect.assertions(4);
         });
       });
 

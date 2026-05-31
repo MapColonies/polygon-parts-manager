@@ -1058,6 +1058,71 @@ export const mockUpdateIntersectingTwoHighResParts: ValidatePolygonPartsRequestB
   },
 };
 
+// Existing layer for testing the ST_Area filter in validate_resolutions.
+// A simple rectangle polygon at HIGH_RES_EXISTING_ZOOM
+export const sliverIntersectionInitPayload: ValidatePolygonPartsRequestBody = {
+  ...layerMetadata,
+  jobType: JobTypes.Ingestion_New,
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [34.85, 32.29],
+              [34.86, 32.29],
+              [34.86, 32.30],
+              [34.85, 32.30],
+              [34.85, 32.29],
+            ],
+          ],
+        },
+        properties: {
+          ...propertiesToGenerate(),
+          resolutionDegree: zoomLevelToResolutionDeg(HIGH_RES_EXISTING_ZOOM) as number,
+        },
+      },
+    ],
+  },
+};
+
+// Update at EXCEEDED_NEW_PART_ZOOM whose footprint overlaps sliverIntersectionInitPayload
+// by a sliver of width ≈ 1e-11 degrees × height 0.01 degrees ≈ 1e-13 sq deg.
+// Since 1e-13 < minAreaSquareDeg (1e-12), the ST_Area filter discards this intersection
+// and validate_resolutions returns no resolution error.
+export const mockUpdateWithSliverIntersection: ValidatePolygonPartsRequestBody = {
+  ...layerMetadata,
+  productVersion: '2.0',
+  jobType: JobTypes.Ingestion_Update,
+  partsData: {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [34.85999999999, 32.29],
+              [34.87, 32.29],
+              [34.87, 32.30],
+              [34.85999999999, 32.30],
+              [34.85999999999, 32.29],
+            ],
+          ],
+        },
+        properties: {
+          ...propertiesToGenerate(),
+          resolutionDegree: zoomLevelToResolutionDeg(EXCEEDED_NEW_PART_ZOOM) as number,
+        },
+      },
+    ],
+  },
+};
+
 // Update payload with geometry completely disjoint from the pre-existing AGGREGATED_EXAMPLE parts.
 // Used to verify that the resolution check produces no errors when there is no spatial intersection.
 export const mockUpdateWithNonIntersectingPart: ValidatePolygonPartsRequestBody = {

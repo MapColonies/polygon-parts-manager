@@ -1074,8 +1074,8 @@ export const sliverIntersectionInitPayload: ValidatePolygonPartsRequestBody = {
             [
               [34.85, 32.29],
               [34.86, 32.29],
-              [34.86, 32.30],
-              [34.85, 32.30],
+              [34.86, 32.3],
+              [34.85, 32.3],
               [34.85, 32.29],
             ],
           ],
@@ -1108,8 +1108,8 @@ export const mockUpdateWithSliverIntersection: ValidatePolygonPartsRequestBody =
             [
               [34.85999999999, 32.29],
               [34.87, 32.29],
-              [34.87, 32.30],
-              [34.85999999999, 32.30],
+              [34.87, 32.3],
+              [34.85999999999, 32.3],
               [34.85999999999, 32.29],
             ],
           ],
@@ -1143,8 +1143,8 @@ export const lineIntersectionInitPayload: ValidatePolygonPartsRequestBody = {
             [
               [34.87, 32.29],
               [34.88, 32.29],
-              [34.88, 32.30],
-              [34.87, 32.30],
+              [34.88, 32.3],
+              [34.87, 32.3],
               [34.87, 32.29],
             ],
           ],
@@ -1177,8 +1177,8 @@ export const mockUpdateWithLineIntersection: ValidatePolygonPartsRequestBody = {
             [
               [34.88, 32.29],
               [34.89, 32.29],
-              [34.89, 32.30],
-              [34.88, 32.30],
+              [34.89, 32.3],
+              [34.88, 32.3],
               [34.88, 32.29],
             ],
           ],

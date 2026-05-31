@@ -300,7 +300,10 @@ describe('validate', () => {
         it('should return no resolution error when the intersection area is below the minAreaSquareDeg threshold (sliver intersection - tiny overlap)', async () => {
           const { entitiesNames } = getEntitiesMetadata(sliverIntersectionInitPayload);
           await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
-          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, sliverIntersectionInitPayload as InsertPayload);
+          await helperDB.insertPolygonPartsFromValidationPayload(
+            entitiesNames.polygonParts.entityName,
+            sliverIntersectionInitPayload as InsertPayload
+          );
 
           const response = await requestSender.validatePolygonParts(mockUpdateWithSliverIntersection);
 

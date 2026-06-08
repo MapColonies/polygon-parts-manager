@@ -2,7 +2,6 @@ import type {
   AggregationFeature,
   IntersectedFeatureCollection,
   IntersectionFeatureCollection,
-  JobTypes,
   PolygonPartsEntityName,
   PolygonPartsPayload as PolygonPartsPayloadType,
   RoiProperties,
@@ -21,11 +20,6 @@ interface CommonPayload extends Omit<PolygonPartsPayload, 'partsData' | 'jobType
  * Polygonal geometries
  */
 type PolygonalGeometries = Polygon | MultiPolygon;
-
-/**
- * Job types for ingestion operations
- */
-export type IngestionJobTypes = Extract<JobTypes, 'Ingestion_New' | 'Ingestion_Update' | 'Ingestion_Swap_Update'>;
 
 /**
  * Properties of part data for insertion

@@ -24,6 +24,7 @@ const validationFeaureSchema = z.object({
   bbox: z.any().optional(),
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const polygonPartsFeatureCollectionSchema = z.object({
   type: z.literal('FeatureCollection'),
   features: z.array(validationFeaureSchema),

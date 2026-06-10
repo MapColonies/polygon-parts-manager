@@ -71,7 +71,7 @@ export async function deleteValidationsTable(
     logger.debug({ msg: 'validations table dropped', validationsEntityQualifiedName });
   } catch (error) {
     const errorMessage = `Could not delete validation table: ${validationsEntityQualifiedName}`;
-    logger.error({ msg: errorMessage, error });
+    logger.error({ msg: errorMessage, err: error });
     throw error;
   }
 }

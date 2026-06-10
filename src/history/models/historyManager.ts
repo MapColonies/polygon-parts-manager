@@ -36,7 +36,7 @@ export class HistoryManager {
       });
     } catch (error) {
       const errorMessage = 'Move validations to history table transaction failed';
-      this.logger.error({ msg: errorMessage, error });
+      this.logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -62,7 +62,7 @@ export class HistoryManager {
       });
     } catch (error) {
       const errorMessage = 'Move validations to history table within transaction failed';
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }

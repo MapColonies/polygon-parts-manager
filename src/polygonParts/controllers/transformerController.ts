@@ -67,7 +67,7 @@ export class TransformerController {
       res.locals = entitiesMetadata;
       next();
     } catch (error) {
-      this.logger.error({ msg: 'create polygon parts transformer failed', error });
+      this.logger.error({ msg: 'create polygon parts transformer failed', err: error });
       next(error);
     }
   };
@@ -78,7 +78,7 @@ export class TransformerController {
       res.locals = entitiesMetadata;
       next();
     } catch (error) {
-      this.logger.error({ msg: 'exists polygon parts transformer failed', error });
+      this.logger.error({ msg: 'exists polygon parts transformer failed', err: error });
       next(error);
     }
   };
@@ -89,7 +89,7 @@ export class TransformerController {
       res.locals = entitiesMetadata;
       next();
     } catch (error) {
-      this.logger.error({ msg: 'find polygon parts transformer failed', error });
+      this.logger.error({ msg: 'find polygon parts transformer failed', err: error });
       next(error);
     }
   };
@@ -100,7 +100,7 @@ export class TransformerController {
       res.locals = entitiesMetadata;
       next();
     } catch (error) {
-      this.logger.error({ msg: 'interesection transformer failed', error });
+      this.logger.error({ msg: 'interesection transformer failed', err: error });
       next(error);
     }
   };
@@ -111,7 +111,7 @@ export class TransformerController {
       res.locals = entitiesMetadata;
       next();
     } catch (error) {
-      this.logger.error({ msg: 'update polygon parts transformer failed', error });
+      this.logger.error({ msg: 'update polygon parts transformer failed', err: error });
       next(error);
     }
   };

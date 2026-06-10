@@ -40,5 +40,5 @@ export const requestFeatureId = 'requestFeatureId' satisfies keyof Pick<
 >;
 
 export const findSelectOutputColumns = Object.entries(FIND_OUTPUT_PROPERTIES)
-  .filter(([, value]) => value)
+  .filter(([, value]) => value !== false)
   .map(([key, value]) => `${typeof value === 'boolean' ? `"${getMappedColumnName(key)}"` : value(getMappedColumnName(key))} as "${key}"`);

@@ -85,7 +85,7 @@ describe('history', () => {
       if (connectionManager.isConnected()) {
         await connectionManager.destroy();
       }
-    } catch (error) {
+    } catch {
       // ConnectionManager may not be initialized in some tests
     }
 

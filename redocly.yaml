@@ -1,5 +1,4 @@
-plugins:
-  []
+plugins: []
   # This section is where you can import local plugins.
   # We don't support community plugins.
   # You don't need to import our built-in plugins and rules.

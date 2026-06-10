@@ -47,12 +47,14 @@ export class Validator {
       const areValidGeometries = (
         await this.connectionManager
           .getDataSource()
-          .query<IsValidDetailsResult[]>(
-            `select ${isValidDetailsResult.valid}, ${isValidDetailsResult.reason}, st_asgeojson(location) as ${isValidDetailsResult.location} from st_isvaliddetail(st_setsrid(st_geomfromgeojson($1), 4326))`,
-            [JSON.stringify(geometriesCollection)]
-          )
+          .query<
+            IsValidDetailsResult[]
+          >(`select ${isValidDetailsResult.valid}, ${isValidDetailsResult.reason}, st_asgeojson(location) as ${isValidDetailsResult.location} from st_isvaliddetail(st_setsrid(st_geomfromgeojson($1), 4326))`, [JSON.stringify(geometriesCollection)])
       )[0];
 
+      if (areValidGeometries === undefined) {
+        throw new Error('Could not validate geometries: empty validity query response');
+      }
       if (!areValidGeometries.valid) {
         throw new BadRequestError(
           `Invalid geometry filter: ${areValidGeometries.reason}. ${
@@ -61,7 +63,7 @@ export class Validator {
         );
       }
     } catch (error) {
-      this.logger.error({ msg: 'geometries validity query failed', error });
+      this.logger.error({ msg: 'geometries validity query failed', err: error });
       throw error;
     }
   };

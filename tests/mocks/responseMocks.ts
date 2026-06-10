@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { AggregationLayerMetadataResponse } from '../../src/polygonParts/models/interfaces';
+import type { AggregationLayerMetadataResponse } from '../../src/polygonParts/models/interfaces';
 
 export const emptyFeature: AggregationLayerMetadataResponse = {
   type: 'Feature',

@@ -1,31 +1,31 @@
-import jsLogger from '@map-colonies/js-logger';
+import { jsLogger } from '@map-colonies/js-logger';
 import { JobTypes } from '@map-colonies/raster-shared';
 import { trace } from '@opentelemetry/api';
 import { multiPolygon } from '@turf/helpers';
-import config from 'config';
 import { StatusCodes as httpStatusCodes } from 'http-status-codes';
 import { container } from 'tsyringe';
-import { DataSource, DataSourceOptions, EntityManager, SelectQueryBuilder } from 'typeorm';
+import type { DataSourceOptions } from 'typeorm';
+import { DataSource, EntityManager, SelectQueryBuilder } from 'typeorm';
 import { getApp } from '../../../src/app';
+import { getConfigForTests, initConfigForTests } from '../../configurations/config';
 import { ConnectionManager } from '../../../src/common/connectionManager';
 import { SERVICES } from '../../../src/common/constants';
-import { ApplicationConfig, DbConfig } from '../../../src/common/interfaces';
+import type { ApplicationConfig, DbConfig } from '../../../src/common/interfaces';
 import { createConnectionOptions } from '../../../src/common/utils';
 import { Transformer } from '../../../src/middlewares/transformer';
-import { ValidatePolygonPartsRequestBody, ValidationEntityQuery } from '../../../src/polygonParts/controllers/interfaces';
+import type { ValidatePolygonPartsRequestBody, ValidationEntityQuery } from '../../../src/polygonParts/controllers/interfaces';
 import { History } from '../../../src/polygonParts/DAL/history';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
 import { namingStrategy } from '../../../src/polygonParts/DAL/utils';
 import { ValidatePart } from '../../../src/polygonParts/DAL/validationPart';
-import { EntitiesMetadata, EntityIdentifierObject, PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
+import type { EntitiesMetadata, EntityIdentifierObject, PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import { validValidationPolygonPartsPayload } from '../../mocks/requestsMocks';
 import { HelperDB } from './helpers/db';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 
 let testDataSourceOptions: DataSourceOptions;
-const applicationConfig = config.get<ApplicationConfig>('application');
-const dbConfig = config.get<Required<DbConfig>>('db');
-const { schema } = dbConfig;
+let applicationConfig: ApplicationConfig;
+let schema: DbConfig['schema'];
 
 describe('history', () => {
   let requestSender: PolygonPartsRequestSender;
@@ -36,6 +36,10 @@ describe('history', () => {
   let connectionManager: ConnectionManager;
 
   beforeAll(async () => {
+    await initConfigForTests();
+    applicationConfig = getConfigForTests().get<ApplicationConfig>('application');
+    const dbConfig = getConfigForTests().get<Required<DbConfig>>('db');
+    schema = dbConfig.schema;
     testDataSourceOptions = {
       entities: [History, PolygonPart, ValidatePart],
       namingStrategy,
@@ -62,9 +66,9 @@ describe('history', () => {
 
     container.clearInstances();
 
-    const app = await getApp({
+    const [app] = await getApp({
       override: [
-        { token: SERVICES.LOGGER, provider: { useValue: jsLogger({ enabled: false }) } },
+        { token: SERVICES.LOGGER, provider: { useValue: await jsLogger({ enabled: false }) } },
         { token: SERVICES.TRACER, provider: { useValue: trace.getTracer('testTracer') } },
       ],
       useChild: true,

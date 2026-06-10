@@ -1,10 +1,12 @@
 /** @type {import('jest').Config} */
 module.exports = {
   globalSetup: '<rootDir>/tests/configurations/integration/globalSetup.js',
-  globalTeardown: '<rootDir>/tests/configurations/integration/globalTeardown.js',
   transform: {
-    '^.+\\.ts$': ['ts-jest', { tsconfig: 'tsconfig.test.json' }],
+    // using ^.+\\.[tj]s$ instead of ^.+\\.ts$ to also transform .js files in node_modules (e.g., change-case) that are ESM-only and need to be transpiled for jest's CJS runtime
+    '^.+\\.[tj]s$': ['ts-jest', { tsconfig: 'tsconfig.test.json', isolatedModules: true }],
   },
+  // `change-case` is ESM-only; transpile it (don't ignore it) so jest's CJS runtime can load it.
+  transformIgnorePatterns: ['/node_modules/(?!change-case)'],
   coverageReporters: ['text', 'html'],
   collectCoverage: true,
   collectCoverageFrom: [

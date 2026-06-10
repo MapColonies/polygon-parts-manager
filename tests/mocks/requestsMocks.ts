@@ -1,14 +1,15 @@
 /* eslint-disable  @typescript-eslint/no-magic-numbers */
-import { faker } from '@faker-js/faker/.';
+import { faker } from '@faker-js/faker';
 import { zoomLevelToResolutionDeg } from '@map-colonies/mc-utils';
-import { JobTypes, PartFeatureProperties, RasterProductTypes } from '@map-colonies/raster-shared';
-import config from 'config';
+import type { PartFeatureProperties } from '@map-colonies/raster-shared';
+import { JobTypes, RasterProductTypes } from '@map-colonies/raster-shared';
 import type { MultiPolygon, Polygon } from 'geojson';
-import { ValidatePolygonPartsRequestBody } from '../../src/polygonParts/controllers/interfaces';
+import type { ValidatePolygonPartsRequestBody } from '../../src/polygonParts/controllers/interfaces';
 import type { PolygonPartsPayload } from '../../src/polygonParts/models/interfaces';
 import { generatePolygonPartsPayload } from '../integration/polygonParts/helpers/utils';
+import defaultConfig from '../../config/default.json';
 
-const zoomLevelThreshold = config.get<number>('application.validation.zoomLevelThreshold');
+const zoomLevelThreshold = defaultConfig.application.validation.zoomLevelThreshold;
 
 // Anchor zoom for the pre-existing high-resolution layer used in resolution validation tests
 const HIGH_RES_EXISTING_ZOOM = 21;
@@ -355,7 +356,7 @@ export const invalidGeometriesValidateRequest: ValidatePolygonPartsRequestBody =
               [0, 0], // ring closes but self-intersects at (1,1)
             ],
           ],
-        } as Polygon,
+        },
         properties: {
           ...propertiesToGenerate(),
         },
@@ -386,7 +387,7 @@ export const invalidGeometriesValidateRequest: ValidatePolygonPartsRequestBody =
               ],
             ],
           ],
-        } as MultiPolygon,
+        },
         properties: {
           ...propertiesToGenerate(),
         },
@@ -414,7 +415,7 @@ export const invalidSmallGeometriesValidateRequest: ValidatePolygonPartsRequestB
               [34.900289407308634, 32.10019101688825],
             ],
           ],
-        } as Polygon,
+        },
         properties: {
           ...propertiesToGenerate(),
         },
@@ -446,7 +447,7 @@ export const invalidSmallGeometriesValidateRequest: ValidatePolygonPartsRequestB
               ],
             ],
           ],
-        } as MultiPolygon,
+        },
         properties: {
           ...propertiesToGenerate(),
         },
@@ -483,7 +484,7 @@ export const invalidSmallHolesValidateRequest: ValidatePolygonPartsRequestBody =
               [34.9003, 32.1003],
             ],
           ],
-        } as Polygon,
+        },
         properties: {
           ...propertiesToGenerate(),
         },
@@ -522,7 +523,7 @@ export const invalidSmallHolesValidateRequest: ValidatePolygonPartsRequestBody =
               ],
             ],
           ],
-        } as MultiPolygon,
+        },
         properties: {
           ...propertiesToGenerate(),
         },
@@ -555,7 +556,7 @@ export const mockMultipleInvalidGeometries: ValidatePolygonPartsRequestBody = {
               [34.902, 32.1],
             ],
           ],
-        } as Polygon,
+        },
         properties: {
           ...propertiesToGenerate(),
         },
@@ -573,7 +574,7 @@ export const mockMultipleInvalidGeometries: ValidatePolygonPartsRequestBody = {
               [34.9002894073, 32.1001910169],
             ],
           ],
-        } as Polygon,
+        },
         properties: {
           ...propertiesToGenerate(),
         },
@@ -611,7 +612,7 @@ export const mockMultipleInvalidGeometries: ValidatePolygonPartsRequestBody = {
               ],
             ],
           ],
-        } as MultiPolygon,
+        },
         properties: {
           ...propertiesToGenerate(),
         },
@@ -638,7 +639,7 @@ export const mockMultipleInvalidGeometries: ValidatePolygonPartsRequestBody = {
               [34.900507, 32.100807],
             ],
           ],
-        } as Polygon,
+        },
         properties: {
           ...propertiesToGenerate(),
         },
@@ -899,7 +900,7 @@ export const mockUpdateWithResolutionAndSmallGeometry: ValidatePolygonPartsReque
               [34.852, 32.296],
             ],
           ],
-        } as Polygon,
+        },
         properties: {
           ...propertiesToGenerate(),
           resolutionDegree: zoomLevelToResolutionDeg(EXCEEDED_NEW_PART_ZOOM) as number, // isExceeded: true

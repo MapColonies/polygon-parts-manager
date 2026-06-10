@@ -1,20 +1,20 @@
 import { faker } from '@faker-js/faker';
-import jsLogger from '@map-colonies/js-logger';
+import { jsLogger } from '@map-colonies/js-logger';
 import { degreesPerPixelToZoomLevel, zoomLevelToResolutionDeg } from '@map-colonies/mc-utils';
 import { CORE_VALIDATIONS } from '@map-colonies/raster-shared';
 import { trace } from '@opentelemetry/api';
 import { feature, featureCollection, multiPolygon, polygon, polygons } from '@turf/helpers';
-import config from 'config';
 import type { BBox, MultiPolygon, Polygon } from 'geojson';
 import { StatusCodes as httpStatusCodes } from 'http-status-codes';
-import { cloneDeep, get as getValue, merge, omit } from 'lodash';
+import { cloneDeep, merge, omit } from 'lodash';
 import { xor } from 'martinez-polygon-clipping';
 import { container } from 'tsyringe';
 import { DataSource, type DataSourceOptions, SelectQueryBuilder } from 'typeorm';
 import { getApp } from '../../../src/app';
+import { getConfigForTests, initConfigForTests } from '../../configurations/config';
 import { ConnectionManager } from '../../../src/common/connectionManager';
 import { SERVICES } from '../../../src/common/constants';
-import type { ApplicationConfig, DbConfig } from '../../../src/common/interfaces';
+import type { ApplicationConfig, DbConfig, IConfig } from '../../../src/common/interfaces';
 import { createConnectionOptions } from '../../../src/common/utils';
 import { Transformer } from '../../../src/middlewares/transformer';
 import { History } from '../../../src/polygonParts/DAL/history';
@@ -29,31 +29,38 @@ import { PolygonPartsRequestSender } from './helpers/requestSender';
 import type { DeepPartial, GetEntitiesMetadata } from './helpers/types';
 import { generatePolygon, generateResolutionDegree, ingestPolygonParts } from './helpers/utils';
 
-type ConfigImport = typeof import('config') & { application: ApplicationConfig };
-
 const mockGetConfig = jest.fn<{ application: DeepPartial<ApplicationConfig> } | undefined, [string]>();
-jest.mock<{ default: ConfigImport }>('config', () => {
-  const originalModule = jest.requireActual<ConfigImport>('config');
-  return {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    __esModule: true,
-    default: {
-      ...originalModule,
-      get<T>(setting: string): T {
-        const overrideConfig = mockGetConfig(setting);
-        return getValue(merge({}, originalModule, overrideConfig), setting) as unknown as T;
-      },
-    },
-  };
-});
+
+/**
+ * A config instance that delegates to the real (offline) config but lets a test
+ * override the `application` config. Registered as
+ * `SERVICES.CONFIG` in the DI container, replacing the former `jest.mock('config')`.
+ */
+const mockedConfig: IConfig = {
+  get<T>(setting: string): T {
+    const overrideConfig = mockGetConfig(setting);
+    if (overrideConfig === undefined) {
+      return getConfigForTests().get<T>(setting);
+    }
+    // The only override path exercised by tests is the whole `application` object.
+    const mergedApplication = merge({}, getConfigForTests().get<ApplicationConfig>('application'), overrideConfig.application);
+    return mergedApplication as unknown as T;
+  },
+  has(setting: string): boolean {
+    try {
+      getConfigForTests().get(setting);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+};
+
 let testDataSourceOptions: DataSourceOptions;
 
 const seed = process.env.TEST_SEED ?? Math.floor(Math.random() * 1000000);
 faker.seed(Number(seed));
 console.info(`Test seed: ${seed}`);
-
-const dbConfig = config.get<Required<DbConfig>>('db');
-const { schema } = dbConfig;
 
 describe('intersection', () => {
   let requestSender: PolygonPartsRequestSender;
@@ -61,6 +68,9 @@ describe('intersection', () => {
   let getEntitiesMetadata: GetEntitiesMetadata;
 
   beforeAll(async () => {
+    await initConfigForTests();
+    const dbConfig = getConfigForTests().get<Required<DbConfig>>('db');
+    const { schema } = dbConfig;
     testDataSourceOptions = {
       entities: [History, PolygonPart, ValidatePart],
       namingStrategy,
@@ -87,9 +97,9 @@ describe('intersection', () => {
 
     container.clearInstances();
 
-    const app = await getApp({
+    const [app] = await getApp({
       override: [
-        { token: SERVICES.LOGGER, provider: { useValue: jsLogger({ enabled: false }) } },
+        { token: SERVICES.LOGGER, provider: { useValue: await jsLogger({ enabled: false }) } },
         { token: SERVICES.TRACER, provider: { useValue: trace.getTracer('testTracer') } },
       ],
       useChild: true,
@@ -608,17 +618,18 @@ describe('intersection', () => {
         const connectionManager = container.resolve<ConnectionManager>(ConnectionManager);
         await connectionManager.destroy();
         container.clearInstances();
-        const app = await getApp({
+        const [app] = await getApp({
           override: [
-            { token: SERVICES.LOGGER, provider: { useValue: jsLogger({ enabled: false }) } },
+            { token: SERVICES.LOGGER, provider: { useValue: await jsLogger({ enabled: false }) } },
             { token: SERVICES.TRACER, provider: { useValue: trace.getTracer('testTracer') } },
+            { token: SERVICES.CONFIG, provider: { useValue: mockedConfig } },
           ],
           useChild: true,
         });
         requestSender = new PolygonPartsRequestSender(app);
 
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'very_long_valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'very_long_valid_name_orthophoto' },
           body: validBody,
         });
 
@@ -629,7 +640,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if feature collection in req body is an invalid value - does not contain entry "type": "FeatureCollection"', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: { type: 'invalid', features: [polygon1] } as unknown as IntersectionRequestBody,
         });
 
@@ -640,7 +651,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if feature collection in req body is an invalid value - does not contain entry for "features" property', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: { type: 'FeatureCollection' } as unknown as IntersectionRequestBody,
         });
 
@@ -651,7 +662,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if feature collection in req body is an invalid value - "bbox" value must be an array with 4 or 6 items', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: {
             type: 'FeatureCollection',
             features: [polygon1],
@@ -674,7 +685,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if feature collection in req body is an invalid value - "features" value must be an array with exactly 1 item', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: {
             type: 'FeatureCollection',
             features: Array.from(
@@ -696,7 +707,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - does not contain entry "type": "Feature"', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: {
             type: 'FeatureCollection',
             features: [{ type: 'invalid', properties: {}, geometry: generatePolygon() }],
@@ -710,7 +721,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - does not contain entry for "properties" property', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: {
             type: 'FeatureCollection',
             features: [{ type: 'Feature', geometry: generatePolygon() }],
@@ -724,7 +735,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - does not contain entry for "geometry" property', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: {
             type: 'FeatureCollection',
             features: [{ type: 'Feature', properties: {} }],
@@ -738,7 +749,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "id" value must be a number or string', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -759,7 +770,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "properties" value must be an object', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -779,7 +790,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - does not contain entry for "resolutionDegree" property', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -799,7 +810,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "resolutionDegree" value must be a number', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -819,7 +830,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "resolutionDegree" value must be a number in a range', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -844,7 +855,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "geometry" value must be an object', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -864,7 +875,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if feature inside a feature collection in req body is an invalid value - "bbox" value must be an array with 4 or 6 items', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -893,7 +904,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - does not contain entry "type": "Polygon" or "type": "MultiPolygon"', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -916,7 +927,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - does not contain entry for "coordinates" property', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -938,7 +949,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - "bbox" value must be an array with 4 or 6 items', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -978,7 +989,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - first and last vertices are not equal', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -1009,7 +1020,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - must have at least 3 vertices', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: {
             type: 'FeatureCollection',
             features: [
@@ -1038,7 +1049,7 @@ describe('intersection', () => {
 
       it('should return 400 status code if geometry inside a feature, inside a feature collection, in req body is an invalid value - hole must have at least 3 vertices', async () => {
         const response = await requestSender.intersection({
-          params: { polygonPartsEntityName: 'valid_name_orthophoto' as EntityIdentifier },
+          params: { polygonPartsEntityName: 'valid_name_orthophoto' },
           body: {
             type: 'FeatureCollection',
             features: [

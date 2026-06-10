@@ -1,33 +1,31 @@
-import jsLogger from '@map-colonies/js-logger';
+import { jsLogger } from '@map-colonies/js-logger';
 import { JobTypes } from '@map-colonies/raster-shared';
 import { trace } from '@opentelemetry/api';
 import { multiPolygon, polygon } from '@turf/helpers';
-import config from 'config';
-import { Feature, Polygon } from 'geojson';
+import type { Feature, Polygon } from 'geojson';
 import { StatusCodes as httpStatusCodes } from 'http-status-codes';
 import { container } from 'tsyringe';
-import { DataSourceOptions } from 'typeorm';
+import type { DataSourceOptions } from 'typeorm';
 import { getApp } from '../../../src/app';
+import { getConfigForTests, initConfigForTests } from '../../configurations/config';
 import { ConnectionManager } from '../../../src/common/connectionManager';
 import { SERVICES } from '../../../src/common/constants';
-import { DbConfig } from '../../../src/common/interfaces';
+import type { DbConfig } from '../../../src/common/interfaces';
 import { createConnectionOptions } from '../../../src/common/utils';
 import { Transformer } from '../../../src/middlewares/transformer';
-import { ProcessPolygonPartsRequestBody } from '../../../src/polygonParts/controllers/interfaces';
+import type { ProcessPolygonPartsRequestBody } from '../../../src/polygonParts/controllers/interfaces';
 import { History } from '../../../src/polygonParts/DAL/history';
 import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
 import { namingStrategy } from '../../../src/polygonParts/DAL/utils';
 import { ValidatePart } from '../../../src/polygonParts/DAL/validationPart';
-import { EntitiesMetadata, EntityIdentifierObject, PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
+import type { EntitiesMetadata, EntityIdentifierObject, PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import { validValidationPolygonPartsPayload } from '../../mocks/requestsMocks';
 import { HelperDB } from './helpers/db';
-import { InsertPayload } from './helpers/types';
+import type { InsertPayload } from './helpers/types';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 import { generatePolygonPartsPayload } from './helpers/utils';
 
 let testDataSourceOptions: DataSourceOptions;
-const dbConfig = config.get<Required<DbConfig>>('db');
-const { schema } = dbConfig;
 
 describe('process', () => {
   let requestSender: PolygonPartsRequestSender;
@@ -61,6 +59,9 @@ describe('process', () => {
   };
 
   beforeAll(async () => {
+    await initConfigForTests();
+    const dbConfig = getConfigForTests().get<Required<DbConfig>>('db');
+    const { schema } = dbConfig;
     testDataSourceOptions = {
       entities: [History, PolygonPart, ValidatePart],
       namingStrategy,
@@ -84,9 +85,9 @@ describe('process', () => {
     await helperDB.createSchema();
     await helperDB.sync();
     container.clearInstances();
-    const app = await getApp({
+    const [app] = await getApp({
       override: [
-        { token: SERVICES.LOGGER, provider: { useValue: jsLogger({ enabled: false }) } },
+        { token: SERVICES.LOGGER, provider: { useValue: await jsLogger({ enabled: false }) } },
         { token: SERVICES.TRACER, provider: { useValue: trace.getTracer('testTracer') } },
       ],
       useChild: true,

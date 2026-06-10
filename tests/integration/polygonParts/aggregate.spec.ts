@@ -1,14 +1,14 @@
 import { faker } from '@faker-js/faker';
-import jsLogger from '@map-colonies/js-logger';
+import { jsLogger } from '@map-colonies/js-logger';
 import { degreesPerPixelToZoomLevel, zoomLevelToResolutionDeg } from '@map-colonies/mc-utils';
 import { CORE_VALIDATIONS } from '@map-colonies/raster-shared';
 import { trace } from '@opentelemetry/api';
 import { featureCollection, multiPolygon, polygon, polygons } from '@turf/helpers';
-import config from 'config';
 import { StatusCodes as httpStatusCodes } from 'http-status-codes';
 import { container } from 'tsyringe';
 import { type DataSourceOptions } from 'typeorm';
 import { getApp } from '../../../src/app';
+import { getConfigForTests, initConfigForTests } from '../../configurations/config';
 import { ConnectionManager } from '../../../src/common/connectionManager';
 import { SERVICES } from '../../../src/common/constants';
 import type { DbConfig } from '../../../src/common/interfaces';
@@ -31,15 +31,15 @@ const seed = process.env.TEST_SEED ?? Math.floor(Math.random() * 1000000);
 faker.seed(Number(seed));
 console.info(`Test seed: ${seed}`);
 
-const dbConfig = config.get<Required<DbConfig>>('db');
-const { schema } = dbConfig;
-
 describe('aggregate', () => {
   let requestSender: PolygonPartsRequestSender;
   let helperDB: HelperDB;
   let getEntitiesMetadata: GetEntitiesMetadata;
 
   beforeAll(async () => {
+    await initConfigForTests();
+    const dbConfig = getConfigForTests().get<Required<DbConfig>>('db');
+    const { schema } = dbConfig;
     testDataSourceOptions = {
       entities: [History, PolygonPart, ValidatePart],
       namingStrategy,
@@ -66,9 +66,9 @@ describe('aggregate', () => {
 
     container.clearInstances();
 
-    const app = await getApp({
+    const [app] = await getApp({
       override: [
-        { token: SERVICES.LOGGER, provider: { useValue: jsLogger({ enabled: false }) } },
+        { token: SERVICES.LOGGER, provider: { useValue: await jsLogger({ enabled: false }) } },
         { token: SERVICES.TRACER, provider: { useValue: trace.getTracer('testTracer') } },
       ],
       useChild: true,

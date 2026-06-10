@@ -1,4 +1,4 @@
-import { PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
+import type { PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
 import type {
   AggregateLayerMetadataOptions,
   AggregationLayerMetadataResponse,
@@ -22,7 +22,7 @@ export type ExistsRequestBody = Pick<ExistsOptions, 'payload'>['payload'];
 /**
  * Exists response body
  */
-export interface ExistsResponseBody extends ExistsResponse {}
+export type ExistsResponseBody = ExistsResponse;
 
 /**
  * Find polygon parts params
@@ -34,7 +34,7 @@ export interface FindPolygonPartsParams {
 /**
  * Find polygon parts query params
  */
-export interface FindPolygonPartsQueryParams extends Readonly<Pick<FindPolygonPartsOptions, 'shouldClip'>> {}
+export type FindPolygonPartsQueryParams = Readonly<Pick<FindPolygonPartsOptions, 'shouldClip'>>;
 
 /**
  * Find polygon parts request body
@@ -45,7 +45,7 @@ export type AggregatePolygonPartsRequestBody = Pick<AggregateLayerMetadataOption
 /**
  * Find polygon parts response body
  */
-export interface FindPolygonPartsResponseBody<ShouldClip extends boolean = boolean> extends FindPolygonPartsResponse<ShouldClip> {}
+export type FindPolygonPartsResponseBody<ShouldClip extends boolean = boolean> = FindPolygonPartsResponse<ShouldClip>;
 
 /**
  * Intersection params
@@ -74,7 +74,7 @@ export interface AggregationLayerMetadataParams {
 /**
  * Get aggregation layer metadata response body
  */
-export interface AggregationLayerMetadataResponseBody extends AggregationLayerMetadataResponse {}
+export type AggregationLayerMetadataResponseBody = AggregationLayerMetadataResponse;
 
 export type ValidatePolygonPartsResponseBody = PolygonPartsChunkValidationResult;
 

@@ -1,4 +1,4 @@
-import { Logger } from '@map-colonies/js-logger';
+import type { Logger } from '@map-colonies/js-logger';
 import { types } from 'pg';
 import { inject, singleton } from 'tsyringe';
 import { DataSource, type DataSourceOptions, type EntityManager } from 'typeorm';

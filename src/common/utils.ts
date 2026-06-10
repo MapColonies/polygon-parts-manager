@@ -1,5 +1,5 @@
-import { readFileSync } from 'fs';
-import { snakeCase } from 'change-case-all';
+import { readFileSync } from 'node:fs';
+import { snakeCase } from 'change-case';
 import { BadRequestError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
 import type { EntityManager } from 'typeorm';

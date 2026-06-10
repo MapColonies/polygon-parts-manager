@@ -1,8 +1,9 @@
-import { DefaultNamingStrategy, Polygon, type ObjectLiteral, type Repository, type Table } from 'typeorm';
+import { DefaultNamingStrategy } from 'typeorm';
+import type { ObjectLiteral, Polygon, Repository, Table } from 'typeorm';
 import type { ApplicationConfig } from '../../common/interfaces';
 import { camelCaseToSnakeCase } from '../../common/utils';
 import type { InsertPartDataToHistory, ValidatePartData, PolygonPartsPayload } from '../models/interfaces';
-import { ValidatePolygonPartsRequestBody } from '../controllers/interfaces';
+import type { ValidatePolygonPartsRequestBody } from '../controllers/interfaces';
 
 const customNamingStrategy = new DefaultNamingStrategy();
 customNamingStrategy.indexName = (tableOrName: Table | string, columnNames: string[], where?: string): string => {

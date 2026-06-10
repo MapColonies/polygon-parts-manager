@@ -3,7 +3,7 @@ import type { Logger } from '@map-colonies/js-logger';
 import { degreesPerPixelToZoomLevel } from '@map-colonies/mc-utils';
 import type { PolygonPartValidationError, PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
 import { AggregationFeature, CORE_VALIDATIONS, JobTypes, ValidationErrorType } from '@map-colonies/raster-shared';
-import _ from 'lodash';
+import lodash, { omit, uniqBy } from 'lodash';
 import { inject, injectable } from 'tsyringe';
 import type { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
@@ -89,7 +89,7 @@ export class PolygonPartsManager {
       const polygonPartsEntityName = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
         const entitiesMetadataWithoutValidations: EntitiesMetadataWithoutValidations = {
           entityIdentifier: entitiesMetadata.entityIdentifier,
-          entitiesNames: _.omit(entitiesMetadata.entitiesNames, 'validations'),
+          entitiesNames: omit(entitiesMetadata.entitiesNames, 'validations'),
         };
         const baseIngestionContext = {
           entityManager,
@@ -126,7 +126,7 @@ export class PolygonPartsManager {
       const polygonPartsEntityName = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
         const entitiesMetadataWithoutValidations: EntitiesMetadataWithoutValidations = {
           entityIdentifier: entitiesMetadata.entityIdentifier,
-          entitiesNames: _.omit(entitiesMetadata.entitiesNames, 'validations'),
+          entitiesNames: omit(entitiesMetadata.entitiesNames, 'validations'),
         };
         const baseIngestionContext = {
           entityManager,
@@ -250,7 +250,7 @@ export class PolygonPartsManager {
       const polygonPartsEntityName = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
         const entitiesMetadataWithoutValidations: EntitiesMetadataWithoutValidations = {
           entityIdentifier: entitiesMetadata.entityIdentifier,
-          entitiesNames: _.omit(entitiesMetadata.entitiesNames, 'validations'),
+          entitiesNames: omit(entitiesMetadata.entitiesNames, 'validations'),
         };
         const baseUpdateContext = {
           entityManager,
@@ -368,11 +368,11 @@ export class PolygonPartsManager {
           errorsSummary.push(invalidResolutions);
         }
 
-        mergedPartsErrors = _(errorsSummary.flat())
+        mergedPartsErrors = lodash(errorsSummary.flat())
           .groupBy('id')
           .map((group, id) => ({
             id,
-            errors: _.uniqBy(
+            errors: uniqBy(
               group.flatMap((g) => g.errors),
               'code'
             ),
@@ -574,6 +574,10 @@ export class PolygonPartsManager {
         [validationsEntityQualifiedName, this.applicationConfig.validation.areaThresholdSquareMeters]
       );
 
+      if (dbResponse === undefined) {
+        throw new Error('small geometries validation query returned no result');
+      }
+
       const summary = {
         count: dbResponse.count,
         parts: dbResponse.ids.map((id) => ({
@@ -664,6 +668,10 @@ export class PolygonPartsManager {
         `SELECT * FROM ${this.applicationConfig.validateSmallHolesFunction}($1, $2)`,
         [validationsEntityQualifiedName, this.applicationConfig.validation.areaThresholdSquareMeters]
       );
+
+      if (dbResponse === undefined) {
+        throw new Error('small holes validation query returned no result');
+      }
 
       const summary = {
         count: dbResponse.count,
@@ -1066,14 +1074,18 @@ export class PolygonPartsManager {
   ): SelectQueryBuilder<IntersectionQueryResponse> {
     const { entityManager, geometry, polygonPartsEntityName } = context;
     const { maxDecimalDigits } = this.applicationConfig.entities.polygonParts.intersection;
-    const polygonalGeoJSONGeometryString = JSON.stringify(geometry.features[0].geometry);
+    const inputFeature = geometry.features[0];
+    if (inputFeature === undefined) {
+      throw new Error('intersection geometry must contain at least one feature');
+    }
+    const polygonalGeoJSONGeometryString = JSON.stringify(inputFeature.geometry);
 
     const outputGeometryCTE = entityManager
       .createQueryBuilder()
       .select(`st_intersection(${geometryColumn}, st_setsrid(st_geomfromgeojson('${polygonalGeoJSONGeometryString}'), 4326))`, 'geometry')
       .from<IntersectionResponse>(polygonPartsEntityName.databaseObjectQualifiedName, polygonPartsEntityName.entityName)
-      .where(`${resolutionDegreeColumn} <= :resolutionDegree`, { resolutionDegree: geometry.features[0].properties.resolutionDegree })
-      .andWhere(`st_intersects(${geometryColumn}, st_setsrid(st_geomfromgeojson(:geometry), 4326))`, { geometry: geometry.features[0].geometry });
+      .where(`${resolutionDegreeColumn} <= :resolutionDegree`, { resolutionDegree: inputFeature.properties.resolutionDegree })
+      .andWhere(`st_intersects(${geometryColumn}, st_setsrid(st_geomfromgeojson(:geometry), 4326))`, { geometry: inputFeature.geometry });
 
     const unionedGeometriesCTE = entityManager
       .createQueryBuilder()

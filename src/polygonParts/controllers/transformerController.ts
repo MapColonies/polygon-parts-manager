@@ -56,7 +56,10 @@ type ProcessPolygonPartsTransformerHandler = RequestHandler<undefined, undefined
 
 @singleton()
 export class TransformerController {
-  public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, @inject(Transformer) private readonly transformer: Transformer) {}
+  public constructor(
+    @inject(SERVICES.LOGGER) private readonly logger: Logger,
+    @inject(Transformer) private readonly transformer: Transformer
+  ) {}
 
   public readonly parseCreatePolygonParts: CreatePolygonPartsTransformerHandler = (req, res, next) => {
     try {

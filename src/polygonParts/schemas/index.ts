@@ -9,10 +9,10 @@ import {
   roiPropertiesSchema,
 } from '@map-colonies/raster-shared';
 import type { Feature } from 'geojson';
-import { ZodType, z, type ZodTypeDef } from 'zod';
+import { z, type ZodType, type ZodTypeDef } from 'zod';
 import type { ApplicationConfig, DbConfig } from '../../common/interfaces';
 import type { DeepMapValues } from '../../common/types';
-import { Transformer } from '../../middlewares/transformer';
+import type { Transformer } from '../../middlewares/transformer';
 import type { FindPolygonPartsQueryParams } from '../controllers/interfaces';
 import type { EntitiesMetadata, EntityNames, IsSwapQueryParams } from '../models/interfaces';
 

@@ -49,7 +49,10 @@ type AggregationLayerMetadataValidationHandler = RequestHandler<
 
 @singleton()
 export class ValidationsController {
-  public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, @inject(Validator) private readonly validator: Validator) {}
+  public constructor(
+    @inject(SERVICES.LOGGER) private readonly logger: Logger,
+    @inject(Validator) private readonly validator: Validator
+  ) {}
 
   public readonly validateCreatePolygonParts: CreatePolygonPartsValidationHandler = (req, _, next) => {
     try {

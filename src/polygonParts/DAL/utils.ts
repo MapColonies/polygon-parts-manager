@@ -1,5 +1,4 @@
-import { DefaultNamingStrategy } from 'typeorm';
-import type { ObjectLiteral, Polygon, Repository, Table } from 'typeorm';
+import { DefaultNamingStrategy, type ObjectLiteral, type Polygon, type Repository, type Table } from 'typeorm';
 import type { ApplicationConfig } from '../../common/interfaces';
 import { camelCaseToSnakeCase } from '../../common/utils';
 import type { InsertPartDataToHistory, ValidatePartData, PolygonPartsPayload } from '../models/interfaces';

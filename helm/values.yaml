@@ -67,6 +67,7 @@ env:
   openTelemetryOptions:
     enabled: false
     url: ''
+    resourceAttributes: {}
   responseCompressionEnabled: true
   requestPayloadLimit: 1mb
   application:

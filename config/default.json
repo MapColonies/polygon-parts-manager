@@ -15,7 +15,9 @@
       "level": "info",
       "prettyPrint": false,
       "opentelemetryOptions": {
-        "enabled": false
+        "enabled": false,
+        "url": "",
+        "resourceAttributes": {}
       }
     }
   },

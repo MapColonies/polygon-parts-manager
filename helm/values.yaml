@@ -63,7 +63,6 @@ env:
   protocol: TCP
   logLevel: info
   logPrettyPrintEnabled: false
-  telemetryServiceName: '' # defaults to the chart name when empty
   openTelemetryOptions:
     enabled: false
     url: ''

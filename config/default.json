@@ -6,7 +6,6 @@
     "uiPath": "/api"
   },
   "telemetry": {
-    "metrics": {},
     "tracing": {
       "isEnabled": false
     },

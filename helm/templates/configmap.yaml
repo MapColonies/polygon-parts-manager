@@ -57,7 +57,6 @@ data:
   RESPONSE_COMPRESSION_ENABLED: {{ .Values.env.responseCompressionEnabled | quote }}
   LOG_LEVEL: {{ .Values.env.logLevel | quote }}
   LOG_PRETTY_PRINT_ENABLED: {{ .Values.env.logPrettyPrintEnabled | quote }}
-  TELEMETRY_SERVICE_NAME: {{ .Values.env.telemetryServiceName | default (include "polygon-parts-manager.name" .) | quote }}
   OPENTELEMETRY_LOGGING_ENABLED: {{ $openTelemetryOptions.enabled | quote }}
   {{- if $openTelemetryOptions.enabled }}
   OTLP_LOGGER_ENDPOINT_URL: {{ $openTelemetryOptions.url | quote }}

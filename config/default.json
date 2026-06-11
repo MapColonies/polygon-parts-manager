@@ -15,7 +15,7 @@
       "prettyPrint": false,
       "opentelemetryOptions": {
         "enabled": false,
-        "url": "",
+        "url": "http://localhost:4317",
         "resourceAttributes": {}
       }
     }

@@ -1,9 +1,8 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    // Test code frequently indexes elements it knows are present (e.g. `features[0]`,
-    // `coordinates[0]`); relax this one strictness flag for tests while keeping `src` strict
-    // (the strict `src` typecheck runs via tsconfig.build.json).
+    "sourceMap": true,
+    "resolveJsonModule": true,
     "noUncheckedIndexedAccess": false
   },
   "include": ["src", "tests", "dataSource.ts"]

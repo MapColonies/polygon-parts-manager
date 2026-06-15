@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.4.0](https://github.com/MapColonies/polygon-parts-manager/compare/v3.3.1...v3.4.0) (2026-06-15)
+
+
+### Features
+
+* upgrade to latest ts-server-boilerplate (MAPCO-10115) ([#101](https://github.com/MapColonies/polygon-parts-manager/issues/101)) ([c6b6755](https://github.com/MapColonies/polygon-parts-manager/commit/c6b6755a9da02abfa63a2e4867d8fff0defe8376))
+
 ## [3.3.1](https://github.com/MapColonies/polygon-parts-manager/compare/v3.3.0...v3.3.1) (2026-05-31)
 
 

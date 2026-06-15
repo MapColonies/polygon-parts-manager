@@ -1,15 +1,15 @@
-import jsLogger from '@map-colonies/js-logger';
+import { jsLogger } from '@map-colonies/js-logger';
 import type { PolygonPartValidationErrorItem } from '@map-colonies/raster-shared';
 import { ValidationErrorType } from '@map-colonies/raster-shared';
 import { trace } from '@opentelemetry/api';
-import config from 'config';
 import { StatusCodes as httpStatusCodes } from 'http-status-codes';
 import { container } from 'tsyringe';
-import { DataSourceOptions } from 'typeorm';
+import type { DataSourceOptions } from 'typeorm';
 import { getApp } from '../../../src/app';
+import { getConfigForTests, initConfigForTests } from '../../configurations/config';
 import { ConnectionManager } from '../../../src/common/connectionManager';
 import { SERVICES } from '../../../src/common/constants';
-import { DbConfig } from '../../../src/common/interfaces';
+import type { DbConfig } from '../../../src/common/interfaces';
 import { createConnectionOptions } from '../../../src/common/utils';
 import { Transformer } from '../../../src/middlewares/transformer';
 import { History } from '../../../src/polygonParts/DAL/history';
@@ -17,7 +17,7 @@ import { PolygonPart } from '../../../src/polygonParts/DAL/polygonPart';
 import { namingStrategy } from '../../../src/polygonParts/DAL/utils';
 import { ValidatePart } from '../../../src/polygonParts/DAL/validationPart';
 import type { ValidatePolygonPartsRequestBody, ValidatePolygonPartsResponseBody } from '../../../src/polygonParts/controllers/interfaces';
-import { EntitiesMetadata, EntityIdentifierObject, PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
+import type { EntitiesMetadata, EntityIdentifierObject, PolygonPartsPayload } from '../../../src/polygonParts/models/interfaces';
 import {
   createCustomInitPayloadRequestForAggregation,
   highResolutionInitPayload,
@@ -43,12 +43,10 @@ import {
   validValidationPolygonPartsPayload,
 } from '../../mocks/requestsMocks';
 import { HelperDB } from './helpers/db';
-import { InsertPayload } from './helpers/types';
+import type { InsertPayload } from './helpers/types';
 import { PolygonPartsRequestSender } from './helpers/requestSender';
 
 let testDataSourceOptions: DataSourceOptions;
-const dbConfig = config.get<Required<DbConfig>>('db');
-const { schema } = dbConfig;
 
 describe('validate', () => {
   let requestSender: PolygonPartsRequestSender;
@@ -59,6 +57,9 @@ describe('validate', () => {
   let connectionManager: ConnectionManager;
 
   beforeAll(async () => {
+    await initConfigForTests();
+    const dbConfig = getConfigForTests().get<Required<DbConfig>>('db');
+    const { schema } = dbConfig;
     testDataSourceOptions = {
       entities: [History, PolygonPart, ValidatePart],
       namingStrategy,
@@ -85,9 +86,9 @@ describe('validate', () => {
 
     container.clearInstances();
 
-    const app = await getApp({
+    const [app] = await getApp({
       override: [
-        { token: SERVICES.LOGGER, provider: { useValue: jsLogger({ enabled: false }) } },
+        { token: SERVICES.LOGGER, provider: { useValue: await jsLogger({ enabled: false }) } },
         { token: SERVICES.TRACER, provider: { useValue: trace.getTracer('testTracer') } },
       ],
       useChild: true,
@@ -145,7 +146,7 @@ describe('validate', () => {
         it('should set isExceeded: true when zoom level difference exceeds the threshold', async () => {
           const { entitiesNames } = getEntitiesMetadata(highResolutionInitPayload);
           await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
-          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, highResolutionInitPayload as InsertPayload);
+          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, highResolutionInitPayload);
 
           const response = await requestSender.validatePolygonParts(mockUpdateWithExceededResolution);
 
@@ -211,7 +212,7 @@ describe('validate', () => {
         it('should return mixed isExceeded values when parts have different zoom level differences relative to the existing layer', async () => {
           const { entitiesNames } = getEntitiesMetadata(highResolutionInitPayload);
           await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
-          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, highResolutionInitPayload as InsertPayload);
+          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, highResolutionInitPayload);
 
           const response = await requestSender.validatePolygonParts(mockUpdateWithMixedResolutions);
 
@@ -239,7 +240,7 @@ describe('validate', () => {
         it('should return no resolution error when the existing intersecting part has lower resolution than the new part', async () => {
           const { entitiesNames } = getEntitiesMetadata(lowerResolutionInitPayload);
           await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
-          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, lowerResolutionInitPayload as InsertPayload);
+          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, lowerResolutionInitPayload);
 
           const response = await requestSender.validatePolygonParts(mockUpdateWithHighResIntersectingLowRes);
 
@@ -254,10 +255,7 @@ describe('validate', () => {
         it('should return the new part id only once when it intersects two existing parts with higher resolution', async () => {
           const { entitiesNames } = getEntitiesMetadata(twoHighResExistingPartsInitPayload);
           await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
-          await helperDB.insertPolygonPartsFromValidationPayload(
-            entitiesNames.polygonParts.entityName,
-            twoHighResExistingPartsInitPayload as InsertPayload
-          );
+          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, twoHighResExistingPartsInitPayload);
 
           const response = await requestSender.validatePolygonParts(mockUpdateIntersectingTwoHighResParts);
 
@@ -276,7 +274,7 @@ describe('validate', () => {
         it('should return both RESOLUTION and SMALL_GEOMETRY errors on the same part', async () => {
           const { entitiesNames } = getEntitiesMetadata(highResolutionInitPayload);
           await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
-          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, highResolutionInitPayload as InsertPayload);
+          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, highResolutionInitPayload);
 
           const response = await requestSender.validatePolygonParts(mockUpdateWithResolutionAndSmallGeometry);
 
@@ -299,10 +297,7 @@ describe('validate', () => {
         it('should not return resolution error when the intersection area is below the minAreaSquareDeg threshold - sliver (tiny) intersection', async () => {
           const { entitiesNames } = getEntitiesMetadata(sliverIntersectionInitPayload);
           await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
-          await helperDB.insertPolygonPartsFromValidationPayload(
-            entitiesNames.polygonParts.entityName,
-            sliverIntersectionInitPayload as InsertPayload
-          );
+          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, sliverIntersectionInitPayload);
 
           const response = await requestSender.validatePolygonParts(mockUpdateWithSliverIntersection);
 
@@ -318,7 +313,7 @@ describe('validate', () => {
         it('should not return resolution error when intersection between existing polygon parts and validated polygons result in non-area intersections', async () => {
           const { entitiesNames } = getEntitiesMetadata(lineIntersectionInitPayload);
           await helperDB.createInheritedTable(entitiesNames.polygonParts.entityName, 'polygon_parts');
-          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, lineIntersectionInitPayload as InsertPayload);
+          await helperDB.insertPolygonPartsFromValidationPayload(entitiesNames.polygonParts.entityName, lineIntersectionInitPayload);
 
           const response = await requestSender.validatePolygonParts(mockUpdateWithLineIntersection);
 

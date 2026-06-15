@@ -1,14 +1,16 @@
-/* eslint-disable @typescript-eslint/no-magic-numbers */
-import config from 'config';
 import { DataSource, type DataSourceOptions, type EntityTarget, type ObjectLiteral } from 'typeorm';
 import { setRepositoryTablePath } from '../../../../src/polygonParts/DAL/utils';
+import { getConfigForTests } from '../../../configurations/config';
 import type { InsertPayload } from './types';
 
 export class HelperDB {
   private readonly appDataSource: DataSource;
   private readonly schema: string;
 
-  public constructor(private readonly dataSourceOptions: DataSourceOptions, schema: string) {
+  public constructor(
+    private readonly dataSourceOptions: DataSourceOptions,
+    schema: string
+  ) {
     this.appDataSource = new DataSource(this.dataSourceOptions);
     this.schema = schema;
   }
@@ -96,7 +98,7 @@ export class HelperDB {
    * This bypasses the API and inserts data directly for test setup purposes
    */
   public async insertPolygonPartsFromValidationPayload(polygonPartsTableName: string, payload: InsertPayload): Promise<void> {
-    const arraySeparator = config.get<string>('application.arraySeparator');
+    const arraySeparator = getConfigForTests().get<string>('application.arraySeparator');
     const { partsData, ...metadata } = payload;
 
     for (const [index, feature] of partsData.features.entries()) {

@@ -10,8 +10,8 @@ import type {
   polygonPartsEntityNameSchema,
 } from '@map-colonies/raster-shared';
 import type { Feature, FeatureCollection, GeoJsonProperties, MultiPolygon, Polygon } from 'geojson';
-import { EntityManager, SelectQueryBuilder } from 'typeorm';
-import { z } from 'zod';
+import type { EntityManager, SelectQueryBuilder } from 'typeorm';
+import type { z } from 'zod';
 import type { OptionalToNullableRecordValues, ReplaceValuesOfType } from '../../common/types';
 
 //#region public
@@ -38,7 +38,7 @@ export interface InsertPartDataToHistory extends Readonly<Omit<CommonPayload, 'c
 }
 
 // Used for the Base record
-export interface BasePart extends Readonly<Omit<InsertPartDataToHistory, 'footprint' | 'id'>> {}
+export type BasePart = Readonly<Omit<InsertPartDataToHistory, 'footprint' | 'id'>>;
 
 export interface ValidatePartData extends Readonly<BasePart> {
   readonly footprint: Polygon | MultiPolygon;
@@ -97,12 +97,12 @@ export type IntersectionResponse = IntersectedFeatureCollection;
 /**
  * Polygon parts ingestion payload - based on data producer
  */
-export interface PolygonPartsPayload extends PolygonPartsPayloadType {}
+export type PolygonPartsPayload = PolygonPartsPayloadType;
 
 /**
  * Polygon parts response
  */
-export interface PolygonPartsResponse extends EntityIdentifierObject {}
+export type PolygonPartsResponse = EntityIdentifierObject;
 
 /**
  * Common record properties of part and polygon part
@@ -129,7 +129,7 @@ export interface PolygonPartRecord extends CommonRecord {
   readonly insertionOrder: number;
 }
 
-export interface BasePartRecord extends BasePart {}
+export type BasePartRecord = BasePart;
 
 export interface ValidatePartRecord extends ValidatePartData {
   readonly validated: boolean;
@@ -201,7 +201,7 @@ export interface AggregateLayerMetadataOptions {
 /**
  * Get aggregation layer metadata response
  */
-export interface AggregationLayerMetadataResponse extends AggregationFeature {}
+export type AggregationLayerMetadataResponse = AggregationFeature;
 
 /**
  * Get exists options
@@ -214,7 +214,7 @@ export interface ExistsOptions {
 /**
  * Get exists response
  */
-export interface ExistsResponse extends EntityIdentifierObject {}
+export type ExistsResponse = EntityIdentifierObject;
 //#endregion
 
 //#region private

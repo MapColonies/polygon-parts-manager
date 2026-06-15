@@ -6,13 +6,22 @@
     "uiPath": "/api"
   },
   "telemetry": {
+    "tracing": {
+      "isEnabled": false
+    },
+    "shared": {},
     "logger": {
       "level": "info",
-      "prettyPrint": false
+      "prettyPrint": false,
+      "opentelemetryOptions": {
+        "enabled": false,
+        "url": "http://localhost:4317",
+        "resourceAttributes": {}
+      }
     }
   },
   "server": {
-    "port": "8080",
+    "port": 8080,
     "request": {
       "payload": {
         "limit": "1mb"

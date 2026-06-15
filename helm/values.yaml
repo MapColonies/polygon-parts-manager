@@ -2,6 +2,7 @@ global:
   cloudProvider: {}
   tracing: {}
   metrics: {}
+  openTelemetryOptions: {}
   environment: {}
   db: {}
   ca:
@@ -50,12 +51,22 @@ image:
   repository: polygon-parts-manager
   tag: 'latest'
 
+configManagement:
+  offlineMode: true
+  name: 'polygon-parts-manager'
+  version: 'latest'
+  serverUrl: ''
+
 env:
   port: 80
   targetPort: 8080
   protocol: TCP
   logLevel: info
   logPrettyPrintEnabled: false
+  openTelemetryOptions:
+    enabled: false
+    url: ''
+    resourceAttributes: {}
   responseCompressionEnabled: true
   requestPayloadLimit: 1mb
   application:

@@ -1,5 +1,5 @@
-import { readFileSync } from 'fs';
-import { snakeCase } from 'change-case-all';
+import { readFileSync } from 'node:fs';
+import { snakeCase } from 'change-case';
 import { BadRequestError } from '@map-colonies/error-types';
 import type { Logger } from '@map-colonies/js-logger';
 import type { EntityManager } from 'typeorm';
@@ -71,7 +71,7 @@ export async function deleteValidationsTable(
     logger.debug({ msg: 'validations table dropped', validationsEntityQualifiedName });
   } catch (error) {
     const errorMessage = `Could not delete validation table: ${validationsEntityQualifiedName}`;
-    logger.error({ msg: errorMessage, error });
+    logger.error({ msg: errorMessage, err: error });
     throw error;
   }
 }

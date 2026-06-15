@@ -6,7 +6,7 @@ import {
   type ValueProvider,
   type Provider,
 } from 'tsyringe';
-import { type DependencyContainer, constructor } from 'tsyringe/dist/typings/types';
+import type { constructor, DependencyContainer } from 'tsyringe/dist/typings/types';
 
 interface CreateAsyncProvider<T extends Provider | constructor<unknown>> {
   useAsync: (dependencyContainer: DependencyContainer) => Promise<T>;
@@ -35,7 +35,7 @@ export const registerDependencies = async (
 ): Promise<DependencyContainer> => {
   const container = useChild ? defaultContainer.createChildContainer() : defaultContainer;
 
-  for await (const injectionObj of dependencies) {
+  for (const injectionObj of dependencies) {
     const inject = override?.find((overrideObj) => overrideObj.token === injectionObj.token) ?? injectionObj;
     const provider = await getProvider(inject, container);
     container.register(injectionObj.token, provider as constructor<unknown>);

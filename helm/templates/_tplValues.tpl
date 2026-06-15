@@ -56,3 +56,7 @@ Custom definitions
 {{- define "common.metrics.merged" -}}
 {{- include "common.tplvalues.merge" ( dict "values" ( list .Values.metrics .Values.global.metrics ) "context" . ) }}
 {{- end -}}
+
+{{- define "common.openTelemetryOptions.merged" -}}
+{{- include "common.tplvalues.merge" ( dict "values" ( list .Values.env.openTelemetryOptions .Values.global.openTelemetryOptions ) "context" . ) }}
+{{- end -}}

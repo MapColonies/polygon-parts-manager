@@ -2,7 +2,10 @@ import type { Logger } from '@map-colonies/js-logger';
 import { AbstractLogger, type LoggerOptions, type LogLevel, type LogMessage } from 'typeorm';
 
 export class DataSourceLogger extends AbstractLogger {
-  public constructor(private readonly logger: Logger, private readonly loggerOptions: LoggerOptions) {
+  public constructor(
+    private readonly logger: Logger,
+    private readonly loggerOptions: LoggerOptions
+  ) {
     super(loggerOptions);
   }
 

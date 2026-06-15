@@ -3,7 +3,7 @@ import type { Logger } from '@map-colonies/js-logger';
 import { degreesPerPixelToZoomLevel } from '@map-colonies/mc-utils';
 import type { PolygonPartValidationError, PolygonPartsChunkValidationResult } from '@map-colonies/raster-shared';
 import { AggregationFeature, CORE_VALIDATIONS, JobTypes, ValidationErrorType } from '@map-colonies/raster-shared';
-import _ from 'lodash';
+import lodash, { omit, uniqBy } from 'lodash';
 import { inject, injectable } from 'tsyringe';
 import type { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { ConnectionManager } from '../../common/connectionManager';
@@ -89,7 +89,7 @@ export class PolygonPartsManager {
       const polygonPartsEntityName = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
         const entitiesMetadataWithoutValidations: EntitiesMetadataWithoutValidations = {
           entityIdentifier: entitiesMetadata.entityIdentifier,
-          entitiesNames: _.omit(entitiesMetadata.entitiesNames, 'validations'),
+          entitiesNames: omit(entitiesMetadata.entitiesNames, 'validations'),
         };
         const baseIngestionContext = {
           entityManager,
@@ -113,7 +113,7 @@ export class PolygonPartsManager {
       return { polygonPartsEntityName };
     } catch (error) {
       const errorMessage = 'Create polygon parts transaction failed';
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -126,7 +126,7 @@ export class PolygonPartsManager {
       const polygonPartsEntityName = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
         const entitiesMetadataWithoutValidations: EntitiesMetadataWithoutValidations = {
           entityIdentifier: entitiesMetadata.entityIdentifier,
-          entitiesNames: _.omit(entitiesMetadata.entitiesNames, 'validations'),
+          entitiesNames: omit(entitiesMetadata.entitiesNames, 'validations'),
         };
         const baseIngestionContext = {
           entityManager,
@@ -148,7 +148,7 @@ export class PolygonPartsManager {
       return { polygonPartsEntityName };
     } catch (error) {
       const errorMessage = 'Cheking polygon parts exists transaction failed';
-      this.logger.error({ msg: errorMessage, error });
+      this.logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -181,7 +181,7 @@ export class PolygonPartsManager {
           return polygonParts;
         } catch (error) {
           const errorMessage = `Could not complete find '${polygonPartsEntityName.entityName}'`;
-          logger.error({ msg: errorMessage, error });
+          logger.error({ msg: errorMessage, err: error });
           throw error;
         }
       });
@@ -193,7 +193,7 @@ export class PolygonPartsManager {
       return response.geojson;
     } catch (error) {
       const errorMessage = 'Find polygon parts transaction failed';
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -220,7 +220,7 @@ export class PolygonPartsManager {
           return polygonParts;
         } catch (error) {
           const errorMessage = `Could not complete intersection '${polygonPartsEntityName.entityName}'`;
-          logger.error({ msg: errorMessage, error });
+          logger.error({ msg: errorMessage, err: error });
           throw error;
         }
       });
@@ -232,7 +232,7 @@ export class PolygonPartsManager {
       return response.geojson;
     } catch (error) {
       const errorMessage = 'Intersection transaction failed';
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -250,7 +250,7 @@ export class PolygonPartsManager {
       const polygonPartsEntityName = await this.connectionManager.getDataSource().transaction(async (entityManager) => {
         const entitiesMetadataWithoutValidations: EntitiesMetadataWithoutValidations = {
           entityIdentifier: entitiesMetadata.entityIdentifier,
-          entitiesNames: _.omit(entitiesMetadata.entitiesNames, 'validations'),
+          entitiesNames: omit(entitiesMetadata.entitiesNames, 'validations'),
         };
         const baseUpdateContext = {
           entityManager,
@@ -273,7 +273,7 @@ export class PolygonPartsManager {
       return { polygonPartsEntityName };
     } catch (error) {
       const errorMessage = 'Update polygon parts transaction failed';
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -311,7 +311,7 @@ export class PolygonPartsManager {
           } else {
             errorMessage = 'Could not aggregate polygon parts';
           }
-          logger.error({ msg: errorMessage, error });
+          logger.error({ msg: errorMessage, err: error });
           throw error;
         }
       });
@@ -327,7 +327,7 @@ export class PolygonPartsManager {
       return response.feature;
     } catch (error) {
       const errorMessage = 'Aggregation query transaction failed';
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -368,11 +368,11 @@ export class PolygonPartsManager {
           errorsSummary.push(invalidResolutions);
         }
 
-        mergedPartsErrors = _(errorsSummary.flat())
+        mergedPartsErrors = lodash(errorsSummary.flat())
           .groupBy('id')
           .map((group, id) => ({
             id,
-            errors: _.uniqBy(
+            errors: uniqBy(
               group.flatMap((g) => g.errors),
               'code'
             ),
@@ -389,7 +389,7 @@ export class PolygonPartsManager {
       return response;
     } catch (error) {
       const errorMessage = 'Validations query transaction failed';
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -414,7 +414,7 @@ export class PolygonPartsManager {
       });
     } catch (error) {
       const errorMessage = 'Validation table deletes query transaction failed';
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -478,7 +478,7 @@ export class PolygonPartsManager {
       });
     } catch (error) {
       const errorMessage = 'Process polygon parts transaction failed';
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -548,7 +548,7 @@ export class PolygonPartsManager {
       return result;
     } catch (error) {
       const errorMessage = `Could not create polygon parts validation table: ${validationsEntityQualifiedName}`;
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -574,6 +574,10 @@ export class PolygonPartsManager {
         [validationsEntityQualifiedName, this.applicationConfig.validation.areaThresholdSquareMeters]
       );
 
+      if (dbResponse === undefined) {
+        throw new Error('small geometries validation query returned no result');
+      }
+
       const summary = {
         count: dbResponse.count,
         parts: dbResponse.ids.map((id) => ({
@@ -585,7 +589,7 @@ export class PolygonPartsManager {
       return summary;
     } catch (error) {
       const errorMessage = `Could not calculte small geometries: ${validationsEntityQualifiedName}`;
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -616,7 +620,7 @@ export class PolygonPartsManager {
       await part.save(insertValidationsPartData, { chunk: this.applicationConfig.chunkSize });
     } catch (error) {
       const errorMessage = `Could not insert polygon parts data to table '${validationsEntityQualifiedName}'`;
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -639,7 +643,7 @@ export class PolygonPartsManager {
       );
     } catch (error) {
       const errorMessage = `Could not create validation parts tables: '${validationsEntityQualifiedName}' `;
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -665,6 +669,10 @@ export class PolygonPartsManager {
         [validationsEntityQualifiedName, this.applicationConfig.validation.areaThresholdSquareMeters]
       );
 
+      if (dbResponse === undefined) {
+        throw new Error('small holes validation query returned no result');
+      }
+
       const summary = {
         count: dbResponse.count,
         parts: dbResponse.ids.map((id) => ({
@@ -676,7 +684,7 @@ export class PolygonPartsManager {
       return summary;
     } catch (error) {
       const errorMessage = `Could not get summary of small holes in: ${validationsEntityQualifiedName}`;
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -705,7 +713,7 @@ export class PolygonPartsManager {
         .execute();
     } catch (error) {
       const errorMessage = `Could not update validation table: ${validationsEntityQualifiedName}`;
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -767,7 +775,7 @@ export class PolygonPartsManager {
       return result;
     } catch (error) {
       const errorMessage = `Could not get validate resolutions in: ${validationsEntityQualifiedName}`;
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -915,7 +923,7 @@ export class PolygonPartsManager {
           return [databaseObjectQualifiedName, entityExists] satisfies [DatabaseObjectQualifiedName, boolean];
         } catch (error) {
           const errorMessage = `Could not verify polygon parts table name '${databaseObjectQualifiedName}' is available`;
-          logger.error({ msg: errorMessage, error });
+          logger.error({ msg: errorMessage, err: error });
           throw error;
         }
       })
@@ -1066,14 +1074,18 @@ export class PolygonPartsManager {
   ): SelectQueryBuilder<IntersectionQueryResponse> {
     const { entityManager, geometry, polygonPartsEntityName } = context;
     const { maxDecimalDigits } = this.applicationConfig.entities.polygonParts.intersection;
-    const polygonalGeoJSONGeometryString = JSON.stringify(geometry.features[0].geometry);
+    const inputFeature = geometry.features[0];
+    if (inputFeature === undefined) {
+      throw new Error('intersection geometry must contain at least one feature');
+    }
+    const polygonalGeoJSONGeometryString = JSON.stringify(inputFeature.geometry);
 
     const outputGeometryCTE = entityManager
       .createQueryBuilder()
       .select(`st_intersection(${geometryColumn}, st_setsrid(st_geomfromgeojson('${polygonalGeoJSONGeometryString}'), 4326))`, 'geometry')
       .from<IntersectionResponse>(polygonPartsEntityName.databaseObjectQualifiedName, polygonPartsEntityName.entityName)
-      .where(`${resolutionDegreeColumn} <= :resolutionDegree`, { resolutionDegree: geometry.features[0].properties.resolutionDegree })
-      .andWhere(`st_intersects(${geometryColumn}, st_setsrid(st_geomfromgeojson(:geometry), 4326))`, { geometry: geometry.features[0].geometry });
+      .where(`${resolutionDegreeColumn} <= :resolutionDegree`, { resolutionDegree: inputFeature.properties.resolutionDegree })
+      .andWhere(`st_intersects(${geometryColumn}, st_setsrid(st_geomfromgeojson(:geometry), 4326))`, { geometry: inputFeature.geometry });
 
     const unionedGeometriesCTE = entityManager
       .createQueryBuilder()
@@ -1124,7 +1136,7 @@ export class PolygonPartsManager {
       );
     } catch (error) {
       const errorMessage = `Could not update polygon parts data in tables: '${partsEntityQualifiedName}', '${polygonPartsEntityQualifiedName}'`;
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -1152,7 +1164,7 @@ export class PolygonPartsManager {
       );
     } catch (error) {
       const errorMessage = `Could not create polygon parts tables: '${partsEntityQualifiedName}', '${polygonPartsEntityQualifiedName}'`;
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -1176,7 +1188,7 @@ export class PolygonPartsManager {
           }
         } catch (error) {
           const errorMessage = `Could not verify polygon parts table name '${databaseObjectQualifiedName}' is available`;
-          logger.error({ msg: errorMessage, error });
+          logger.error({ msg: errorMessage, err: error });
           throw error;
         }
       })
@@ -1209,7 +1221,7 @@ export class PolygonPartsManager {
       await part.save(insertPartsData, { chunk: this.applicationConfig.chunkSize });
     } catch (error) {
       const errorMessage = `Could not insert polygon parts data to table '${partsEntityQualifiedName}'`;
-      logger.error({ msg: errorMessage, error });
+      logger.error({ msg: errorMessage, err: error });
       throw error;
     }
   }
@@ -1229,7 +1241,7 @@ export class PolygonPartsManager {
           await this.truncateEntity(entityManager, entityName);
         } catch (error) {
           const errorMessage = `Could not truncate table '${databaseObjectQualifiedName}' `;
-          logger.error({ msg: errorMessage, error });
+          logger.error({ msg: errorMessage, err: error });
           throw error;
         }
       })

@@ -49,14 +49,17 @@ type AggregationLayerMetadataValidationHandler = RequestHandler<
 
 @singleton()
 export class ValidationsController {
-  public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, @inject(Validator) private readonly validator: Validator) {}
+  public constructor(
+    @inject(SERVICES.LOGGER) private readonly logger: Logger,
+    @inject(Validator) private readonly validator: Validator
+  ) {}
 
   public readonly validateCreatePolygonParts: CreatePolygonPartsValidationHandler = (req, _, next) => {
     try {
       this.validator.schemaParser({ schema: polygonPartsPayloadSchema, value: req.body, errorMessagePrefix: 'Invalid request body' });
       next();
     } catch (error) {
-      this.logger.error({ msg: 'create polygon parts validation failed', error });
+      this.logger.error({ msg: 'create polygon parts validation failed', err: error });
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }
@@ -70,7 +73,7 @@ export class ValidationsController {
       this.validator.schemaParser({ schema: updatePolygonPartsQueryParamsSchema, value: req.query, errorMessagePrefix: 'Invalid query params' });
       next();
     } catch (error) {
-      this.logger.error({ msg: 'update polygon parts validation failed', error });
+      this.logger.error({ msg: 'update polygon parts validation failed', err: error });
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }
@@ -87,7 +90,7 @@ export class ValidationsController {
       });
       next();
     } catch (error) {
-      this.logger.error({ msg: 'exists polygon parts validation failed', error });
+      this.logger.error({ msg: 'exists polygon parts validation failed', err: error });
       if (error instanceof ValidationError) {
         throw new BadRequestError(error.message);
       }
@@ -109,7 +112,7 @@ export class ValidationsController {
       }
       next();
     } catch (error) {
-      this.logger.error({ msg: 'find polygon parts validation failed', error });
+      this.logger.error({ msg: 'find polygon parts validation failed', err: error });
       if (error instanceof ValidationError) {
         return next(new BadRequestError(error.message));
       }
@@ -131,7 +134,7 @@ export class ValidationsController {
       req.body = requestBody;
       next();
     } catch (error) {
-      this.logger.error({ msg: 'aggregate layer metadata validation failed', error });
+      this.logger.error({ msg: 'aggregate layer metadata validation failed', err: error });
       if (error instanceof ValidationError) {
         return next(new BadRequestError(error.message));
       }
@@ -150,7 +153,7 @@ export class ValidationsController {
       await this.validator.validateGeometries(requestBody);
       next();
     } catch (error) {
-      this.logger.error({ msg: 'intersection validation failed', error });
+      this.logger.error({ msg: 'intersection validation failed', err: error });
       if (error instanceof ValidationError) {
         return next(new BadRequestError(error.message));
       }

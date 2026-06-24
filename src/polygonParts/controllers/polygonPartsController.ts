@@ -7,6 +7,7 @@ import type {
   AggregatePolygonPartsRequestBody,
   AggregationLayerMetadataParams,
   AggregationLayerMetadataResponseBody,
+  DeletePolygonPartsParams,
   ExistsRequestBody,
   ExistsResponseBody,
   FindPolygonPartsParams,
@@ -73,6 +74,8 @@ export type ValidatePolygonPartsHandler = RequestHandler<
 >;
 
 export type DeleteValidationPolygonPartsEntityHandler = RequestHandler<undefined, undefined, undefined, ValidationEntityQuery, EntitiesMetadata>;
+
+export type DeletePolygonPartsHandler = RequestHandler<DeletePolygonPartsParams, undefined, undefined, undefined, EntitiesMetadata>;
 
 export type ProcessPolygonPartsEntityHandler = RequestHandler<undefined, undefined, ProcessPolygonPartsRequestBody, undefined, EntitiesMetadata>;
 
@@ -170,6 +173,15 @@ export class PolygonPartsController {
     try {
       const { shouldClearEntities = false } = req.body;
       await this.polygonPartsManager.process({ entitiesMetadata: res.locals, shouldClearEntities });
+      return res.status(httpStatus.NO_CONTENT).send();
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public deletePolygonParts: DeletePolygonPartsHandler = async (req, res, next) => {
+    try {
+      await this.polygonPartsManager.deletePolygonParts(res.locals);
       return res.status(httpStatus.NO_CONTENT).send();
     } catch (error) {
       next(error);

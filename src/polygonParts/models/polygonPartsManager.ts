@@ -419,6 +419,36 @@ export class PolygonPartsManager {
     }
   }
 
+  public async deletePolygonParts(entitiesMetadata: EntitiesMetadata): Promise<void> {
+    const {
+      polygonParts: { entityName: polygonPartsEntityName, databaseObjectQualifiedName: polygonPartsQualifiedName },
+      history: { databaseObjectQualifiedName: historyQualifiedName },
+      validations: { databaseObjectQualifiedName: validationsQualifiedName },
+    } = entitiesMetadata.entitiesNames;
+
+    const logger = this.logger.child({ polygonPartsEntityName });
+    logger.info({ msg: 'deleting polygon parts layer', polygonPartsEntityName });
+
+    try {
+      await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        await entityManager.query(`SET search_path TO ${this.schema},public`);
+
+        const entityExists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName);
+        if (!entityExists) {
+          throw new NotFoundError(`Table with the name '${polygonPartsEntityName}' doesn't exists`);
+        }
+
+        await entityManager.query(`DROP TABLE ${polygonPartsQualifiedName}`);
+        await entityManager.query(`DROP TABLE ${historyQualifiedName}`);
+        await entityManager.query(`DROP TABLE IF EXISTS ${validationsQualifiedName}`);
+      });
+    } catch (error) {
+      const errorMessage = 'Delete polygon parts transaction failed';
+      logger.error({ msg: errorMessage, err: error });
+      throw error;
+    }
+  }
+
   public async process(options: ProcessPolygonPartsOptions): Promise<void> {
     const { entitiesMetadata, shouldClearEntities = false } = options;
     const {

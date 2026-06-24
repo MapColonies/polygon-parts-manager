@@ -160,4 +160,17 @@ export class ValidationsController {
       next(error);
     }
   };
+
+  public readonly validateDeletePolygonParts: RequestHandler<unknown, undefined, undefined, undefined> = (req, _, next) => {
+    try {
+      this.validator.schemaParser({ schema: polygonPartsEntityNameSchema, value: req.params, errorMessagePrefix: 'Invalid request params' });
+      next();
+    } catch (error) {
+      this.logger.error({ msg: 'delete polygon parts validation failed', err: error });
+      if (error instanceof ValidationError) {
+        return next(new BadRequestError(error.message));
+      }
+      next(error);
+    }
+  };
 }

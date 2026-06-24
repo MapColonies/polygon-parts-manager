@@ -10,6 +10,12 @@ const polygonPartsRouterFactory: FactoryFunction<Router> = (dependencyContainer)
   const validations = dependencyContainer.resolve(ValidationsController);
   const transformer = dependencyContainer.resolve(TransformerController);
 
+  router.delete(
+    '/:polygonPartsEntityName',
+    validations.validateDeletePolygonParts,
+    transformer.parseDeletePolygonParts,
+    controller.deletePolygonParts
+  );
   router.post('/:polygonPartsEntityName/find', validations.validateFindPolygonParts, transformer.parseFindPolygonParts, controller.findPolygonParts);
   router.post(
     '/:polygonPartsEntityName/aggregate',

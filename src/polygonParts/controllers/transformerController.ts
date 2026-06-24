@@ -15,6 +15,7 @@ import type {
 } from './interfaces';
 import type {
   AggregationLayerMetadataHandler,
+  DeletePolygonPartsHandler,
   DeleteValidationPolygonPartsEntityHandler,
   ValidatePolygonPartsHandler,
 } from './polygonPartsController';
@@ -152,6 +153,17 @@ export class TransformerController {
       res.locals = entitiesMetadata;
       next();
     } catch (error) {
+      next(error);
+    }
+  };
+
+  public readonly parseDeletePolygonParts: DeletePolygonPartsHandler = (req, res, next) => {
+    try {
+      const entitiesMetadata = this.transformer.parseEntitiesMetadata(req.params);
+      res.locals = entitiesMetadata;
+      next();
+    } catch (error) {
+      this.logger.error({ msg: 'delete polygon parts transformer failed', err: error });
       next(error);
     }
   };

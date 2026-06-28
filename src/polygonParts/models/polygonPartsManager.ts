@@ -423,7 +423,7 @@ export class PolygonPartsManager {
     const {
       polygonParts: { entityName: polygonPartsEntityName, databaseObjectQualifiedName: polygonPartsQualifiedName },
       history: { databaseObjectQualifiedName: historyQualifiedName },
-      validations: { databaseObjectQualifiedName: validationsQualifiedName },
+      validations: { entityName: validationsEntityName, databaseObjectQualifiedName: validationsQualifiedName },
     } = entitiesMetadata.entitiesNames;
 
     const logger = this.logger.child({ polygonPartsEntityName });
@@ -440,7 +440,10 @@ export class PolygonPartsManager {
 
         await entityManager.query(`DROP TABLE ${polygonPartsQualifiedName}`);
         await entityManager.query(`DROP TABLE ${historyQualifiedName}`);
-        await entityManager.query(`DROP TABLE IF EXISTS ${validationsQualifiedName}`);
+        const validationExists = await this.connectionManager.entityExists(entityManager, validationsEntityName);
+        if (validationExists) {
+          await deleteValidationsTable(entityManager, this.schema, validationsEntityName, validationsQualifiedName, logger);
+        }
       });
     } catch (error) {
       const errorMessage = 'Delete polygon parts transaction failed';

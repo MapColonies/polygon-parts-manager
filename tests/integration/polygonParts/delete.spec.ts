@@ -1,4 +1,3 @@
-import { faker } from '@faker-js/faker';
 import { jsLogger } from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes as httpStatusCodes } from 'http-status-codes';
@@ -21,10 +20,6 @@ import type { GetEntitiesMetadata } from './helpers/types';
 import { ingestPolygonParts } from './helpers/utils';
 
 let testDataSourceOptions: DataSourceOptions;
-
-const seed = process.env.TEST_SEED ?? Math.floor(Math.random() * 1000000);
-faker.seed(Number(seed));
-console.info(`Test seed: ${seed}`);
 
 describe('delete', () => {
   let requestSender: PolygonPartsRequestSender;

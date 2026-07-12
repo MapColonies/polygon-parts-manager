@@ -427,7 +427,7 @@ export class PolygonPartsManager {
     } = entitiesMetadata.entitiesNames;
 
     const logger = this.logger.child({ polygonPartsEntityName });
-    logger.info({ msg: 'deleting polygon parts layer', polygonPartsEntityName });
+    logger.info({ msg: 'deleting polygon parts layer' });
 
     try {
       await this.connectionManager.getDataSource().transaction(async (entityManager) => {
@@ -438,7 +438,9 @@ export class PolygonPartsManager {
           throw new NotFoundError(`Table with the name '${polygonPartsEntityName}' doesn't exists`);
         }
 
+        logger.info({ msg: 'dropping polygon parts table', tableName: polygonPartsQualifiedName });
         await entityManager.query(`DROP TABLE ${polygonPartsQualifiedName}`);
+        logger.info({ msg: 'dropping history table', tableName: historyQualifiedName });
         await entityManager.query(`DROP TABLE ${historyQualifiedName}`);
         const validationExists = await this.connectionManager.entityExists(entityManager, validationsEntityName);
         if (validationExists) {

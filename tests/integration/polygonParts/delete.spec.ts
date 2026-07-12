@@ -119,5 +119,19 @@ describe('delete', () => {
         expect(response).toSatisfyApiSpec();
       });
     });
+
+    describe('Route precedence with DELETE /polygonParts/validate', () => {
+      // Guards against route shadowing: the static DELETE /polygonParts/validate must take
+      // precedence over the parameterized DELETE /polygonParts/:polygonPartsEntityName. If the
+      // parameterized route captured `validate`, the request would reach deletePolygonParts and
+      // return 404 (no such table). Instead it must reach the validate-delete handler, whose
+      // contract rejects the missing query params with 400 — as seen in the PR review example.
+      it('should route DELETE /polygonParts/validate to the validate-delete handler (400), not entity delete (404)', async () => {
+        const response = await requestSender.deletePolygonParts('validate');
+
+        expect(response.status).toBe(httpStatusCodes.BAD_REQUEST);
+        expect(response).toSatisfyApiSpec();
+      });
+    });
   });
 });

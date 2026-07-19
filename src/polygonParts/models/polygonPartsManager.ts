@@ -435,7 +435,7 @@ export class PolygonPartsManager {
 
         const entityExists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName);
         if (!entityExists) {
-          throw new NotFoundError(`Table with the name '${polygonPartsEntityName}' doesn't exists`);
+          throw new NotFoundError(`Table with the name '${polygonPartsEntityName}' doesn't exist`);
         }
 
         logger.info({ msg: 'dropping polygon parts table', tableName: polygonPartsQualifiedName });

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.5.0](https://github.com/MapColonies/polygon-parts-manager/compare/v3.4.0...v3.5.0) (2026-07-20)
+
+
+### Features
+
+* add DELETE /polygonParts/{polygonPartsEntityName} endpoint (MAPCO-4750) ([#105](https://github.com/MapColonies/polygon-parts-manager/issues/105)) ([07442c6](https://github.com/MapColonies/polygon-parts-manager/commit/07442c6368c8c7e6775a06eb6b77cf54266e868c))
+
 ## [3.4.0](https://github.com/MapColonies/polygon-parts-manager/compare/v3.3.1...v3.4.0) (2026-06-15)
 
 

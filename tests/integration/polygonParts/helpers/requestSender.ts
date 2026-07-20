@@ -66,6 +66,10 @@ export class PolygonPartsRequestSender {
     return agent(this.app).delete('/polygonParts/validate').query(query).send();
   }
 
+  public async deletePolygonParts(polygonPartsEntityName: string): Promise<Response> {
+    return agent(this.app).delete(`/polygonParts/${polygonPartsEntityName}`).send();
+  }
+
   public async moveValidationsToHistory(query: ValidationEntityQuery): Promise<Response> {
     return agent(this.app).put('/history').query(query).send();
   }

@@ -84,3 +84,10 @@ export type ValidationEntityQuery = Pick<CommonRecord, 'productId' | 'productTyp
 
 export type ProcessPolygonPartsRequestBody = Pick<CommonRecord, 'productId' | 'productType'> &
   Pick<ProcessPolygonPartsOptions, 'shouldClearEntities'>;
+
+/**
+ * Delete polygon parts params
+ */
+export interface DeletePolygonPartsParams {
+  readonly polygonPartsEntityName: EntityIdentifier;
+}

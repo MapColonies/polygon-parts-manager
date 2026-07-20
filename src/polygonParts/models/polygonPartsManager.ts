@@ -419,6 +419,41 @@ export class PolygonPartsManager {
     }
   }
 
+  public async deletePolygonParts(entitiesMetadata: EntitiesMetadata): Promise<void> {
+    const {
+      polygonParts: { entityName: polygonPartsEntityName, databaseObjectQualifiedName: polygonPartsQualifiedName },
+      history: { databaseObjectQualifiedName: historyQualifiedName },
+      validations: { entityName: validationsEntityName, databaseObjectQualifiedName: validationsQualifiedName },
+    } = entitiesMetadata.entitiesNames;
+
+    const logger = this.logger.child({ polygonPartsEntityName });
+    logger.info({ msg: 'deleting polygon parts layer' });
+
+    try {
+      await this.connectionManager.getDataSource().transaction(async (entityManager) => {
+        await entityManager.query(`SET search_path TO ${this.schema},public`);
+
+        const entityExists = await this.connectionManager.entityExists(entityManager, polygonPartsEntityName);
+        if (!entityExists) {
+          throw new NotFoundError(`Table with the name '${polygonPartsEntityName}' doesn't exist`);
+        }
+
+        logger.info({ msg: 'dropping polygon parts table', tableName: polygonPartsQualifiedName });
+        await entityManager.query(`DROP TABLE ${polygonPartsQualifiedName}`);
+        logger.info({ msg: 'dropping history table', tableName: historyQualifiedName });
+        await entityManager.query(`DROP TABLE ${historyQualifiedName}`);
+        const validationExists = await this.connectionManager.entityExists(entityManager, validationsEntityName);
+        if (validationExists) {
+          await deleteValidationsTable(entityManager, this.schema, validationsEntityName, validationsQualifiedName, logger);
+        }
+      });
+    } catch (error) {
+      const errorMessage = 'Delete polygon parts transaction failed';
+      logger.error({ msg: errorMessage, err: error });
+      throw error;
+    }
+  }
+
   public async process(options: ProcessPolygonPartsOptions): Promise<void> {
     const { entitiesMetadata, shouldClearEntities = false } = options;
     const {

@@ -133,6 +133,45 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
+  /polygonParts/{polygonPartsEntityName}:
+    delete:
+      tags:
+        - polygon-parts
+      summary: Delete a polygon parts layer
+      description: >
+        Permanently drops the processed table, history table, and (if present)
+        validation table for the given polygon parts entity, within a single
+        database transaction. This operation is irreversible.
+      operationId: deletePolygonParts
+      parameters:
+        - in: path
+          name: polygonPartsEntityName
+          description: Polygon parts entity name
+          schema:
+            $ref: >-
+              ./SchemaRaster/core/polygon-parts.yaml#/components/schemas/PolygonPartsEntityName
+          required: true
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
   /polygonParts/{polygonPartsEntityName}/find:
     post:
       tags:

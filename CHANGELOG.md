@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.5.1](https://github.com/MapColonies/polygon-parts-manager/compare/v3.5.0...v3.5.1) (2026-08-04)
+
+
+### Miscellaneous Chores
+
+* force alignment to rc track ([92d8897](https://github.com/MapColonies/polygon-parts-manager/commit/92d8897acc4b8f87025a17cdeee20d9e0a0fd185))
+
 ## [3.5.0](https://github.com/MapColonies/polygon-parts-manager/compare/v3.4.0...v3.5.0) (2026-07-20)
 
 

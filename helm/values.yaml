@@ -26,7 +26,7 @@ replicaCount: 1
 initialDelaySeconds: 60
 nodePort: 30030 # for minikube deployment only
 resetOnConfigChange: true
-imagePullPolicy: Always
+imagePullPolicy: IfNotPresent
 
 podAnnotations: {}
 
@@ -40,11 +40,11 @@ tracing:
   url: ''
 
 metrics:
-  enabled: false
-  url: ''
+  enabled: true
+  url: 'http://localhost:8080/metrics'
   interval: 15000 # default interval value of telemetry package
   prometheus:
-    scrape: false
+    scrape: true
     port: 8080
 
 image:
@@ -90,7 +90,7 @@ env:
           minAreaSquareDeg: &intersectionMinAreaSquareDeg 1e-12
         namePrefix: ''
         nameSuffix: ''
-        minAreaSquareDeg: 1e-15
+        minAreaSquareDeg: 1e-12
       validations:
         namePrefix: ''
         nameSuffix: '_valid'
@@ -105,7 +105,7 @@ env:
         enabled: true
         toleranceDeg: 0.000006
     validation:
-      areaThresholdSquareMeters: 5
+      areaThresholdSquareMeters: 10
       zoomLevelThreshold: 4
       resolution:
         minAreaSquareDeg: *intersectionMinAreaSquareDeg

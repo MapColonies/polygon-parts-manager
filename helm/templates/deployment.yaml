@@ -7,7 +7,6 @@
 {{- $cloudProviderImagePullSecretName := include "polygon-parts-manager.cloudProviderImagePullSecretName" . -}}
 {{- $imageTag := include "polygon-parts-manager.tag" . -}}
 {{- $server := .Values.server -}}
-{{- $metrics := .Values.telemetry.metrics -}}
 {{- $db := (include "common.db.merged" .) | fromYaml }}
 {{- $postgresSecretName := ternary $db.secrets.externalSecretName (printf "%s%s" .Release.Name "-postgres-secret") $db.secrets.useExternal -}}
 
@@ -40,10 +39,6 @@ spec:
       annotations:
         {{- if .Values.resetOnConfigChange }}
         checksum/configmap: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
-        {{- end }}
-        {{- if $metrics.enabled }}
-        prometheus.io/port: {{ $metrics.prometheus.port | quote }}
-        prometheus.io/scrape: {{ $metrics.prometheus.scrape | quote }}
         {{- end }}
         {{- if .Values.podAnnotations }}
         {{- toYaml .Values.podAnnotations | nindent 8 }}

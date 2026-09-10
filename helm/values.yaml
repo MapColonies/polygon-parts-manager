@@ -2,7 +2,6 @@ global:
   cloudProvider: {}
   telemetry:
     tracing: {}
-    metrics: {}
     logger:
       opentelemetryOptions: {}
   environment: {}
@@ -73,14 +72,6 @@ telemetry:
   tracing:
     enabled: true
     url: http://localhost:55681/v1/traces
-  metrics:
-    enabled: true
-    url: http://localhost:8080/metrics
-    interval: 15000 # default interval value of telemetry package
-    prometheus:
-      scrape: true
-      port: 8080
-
 application:
   chunkSize: 1000
   arraySeparator: ','

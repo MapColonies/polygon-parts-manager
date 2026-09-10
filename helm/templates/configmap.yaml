@@ -3,7 +3,6 @@
 {{- $server := .Values.server -}}
 {{- $telemetry := .Values.telemetry -}}
 {{- $tracingUrl := include "polygon-parts-manager.tracingUrl" . -}}
-{{- $metricsUrl := include "polygon-parts-manager.metricsUrl" . -}}
 {{- $opentelemetryLoggingUrl := include "polygon-parts-manager.opentelemetryLoggingUrl" . -}}
 {{- $db := (include "common.db.merged" .) | fromYaml }}
 {{- if .Values.enabled -}}
@@ -74,11 +73,6 @@ data:
   TELEMETRY_TRACING_ENABLED: {{ .tracing.enabled | quote }}
   {{- if .tracing.enabled }}
   TELEMETRY_TRACING_URL: {{ $tracingUrl | quote }}
-  {{- end }}
-  TELEMETRY_METRICS_ENABLED: {{ .metrics.enabled | quote }}
-  {{- if .metrics.enabled }}
-  TELEMETRY_METRICS_INTERVAL: {{ .metrics.interval | quote }}
-  TELEMETRY_METRICS_URL: {{ $metricsUrl | quote }}
   {{- end }}
   {{- end }}
   CONFIG_OFFLINE_MODE: {{ .Values.configManagement.offlineMode | quote }}

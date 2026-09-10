@@ -115,17 +115,6 @@ Returns the tracing url from global if set, otherwise from the chart's values
 {{- end -}}
 
 {{/*
-Returns the metrics url from global if set, otherwise from the chart's values
-*/}}
-{{- define "polygon-parts-manager.metricsUrl" -}}
-{{- if .Values.global.telemetry.metrics.url }}
-    {{- .Values.global.telemetry.metrics.url -}}
-{{- else if .Values.telemetry.metrics.url -}}
-    {{- .Values.telemetry.metrics.url -}}
-{{- end -}}
-{{- end -}}
-
-{{/*
 Returns the opentelemetry logging url from global if set, otherwise from the chart's values
 */}}
 {{- define "polygon-parts-manager.opentelemetryLoggingUrl" -}}

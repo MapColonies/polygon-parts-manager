@@ -102,3 +102,37 @@ Returns the cloud provider image pull secret name from global if exists or from 
     {{- .Values.cloudProvider.imagePullSecretName -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Returns the tracing url from global if set, otherwise from the chart's values
+*/}}
+{{- define "polygon-parts-manager.tracingUrl" -}}
+{{- if .Values.global.telemetry.tracing.url }}
+    {{- .Values.global.telemetry.tracing.url -}}
+{{- else if .Values.telemetry.tracing.url -}}
+    {{- .Values.telemetry.tracing.url -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Returns the opentelemetry logging url from global if set, otherwise from the chart's values
+*/}}
+{{- define "polygon-parts-manager.opentelemetryLoggingUrl" -}}
+{{- if .Values.global.telemetry.logger.opentelemetryOptions.url }}
+    {{- .Values.global.telemetry.logger.opentelemetryOptions.url -}}
+{{- else if .Values.telemetry.logger.opentelemetryOptions.url -}}
+    {{- .Values.telemetry.logger.opentelemetryOptions.url -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Renders a map of resource attributes as key=value,key=value for OTEL_RESOURCE_ATTRIBUTES.
+Usage: {{ include "polygon-parts-manager.otelResourceAttributes" .resourceAttributes }}
+*/}}
+{{- define "polygon-parts-manager.otelResourceAttributes" -}}
+{{- $attributes := list }}
+{{- range $key, $value := . }}
+{{- $attributes = append $attributes (printf "%s=%s" $key (toString $value)) }}
+{{- end }}
+{{- join "," $attributes }}
+{{- end -}}

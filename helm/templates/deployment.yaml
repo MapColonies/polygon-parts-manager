@@ -6,7 +6,7 @@
 {{- $cloudProviderDockerRegistryUrl := include "polygon-parts-manager.cloudProviderDockerRegistryUrl" . -}}
 {{- $cloudProviderImagePullSecretName := include "polygon-parts-manager.cloudProviderImagePullSecretName" . -}}
 {{- $imageTag := include "polygon-parts-manager.tag" . -}}
-{{- $metrics := (include "common.metrics.merged" .) | fromYaml }}
+{{- $server := .Values.server -}}
 {{- $db := (include "common.db.merged" .) | fromYaml }}
 {{- $postgresSecretName := ternary $db.secrets.externalSecretName (printf "%s%s" .Release.Name "-postgres-secret") $db.secrets.useExternal -}}
 
@@ -40,10 +40,6 @@ spec:
         {{- if .Values.resetOnConfigChange }}
         checksum/configmap: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         {{- end }}
-        {{- if $metrics.enabled }}
-        prometheus.io/port: {{ $metrics.prometheus.port | quote }}
-        prometheus.io/scrape: {{ $metrics.prometheus.scrape | quote }}
-        {{- end }}
         {{- if .Values.podAnnotations }}
         {{- toYaml .Values.podAnnotations | nindent 8 }}
         {{- end }}
@@ -75,7 +71,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.uid
             - name: SERVER_PORT
-              value: {{ .Values.env.targetPort | quote }}
+              value: {{ $server.targetPort | quote }}
             {{- if .Values.global.ca.secretName }}
             - name: REQUESTS_CA_BUNDLE
               value: {{ printf "%s/%s" .Values.global.ca.path .Values.global.ca.key | quote }}
@@ -97,13 +93,13 @@ spec:
                 name: {{ $configmapName }}
           ports:
             - name: http
-              containerPort: {{ .Values.env.targetPort }}
-              protocol: {{ .Values.env.protocol }}
+              containerPort: {{ $server.targetPort }}
+              protocol: {{ $server.protocol }}
           livenessProbe:
             initialDelaySeconds: {{ .Values.initialDelaySeconds }}
             httpGet:
               path: /liveness
-              port: {{ .Values.env.targetPort }}
+              port: {{ $server.targetPort }}
           {{- if .Values.resources.enabled }}
           resources:
             {{- toYaml .Values.resources.value | nindent 12 }}

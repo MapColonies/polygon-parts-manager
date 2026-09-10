@@ -72,47 +72,48 @@ telemetry:
   tracing:
     enabled: true
     url: http://localhost:55681/v1/traces
-application:
-  chunkSize: 1000
-  arraySeparator: ','
-  createPolygonPartsTablesStoredProcedure: 'create_polygon_parts_tables'
-  updatePolygonPartsTablesStoredProcedure: 'update_polygon_parts'
-  createPolygonPartsValidationsTablesStoredProcedure: 'create_polygon_parts_validations_tables'
-  validateSmallHolesFunction: 'validate_small_holes'
-  validateSmallGeometriesFunction: 'validate_small_geometries'
-  validateResolutionsFunction: 'validate_resolutions'
-  entities:
-    history:
-      namePrefix: ''
-      nameSuffix: '_history'
-    polygonParts:
-      find:
-        maxDecimalDigits: 15
-      intersection:
-        maxDecimalDigits: 15
-        minAreaSquareDeg: &intersectionMinAreaSquareDeg 1e-12
-      namePrefix: ''
-      nameSuffix: ''
-      minAreaSquareDeg: 1e-12
-    validations:
-      namePrefix: ''
-      nameSuffix: '_valid'
-  aggregation:
-    maxDecimalDigits: 12
-    fixGeometry:
-      enabled: true
-      bufferSizeDeg: 0.000006
-      bufferStyleParameters: >-
-        'endcap=round join=round'
-    simplifyGeometry:
-      enabled: true
-      toleranceDeg: 0.000006
-  validation:
-    areaThresholdSquareMeters: 10
-    zoomLevelThreshold: 4
-    resolution:
-      minAreaSquareDeg: *intersectionMinAreaSquareDeg
-# external
+env:
+  application:
+    chunkSize: 1000
+    arraySeparator: ','
+    createPolygonPartsTablesStoredProcedure: 'create_polygon_parts_tables'
+    updatePolygonPartsTablesStoredProcedure: 'update_polygon_parts'
+    createPolygonPartsValidationsTablesStoredProcedure: 'create_polygon_parts_validations_tables'
+    validateSmallHolesFunction: 'validate_small_holes'
+    validateSmallGeometriesFunction: 'validate_small_geometries'
+    validateResolutionsFunction: 'validate_resolutions'
+    entities:
+      history:
+        namePrefix: ''
+        nameSuffix: '_history'
+      polygonParts:
+        find:
+          maxDecimalDigits: 15
+        intersection:
+          maxDecimalDigits: 15
+          minAreaSquareDeg: &intersectionMinAreaSquareDeg 1e-12
+        namePrefix: ''
+        nameSuffix: ''
+        minAreaSquareDeg: 1e-12
+      validations:
+        namePrefix: ''
+        nameSuffix: '_valid'
+    aggregation:
+      maxDecimalDigits: 12
+      fixGeometry:
+        enabled: true
+        bufferSizeDeg: 0.000006
+        bufferStyleParameters: >-
+          'endcap=round join=round'
+      simplifyGeometry:
+        enabled: true
+        toleranceDeg: 0.000006
+    validation:
+      areaThresholdSquareMeters: 10
+      zoomLevelThreshold: 4
+      resolution:
+        minAreaSquareDeg: *intersectionMinAreaSquareDeg
+  # external
 db:
   host: ''
   port: 5432

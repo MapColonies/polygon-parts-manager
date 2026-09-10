@@ -1,8 +1,10 @@
 {{- $chartName := include "polygon-parts-manager.name" . -}}
 {{- $configmapName := include "configmap.fullname" . }}
-{{- $tracing := (include "common.tracing.merged" .) | fromYaml }}
-{{- $metrics := (include "common.metrics.merged" .) | fromYaml }}
-{{- $openTelemetryOptions := (include "common.openTelemetryOptions.merged" .) | fromYaml }}
+{{- $server := .Values.server -}}
+{{- $telemetry := .Values.telemetry -}}
+{{- $tracingUrl := include "polygon-parts-manager.tracingUrl" . -}}
+{{- $metricsUrl := include "polygon-parts-manager.metricsUrl" . -}}
+{{- $opentelemetryLoggingUrl := include "polygon-parts-manager.opentelemetryLoggingUrl" . -}}
 {{- $db := (include "common.db.merged" .) | fromYaml }}
 {{- if .Values.enabled -}}
 apiVersion: v1
@@ -10,35 +12,35 @@ kind: ConfigMap
 metadata:
   name: {{ $configmapName }}
 data:
-  CHUNK_SIZE: {{ .Values.env.application.chunkSize | quote }}
-  ARRAY_SEPARATOR: {{ .Values.env.application.arraySeparator | quote }}
-  CREATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE: {{ .Values.env.application.createPolygonPartsTablesStoredProcedure | quote }}
-  UPDATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE: {{ .Values.env.application.updatePolygonPartsTablesStoredProcedure | quote }}
-  CREATE_POLYGON_PARTS_VALIDATIONS_TABLES_STORED_PROCEDURE: {{ .Values.env.application.createPolygonPartsValidationsTablesStoredProcedure | quote }}
-  VALIDATE_SMALL_HOLES_FUNCTION: {{ .Values.env.application.validateSmallHolesFunction | quote }}
-  VALIDATE_SMALL_GEOMETRIES_FUNCTION: {{ .Values.env.application.validateSmallGeometriesFunction | quote }}
-  VALIDATE_RESOLUTIONS_FUNCTION: {{ .Values.env.application.validateResolutionsFunction | quote }}
-  ENTITY_PARTS_NAME_PREFIX: {{ .Values.env.application.entities.history.namePrefix | quote }}
-  ENTITY_PARTS_NAME_SUFFIX: {{ .Values.env.application.entities.history.nameSuffix | quote }}
-  ENTITY_POLYGON_PARTS_FIND_MAX_DECIMAL_DIGITS: {{ .Values.env.application.entities.polygonParts.find.maxDecimalDigits | quote }}
-  ENTITY_POLYGON_PARTS_INTERSECTION_MAX_DECIMAL_DIGITS: {{ .Values.env.application.entities.polygonParts.intersection.maxDecimalDigits | quote }}
-  ENTITY_POLYGON_PARTS_INTERSECTION_MIN_AREA_SQUARE_DEG: {{ .Values.env.application.entities.polygonParts.intersection.minAreaSquareDeg | quote }}
-  ENTITY_POLYGON_PARTS_NAME_PREFIX: {{ .Values.env.application.entities.polygonParts.namePrefix | quote }}
-  ENTITY_POLYGON_PARTS_NAME_SUFFIX: {{ .Values.env.application.entities.polygonParts.nameSuffix | quote }}
-  ENTITY_POLYGON_PARTS_MIN_AREA_SQUARE_DEG: {{ .Values.env.application.entities.polygonParts.minAreaSquareDeg | quote }}
-  ENTITY_VALIDATIONS_NAME_PREFIX: {{ .Values.env.application.entities.validations.namePrefix | quote }}
-  ENTITY_VALIDATIONS_NAME_SUFFIX: {{ .Values.env.application.entities.validations.nameSuffix | quote }}
-  AGGREGATION_MAX_DECIMAL_DIGITS: {{ .Values.env.application.aggregation.maxDecimalDigits | quote }}
-  AGGREGATION_FIX_GEOMETRY_ENABLED: {{ .Values.env.application.aggregation.fixGeometry.enabled | quote }}
-  {{- if .Values.env.application.aggregation.fixGeometry.enabled }}
-  AGGREGATION_FIX_GEOMETRY_BUFFER_SIZE_DEG: {{ .Values.env.application.aggregation.fixGeometry.bufferSizeDeg | quote }}
-  AGGREGATION_FIX_GEOMETRY_BUFFER_STYLE_PARAMETERS: {{ .Values.env.application.aggregation.fixGeometry.bufferStyleParameters | quote }}
+  CHUNK_SIZE: {{ .Values.application.chunkSize | quote }}
+  ARRAY_SEPARATOR: {{ .Values.application.arraySeparator | quote }}
+  CREATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE: {{ .Values.application.createPolygonPartsTablesStoredProcedure | quote }}
+  UPDATE_POLYGON_PARTS_TABLES_STORED_PROCEDURE: {{ .Values.application.updatePolygonPartsTablesStoredProcedure | quote }}
+  CREATE_POLYGON_PARTS_VALIDATIONS_TABLES_STORED_PROCEDURE: {{ .Values.application.createPolygonPartsValidationsTablesStoredProcedure | quote }}
+  VALIDATE_SMALL_HOLES_FUNCTION: {{ .Values.application.validateSmallHolesFunction | quote }}
+  VALIDATE_SMALL_GEOMETRIES_FUNCTION: {{ .Values.application.validateSmallGeometriesFunction | quote }}
+  VALIDATE_RESOLUTIONS_FUNCTION: {{ .Values.application.validateResolutionsFunction | quote }}
+  ENTITY_PARTS_NAME_PREFIX: {{ .Values.application.entities.history.namePrefix | quote }}
+  ENTITY_PARTS_NAME_SUFFIX: {{ .Values.application.entities.history.nameSuffix | quote }}
+  ENTITY_POLYGON_PARTS_FIND_MAX_DECIMAL_DIGITS: {{ .Values.application.entities.polygonParts.find.maxDecimalDigits | quote }}
+  ENTITY_POLYGON_PARTS_INTERSECTION_MAX_DECIMAL_DIGITS: {{ .Values.application.entities.polygonParts.intersection.maxDecimalDigits | quote }}
+  ENTITY_POLYGON_PARTS_INTERSECTION_MIN_AREA_SQUARE_DEG: {{ .Values.application.entities.polygonParts.intersection.minAreaSquareDeg | quote }}
+  ENTITY_POLYGON_PARTS_NAME_PREFIX: {{ .Values.application.entities.polygonParts.namePrefix | quote }}
+  ENTITY_POLYGON_PARTS_NAME_SUFFIX: {{ .Values.application.entities.polygonParts.nameSuffix | quote }}
+  ENTITY_POLYGON_PARTS_MIN_AREA_SQUARE_DEG: {{ .Values.application.entities.polygonParts.minAreaSquareDeg | quote }}
+  ENTITY_VALIDATIONS_NAME_PREFIX: {{ .Values.application.entities.validations.namePrefix | quote }}
+  ENTITY_VALIDATIONS_NAME_SUFFIX: {{ .Values.application.entities.validations.nameSuffix | quote }}
+  AGGREGATION_MAX_DECIMAL_DIGITS: {{ .Values.application.aggregation.maxDecimalDigits | quote }}
+  AGGREGATION_FIX_GEOMETRY_ENABLED: {{ .Values.application.aggregation.fixGeometry.enabled | quote }}
+  {{- if .Values.application.aggregation.fixGeometry.enabled }}
+  AGGREGATION_FIX_GEOMETRY_BUFFER_SIZE_DEG: {{ .Values.application.aggregation.fixGeometry.bufferSizeDeg | quote }}
+  AGGREGATION_FIX_GEOMETRY_BUFFER_STYLE_PARAMETERS: {{ .Values.application.aggregation.fixGeometry.bufferStyleParameters | quote }}
   {{- end }}
-  VALIDATION_AREA_THRESHOLD_SQUARE_METERS: {{ .Values.env.application.validation.areaThresholdSquareMeters | quote }}
-  VALIDATION_ZOOM_LEVEL_THRESHOLD: {{ .Values.env.application.validation.zoomLevelThreshold | quote }}
-  VALIDATION_RESOLUTION_MIN_AREA_SQUARE_DEG: {{ .Values.env.application.validation.resolution.minAreaSquareDeg | quote }}
-  {{- if .Values.env.application.aggregation.simplifyGeometry.enabled }}
-  AGGREGATION_SIMPLIFY_GEOMETRY_TOLERANCE_DEG: {{ .Values.env.application.aggregation.simplifyGeometry.toleranceDeg | quote }}
+  VALIDATION_AREA_THRESHOLD_SQUARE_METERS: {{ .Values.application.validation.areaThresholdSquareMeters | quote }}
+  VALIDATION_ZOOM_LEVEL_THRESHOLD: {{ .Values.application.validation.zoomLevelThreshold | quote }}
+  VALIDATION_RESOLUTION_MIN_AREA_SQUARE_DEG: {{ .Values.application.validation.resolution.minAreaSquareDeg | quote }}
+  {{- if .Values.application.aggregation.simplifyGeometry.enabled }}
+  AGGREGATION_SIMPLIFY_GEOMETRY_TOLERANCE_DEG: {{ .Values.application.aggregation.simplifyGeometry.toleranceDeg | quote }}
   {{- end }}
   DB_HOST: {{ $db.host | quote }}
   DB_PORT: {{ $db.port | quote }}
@@ -53,27 +55,31 @@ data:
   DB_KEY_PATH: {{ $db.sslAuth.sslMountPath }}/{{ $db.sslAuth.keyFileName }}
   DB_CERT_PATH: {{ $db.sslAuth.sslMountPath }}/{{ $db.sslAuth.certFileName }}
   {{- end }}
-  REQUEST_PAYLOAD_LIMIT: {{ .Values.env.requestPayloadLimit | quote }}
-  RESPONSE_COMPRESSION_ENABLED: {{ .Values.env.responseCompressionEnabled | quote }}
-  LOG_LEVEL: {{ .Values.env.logLevel | quote }}
-  LOG_PRETTY_PRINT_ENABLED: {{ .Values.env.logPrettyPrintEnabled | quote }}
-  {{- with $openTelemetryOptions }}
+  {{- with $server }}
+  REQUEST_PAYLOAD_LIMIT: {{ .requestPayloadLimit | quote }}
+  RESPONSE_COMPRESSION_ENABLED: {{ .responseCompressionEnabled | quote }}
+  {{- end }}
+  {{- with $telemetry }}
+  LOG_LEVEL: {{ .logger.level | quote }}
+  LOG_PRETTY_PRINT_ENABLED: {{ .logger.prettyPrint | quote }}
+  {{- with .logger.opentelemetryOptions }}
   OPENTELEMETRY_LOGGING_ENABLED: {{ .enabled | quote }}
   {{- if .enabled }}
-  OPENTELEMETRY_LOGGING_URL: {{ .url | quote }}
+  OTLP_LOGGER_ENDPOINT_URL: {{ $opentelemetryLoggingUrl | quote }}
   {{- if .resourceAttributes }}
-  OPENTELEMETRY_RESOURCE_ATTRIBUTES: {{ .resourceAttributes | toJson | quote }}
+  OTEL_RESOURCE_ATTRIBUTES: {{ include "polygon-parts-manager.otelResourceAttributes" .resourceAttributes | quote }}
   {{- end }}
   {{- end }}
   {{- end }}
-  TELEMETRY_TRACING_ENABLED: {{ $tracing.enabled | quote }}
-  {{- if $tracing.enabled }}
-  TELEMETRY_TRACING_URL: {{ $tracing.url | quote }}
+  TELEMETRY_TRACING_ENABLED: {{ .tracing.enabled | quote }}
+  {{- if .tracing.enabled }}
+  TELEMETRY_TRACING_URL: {{ $tracingUrl | quote }}
   {{- end }}
-  TELEMETRY_METRICS_ENABLED: {{ $metrics.enabled | quote }}
-  {{- if $metrics.enabled }}
-  TELEMETRY_METRICS_INTERVAL: {{ $metrics.interval | quote }}
-  TELEMETRY_METRICS_URL: {{ $metrics.url | quote }}
+  TELEMETRY_METRICS_ENABLED: {{ .metrics.enabled | quote }}
+  {{- if .metrics.enabled }}
+  TELEMETRY_METRICS_INTERVAL: {{ .metrics.interval | quote }}
+  TELEMETRY_METRICS_URL: {{ $metricsUrl | quote }}
+  {{- end }}
   {{- end }}
   CONFIG_OFFLINE_MODE: {{ .Values.configManagement.offlineMode | quote }}
   {{- if not .Values.configManagement.offlineMode }}

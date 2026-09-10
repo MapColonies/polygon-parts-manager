@@ -1,8 +1,10 @@
 global:
   cloudProvider: {}
-  tracing: {}
-  metrics: {}
-  openTelemetryOptions: {}
+  telemetry:
+    tracing: {}
+    metrics: {}
+    logger:
+      opentelemetryOptions: {}
   environment: {}
   db: {}
   ca:
@@ -35,18 +37,6 @@ cloudProvider:
   imagePullSecretName: 'my-registry-secret'
   flavor: openshift
 
-tracing:
-  enabled: false
-  url: ''
-
-metrics:
-  enabled: true
-  url: 'http://localhost:8080/metrics'
-  interval: 15000 # default interval value of telemetry package
-  prometheus:
-    scrape: true
-    port: 8080
-
 image:
   repository: polygon-parts-manager
   tag: 'latest'
@@ -57,58 +47,80 @@ configManagement:
   version: 'latest'
   serverUrl: ''
 
-env:
+server:
   port: 80
   targetPort: 8080
   protocol: TCP
-  logLevel: info
-  logPrettyPrintEnabled: false
-  openTelemetryOptions:
-    enabled: false
-    url: ''
-    resourceAttributes: {}
   responseCompressionEnabled: true
-  requestPayloadLimit: 1mb
-  application:
-    chunkSize: 1000
-    arraySeparator: ','
-    createPolygonPartsTablesStoredProcedure: 'create_polygon_parts_tables'
-    updatePolygonPartsTablesStoredProcedure: 'update_polygon_parts'
-    createPolygonPartsValidationsTablesStoredProcedure: 'create_polygon_parts_validations_tables'
-    validateSmallHolesFunction: 'validate_small_holes'
-    validateSmallGeometriesFunction: 'validate_small_geometries'
-    validateResolutionsFunction: 'validate_resolutions'
-    entities:
-      history:
-        namePrefix: ''
-        nameSuffix: '_history'
-      polygonParts:
-        find:
-          maxDecimalDigits: 15
-        intersection:
-          maxDecimalDigits: 15
-          minAreaSquareDeg: &intersectionMinAreaSquareDeg 1e-12
-        namePrefix: ''
-        nameSuffix: ''
-        minAreaSquareDeg: 1e-12
-      validations:
-        namePrefix: ''
-        nameSuffix: '_valid'
-    aggregation:
-      maxDecimalDigits: 12
-      fixGeometry:
-        enabled: true
-        bufferSizeDeg: 0.000006
-        bufferStyleParameters: >-
-          'endcap=round join=round'
-      simplifyGeometry:
-        enabled: true
-        toleranceDeg: 0.000006
-    validation:
-      areaThresholdSquareMeters: 10
-      zoomLevelThreshold: 4
-      resolution:
-        minAreaSquareDeg: *intersectionMinAreaSquareDeg
+  requestPayloadLimit: 10mb
+
+telemetry:
+  logger:
+    level: info
+    prettyPrint: false
+    # OpenTelemetry logging. Rendered into the configmap as OPENTELEMETRY_LOGGING_ENABLED,
+    # OTLP_LOGGER_ENDPOINT_URL and, when resourceAttributes is set, OTEL_RESOURCE_ATTRIBUTES
+    # as a key=value,key=value list. All three are mapped in
+    # config/custom-environment-variables.json.
+    # url can be overridden from global.telemetry.logger.opentelemetryOptions.url.
+    opentelemetryOptions:
+      enabled: true
+      url: http://localhost:4317
+      # Rendered as OTEL_RESOURCE_ATTRIBUTES in "key=value,key=value" format
+      # resourceAttributes:
+      #   service.namespace: namespace
+      #   deployment.environment: dev
+  tracing:
+    enabled: true
+    url: http://localhost:55681/v1/traces
+  metrics:
+    enabled: true
+    url: http://localhost:8080/metrics
+    interval: 15000 # default interval value of telemetry package
+    prometheus:
+      scrape: true
+      port: 8080
+
+application:
+  chunkSize: 1000
+  arraySeparator: ','
+  createPolygonPartsTablesStoredProcedure: 'create_polygon_parts_tables'
+  updatePolygonPartsTablesStoredProcedure: 'update_polygon_parts'
+  createPolygonPartsValidationsTablesStoredProcedure: 'create_polygon_parts_validations_tables'
+  validateSmallHolesFunction: 'validate_small_holes'
+  validateSmallGeometriesFunction: 'validate_small_geometries'
+  validateResolutionsFunction: 'validate_resolutions'
+  entities:
+    history:
+      namePrefix: ''
+      nameSuffix: '_history'
+    polygonParts:
+      find:
+        maxDecimalDigits: 15
+      intersection:
+        maxDecimalDigits: 15
+        minAreaSquareDeg: &intersectionMinAreaSquareDeg 1e-12
+      namePrefix: ''
+      nameSuffix: ''
+      minAreaSquareDeg: 1e-12
+    validations:
+      namePrefix: ''
+      nameSuffix: '_valid'
+  aggregation:
+    maxDecimalDigits: 12
+    fixGeometry:
+      enabled: true
+      bufferSizeDeg: 0.000006
+      bufferStyleParameters: >-
+        'endcap=round join=round'
+    simplifyGeometry:
+      enabled: true
+      toleranceDeg: 0.000006
+  validation:
+    areaThresholdSquareMeters: 10
+    zoomLevelThreshold: 4
+    resolution:
+      minAreaSquareDeg: *intersectionMinAreaSquareDeg
 # external
 db:
   host: ''

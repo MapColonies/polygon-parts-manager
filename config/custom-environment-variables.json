@@ -24,11 +24,6 @@
         "__format": "boolean"
       },
       "url": "TELEMETRY_TRACING_URL"
-    },
-    "metrics": {
-      "enabled": "TELEMETRY_METRICS_ENABLED",
-      "url": "TELEMETRY_METRICS_URL",
-      "interval": "TELEMETRY_METRICS_INTERVAL"
     }
   },
   "server": {

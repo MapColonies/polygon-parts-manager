@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.5.2](https://github.com/MapColonies/polygon-parts-manager/compare/v3.5.1...v3.5.2) (2026-11-25)
+
+
+### Bug Fixes
+
+* **helm:** add mclabels to pod template labels ([#111](https://github.com/MapColonies/polygon-parts-manager/issues/111)) ([b113364](https://github.com/MapColonies/polygon-parts-manager/commit/b11336423e7d3a77af8805d3d883002a9b29e532))
+
 ## [3.5.1](https://github.com/MapColonies/polygon-parts-manager/compare/v3.5.0...v3.5.1) (2026-08-04)
 
 

@@ -1,8 +1,9 @@
 global:
   cloudProvider: {}
-  tracing: {}
-  metrics: {}
-  openTelemetryOptions: {}
+  telemetry:
+    tracing: {}
+    logger:
+      opentelemetryOptions: {}
   environment: {}
   db: {}
   ca:
@@ -26,7 +27,7 @@ replicaCount: 1
 initialDelaySeconds: 60
 nodePort: 30030 # for minikube deployment only
 resetOnConfigChange: true
-imagePullPolicy: Always
+imagePullPolicy: IfNotPresent
 
 podAnnotations: {}
 
@@ -34,18 +35,6 @@ cloudProvider:
   dockerRegistryUrl: my-registry-url.io
   imagePullSecretName: 'my-registry-secret'
   flavor: openshift
-
-tracing:
-  enabled: false
-  url: ''
-
-metrics:
-  enabled: false
-  url: ''
-  interval: 15000 # default interval value of telemetry package
-  prometheus:
-    scrape: false
-    port: 8080
 
 image:
   repository: polygon-parts-manager
@@ -57,18 +46,28 @@ configManagement:
   version: 'latest'
   serverUrl: ''
 
-env:
+server:
   port: 80
   targetPort: 8080
   protocol: TCP
-  logLevel: info
-  logPrettyPrintEnabled: false
-  openTelemetryOptions:
-    enabled: false
-    url: ''
-    resourceAttributes: {}
   responseCompressionEnabled: true
-  requestPayloadLimit: 1mb
+  requestPayloadLimit: 10mb
+
+telemetry:
+  logger:
+    level: info
+    prettyPrint: false
+    opentelemetryOptions:
+      enabled: true
+      url: http://localhost:4317
+      # Rendered as OTEL_RESOURCE_ATTRIBUTES in "key=value,key=value" format
+      # resourceAttributes:
+      #   service.namespace: namespace
+      #   deployment.environment: dev
+  tracing:
+    enabled: true
+    url: http://localhost:55681/v1/traces
+env:
   application:
     chunkSize: 1000
     arraySeparator: ','
@@ -90,7 +89,7 @@ env:
           minAreaSquareDeg: &intersectionMinAreaSquareDeg 1e-12
         namePrefix: ''
         nameSuffix: ''
-        minAreaSquareDeg: 1e-15
+        minAreaSquareDeg: 1e-12
       validations:
         namePrefix: ''
         nameSuffix: '_valid'
@@ -105,11 +104,11 @@ env:
         enabled: true
         toleranceDeg: 0.000006
     validation:
-      areaThresholdSquareMeters: 5
+      areaThresholdSquareMeters: 10
       zoomLevelThreshold: 4
       resolution:
         minAreaSquareDeg: *intersectionMinAreaSquareDeg
-# external
+  # external
 db:
   host: ''
   port: 5432

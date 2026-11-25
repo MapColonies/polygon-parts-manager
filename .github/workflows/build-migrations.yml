@@ -102,7 +102,7 @@ jobs:
 
       - name: Login to ACR
         if: steps.detect.outputs.added == 'true'
-        uses: azure/docker-login@v1
+        uses: azure/docker-login@v2
         with:
           login-server: ${{ secrets.ACR_URL }}
           username: ${{ secrets.ACR_PUSH_USER }}

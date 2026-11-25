@@ -62,7 +62,7 @@ jobs:
       env:
         POSTGRES_IMAGE: postgis/postgis:17-3.5
 
-    - uses: actions/upload-artifact@v6
+    - uses: actions/upload-artifact@v7
       with:
         name: Test Reporters ${{ matrix.node }}
         path: ./reports/**

@@ -35,7 +35,7 @@ spec:
         app: {{ $chartName }}
         release: {{ $releaseName }}
         run: {{ $releaseName }}-{{ $chartName }}
-        {{- include "polygon-parts-manager.selectorLabels" . | nindent 8 }}
+        {{- include "polygon-parts-manager.labels" . | nindent 8 }}
       annotations:
         {{- if .Values.resetOnConfigChange }}
         checksum/configmap: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
